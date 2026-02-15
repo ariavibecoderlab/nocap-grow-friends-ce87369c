@@ -212,19 +212,21 @@ const Auth = () => {
 
             {step === "otp" && (
               <>
-                <div className="flex flex-col items-center space-y-4">
-                  <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
-                    </InputOTPGroup>
-                  </InputOTP>
+                <div className="space-y-2">
+                  <Label htmlFor="otpInput">Verification Code</Label>
+                  <Input
+                    id="otpInput"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Enter code from email"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    className="text-center text-lg tracking-widest font-semibold"
+                    autoFocus
+                  />
                 </div>
                 <Button className="w-full" onClick={handleVerifyOtp} disabled={loading || otpCode.length < 6}>
+
                   {loading ? "Verifying..." : "Verify"}
                 </Button>
                 <Button variant="outline" className="w-full text-sm" onClick={handleResendOtp} disabled={loading}>
