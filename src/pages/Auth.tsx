@@ -28,17 +28,21 @@ const Auth = () => {
     if (!email) return;
     setLoading(true);
     try {
-      // Try signing in with a dummy password to check if user exists
-      const { error } = await signInWithPassword(email, "__check_existence__");
-      if (error?.message?.includes("Invalid login credentials")) {
-        // User exists with a password
-        setHasPassword(true);
-        setStep("password");
-      } else if (error?.message?.includes("Email not confirmed")) {
-        toast({ title: "Check your email", description: "Please verify your email first." });
-      } else {
-        // User might not exist — show register
+      // Try sending OTP without creating user — checks if user exists
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      if (error) {
+        // User doesn't exist → show register form
         setStep("register");
+      } else {
+        // User exists, OTP sent successfully
+        toast({ title: "OTP Sent", description: "Check your email for the login code." });
+        setStep("otp");
       }
     } catch {
       setStep("register");
@@ -212,6 +216,9 @@ const Auth = () => {
                 </div>
                 <Button className="w-full" onClick={handleVerifyOtp} disabled={loading || otpCode.length < 6}>
                   {loading ? "Verifying..." : "Verify"}
+                </Button>
+                <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={() => setStep("password")}>
+                  Sign in with password instead
                 </Button>
                 <Button variant="link" className="w-full text-xs" onClick={() => setStep("email")}>
                   ← Back
