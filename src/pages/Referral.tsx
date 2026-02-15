@@ -136,6 +136,8 @@ const Referral = () => {
   const shareReferral = async () => {
     if (!profile?.referral_code) return;
     const shareUrl = `${window.location.origin}/auth?ref=${profile.referral_code}`;
+    
+    // Try native share first
     if (navigator.share) {
       try {
         await navigator.share({
@@ -143,12 +145,19 @@ const Referral = () => {
           text: `Use my referral code ${profile.referral_code} to join NOcap!`,
           url: shareUrl,
         });
+        return;
       } catch {
-        // user cancelled
+        // user cancelled or not supported, fall through to clipboard
       }
-    } else {
-      navigator.clipboard.writeText(shareUrl);
-      toast({ title: "Link copied!", description: "Share link copied to clipboard." });
+    }
+    
+    // Fallback: copy to clipboard
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast({ title: "Link copied!", description: shareUrl });
+    } catch {
+      // Clipboard also blocked (iframe), show the link in a toast so user can copy manually
+      toast({ title: "Your share link", description: shareUrl, duration: 10000 });
     }
   };
 
