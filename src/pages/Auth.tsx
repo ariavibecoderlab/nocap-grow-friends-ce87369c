@@ -9,9 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { signUp, signInWithPassword, verifyOtp, updatePassword } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail } from "lucide-react";
+import { Mail, CheckCircle2 } from "lucide-react";
 
-type AuthStep = "email" | "password" | "otp" | "magic-link-sent" | "register" | "set-password";
+type AuthStep = "email" | "password" | "otp" | "magic-link-sent" | "register" | "set-password" | "registration-success";
 
 const Auth = () => {
   const [step, setStep] = useState<AuthStep>("email");
@@ -134,8 +134,7 @@ const Auth = () => {
     if (error) {
       toast({ title: "Registration failed", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Account created!", description: "Please check your email to verify your account." });
-      setStep("email");
+      setStep("registration-success");
     }
     setLoading(false);
   };
@@ -159,6 +158,7 @@ const Auth = () => {
               {step === "magic-link-sent" && "Check Your Email"}
               {step === "register" && "Create Account"}
               {step === "set-password" && "Set Your Password"}
+              {step === "registration-success" && "Account Created!"}
             </CardTitle>
             <CardDescription>
               {step === "email" && "Enter your email to continue"}
@@ -167,6 +167,7 @@ const Auth = () => {
               {step === "magic-link-sent" && `We sent a login link to ${email}`}
               {step === "register" && "Fill in your details to get started"}
               {step === "set-password" && "Create a password for future logins"}
+              {step === "registration-success" && "Please verify your email to get started"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -286,6 +287,22 @@ const Auth = () => {
                 </Button>
                 <Button variant="link" className="w-full text-xs" onClick={() => setStep("email")}>
                   ← Already have an account? Sign in
+                </Button>
+              </>
+            )}
+
+            {step === "registration-success" && (
+              <>
+                <div className="flex flex-col items-center space-y-4 py-4">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                    <CheckCircle2 className="h-8 w-8 text-primary" />
+                  </div>
+                  <p className="text-center text-sm text-muted-foreground">
+                    We've sent a verification link to <span className="font-medium text-foreground">{email}</span>. Click the link in your email to activate your account, then come back to sign in.
+                  </p>
+                </div>
+                <Button className="w-full" onClick={() => setStep("email")}>
+                  Back to Sign In
                 </Button>
               </>
             )}
