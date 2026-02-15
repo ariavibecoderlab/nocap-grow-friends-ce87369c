@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,10 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
-import { signUp, signInWithPassword, signInWithOtp, verifyOtp, updatePassword } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
+import { signUp, signInWithPassword, verifyOtp, updatePassword } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { Mail } from "lucide-react";
 
-type AuthStep = "email" | "password" | "otp" | "register" | "set-password";
+type AuthStep = "email" | "password" | "otp" | "magic-link-sent" | "register" | "set-password";
 
 const Auth = () => {
   const [step, setStep] = useState<AuthStep>("email");
@@ -20,9 +22,16 @@ const Auth = () => {
   const [referralCode, setReferralCode] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [loading, setLoading] = useState(false);
-  const [hasPassword, setHasPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate("/dashboard");
+    }
+  }, [user, authLoading, navigate]);
 
   const handleEmailSubmit = async () => {
     if (!email) return;
@@ -40,9 +49,9 @@ const Auth = () => {
         // User doesn't exist → show register form
         setStep("register");
       } else {
-        // User exists, OTP sent successfully
-        toast({ title: "OTP Sent", description: "Check your email for the login code." });
-        setStep("otp");
+        // User exists, magic link sent
+        toast({ title: "Email Sent", description: "Check your email and click the login link." });
+        setStep("magic-link-sent");
       }
     } catch {
       setStep("register");
@@ -63,12 +72,15 @@ const Auth = () => {
 
   const handleSendOtp = async () => {
     setLoading(true);
-    const { error } = await signInWithOtp(email);
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin },
+    });
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "OTP Sent", description: "Check your email for the login code." });
-      setStep("otp");
+      toast({ title: "Email Sent", description: "Check your email for the login link." });
+      setStep("magic-link-sent");
     }
     setLoading(false);
   };
@@ -144,6 +156,7 @@ const Auth = () => {
               {step === "email" && "Welcome"}
               {step === "password" && "Enter Password"}
               {step === "otp" && "Verify OTP"}
+              {step === "magic-link-sent" && "Check Your Email"}
               {step === "register" && "Create Account"}
               {step === "set-password" && "Set Your Password"}
             </CardTitle>
@@ -151,6 +164,7 @@ const Auth = () => {
               {step === "email" && "Enter your email to continue"}
               {step === "password" && "Sign in to your account"}
               {step === "otp" && "Enter the code sent to your email"}
+              {step === "magic-link-sent" && `We sent a login link to ${email}`}
               {step === "register" && "Fill in your details to get started"}
               {step === "set-password" && "Create a password for future logins"}
             </CardDescription>
@@ -192,10 +206,29 @@ const Auth = () => {
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
                 <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={handleSendOtp}>
-                  Sign in with OTP instead
+                  Sign in with email link instead
                 </Button>
                 <Button variant="link" className="w-full text-xs" onClick={() => setStep("email")}>
                   ← Back
+                </Button>
+              </>
+            )}
+
+            {step === "magic-link-sent" && (
+              <>
+                <div className="flex flex-col items-center space-y-4 py-4">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                    <Mail className="h-8 w-8 text-primary" />
+                  </div>
+                  <p className="text-center text-sm text-muted-foreground">
+                    Click the login link in your email to sign in. You can close this page — the link will bring you back automatically.
+                  </p>
+                </div>
+                <Button variant="outline" className="w-full" onClick={handleSendOtp} disabled={loading}>
+                  {loading ? "Sending..." : "Resend email"}
+                </Button>
+                <Button variant="link" className="w-full text-xs" onClick={() => setStep("email")}>
+                  ← Use a different email
                 </Button>
               </>
             )}
