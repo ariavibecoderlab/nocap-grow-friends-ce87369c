@@ -11,7 +11,7 @@ import { signUp, signInWithPassword, verifyOtp, updatePassword } from "@/lib/aut
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, CheckCircle2 } from "lucide-react";
 
-type AuthStep = "email" | "password" | "otp" | "magic-link-sent" | "register" | "set-password" | "registration-success";
+type AuthStep = "email" | "password" | "otp" | "register" | "set-password" | "registration-success";
 
 const Auth = () => {
   const [step, setStep] = useState<AuthStep>("email");
@@ -42,16 +42,15 @@ const Auth = () => {
         email,
         options: {
           shouldCreateUser: false,
-          emailRedirectTo: window.location.origin,
         },
       });
       if (error) {
         // User doesn't exist → show register form
         setStep("register");
       } else {
-        // User exists, magic link sent
-        toast({ title: "Email Sent", description: "Check your email and click the login link." });
-        setStep("magic-link-sent");
+        // User exists, OTP sent
+        toast({ title: "OTP Sent", description: "Check your email for the 6-digit code." });
+        setStep("otp");
       }
     } catch {
       setStep("register");
@@ -74,13 +73,12 @@ const Auth = () => {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin },
     });
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Email Sent", description: "Check your email for the login link." });
-      setStep("magic-link-sent");
+      toast({ title: "OTP Sent", description: "Check your email for the 6-digit code." });
+      setStep("otp");
     }
     setLoading(false);
   };
@@ -155,7 +153,6 @@ const Auth = () => {
               {step === "email" && "Welcome"}
               {step === "password" && "Enter Password"}
               {step === "otp" && "Verify OTP"}
-              {step === "magic-link-sent" && "Check Your Email"}
               {step === "register" && "Create Account"}
               {step === "set-password" && "Set Your Password"}
               {step === "registration-success" && "Account Created!"}
@@ -163,8 +160,7 @@ const Auth = () => {
             <CardDescription>
               {step === "email" && "Enter your email to continue"}
               {step === "password" && "Sign in to your account"}
-              {step === "otp" && "Enter the code sent to your email"}
-              {step === "magic-link-sent" && `We sent a login link to ${email}`}
+              {step === "otp" && `Enter the 6-digit code sent to ${email}`}
               {step === "register" && "Fill in your details to get started"}
               {step === "set-password" && "Create a password for future logins"}
               {step === "registration-success" && "Please verify your email to get started"}
@@ -215,24 +211,6 @@ const Auth = () => {
               </>
             )}
 
-            {step === "magic-link-sent" && (
-              <>
-                <div className="flex flex-col items-center space-y-4 py-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                    <Mail className="h-8 w-8 text-primary" />
-                  </div>
-                  <p className="text-center text-sm text-muted-foreground">
-                    Click the login link in your email to sign in. You can close this page — the link will bring you back automatically.
-                  </p>
-                </div>
-                <Button variant="outline" className="w-full" onClick={handleSendOtp} disabled={loading}>
-                  {loading ? "Sending..." : "Resend email"}
-                </Button>
-                <Button variant="link" className="w-full text-xs" onClick={() => setStep("email")}>
-                  ← Use a different email
-                </Button>
-              </>
-            )}
 
             {step === "otp" && (
               <>
