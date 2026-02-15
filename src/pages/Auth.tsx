@@ -136,16 +136,16 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen items-center justify-center bg-foreground p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="font-display text-4xl font-bold tracking-tight text-foreground">
+          <h1 className="font-display text-4xl font-bold tracking-tight text-background">
             NO<span className="text-primary">cap</span>
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">Affiliate Cashback Platform</p>
+          <p className="mt-2 text-sm text-background/60">Affiliate Cashback Platform</p>
         </div>
 
-        <Card className="border-border/50 shadow-lg">
+        <Card className="border-0 shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="font-display text-xl">
               {step === "email" && "Welcome"}

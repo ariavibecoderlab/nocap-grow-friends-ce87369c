@@ -109,9 +109,9 @@ const Dashboard = () => {
 
   const quickActions = [
     { label: "QR Pay", icon: QrCode, path: "/qr-pay", bgClass: "bg-primary/10", iconClass: "text-primary" },
-    { label: "Top Up", icon: Plus, path: "/top-up", bgClass: "bg-[hsl(var(--accent))]/10", iconClass: "text-[hsl(var(--accent))]" },
+    { label: "Top Up", icon: Plus, path: "/top-up", bgClass: "bg-[hsl(var(--success))]/10", iconClass: "text-[hsl(var(--success))]" },
     { label: "Transfer", icon: ArrowUpDown, path: "/transfer", bgClass: "bg-[hsl(var(--info))]/10", iconClass: "text-[hsl(var(--info))]" },
-    { label: "Referral", icon: Users, path: "/referral", bgClass: "bg-[hsl(var(--success))]/10", iconClass: "text-[hsl(var(--success))]" },
+    { label: "Referral", icon: Users, path: "/referral", bgClass: "bg-destructive/10", iconClass: "text-destructive" },
   ];
 
   return (
