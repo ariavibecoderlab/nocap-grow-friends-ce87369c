@@ -1,7 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, QrCode, ArrowUpDown, Users, User } from "lucide-react";
+import { Home, QrCode, ArrowUpDown, Users, User, Shield } from "lucide-react";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 
-const navItems = [
+const baseNavItems = [
   { label: "Home", icon: Home, path: "/dashboard" },
   { label: "QR Pay", icon: QrCode, path: "/qr-pay" },
   { label: "Transfer", icon: ArrowUpDown, path: "/transfer" },
@@ -12,6 +13,11 @@ const navItems = [
 const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAdmin } = useAdminCheck();
+
+  const navItems = isAdmin
+    ? [...baseNavItems, { label: "Admin", icon: Shield, path: "/admin" }]
+    : baseNavItems;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-sm">
