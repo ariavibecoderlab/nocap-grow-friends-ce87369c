@@ -1,1 +1,7 @@
 project_id = "tukuyszayzkyckrfxqvt"
+
+[functions.create-topup-bill]
+verify_jwt = false
+
+[functions.raudhahpay-webhook]
+verify_jwt = false
