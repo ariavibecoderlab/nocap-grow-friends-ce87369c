@@ -233,7 +233,7 @@ const Referral = () => {
                   value={`${window.location.origin}/auth?ref=${profile?.referral_code || ""}`}
                   size={140}
                   level="M"
-                  fgColor="hsl(157, 72%, 40%)"
+                  fgColor="hsl(0, 0%, 5%)"
                 />
               </div>
               <p className="mt-3 font-display text-2xl font-bold tracking-widest text-primary">
