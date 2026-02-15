@@ -239,7 +239,7 @@ const Referral = () => {
               <p className="mt-3 font-display text-2xl font-bold tracking-widest text-primary-foreground">
                 {profile?.referral_code || "—"}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">Share your code to grow your network</p>
+              <p className="mt-1 text-xs text-primary-foreground">Share your code to grow your network</p>
               <div className="mt-4 flex gap-2">
                 <Button variant="outline" size="sm" onClick={copyReferralCode} className="gap-1.5">
                   <Copy className="h-3.5 w-3.5" /> Copy Code
