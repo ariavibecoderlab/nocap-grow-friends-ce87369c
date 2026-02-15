@@ -14,6 +14,137 @@ export type Database = {
   }
   public: {
     Tables: {
+      merchant_applications: {
+        Row: {
+          bank_account_holder: string | null
+          bank_account_no: string | null
+          bank_name: string | null
+          bank_verified: boolean
+          business_address: string | null
+          business_name: string
+          business_registration_no: string | null
+          business_type: string | null
+          created_at: string
+          id: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bank_account_holder?: string | null
+          bank_account_no?: string | null
+          bank_name?: string | null
+          bank_verified?: boolean
+          business_address?: string | null
+          business_name: string
+          business_registration_no?: string | null
+          business_type?: string | null
+          created_at?: string
+          id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bank_account_holder?: string | null
+          bank_account_no?: string | null
+          bank_name?: string | null
+          bank_verified?: boolean
+          business_address?: string | null
+          business_name?: string
+          business_registration_no?: string | null
+          business_type?: string | null
+          created_at?: string
+          id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      merchant_branches: {
+        Row: {
+          branch_address: string | null
+          branch_name: string
+          commission_percent: number
+          created_at: string
+          id: string
+          is_active: boolean
+          merchant_user_id: string
+          qr_code_id: string
+          updated_at: string
+        }
+        Insert: {
+          branch_address?: string | null
+          branch_name: string
+          commission_percent?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          merchant_user_id: string
+          qr_code_id?: string
+          updated_at?: string
+        }
+        Update: {
+          branch_address?: string | null
+          branch_name?: string
+          commission_percent?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          merchant_user_id?: string
+          qr_code_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      merchant_qr_codes: {
+        Row: {
+          amount: number
+          branch_id: string
+          created_at: string
+          description: string | null
+          expires_at: string | null
+          id: string
+          is_used: boolean
+        }
+        Insert: {
+          amount: number
+          branch_id: string
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean
+        }
+        Update: {
+          amount?: number
+          branch_id?: string
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_qr_codes_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address: string | null
