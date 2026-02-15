@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const SUPABASE_PUBLISHABLE_KEY = Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!;
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     // Authenticate user
     const authHeader = req.headers.get('Authorization');
@@ -24,15 +24,16 @@ serve(async (req) => {
       });
     }
 
-    const anonClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await anonClient.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: 'Invalid token' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const payerId = claimsData.claims.sub as string;
+    const payerId = user.id;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { branch_id, qr_code_id, amount, pin } = await req.json();
