@@ -11,6 +11,8 @@ import Profile from "./pages/Profile";
 import TopUp from "./pages/TopUp";
 import Transfer from "./pages/Transfer";
 import Referral from "./pages/Referral";
+import QrPay from "./pages/QrPay";
+import MerchantDashboard from "./pages/MerchantDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +32,8 @@ const App = () => (
             <Route path="/top-up" element={<TopUp />} />
             <Route path="/transfer" element={<Transfer />} />
             <Route path="/referral" element={<Referral />} />
+            <Route path="/qr-pay" element={<QrPay />} />
+            <Route path="/merchant" element={<MerchantDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
