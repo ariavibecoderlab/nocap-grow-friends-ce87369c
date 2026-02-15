@@ -33,22 +33,23 @@ const Auth = () => {
     }
   }, [user, authLoading, navigate]);
 
+  const sendOtpViaEdgeFunction = async (targetEmail: string) => {
+    const response = await supabase.functions.invoke('send-otp', {
+      body: { email: targetEmail },
+    });
+    return response;
+  };
+
   const handleEmailSubmit = async () => {
     if (!email) return;
     setLoading(true);
     try {
-      // Try sending OTP without creating user — checks if user exists
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false,
-        },
-      });
+      const { error } = await sendOtpViaEdgeFunction(email);
       if (error) {
         // User doesn't exist → show register form
         setStep("register");
       } else {
-        // User exists, OTP sent
+        // User exists, OTP sent via SendGrid
         toast({ title: "OTP Sent", description: "Check your email for the 6-digit code." });
         setStep("otp");
       }
@@ -69,16 +70,13 @@ const Auth = () => {
     setLoading(false);
   };
 
-  const handleSendOtp = async () => {
+  const handleResendOtp = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-    });
+    const { error } = await sendOtpViaEdgeFunction(email);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: "Failed to resend OTP. Please try again.", variant: "destructive" });
     } else {
       toast({ title: "OTP Sent", description: "Check your email for the 6-digit code." });
-      setStep("otp");
     }
     setLoading(false);
   };
@@ -202,8 +200,8 @@ const Auth = () => {
                 <Button className="w-full" onClick={handlePasswordLogin} disabled={loading}>
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
-                <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={handleSendOtp}>
-                  Sign in with email link instead
+                <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={handleResendOtp}>
+                  Sign in with OTP instead
                 </Button>
                 <Button variant="link" className="w-full text-xs" onClick={() => setStep("email")}>
                   ← Back
@@ -228,6 +226,9 @@ const Auth = () => {
                 </div>
                 <Button className="w-full" onClick={handleVerifyOtp} disabled={loading || otpCode.length < 6}>
                   {loading ? "Verifying..." : "Verify"}
+                </Button>
+                <Button variant="outline" className="w-full text-sm" onClick={handleResendOtp} disabled={loading}>
+                  Resend Code
                 </Button>
                 <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={() => setStep("password")}>
                   Sign in with password instead
