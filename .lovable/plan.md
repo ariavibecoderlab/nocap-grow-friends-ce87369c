@@ -1,123 +1,73 @@
 
 
-# NOcap — Affiliate Cashback Platform (Updated Plan)
-## A web-based affiliate system for businesses to grow their customer base with low marketing costs
+# Admin Panel for NOcap
 
----
+## Overview
+Build a comprehensive admin dashboard accessible only to users with the `admin` role. The panel will have 4 tabs: Merchant Approvals, Fee Settings, User Management, and Transactions overview.
 
-## Phase 1: Foundation & Member Features (Starting Here)
+## What Gets Built
 
-### 1.1 Authentication & Registration
-- **Member registration** with required referral code, email, phone, and OTP verification
-- **Smart login flow**: Enter email → system checks if password exists → show password page OR send OTP → on OTP login, prompt to set password
-- **PIN setup** for transactions RM50 and above
-- Supabase Auth with email-based OTP via SendGrid integration
+### 1. Admin Page (`/admin`)
+A new page with role-based access control (redirects non-admins). Contains a tabbed interface:
 
-### 1.2 Member Dashboard
-- Overview of wallet balance, recent transactions, and referral stats
-- Quick access to QR Pay, Top Up, Transfer, and Referral features
+**Tab 1 -- Merchant Approvals**
+- List all `merchant_applications` with status filters (pending, approved, rejected)
+- Show business name, applicant email, bank details, registration number
+- Approve button: updates status to `approved`, assigns `merchant` role to the user
+- Reject button: opens a dialog to enter rejection reason, updates status to `rejected`
 
-### 1.3 Wallet System
-- **Top up** wallet balance (via RaudhahPay payment gateway)
-- **Wallet balance display** with real-time updates
-- **Top-up history** with date, amount, status
-- **Transaction history** — all wallet activity (payments, transfers, cashback received)
+**Tab 2 -- Fee Settings**
+- Display and edit `system_settings` values (e.g., `platform_fee_percent`, cashback rates, tier commission percentages)
+- Inline edit with save button for each setting
+- Add new setting capability
 
-### 1.4 QR Payment & Transfers
-- **QR Pay scanner** using mobile camera to pay at registered merchant branches
-- **PIN verification** for payments RM50 and above
-- **Member-to-member transfer** via QR code scan or member search
-- **Personal QR code** for receiving transfers from other members
+**Tab 3 -- User Management**
+- List all users (from `profiles` table joined with `user_roles` and `wallets`)
+- Show name, email, phone, roles, wallet balance, referral code
+- Ability to assign/remove roles (member, merchant, admin)
+- View user's referral tree count
 
-### 1.5 Referral System
-- **Unique referral QR code** and **referral URL link** for each member
-- Social media sharing capabilities
-- **Affiliate dashboard** showing referral tree, referral count, and commission earnings from 5-tier structure
+**Tab 4 -- Transactions**
+- List all transactions across the platform with filters (type, status, date range)
+- Show total volume stats
 
-### 1.6 Member Profile
-- Full profile management (name, address, avatar, etc.)
-- Password management and PIN change
+### 2. Edge Function: `admin-actions`
+A single backend function to handle admin-only operations securely:
+- Approve/reject merchant applications (updates status + assigns merchant role)
+- Update user roles
+- Update system settings
 
----
+This ensures sensitive operations like role assignment happen server-side with proper admin verification.
 
-## Phase 2: Merchant Features
+### 3. Navigation Update
+- Add an "Admin" link in the `BottomNav` (only visible to admin users)
+- Add `/admin` route in `App.tsx`
 
-### 2.1 Merchant Registration & Approval
-- Merchant registration form (business details, documents)
-- Registration submitted for **admin approval** before activation
+### 4. Admin Role Check Hook
+- Create `useAdminCheck` hook that queries `user_roles` to verify admin status
+- Used by both the admin page and the bottom nav for conditional rendering
 
-### 2.2 Branch Management
-- Add/manage multiple branches per merchant
-- Each branch gets a **unique static QR code** for accepting payments
-- **Dynamic QR code generation** — enter amount before generating QR
-- Branch-level commission percentage configuration
+## Technical Details
 
-### 2.3 Bank Setup & Verification
-- Merchant bank account setup for withdrawals
-- **RM1 verification payment** — system generates a bill, merchant pays, bank auto-verified on success
+### New Files
+- `src/pages/Admin.tsx` -- Main admin page with tabs
+- `src/components/admin/MerchantApprovals.tsx` -- Merchant application list and actions
+- `src/components/admin/FeeSettings.tsx` -- System settings editor
+- `src/components/admin/UserManagement.tsx` -- User list with role management
+- `src/components/admin/TransactionsList.tsx` -- All transactions view
+- `supabase/functions/admin-actions/index.ts` -- Secure backend for admin operations
 
-### 2.4 Merchant Dashboard
-- Branch-level sales, transaction tracking, and summaries
-- Balance overview and withdrawal requests (requires admin approval)
-- Commission pool tracking per branch
+### Modified Files
+- `src/App.tsx` -- Add `/admin` route
+- `src/components/BottomNav.tsx` -- Conditionally show Admin tab for admin users
 
-### 2.5 Payment Fee & Commission Engine
-- **Platform fee** — admin-configurable percentage deducted from every successful member payment (goes to NOcap platform revenue)
-- **Merchant commission** — merchant sets commission % per branch
-- **Both fees calculated from gross payment amount:**
-  - Example: RM100 payment, 3% platform fee, 5% commission → Platform gets RM3, Commission pool is RM5, Merchant receives RM92
-- Commission pool splits **equally 6 ways**: buyer cashback + 5 referral tiers above the buyer
-- If fewer than 5 tiers exist above a member, unclaimed portion returns to the branch
-- Full transaction breakdown recorded: gross amount, platform fee, commission pool, merchant net, cashback, tier payouts
+### Database
+- No schema changes needed -- all required tables and RLS policies already exist
+- The `has_role` security definer function is already in place
+- Admin RLS policies are already configured on all tables
 
----
-
-## Phase 3: System Administrator
-
-### 3.1 Admin Dashboard
-- System-wide analytics and KPIs (total members, merchants, transaction volume)
-- **Platform revenue tracking** — total platform fees collected, daily/monthly trends
-- Real-time activity monitoring
-
-### 3.2 Platform Fee Configuration
-- **Set and update platform fee percentage** from admin settings
-- Fee change audit log (who changed it, when, old vs new value)
-- View platform fee revenue reports
-
-### 3.3 Approval Workflows
-- **Merchant registration** approval/rejection
-- **Withdrawal request** approval/rejection with audit trail
-
-### 3.4 User & Merchant Management
-- View, search, suspend/activate members and merchants
-- View referral trees and commission distributions
-
-### 3.5 Integration Monitoring
-- **RaudhahPay webhook monitoring** — incoming webhook logs, status, payload inspection
-- **API health checks** — monitor RaudhahPay and SendGrid API availability
-- **Integration dashboard** — success/failure rates, latency metrics, error alerts
-
-### 3.6 System Configuration
-- Platform fee percentage, commission rules, and system-wide settings
-- Audit logs for all admin actions
-
----
-
-## Backend & Integrations
-
-- **Lovable Cloud (Supabase)** for database, auth, edge functions, and secrets management
-- **RaudhahPay API v2.0** for payment processing (top-ups, merchant verification, QR payments) — API keys stored securely as secrets
-- **SendGrid** for OTP email delivery — API key stored securely as secrets
-- **Role-based access control** with separate user_roles table (member, merchant, admin)
-- **Row-level security** policies for data isolation between roles
-- **System settings table** for admin-configurable values (platform fee %, etc.)
-
----
-
-## Design Approach
-- **Mobile-first responsive design** — QR scanning and payments are primarily mobile activities
-- Clean, modern UI with the existing shadcn/ui component library
-- Bottom navigation bar for member mobile experience
-- Dashboard layouts for merchant and admin on desktop
-- Currency: **MYR (RM)**
+### Security
+- Admin check done server-side in the edge function using `getUser()` + `has_role` query
+- Client-side admin check is only for UI visibility (not security)
+- All write operations (approve, reject, role changes) go through the edge function
 
