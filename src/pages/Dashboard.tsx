@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 import { useToast } from "@/hooks/use-toast";
 
 interface Transaction {
@@ -124,7 +125,8 @@ const Dashboard = () => {
               <p className="text-sm opacity-80">Welcome back,</p>
               <h1 className="font-display text-xl font-bold">{profile?.full_name || "Member"}</h1>
             </div>
-            <div className="font-display text-lg font-bold tracking-tight">
+            <div className="font-display text-lg font-bold tracking-tight flex items-center gap-2">
+              <NotificationBell className="text-primary-foreground" />
               NO<span className="opacity-80">cap</span>
             </div>
           </div>
