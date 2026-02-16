@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Play, ChevronDown, ChevronUp, Loader2, Copy, Check, History, RotateCcw, Trash2, Clock } from "lucide-react";
+import { Play, ChevronDown, ChevronUp, Loader2, Copy, Check, History, RotateCcw, Trash2, Clock, Terminal } from "lucide-react";
+import { toast } from "sonner";
 import CodeBlock from "@/components/CodeBlock";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -142,6 +143,44 @@ const ApiTryIt = ({ method, endpoint, params, bodyFields, needsApiKey = true, ne
     setHistory([]);
     setShowHistory(false);
   }, []);
+
+  const buildCurl = useCallback(() => {
+    let url = `${BASE_URL}/${endpoint}`;
+    const qp = new URLSearchParams();
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (value.trim()) qp.set(key, value.trim());
+    }
+    const qs = qp.toString();
+    if (qs) url += `?${qs}`;
+
+    const parts = [`curl -X ${method} "${url}"`];
+    if (needsApiKey && apiKey.trim()) parts.push(`  -H "X-Api-Key: ${apiKey.trim()}"`);
+    if (needsApiSecret && apiSecret.trim()) parts.push(`  -H "X-Api-Secret: ${apiSecret.trim()}"`);
+    if (needsUserToken && userToken.trim()) parts.push(`  -H "Authorization: Bearer ${userToken.trim()}"`);
+
+    if (method === 'POST' && bodyFields?.length) {
+      parts.push(`  -H "Content-Type: application/json"`);
+      const bodyObj: Record<string, unknown> = {};
+      for (const field of bodyFields) {
+        const val = bodyParams[field.name];
+        if (val === undefined || val === '') continue;
+        if (field.type === 'number') bodyObj[field.name] = parseFloat(val);
+        else if (field.type === 'json') {
+          try { bodyObj[field.name] = JSON.parse(val); } catch { bodyObj[field.name] = val; }
+        } else bodyObj[field.name] = val;
+      }
+      if (Object.keys(bodyObj).length > 0) {
+        parts.push(`  -d '${JSON.stringify(bodyObj)}'`);
+      }
+    }
+
+    return parts.join(" \\\n");
+  }, [method, endpoint, queryParams, bodyParams, apiKey, apiSecret, userToken, needsApiKey, needsApiSecret, needsUserToken, bodyFields]);
+
+  const copyCurl = useCallback(async () => {
+    await navigator.clipboard.writeText(buildCurl());
+    toast.success("cURL command copied to clipboard");
+  }, [buildCurl]);
 
   const copyResponse = async () => {
     if (!response) return;
@@ -336,12 +375,17 @@ const ApiTryIt = ({ method, endpoint, params, bodyFields, needsApiKey = true, ne
             </div>
           )}
 
-          {/* Send Button */}
-          <Button onClick={handleSend} disabled={loading} className="w-full gap-2" size="sm">
-            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-            Send Request
-          </Button>
-
+          {/* Send + cURL Buttons */}
+          <div className="flex gap-2">
+            <Button onClick={handleSend} disabled={loading} className="flex-1 gap-2" size="sm">
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+              Send Request
+            </Button>
+            <Button onClick={copyCurl} variant="outline" size="sm" className="gap-1.5 border-primary/20 text-primary hover:bg-primary/5">
+              <Terminal className="h-3.5 w-3.5" />
+              cURL
+            </Button>
+          </div>
           {/* Response */}
           {response && (
             <div className="space-y-2">
