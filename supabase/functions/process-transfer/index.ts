@@ -14,9 +14,10 @@ serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const SUPABASE_PUBLISHABLE_KEY = Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!;
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
+    if (!SUPABASE_ANON_KEY) throw new Error('SUPABASE_ANON_KEY not configured');
 
     // Authenticate user
     const authHeader = req.headers.get('Authorization');
@@ -26,15 +27,15 @@ serve(async (req) => {
       });
     }
 
-    const anonClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await anonClient.auth.getUser(token);
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: 'Invalid token' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const senderId = claimsData.claims.sub as string;
+    const senderId = user.id;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { recipient_user_id, amount, pin } = await req.json();
