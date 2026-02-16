@@ -58,7 +58,8 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<{ full_name: string; phone: string | null; referral_code: string; } | null>(null);
   const [referralCount, setReferralCount] = useState(0);
   const [networkCount, setNetworkCount] = useState(0);
-  const [totalEarnings, setTotalEarnings] = useState(0);
+  const [cashbackEarnings, setCashbackEarnings] = useState(0);
+  const [commissionEarnings, setCommissionEarnings] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
@@ -79,7 +80,7 @@ const Dashboard = () => {
         supabase.from("profiles").select("full_name, phone, referral_code").eq("user_id", user.id).maybeSingle(),
         supabase.from("referral_tree").select("id").eq("ancestor_id", user.id).eq("tier", 1),
         supabase.from("referral_tree").select("id").eq("ancestor_id", user.id),
-        supabase.from("transactions").select("amount").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed"),
+        supabase.from("transactions").select("amount, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed"),
         supabase.from("transactions").select("id, type, amount, status, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5)
       ]);
 
@@ -87,7 +88,10 @@ const Dashboard = () => {
       if (profileRes.data) setProfile(profileRes.data);
       if (directReferrals.data) setReferralCount(directReferrals.data.length);
       if (allReferrals.data) setNetworkCount(allReferrals.data.length);
-      if (earningsRes.data) setTotalEarnings(earningsRes.data.reduce((sum, t) => sum + Number(t.amount), 0));
+      if (earningsRes.data) {
+        setCashbackEarnings(earningsRes.data.filter(t => t.type === 'cashback').reduce((sum, t) => sum + Number(t.amount), 0));
+        setCommissionEarnings(earningsRes.data.filter(t => t.type === 'commission').reduce((sum, t) => sum + Number(t.amount), 0));
+      }
       if (txRes.data) setTransactions(txRes.data as Transaction[]);
       setLoadingData(false);
     };
@@ -206,7 +210,7 @@ const Dashboard = () => {
         </div>
 
         {/* Referral Stats */}
-        <div className="mt-6 grid grid-cols-3 gap-3">
+        <div className="mt-6 grid grid-cols-2 gap-3">
           <Card className="border-white/10 bg-white/5">
             <CardContent className="p-4 text-center">
               <Users className="mx-auto h-4 w-4 text-secondary" />
@@ -221,11 +225,20 @@ const Dashboard = () => {
               <p className="text-[10px] text-white/40">Network</p>
             </CardContent>
           </Card>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-3">
           <Card className="border-white/10 bg-white/5">
             <CardContent className="p-4 text-center">
               <Gift className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-2 font-display text-2xl font-bold text-white">RM {totalEarnings.toFixed(2)}</p>
-              <p className="text-[10px] text-white/40">Earned</p>
+              <p className="mt-2 font-display text-2xl font-bold text-white">RM {cashbackEarnings.toFixed(2)}</p>
+              <p className="text-[10px] text-white/40">Cashback</p>
+            </CardContent>
+          </Card>
+          <Card className="border-white/10 bg-white/5">
+            <CardContent className="p-4 text-center">
+              <Banknote className="mx-auto h-4 w-4 text-secondary" />
+              <p className="mt-2 font-display text-2xl font-bold text-white">RM {commissionEarnings.toFixed(2)}</p>
+              <p className="text-[10px] text-white/40">Commission</p>
             </CardContent>
           </Card>
         </div>
