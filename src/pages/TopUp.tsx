@@ -98,8 +98,8 @@ const TopUp = () => {
       <div className="min-h-screen bg-background pb-20">
         <div className="mx-auto max-w-md px-4 pt-8">
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 mb-4">
-              <CheckCircle2 className="h-10 w-10 text-primary" />
+             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary/10 mb-4">
+               <CheckCircle2 className="h-10 w-10 text-secondary" />
             </div>
             <h1 className="font-display text-2xl font-bold">Payment Submitted!</h1>
             <p className="mt-2 text-sm text-muted-foreground max-w-xs">
@@ -133,8 +133,8 @@ const TopUp = () => {
         {/* Current Balance */}
         <Card className="mt-4 border-border/50">
           <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-              <Wallet className="h-5 w-5 text-primary" />
+             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10">
+               <Wallet className="h-5 w-5 text-secondary" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Current Balance</p>
@@ -169,10 +169,10 @@ const TopUp = () => {
             <button
               key={preset}
               onClick={() => setAmount(preset.toString())}
-              className={`rounded-xl border px-4 py-3 text-sm font-semibold transition-all active:scale-95 ${
+               className={`rounded-xl border px-4 py-3 text-sm font-semibold transition-all active:scale-95 ${
                 amount === preset.toString()
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-card text-foreground hover:border-primary/50"
+                  ? "border-secondary bg-secondary/10 text-secondary"
+                  : "border-border bg-card text-foreground hover:border-secondary/50"
               }`}
             >
               RM {preset}

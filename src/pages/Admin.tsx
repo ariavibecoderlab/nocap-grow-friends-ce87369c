@@ -29,10 +29,10 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="bg-foreground px-4 pt-12 pb-6">
+      <div className="bg-primary px-4 pt-12 pb-6">
         <div className="mx-auto max-w-md flex items-center gap-2">
-          <Shield className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-bold text-primary-foreground" style={{ color: "hsl(var(--primary))" }}>
+          <Shield className="h-6 w-6 text-secondary" />
+          <h1 className="text-xl font-bold text-secondary">
             Admin Panel
           </h1>
         </div>

@@ -371,7 +371,7 @@ const MerchantDashboard = () => {
       <div className="min-h-screen bg-background pb-20">
         <div className="bg-primary px-4 pb-6 pt-8 text-primary-foreground">
           <div className="mx-auto max-w-md flex items-center gap-3">
-            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors">
+            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-primary-foreground/10 transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <h1 className="font-display text-xl font-bold">Merchant</h1>
@@ -459,8 +459,8 @@ const MerchantDashboard = () => {
               >
                 <CardContent className="flex items-center justify-between p-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                      <Store className="h-4 w-4 text-primary" />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary/10">
+                      <Store className="h-4 w-4 text-secondary" />
                     </div>
                     <div>
                       <p className="text-sm font-medium">{b.branch_name}</p>
@@ -500,7 +500,7 @@ const MerchantDashboard = () => {
 
             <TabsContent value="qr" className="mt-4 space-y-3">
               {/* Static QR */}
-              <Card className="border-primary/20 bg-primary/5">
+              <Card className="border-secondary/20 bg-secondary/5">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -535,7 +535,7 @@ const MerchantDashboard = () => {
                           {qr.description && <p className="text-[10px] text-muted-foreground truncate">{qr.description}</p>}
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {status === "used" && (
-                              <span className="text-[10px] text-primary flex items-center gap-0.5">
+                              <span className="text-[10px] text-secondary flex items-center gap-0.5">
                                 <CheckCircle2 className="h-3 w-3" /> Paid
                               </span>
                             )}
@@ -604,7 +604,7 @@ const MerchantDashboard = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Status</span>
-                    <span className={`font-medium ${selectedBranch.is_active ? 'text-primary' : 'text-destructive'}`}>
+                    <span className={`font-medium ${selectedBranch.is_active ? 'text-secondary' : 'text-destructive'}`}>
                       {selectedBranch.is_active ? "Active" : "Inactive"}
                     </span>
                   </div>
@@ -697,7 +697,7 @@ const MerchantDashboard = () => {
                 fgColor="hsl(157, 72%, 40%)"
               />
             </div>
-            <p className="mt-3 font-display text-lg font-bold text-primary">{showQrDisplay?.label}</p>
+            <p className="mt-3 font-display text-lg font-bold text-secondary">{showQrDisplay?.label}</p>
             <p className="text-xs text-muted-foreground mt-1">
               {showQrDisplay?.type === "static" ? "Customer scans and enters amount" : "Amount is pre-filled for customer"}
             </p>

@@ -20,10 +20,10 @@ interface Transaction {
 
 const transactionIcon = (type: string) => {
   switch (type) {
-    case "top_up":return <ArrowDownLeft className="h-4 w-4 text-primary" />;
+    case "top_up":return <ArrowDownLeft className="h-4 w-4 text-secondary" />;
     case "cashback":
-    case "commission":return <Gift className="h-4 w-4 text-primary" />;
-    case "transfer_in":return <ArrowDownLeft className="h-4 w-4 text-primary" />;
+    case "commission":return <Gift className="h-4 w-4 text-secondary" />;
+    case "transfer_in":return <ArrowDownLeft className="h-4 w-4 text-secondary" />;
     case "transfer_out":
     case "payment":
     case "withdrawal":return <ArrowUpRight className="h-4 w-4 text-destructive" />;
@@ -109,7 +109,7 @@ const Dashboard = () => {
   }
 
   const quickActions = [
-  { label: "QR Pay", icon: QrCode, path: "/qr-pay", bgClass: "bg-primary/10", iconClass: "text-primary" },
+  { label: "QR Pay", icon: QrCode, path: "/qr-pay", bgClass: "bg-secondary/10", iconClass: "text-secondary" },
   { label: "Top Up", icon: Plus, path: "/top-up", bgClass: "bg-[hsl(var(--success))]/10", iconClass: "text-[hsl(var(--success))]" },
   { label: "Transfer", icon: ArrowUpDown, path: "/transfer", bgClass: "bg-[hsl(var(--info))]/10", iconClass: "text-[hsl(var(--info))]" },
   { label: "Referral", icon: Users, path: "/referral", bgClass: "bg-destructive/10", iconClass: "text-destructive" }];
@@ -197,11 +197,11 @@ const Dashboard = () => {
         </div>
 
         {/* Referral Code Banner */}
-        <Card className="mt-4 border-primary/20 bg-primary/5">
+        <Card className="mt-4 border-secondary/20 bg-secondary/5">
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-xs text-muted-foreground">Your Referral Code</p>
-              <p className="font-display text-lg font-bold tracking-wider text-primary-foreground">{profile?.referral_code || "—"}</p>
+              <p className="font-display text-lg font-bold tracking-wider text-foreground">{profile?.referral_code || "—"}</p>
             </div>
             <Button variant="outline" size="sm" onClick={copyReferralCode} className="gap-1.5">
               <Copy className="h-3.5 w-3.5" /> Copy
@@ -213,8 +213,8 @@ const Dashboard = () => {
         <Card className="mt-4 border-border/50 cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/merchant/register")}>
           <CardContent className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <Store className="h-5 w-5 text-primary" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/10">
+                <Store className="h-5 w-5 text-secondary" />
               </div>
               <div>
                 <p className="text-sm font-semibold">Become a Merchant</p>
@@ -230,7 +230,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-semibold">Recent Activity</h2>
             {transactions.length > 0 &&
-            <button onClick={() => navigate("/transactions")} className="flex items-center gap-0.5 text-xs text-primary font-medium">
+            <button onClick={() => navigate("/transactions")} className="flex items-center gap-0.5 text-xs text-secondary font-medium">
                 View All <ChevronRight className="h-3.5 w-3.5" />
               </button>
             }
@@ -258,7 +258,7 @@ const Dashboard = () => {
                         {new Date(tx.created_at).toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" })}
                       </p>
                     </div>
-                    <p className={`text-sm font-semibold tabular-nums ${isCredit(tx.type) ? "text-primary" : "text-foreground"}`}>
+                    <p className={`text-sm font-semibold tabular-nums ${isCredit(tx.type) ? "text-secondary" : "text-foreground"}`}>
                       {isCredit(tx.type) ? "+" : "-"}RM {Math.abs(tx.amount).toFixed(2)}
                     </p>
                   </CardContent>

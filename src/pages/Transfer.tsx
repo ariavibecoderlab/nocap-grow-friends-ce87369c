@@ -238,7 +238,7 @@ const Transfer = () => {
             {/* Balance */}
             <Card className="mt-4 border-border/50">
               <CardContent className="flex items-center gap-3 p-4">
-                <Wallet className="h-5 w-5 text-primary" />
+                <Wallet className="h-5 w-5 text-secondary" />
                 <div>
                   <p className="text-xs text-muted-foreground">Available Balance</p>
                   <p className="font-display text-xl font-bold">RM {balance.toFixed(2)}</p>
@@ -276,8 +276,8 @@ const Transfer = () => {
                       onClick={() => selectRecipient(r)}
                       className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-muted"
                     >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <User className="h-5 w-5 text-primary" />
+                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/10">
+                         <User className="h-5 w-5 text-secondary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{r.full_name || "Member"}</p>
@@ -294,8 +294,8 @@ const Transfer = () => {
               <TabsContent value="scan" className="mt-4">
                 {!scannerActive ? (
                   <div className="flex flex-col items-center gap-4 py-8">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
-                      <Camera className="h-10 w-10 text-primary" />
+                     <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-secondary/10">
+                       <Camera className="h-10 w-10 text-secondary" />
                     </div>
                     <p className="text-sm text-muted-foreground text-center">
                       Scan a member's QR code to transfer funds
@@ -320,10 +320,10 @@ const Transfer = () => {
         {/* Step: Enter Amount */}
         {step === "amount" && recipient && (
           <>
-            <Card className="mt-4 border-primary/20 bg-primary/5">
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                  <User className="h-5 w-5 text-primary" />
+             <Card className="mt-4 border-secondary/20 bg-secondary/5">
+               <CardContent className="flex items-center gap-3 p-4">
+                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/10">
+                   <User className="h-5 w-5 text-secondary" />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Sending to</p>
@@ -431,8 +431,8 @@ const Transfer = () => {
         {/* Step: Success */}
         {step === "success" && (
           <div className="mt-8 flex flex-col items-center text-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 mb-4">
-              <CheckCircle2 className="h-10 w-10 text-primary" />
+             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary/10 mb-4">
+               <CheckCircle2 className="h-10 w-10 text-secondary" />
             </div>
             <h2 className="font-display text-2xl font-bold">Transfer Successful!</h2>
             <p className="mt-2 text-sm text-muted-foreground">

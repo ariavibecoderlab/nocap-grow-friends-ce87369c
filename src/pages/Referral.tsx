@@ -45,7 +45,7 @@ const tierLabels: Record<number, string> = {
 };
 
 const tierColors: Record<number, string> = {
-  1: "bg-primary/15 text-primary",
+  1: "bg-secondary/15 text-secondary",
   2: "bg-[hsl(var(--info))]/15 text-[hsl(var(--info))]",
   3: "bg-[hsl(var(--accent))]/15 text-[hsl(var(--accent))]",
   4: "bg-[hsl(var(--warning))]/15 text-[hsl(var(--warning))]",
@@ -192,7 +192,7 @@ const Referral = () => {
       <div className="bg-primary px-4 pb-14 pt-8 text-primary-foreground">
         <div className="mx-auto max-w-md">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors">
+            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-primary-foreground/10 transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <h1 className="font-display text-xl font-bold">My Network</h1>
@@ -206,7 +206,7 @@ const Referral = () => {
           <CardContent className="p-5">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <Users className="mx-auto h-5 w-5 text-primary" />
+                <Users className="mx-auto h-5 w-5 text-secondary" />
                 <p className="mt-1 font-display text-2xl font-bold">{referrals.filter((r) => r.tier === 1).length}</p>
                 <p className="text-[10px] text-muted-foreground">Direct</p>
               </div>
@@ -225,7 +225,7 @@ const Referral = () => {
         </Card>
 
         {/* Share Section */}
-        <Card className="mt-4 border-primary/20 bg-primary/5">
+        <Card className="mt-4 border-secondary/20 bg-secondary/5">
           <CardContent className="p-5">
             <div className="flex flex-col items-center">
               <div className="rounded-xl bg-card p-3 shadow-sm">
@@ -236,10 +236,10 @@ const Referral = () => {
                   fgColor="hsl(0, 0%, 5%)" />
 
               </div>
-              <p className="mt-3 font-display text-2xl font-bold tracking-widest text-primary-foreground">
+               <p className="mt-3 font-display text-2xl font-bold tracking-widest text-foreground">
                 {profile?.referral_code || "—"}
               </p>
-              <p className="mt-1 text-xs text-primary-foreground">Share your code to grow your network</p>
+              <p className="mt-1 text-xs text-foreground">Share your code to grow your network</p>
               <div className="mt-4 flex gap-2">
                 <Button variant="outline" size="sm" onClick={copyReferralCode} className="gap-1.5">
                   <Copy className="h-3.5 w-3.5" /> Copy Code
@@ -358,8 +358,8 @@ const Referral = () => {
             commissions.map((tx) =>
             <Card key={tx.id} className="border-border/50">
                   <CardContent className="flex items-center gap-3 p-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                      <Gift className="h-4 w-4 text-primary" />
+                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary/10">
+                       <Gift className="h-4 w-4 text-secondary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
@@ -373,7 +373,7 @@ const Referral = () => {
                     })}
                       </p>
                     </div>
-                    <p className="text-sm font-semibold text-primary tabular-nums">
+                    <p className="text-sm font-semibold text-secondary tabular-nums">
                       +RM {Number(tx.amount).toFixed(2)}
                     </p>
                   </CardContent>
