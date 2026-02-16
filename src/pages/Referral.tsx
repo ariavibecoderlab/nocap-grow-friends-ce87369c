@@ -135,7 +135,7 @@ const Referral = () => {
     }
   };
 
-  const getShareUrl = () => `${window.location.origin}/auth?ref=${profile?.referral_code || ""}`;
+  const getShareUrl = () => `https://nocap.life/auth?ref=${profile?.referral_code || ""}`;
   const getShareText = () => `Join NOcap and earn cashback! Use my referral code *${profile?.referral_code}* to sign up: ${getShareUrl()}`;
 
   const shareToWhatsApp = () => {
