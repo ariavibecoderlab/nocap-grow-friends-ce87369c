@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { signUp, verifyOtp, signInWithPassword, updatePassword } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { Zap, Users, Coins, TrendingUp, Gift, Percent } from "lucide-react";
 
 type AuthStep = "email" | "otp" | "password" | "set-password";
 const REGISTERING_FLAG = "nocap_registering";
@@ -174,13 +175,56 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-primary p-4">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-screen items-center justify-center bg-primary p-4 overflow-hidden">
+      {/* Animated background elements */}
+      <div className="pointer-events-none absolute inset-0">
+        {/* Floating icons */}
+        <div className="absolute left-[10%] top-[15%] animate-pulse opacity-10">
+          <Coins className="h-16 w-16 text-secondary" />
+        </div>
+        <div className="absolute right-[12%] top-[20%] animate-pulse opacity-10" style={{ animationDelay: '1s' }}>
+          <Users className="h-12 w-12 text-secondary" />
+        </div>
+        <div className="absolute left-[8%] bottom-[25%] animate-pulse opacity-10" style={{ animationDelay: '0.5s' }}>
+          <TrendingUp className="h-14 w-14 text-secondary" />
+        </div>
+        <div className="absolute right-[15%] bottom-[18%] animate-pulse opacity-10" style={{ animationDelay: '1.5s' }}>
+          <Gift className="h-10 w-10 text-secondary" />
+        </div>
+        <div className="absolute left-[25%] top-[8%] animate-pulse opacity-[0.07]" style={{ animationDelay: '2s' }}>
+          <Percent className="h-20 w-20 text-secondary" />
+        </div>
+        <div className="absolute right-[8%] top-[50%] animate-pulse opacity-[0.07]" style={{ animationDelay: '0.8s' }}>
+          <Zap className="h-24 w-24 text-secondary" />
+        </div>
+
+        {/* Gradient orbs */}
+        <div className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-secondary/5 blur-3xl" />
+        <div className="absolute -bottom-32 -right-20 h-80 w-80 rounded-full bg-secondary/5 blur-3xl" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md">
         <div className="mb-8 text-center">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/10 backdrop-blur">
+            <Zap className="h-7 w-7 text-secondary" />
+          </div>
           <h1 className="font-display text-4xl font-bold tracking-tight text-white">
             NO<span className="text-secondary">cap</span>
           </h1>
           <p className="mt-2 text-sm text-white/60">Affiliate Cashback Platform</p>
+        </div>
+
+        {/* Feature pills */}
+        <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60 backdrop-blur">
+            <Coins className="h-3 w-3 text-secondary" /> Instant Cashback
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60 backdrop-blur">
+            <Users className="h-3 w-3 text-secondary" /> Refer & Earn
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60 backdrop-blur">
+            <TrendingUp className="h-3 w-3 text-secondary" /> 3-Tier Rewards
+          </span>
         </div>
 
         <Card className="border-white/10 bg-white/5 shadow-2xl backdrop-blur">
@@ -312,6 +356,11 @@ const Auth = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Bottom tagline */}
+        <p className="mt-6 text-center text-xs text-white/30">
+          Earn cashback on every transaction · Build your affiliate network · Grow together ⚡
+        </p>
       </div>
     </div>
   );
