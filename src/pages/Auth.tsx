@@ -43,19 +43,40 @@ const Auth = () => {
 
   const handleEmailSubmit = async () => {
     if (!email) return;
+
+    // If we already know it's a new email, validate referral code before proceeding
+    if (isNewEmail) {
+      if (!referralCode) {
+        toast({ title: "Referral code required", description: "Please enter a valid referral code to register.", variant: "destructive" });
+        return;
+      }
+      // Validate referral code exists
+      const { data: referrer } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("referral_code", referralCode.toUpperCase())
+        .maybeSingle();
+      if (!referrer) {
+        toast({ title: "Invalid referral code", description: "This referral code does not exist.", variant: "destructive" });
+        return;
+      }
+      setStep("register");
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await sendOtpViaEdgeFunction(email);
       if (error) {
-        // User doesn't exist → show register form
-        setStep("register");
+        // User doesn't exist → show referral code field
+        setIsNewEmail(true);
       } else {
         // User exists, OTP sent via SendGrid
         toast({ title: "OTP Sent", description: "Check your email for the 6-digit code." });
         setStep("otp");
       }
     } catch {
-      setStep("register");
+      setIsNewEmail(true);
     }
     setLoading(false);
   };
@@ -207,12 +228,26 @@ const Auth = () => {
                     type="email"
                     placeholder="you@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setIsNewEmail(false); }}
                     onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
                   />
                 </div>
+                {isNewEmail && (
+                  <div className="space-y-2">
+                    <Label htmlFor="referralEmail">Referral Code *</Label>
+                    <Input
+                      id="referralEmail"
+                      placeholder="Enter referral code"
+                      value={referralCode}
+                      onChange={(e) => setReferralCode(e.target.value)}
+                      className="uppercase"
+                      onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
+                    />
+                    <p className="text-xs text-muted-foreground">This email is not registered. Enter a referral code to create an account.</p>
+                  </div>
+                )}
                 <Button className="w-full" onClick={handleEmailSubmit} disabled={loading}>
-                  {loading ? "Checking..." : "Continue"}
+                  {loading ? "Checking..." : isNewEmail ? "Continue to Register" : "Continue"}
                 </Button>
               </>
             )}
