@@ -230,7 +230,7 @@ const Referral = () => {
             <div className="flex flex-col items-center">
               <div className="rounded-xl bg-card p-3 shadow-sm">
                 <QRCodeSVG
-                  value={`${window.location.origin}/auth?ref=${profile?.referral_code || ""}`}
+                  value={`https://nocap.life/auth?ref=${profile?.referral_code || ""}`}
                   size={140}
                   level="M"
                   fgColor="hsl(0, 0%, 5%)" />
