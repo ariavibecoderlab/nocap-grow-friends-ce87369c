@@ -96,6 +96,10 @@ const ApiDocs = () => {
                           <td className="py-2 pr-4 font-mono text-xs">/api-charge-status</td>
                           <td className="py-2">60 req/min</td>
                         </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-charges-list</td>
+                          <td className="py-2">60 req/min</td>
+                        </tr>
                       </tbody>
                     </table>
                   </div>
@@ -362,6 +366,62 @@ const ApiDocs = () => {
   "charge_amount": 10.50,
   "status": "partial_refund",
   "transaction_id": "uuid"
+}`}
+                  </pre>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 text-xs font-bold rounded">GET</span>
+                    <CardTitle className="text-lg">/api-charges-list</CardTitle>
+                  </div>
+                  <CardDescription>Retrieve a paginated list of charges for your API app with optional filters.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Query Parameters:</h4>
+                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                      <li><code className="text-primary font-bold">page</code> (number, optional): Page number. Default: 1.</li>
+                      <li><code className="text-primary font-bold">limit</code> (number, optional): Items per page (1–100). Default: 20.</li>
+                      <li><code className="text-primary font-bold">status</code> (string, optional): Filter by status (pending, completed, failed, refunded, partial_refund).</li>
+                      <li><code className="text-primary font-bold">from</code> (string, optional): ISO 8601 date. Only charges created on or after this date.</li>
+                      <li><code className="text-primary font-bold">to</code> (string, optional): ISO 8601 date. Only charges created on or before this date.</li>
+                      <li><code className="text-primary font-bold">reference</code> (string, optional): Filter by your internal reference ID.</li>
+                      <li><code className="text-primary font-bold">user_id</code> (string, optional): Filter by a specific user's charges.</li>
+                    </ul>
+                  </div>
+                  <h4 className="text-sm font-semibold">Request Example:</h4>
+                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
+{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charges-list?page=1&limit=10&status=completed" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret"`}
+                  </pre>
+                  <h4 className="text-sm font-semibold">Response Example:</h4>
+                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
+{`{
+  "data": [
+    {
+      "id": "uuid",
+      "amount": 10.50,
+      "description": "Order #12345",
+      "reference": "txn_88291",
+      "status": "completed",
+      "is_sandbox": false,
+      "transaction_id": "uuid",
+      "user_id": "uuid",
+      "created_at": "2026-02-16T12:00:00.000Z",
+      "completed_at": "2026-02-16T12:00:01.000Z",
+      "metadata": {}
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 42,
+    "total_pages": 5,
+    "has_more": true
+  }
 }`}
                   </pre>
                 </CardContent>
