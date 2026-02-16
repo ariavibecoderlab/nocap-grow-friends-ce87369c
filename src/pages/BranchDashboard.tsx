@@ -384,7 +384,7 @@ const BranchDashboard = () => {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="font-display text-xl font-bold flex-1 text-white">Branch Dashboard</h1>
-          <NotificationBell className="text-white" />
+          <NotificationBell className="text-white" branchId={selectedBranch?.id} />
         </div>
       </div>
 

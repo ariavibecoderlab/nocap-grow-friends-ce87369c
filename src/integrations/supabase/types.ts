@@ -159,6 +159,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          branch_id: string | null
           created_at: string
           id: string
           is_read: boolean
@@ -169,6 +170,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          branch_id?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
@@ -179,6 +181,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          branch_id?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
@@ -188,7 +191,15 @@ export type Database = {
           type?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

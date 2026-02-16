@@ -27,7 +27,7 @@ const typeIcon = (type: string) => {
   }
 };
 
-const NotificationBell = ({ className }: { className?: string }) => {
+const NotificationBell = ({ className, branchId }: { className?: string; branchId?: string }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -36,12 +36,19 @@ const NotificationBell = ({ className }: { className?: string }) => {
 
   const fetchNotifications = async () => {
     if (!user) return;
-    const { data } = await supabase
+    let query = supabase
       .from("notifications")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(20);
+
+    // If branchId is provided, only show notifications for that branch (or general ones with no branch_id)
+    if (branchId) {
+      query = query.or(`branch_id.eq.${branchId},branch_id.is.null`);
+    }
+
+    const { data } = await query;
 
     if (data) {
       setNotifications(data as Notification[]);
@@ -51,7 +58,7 @@ const NotificationBell = ({ className }: { className?: string }) => {
 
   useEffect(() => {
     fetchNotifications();
-  }, [user]);
+  }, [user, branchId]);
 
   // Realtime subscription
   useEffect(() => {
