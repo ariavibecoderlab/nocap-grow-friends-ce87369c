@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store, AlertCircle } from "lucide-react";
@@ -52,7 +51,6 @@ const isCredit = (type: string) =>
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { isAdmin } = useAdminCheck();
   const { toast } = useToast();
   const [balance, setBalance] = useState<number>(0);
   const [showBalance, setShowBalance] = useState(true);
@@ -62,7 +60,6 @@ const Dashboard = () => {
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-  const [hasSpecialRole, setHasSpecialRole] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -75,14 +72,13 @@ const Dashboard = () => {
 
     const fetchData = async () => {
       setLoadingData(true);
-      const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes, rolesRes] = await Promise.all([
+      const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes] = await Promise.all([
       supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
       supabase.from("profiles").select("full_name, phone, referral_code").eq("user_id", user.id).maybeSingle(),
       supabase.from("referral_tree").select("id").eq("ancestor_id", user.id).eq("tier", 1),
       supabase.from("referral_tree").select("id").eq("ancestor_id", user.id),
       supabase.from("transactions").select("amount").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed"),
-      supabase.from("transactions").select("id, type, amount, status, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
-      supabase.from("user_roles").select("role").eq("user_id", user.id)]
+      supabase.from("transactions").select("id, type, amount, status, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5)]
       );
 
       if (walletRes.data) setBalance(Number(walletRes.data.balance));
@@ -91,8 +87,6 @@ const Dashboard = () => {
       if (allReferrals.data) setNetworkCount(allReferrals.data.length);
       if (earningsRes.data) setTotalEarnings(earningsRes.data.reduce((sum, t) => sum + Number(t.amount), 0));
       if (txRes.data) setTransactions(txRes.data as Transaction[]);
-      const roles = rolesRes.data?.map((r) => r.role) ?? [];
-      setHasSpecialRole(roles.some((r) => ["merchant", "branch"].includes(r)));
       setLoadingData(false);
     };
 
@@ -114,16 +108,12 @@ const Dashboard = () => {
 
   }
 
-  const memberOnlyLabels = ["QR Pay", "Top Up", "Transfer"];
-  const allQuickActions = [
+  const quickActions = [
   { label: "QR Pay", icon: QrCode, path: "/qr-pay", bgClass: "bg-secondary/10", iconClass: "text-secondary" },
   { label: "Top Up", icon: Plus, path: "/top-up", bgClass: "bg-[hsl(var(--success))]/10", iconClass: "text-[hsl(var(--success))]" },
   { label: "Transfer", icon: ArrowUpDown, path: "/transfer", bgClass: "bg-[hsl(var(--info))]/10", iconClass: "text-[hsl(var(--info))]" },
   { label: "Referral", icon: Users, path: "/referral", bgClass: "bg-destructive/10", iconClass: "text-destructive" }];
 
-  const quickActions = hasSpecialRole
-    ? allQuickActions.filter((a) => !memberOnlyLabels.includes(a.label))
-    : allQuickActions;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -159,11 +149,9 @@ const Dashboard = () => {
             <p className="mt-2 font-display text-3xl font-bold tracking-tight">
               {showBalance ? `RM ${balance.toFixed(2)}` : "RM ••••••"}
             </p>
-            {!hasSpecialRole && (
-              <Button size="sm" className="mt-3" onClick={() => navigate("/top-up")}>
-                <Plus className="mr-1 h-4 w-4" /> Top Up
-              </Button>
-            )}
+            <Button size="sm" className="mt-3" onClick={() => navigate("/top-up")}>
+              <Plus className="mr-1 h-4 w-4" /> Top Up
+            </Button>
           </CardContent>
         </Card>
 
@@ -188,12 +176,13 @@ const Dashboard = () => {
         )}
 
         {/* Quick Actions */}
-        <div className={`mt-6 grid gap-3 ${quickActions.length <= 2 ? 'grid-cols-2' : `grid-cols-${quickActions.length}`}`}>
+        <div className="mt-6 grid grid-cols-4 gap-3">
           {quickActions.map((action) =>
           <button
             key={action.path}
             onClick={() => navigate(action.path)}
             className="flex flex-col items-center gap-2 rounded-xl p-3 transition-all hover:bg-muted active:scale-95">
+
               <div className={`rounded-full p-3 ${action.bgClass}`}>
                 <action.icon className={`h-5 w-5 ${action.iconClass}`} />
               </div>
