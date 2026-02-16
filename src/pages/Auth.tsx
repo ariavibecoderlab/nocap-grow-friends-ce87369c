@@ -108,11 +108,23 @@ const Auth = () => {
     setLoading(false);
   };
 
+  const validateMalaysianPhone = (phoneNum: string): boolean => {
+    // Accept formats: 01x-xxxxxxx, 01xx-xxxxxxx, or digits only (10-11 digits starting with 01)
+    const cleaned = phoneNum.replace(/\D/g, '');
+    return /^01\d{8,9}$/.test(cleaned);
+  };
+
   const handleRegister = async () => {
     if (!referralCode) {
       toast({ title: "Referral code required", description: "Please enter a valid referral code.", variant: "destructive" });
       return;
     }
+
+    if (!validateMalaysianPhone(phone)) {
+      toast({ title: "Invalid phone number", description: "Please enter a valid Malaysian phone number (e.g. 012-3456789).", variant: "destructive" });
+      return;
+    }
+
     // Validate referral code exists
     const { data: referrer } = await supabase
       .from("profiles")
