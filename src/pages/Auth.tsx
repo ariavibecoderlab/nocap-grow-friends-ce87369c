@@ -183,15 +183,15 @@ const Auth = () => {
           <p className="mt-2 text-sm text-white/60">Affiliate Cashback Platform</p>
         </div>
 
-        <Card className="border-0 shadow-lg">
+        <Card className="border-white/10 bg-white/5 shadow-2xl backdrop-blur">
           <CardHeader className="text-center">
-            <CardTitle className="font-display text-xl">
+            <CardTitle className="font-display text-xl text-white">
               {step === "email" && "Welcome"}
               {step === "otp" && "Verify OTP"}
               {step === "password" && "Enter Password"}
               {step === "set-password" && "Set Your Password"}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-white/50">
               {step === "email" && "Enter your email to continue"}
               {step === "otp" && `Enter the 6-digit code sent to ${email}`}
               {step === "password" && "Sign in to your account"}
@@ -202,7 +202,7 @@ const Auth = () => {
             {step === "email" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-white/70">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -210,23 +210,24 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); setIsNewEmail(false); }}
                     onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
+                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
                   />
                 </div>
                 {isNewEmail && (
                   <div className="space-y-2">
-                    <Label htmlFor="referralEmail">Referral Code *</Label>
+                    <Label htmlFor="referralEmail" className="text-white/70">Referral Code *</Label>
                     <Input
                       id="referralEmail"
                       placeholder="Enter referral code"
                       value={referralCode}
                       onChange={(e) => setReferralCode(e.target.value)}
-                      className="uppercase"
+                      className="uppercase border-white/10 bg-white/5 text-white placeholder:text-white/30"
                       onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
                     />
-                    <p className="text-xs text-muted-foreground">This email is not registered. Enter a referral code to create an account.</p>
+                    <p className="text-xs text-white/40">This email is not registered. Enter a referral code to create an account.</p>
                   </div>
                 )}
-                <Button className="w-full" onClick={handleEmailSubmit} disabled={loading}>
+                <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleEmailSubmit} disabled={loading}>
                   {loading ? "Please wait..." : isNewEmail ? "Create Account & Send OTP" : "Continue"}
                 </Button>
               </>
@@ -235,7 +236,7 @@ const Auth = () => {
             {step === "otp" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="otpInput">Verification Code</Label>
+                  <Label htmlFor="otpInput" className="text-white/70">Verification Code</Label>
                   <Input
                     id="otpInput"
                     type="text"
@@ -243,20 +244,20 @@ const Auth = () => {
                     placeholder="Enter code from email"
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                    className="text-center text-lg tracking-widest font-semibold"
+                    className="text-center text-lg tracking-widest font-semibold border-white/10 bg-white/5 text-white placeholder:text-white/30"
                     autoFocus
                   />
                 </div>
-                <Button className="w-full" onClick={handleVerifyOtp} disabled={loading || otpCode.length < 6}>
+                <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleVerifyOtp} disabled={loading || otpCode.length < 6}>
                   {loading ? "Verifying..." : "Verify & Continue"}
                 </Button>
-                <Button variant="outline" className="w-full text-sm" onClick={handleResendOtp} disabled={loading}>
+                <Button variant="outline" className="w-full text-sm border-white/10 text-white/70 hover:bg-white/10 hover:text-white" onClick={handleResendOtp} disabled={loading}>
                   Resend Code
                 </Button>
-                <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={() => setStep("password")}>
+                <Button variant="ghost" className="w-full text-sm text-white/40 hover:text-white hover:bg-white/10" onClick={() => setStep("password")}>
                   Sign in with password instead
                 </Button>
-                <Button variant="link" className="w-full text-xs" onClick={() => setStep("email")}>
+                <Button variant="link" className="w-full text-xs text-white/40" onClick={() => setStep("email")}>
                   ← Back
                 </Button>
               </>
@@ -265,7 +266,7 @@ const Auth = () => {
             {step === "password" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-white/70">Password</Label>
                   <Input
                     id="password"
                     type="password"
@@ -273,15 +274,16 @@ const Auth = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
+                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
                   />
                 </div>
-                <Button className="w-full" onClick={handlePasswordLogin} disabled={loading}>
+                <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handlePasswordLogin} disabled={loading}>
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
-                <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={handleResendOtp}>
+                <Button variant="ghost" className="w-full text-sm text-white/40 hover:text-white hover:bg-white/10" onClick={handleResendOtp}>
                   Sign in with OTP instead
                 </Button>
-                <Button variant="link" className="w-full text-xs" onClick={() => setStep("email")}>
+                <Button variant="link" className="w-full text-xs text-white/40" onClick={() => setStep("email")}>
                   ← Back
                 </Button>
               </>
@@ -290,19 +292,20 @@ const Auth = () => {
             {step === "set-password" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
+                  <Label htmlFor="newPassword" className="text-white/70">New Password</Label>
                   <Input
                     id="newPassword"
                     type="password"
                     placeholder="Min 6 characters"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
                   />
                 </div>
-                <Button className="w-full" onClick={handleSetPassword} disabled={loading}>
+                <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleSetPassword} disabled={loading}>
                   {loading ? "Setting password..." : "Set Password & Continue"}
                 </Button>
-                <Button variant="ghost" className="w-full text-xs" onClick={() => navigate("/dashboard")}>
+                <Button variant="ghost" className="w-full text-xs text-white/40 hover:text-white hover:bg-white/10" onClick={() => navigate("/dashboard")}>
                   Skip for now
                 </Button>
               </>
