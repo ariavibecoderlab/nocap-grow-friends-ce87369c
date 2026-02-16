@@ -59,7 +59,6 @@ const Transfer = () => {
     });
   }, [user]);
 
-  // Cleanup scanner on unmount
   useEffect(() => {
     return () => {
       if (scannerRef.current) {
@@ -71,12 +70,8 @@ const Transfer = () => {
 
   const startScanner = async () => {
     setScannerActive(true);
-    // Dynamic import to avoid SSR issues
     const { Html5Qrcode } = await import("html5-qrcode");
-    
-    // Wait for container to render
     await new Promise(r => setTimeout(r, 300));
-    
     const scanner = new Html5Qrcode(scannerContainerId);
     scannerRef.current = scanner;
 
@@ -90,7 +85,7 @@ const Transfer = () => {
           setScannerActive(false);
           handleQRResult(decodedText);
         },
-        () => {} // ignore errors during scanning
+        () => {}
       );
     } catch (err) {
       console.error("Scanner error:", err);
@@ -108,9 +103,7 @@ const Transfer = () => {
   };
 
   const handleQRResult = async (data: string) => {
-    // QR format: nocap:USER_ID or just USER_ID
     const userId = data.startsWith("nocap:") ? data.replace("nocap:", "") : data;
-    
     const { data: profile } = await supabase
       .from("profiles")
       .select("user_id, full_name, referral_code")
@@ -128,17 +121,13 @@ const Transfer = () => {
   const handleSearch = async () => {
     if (!searchQuery.trim() || searchQuery.trim().length < 2) return;
     setSearching(true);
-
     const query = searchQuery.trim().toUpperCase();
-    
-    // Search by referral code or name
     const { data } = await supabase
       .from("profiles")
       .select("user_id, full_name, referral_code")
       .or(`referral_code.eq.${query},full_name.ilike.%${searchQuery.trim()}%`)
       .neq("user_id", user?.id || "")
       .limit(10);
-
     setSearchResults(data || []);
     setSearching(false);
   };
@@ -190,9 +179,7 @@ const Transfer = () => {
 
       if (data?.error) {
         toast({ title: "Transfer failed", description: data.error, variant: "destructive" });
-        if (data.code === "PIN_NOT_SET") {
-          navigate("/profile");
-        }
+        if (data.code === "PIN_NOT_SET") navigate("/profile");
         if (step === "pin") setPin("");
         setLoading(false);
         return;
@@ -208,16 +195,16 @@ const Transfer = () => {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-primary">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-secondary border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-primary pb-20">
       {/* Header */}
-      <div className="bg-primary px-4 pb-6 pt-8 text-primary-foreground">
+      <div className="px-4 pb-6 pt-8">
         <div className="mx-auto max-w-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -227,13 +214,13 @@ const Transfer = () => {
                 else if (step === "confirm") setStep("amount");
                 else if (step === "pin") setStep("confirm");
                 else navigate("/dashboard");
-              }} className="rounded-full p-1 hover:bg-primary-foreground/10 transition-colors">
-                <ArrowLeft className="h-5 w-5" />
+              }} className="rounded-full p-1 hover:bg-white/10 transition-colors">
+                <ArrowLeft className="h-5 w-5 text-white" />
               </button>
-              <h1 className="font-display text-lg font-bold">Transfer</h1>
+              <h1 className="font-display text-lg font-bold text-white">Transfer</h1>
             </div>
-            <button onClick={() => setShowMyQR(true)} className="rounded-full p-2 hover:bg-primary-foreground/10 transition-colors">
-              <QrCode className="h-5 w-5" />
+            <button onClick={() => setShowMyQR(true)} className="rounded-full p-2 hover:bg-white/10 transition-colors">
+              <QrCode className="h-5 w-5 text-white" />
             </button>
           </div>
         </div>
@@ -243,18 +230,17 @@ const Transfer = () => {
         {/* Step: Select Recipient */}
         {step === "select" && (
           <>
-            {/* Profile incomplete gate */}
             {profileComplete === false && (
-              <Card className="mt-4 border-secondary bg-secondary/10">
+              <Card className="border-secondary/30 bg-secondary/10">
                 <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary/20">
                     <AlertCircle className="h-6 w-6 text-secondary" />
                   </div>
-                  <p className="font-display text-lg font-bold">Complete Your Profile</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-display text-lg font-bold text-white">Complete Your Profile</p>
+                  <p className="text-sm text-white/50">
                     Please update your name and phone number before making a transfer.
                   </p>
-                  <Button onClick={() => navigate("/profile")} className="mt-2 gap-2">
+                  <Button onClick={() => navigate("/profile")} className="mt-2 gap-2 bg-secondary text-primary hover:bg-secondary/90">
                     Go to Profile
                   </Button>
                 </CardContent>
@@ -262,87 +248,87 @@ const Transfer = () => {
             )}
 
             {profileComplete !== false && (
-            <>
-            {/* Balance */}
-            <Card className="mt-4 border-border/50">
-              <CardContent className="flex items-center gap-3 p-4">
-                <Wallet className="h-5 w-5 text-secondary" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Available Balance</p>
-                  <p className="font-display text-xl font-bold">RM {balance.toFixed(2)}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Tabs defaultValue="search" className="mt-6">
-              <TabsList className="w-full">
-                <TabsTrigger value="search" className="flex-1 gap-1.5">
-                  <Search className="h-4 w-4" /> Search
-                </TabsTrigger>
-                <TabsTrigger value="scan" className="flex-1 gap-1.5">
-                  <Camera className="h-4 w-4" /> Scan QR
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="search" className="mt-4">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Name or referral code"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  />
-                  <Button onClick={handleSearch} disabled={searching} size="sm" className="shrink-0">
-                    {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
-                  </Button>
-                </div>
-
-                <div className="mt-3 space-y-2">
-                  {searchResults.map((r) => (
-                    <button
-                      key={r.user_id}
-                      onClick={() => selectRecipient(r)}
-                      className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-muted"
-                    >
-                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/10">
-                         <User className="h-5 w-5 text-secondary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{r.full_name || "Member"}</p>
-                        <p className="text-xs text-muted-foreground">Code: {r.referral_code}</p>
-                      </div>
-                    </button>
-                  ))}
-                  {searchResults.length === 0 && searchQuery && !searching && (
-                    <p className="text-center text-sm text-muted-foreground py-4">No members found</p>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="scan" className="mt-4">
-                {!scannerActive ? (
-                  <div className="flex flex-col items-center gap-4 py-8">
-                     <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-secondary/10">
-                       <Camera className="h-10 w-10 text-secondary" />
+              <>
+                <Card className="border-white/10 bg-white/5">
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <Wallet className="h-5 w-5 text-secondary" />
+                    <div>
+                      <p className="text-xs text-white/50">Available Balance</p>
+                      <p className="font-display text-xl font-bold text-secondary">RM {balance.toFixed(2)}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground text-center">
-                      Scan a member's QR code to transfer funds
-                    </p>
-                    <Button onClick={startScanner}>
-                      <Camera className="mr-2 h-4 w-4" /> Open Scanner
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div id={scannerContainerId} className="overflow-hidden rounded-xl" />
-                    <Button variant="outline" className="w-full" onClick={stopScanner}>
-                      Cancel Scan
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-            </>
+                  </CardContent>
+                </Card>
+
+                <Tabs defaultValue="search" className="mt-6">
+                  <TabsList className="w-full bg-white/5 border border-white/10">
+                    <TabsTrigger value="search" className="flex-1 gap-1.5 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                      <Search className="h-4 w-4" /> Search
+                    </TabsTrigger>
+                    <TabsTrigger value="scan" className="flex-1 gap-1.5 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                      <Camera className="h-4 w-4" /> Scan QR
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="search" className="mt-4">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Name or referral code"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                        className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+                      />
+                      <Button onClick={handleSearch} disabled={searching} size="sm" className="shrink-0 bg-secondary text-primary hover:bg-secondary/90">
+                        {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+                      </Button>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      {searchResults.map((r) => (
+                        <button
+                          key={r.user_id}
+                          onClick={() => selectRecipient(r)}
+                          className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-left transition-colors hover:bg-white/10"
+                        >
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/20">
+                            <User className="h-5 w-5 text-secondary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate">{r.full_name || "Member"}</p>
+                            <p className="text-xs text-white/40">Code: {r.referral_code}</p>
+                          </div>
+                        </button>
+                      ))}
+                      {searchResults.length === 0 && searchQuery && !searching && (
+                        <p className="text-center text-sm text-white/40 py-4">No members found</p>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="scan" className="mt-4">
+                    {!scannerActive ? (
+                      <div className="flex flex-col items-center gap-4 py-8">
+                        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-secondary/20">
+                          <Camera className="h-10 w-10 text-secondary" />
+                        </div>
+                        <p className="text-sm text-white/50 text-center">
+                          Scan a member's QR code to transfer funds
+                        </p>
+                        <Button onClick={startScanner} className="bg-secondary text-primary hover:bg-secondary/90">
+                          <Camera className="mr-2 h-4 w-4" /> Open Scanner
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div id={scannerContainerId} className="overflow-hidden rounded-xl" />
+                        <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10" onClick={stopScanner}>
+                          Cancel Scan
+                        </Button>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </>
             )}
           </>
         )}
@@ -350,42 +336,42 @@ const Transfer = () => {
         {/* Step: Enter Amount */}
         {step === "amount" && recipient && (
           <>
-             <Card className="mt-4 border-secondary/20 bg-secondary/5">
-               <CardContent className="flex items-center gap-3 p-4">
-                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/10">
-                   <User className="h-5 w-5 text-secondary" />
+            <Card className="border-secondary/20 bg-secondary/10">
+              <CardContent className="flex items-center gap-3 p-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/20">
+                  <User className="h-5 w-5 text-secondary" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Sending to</p>
-                  <p className="font-medium">{recipient.full_name || "Member"}</p>
-                  <p className="text-xs text-muted-foreground">Code: {recipient.referral_code}</p>
+                  <p className="text-xs text-white/50">Sending to</p>
+                  <p className="font-medium text-white">{recipient.full_name || "Member"}</p>
+                  <p className="text-xs text-white/40">Code: {recipient.referral_code}</p>
                 </div>
               </CardContent>
             </Card>
 
             <div className="mt-6">
-              <Label className="text-sm font-medium">Amount (RM)</Label>
+              <Label className="text-sm font-medium text-white/70">Amount (RM)</Label>
               <div className="mt-2 relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">RM</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-white/40">RM</span>
                 <Input
                   type="number"
                   inputMode="decimal"
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="pl-14 text-2xl font-display font-bold h-14 text-right"
+                  className="pl-14 text-2xl font-display font-bold h-14 text-right bg-white/5 border-white/10 text-white placeholder:text-white/30"
                   min={0.01}
                   max={balance}
                   step="0.01"
                 />
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-xs text-white/40">
                 Balance: RM {balance.toFixed(2)}
                 {parseFloat(amount) >= 50 && " · PIN required"}
               </p>
             </div>
 
-            <Button className="mt-6 w-full h-12" onClick={proceedToConfirm} disabled={!amount || parseFloat(amount) < 0.01}>
+            <Button className="mt-6 w-full h-12 bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={proceedToConfirm} disabled={!amount || parseFloat(amount) < 0.01}>
               Continue
             </Button>
           </>
@@ -395,35 +381,35 @@ const Transfer = () => {
         {step === "confirm" && recipient && (
           <>
             <div className="mt-6 text-center">
-              <p className="text-sm text-muted-foreground">You are sending</p>
-              <p className="font-display text-4xl font-bold mt-2">RM {parseFloat(amount).toFixed(2)}</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                to <span className="font-medium text-foreground">{recipient.full_name || "Member"}</span>
+              <p className="text-sm text-white/50">You are sending</p>
+              <p className="font-display text-4xl font-bold mt-2 text-secondary">RM {parseFloat(amount).toFixed(2)}</p>
+              <p className="text-sm text-white/50 mt-2">
+                to <span className="font-medium text-white">{recipient.full_name || "Member"}</span>
               </p>
             </div>
 
-            <Card className="mt-6 border-border/50">
+            <Card className="mt-6 border-white/10 bg-white/5">
               <CardContent className="p-4 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Recipient</span>
-                  <span className="font-medium">{recipient.full_name}</span>
+                  <span className="text-white/50">Recipient</span>
+                  <span className="font-medium text-white">{recipient.full_name}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Code</span>
-                  <span className="font-medium">{recipient.referral_code}</span>
+                  <span className="text-white/50">Code</span>
+                  <span className="font-medium text-white">{recipient.referral_code}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Amount</span>
-                  <span className="font-medium">RM {parseFloat(amount).toFixed(2)}</span>
+                  <span className="text-white/50">Amount</span>
+                  <span className="font-medium text-white">RM {parseFloat(amount).toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm border-t border-border pt-2 mt-2">
-                  <span className="text-muted-foreground">Balance after</span>
-                  <span className="font-bold">RM {(balance - parseFloat(amount)).toFixed(2)}</span>
+                <div className="flex justify-between text-sm border-t border-white/10 pt-2 mt-2">
+                  <span className="text-white/50">Balance after</span>
+                  <span className="font-bold text-white">RM {(balance - parseFloat(amount)).toFixed(2)}</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Button className="mt-6 w-full h-12 text-base font-semibold" onClick={handleConfirm} disabled={loading}>
+            <Button className="mt-6 w-full h-12 text-base font-semibold bg-secondary text-primary hover:bg-secondary/90" onClick={handleConfirm} disabled={loading}>
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {loading ? "Processing..." : "Confirm Transfer"}
             </Button>
@@ -433,8 +419,8 @@ const Transfer = () => {
         {/* Step: PIN */}
         {step === "pin" && (
           <div className="mt-8 flex flex-col items-center">
-            <p className="font-display text-lg font-semibold">Enter PIN</p>
-            <p className="text-sm text-muted-foreground mt-1">Required for transfers RM50 and above</p>
+            <p className="font-display text-lg font-semibold text-white">Enter PIN</p>
+            <p className="text-sm text-white/50 mt-1">Required for transfers RM50 and above</p>
             <div className="mt-6">
               <InputOTP maxLength={6} value={pin} onChange={(val) => {
                 setPin(val);
@@ -451,7 +437,7 @@ const Transfer = () => {
               </InputOTP>
             </div>
             {loading && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="mt-4 flex items-center gap-2 text-sm text-white/50">
                 <Loader2 className="h-4 w-4 animate-spin" /> Verifying...
               </div>
             )}
@@ -461,20 +447,20 @@ const Transfer = () => {
         {/* Step: Success */}
         {step === "success" && (
           <div className="mt-8 flex flex-col items-center text-center">
-             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary/10 mb-4">
-               <CheckCircle2 className="h-10 w-10 text-secondary" />
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary/20 mb-4">
+              <CheckCircle2 className="h-10 w-10 text-secondary" />
             </div>
-            <h2 className="font-display text-2xl font-bold">Transfer Successful!</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <h2 className="font-display text-2xl font-bold text-white">Transfer Successful!</h2>
+            <p className="mt-2 text-sm text-white/50">
               RM {parseFloat(amount).toFixed(2)} sent to {recipient?.full_name}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-white/40">
               New balance: RM {balance.toFixed(2)}
             </p>
-            <Button className="mt-8 w-full" onClick={() => navigate("/dashboard")}>
+            <Button className="mt-8 w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => navigate("/dashboard")}>
               Back to Dashboard
             </Button>
-            <Button variant="ghost" className="mt-2 w-full" onClick={() => {
+            <Button variant="ghost" className="mt-2 w-full text-white/50 hover:text-white hover:bg-white/10" onClick={() => {
               setStep("select");
               setRecipient(null);
               setAmount("");
@@ -488,20 +474,20 @@ const Transfer = () => {
 
       {/* My QR Dialog */}
       <Dialog open={showMyQR} onOpenChange={setShowMyQR}>
-        <DialogContent className="max-w-xs">
+        <DialogContent className="max-w-xs bg-primary border-white/10">
           <DialogHeader>
-            <DialogTitle className="text-center font-display">My QR Code</DialogTitle>
+            <DialogTitle className="text-center font-display text-white">My QR Code</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-4">
-            <div className="rounded-2xl border-2 border-primary/20 p-4 bg-white">
+            <div className="rounded-2xl border-2 border-secondary/20 p-4 bg-white">
               <QRCodeSVG
                 value={`nocap:${user?.id}`}
                 size={200}
                 level="H"
-                fgColor="hsl(157, 72%, 40%)"
+                fgColor="hsl(0, 0%, 8%)"
               />
             </div>
-            <p className="text-sm text-muted-foreground text-center">
+            <p className="text-sm text-white/50 text-center">
               Share this QR code to receive transfers from other members
             </p>
           </div>

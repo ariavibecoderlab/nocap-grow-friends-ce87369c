@@ -109,8 +109,6 @@ const QrPay = () => {
 
   const handleQrScanned = async (data: string) => {
     try {
-      // Try parsing as JSON (dynamic QR: {branch_id, qr_id})
-      // Or as plain branch qr_code_id (static QR)
       let branchId: string;
       let qrId: string | null = null;
 
@@ -119,11 +117,9 @@ const QrPay = () => {
         branchId = parsed.branch_id;
         qrId = parsed.qr_id || null;
       } catch {
-        // Plain text — treat as branch qr_code_id
         branchId = data;
       }
 
-      // Look up branch by id or qr_code_id
       let branchData;
       const { data: byId } = await supabase
         .from("merchant_branches")
@@ -150,7 +146,6 @@ const QrPay = () => {
         return;
       }
 
-      // Get merchant name
       const { data: merchantProfile } = await supabase
         .from("profiles")
         .select("full_name")
@@ -162,7 +157,6 @@ const QrPay = () => {
         merchant_name: merchantProfile?.full_name || "Merchant",
       });
 
-      // If dynamic QR, fetch amount
       if (qrId) {
         const { data: qrData } = await supabase
           .from("merchant_qr_codes")
@@ -244,83 +238,80 @@ const QrPay = () => {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-primary">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-secondary border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-primary pb-20">
       {/* Header */}
-      <div className="bg-primary px-4 pb-6 pt-8 text-primary-foreground">
+      <div className="px-4 pb-6 pt-8">
         <div className="mx-auto max-w-md">
           <div className="flex items-center gap-3">
-            <button onClick={() => step === "scan" ? navigate("/dashboard") : resetFlow()} className="rounded-full p-1 hover:bg-primary-foreground/10 transition-colors">
-              <ArrowLeft className="h-5 w-5" />
+            <button onClick={() => step === "scan" ? navigate("/dashboard") : resetFlow()} className="rounded-full p-1 hover:bg-white/10 transition-colors">
+              <ArrowLeft className="h-5 w-5 text-white" />
             </button>
-            <h1 className="font-display text-xl font-bold">QR Pay</h1>
+            <h1 className="font-display text-xl font-bold text-white">QR Pay</h1>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 pt-4">
+      <div className="mx-auto max-w-md px-4">
         {/* Scan Step */}
         {step === "scan" && (
           <div className="space-y-4">
-            {/* Profile incomplete gate */}
             {profileComplete === false && (
-              <Card className="border-secondary bg-secondary/10">
+              <Card className="border-secondary/30 bg-secondary/10">
                 <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary/20">
                     <AlertCircle className="h-6 w-6 text-secondary" />
                   </div>
-                  <p className="font-display text-lg font-bold">Complete Your Profile</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-display text-lg font-bold text-white">Complete Your Profile</p>
+                  <p className="text-sm text-white/50">
                     Please update your name and phone number before making a payment.
                   </p>
-                  <Button onClick={() => navigate("/profile")} className="mt-2 gap-2">
+                  <Button onClick={() => navigate("/profile")} className="mt-2 gap-2 bg-secondary text-primary hover:bg-secondary/90">
                     Go to Profile
                   </Button>
                 </CardContent>
               </Card>
             )}
 
-            {/* Scanner - only shown when profile is complete */}
             {profileComplete !== false && (
-              <Card className="overflow-hidden border-0 shadow-lg">
+              <Card className="overflow-hidden border-white/10 bg-white/5 shadow-lg">
                 <CardContent className="p-0">
                   <div id={scannerContainerId} className="w-full" style={{ minHeight: scanning ? 300 : 0 }} />
                   {!scanning && (
                     <div className="flex flex-col items-center justify-center py-16 px-6">
-                       <div className="rounded-full bg-secondary/10 p-4 mb-4">
-                         <Camera className="h-8 w-8 text-secondary" />
+                      <div className="rounded-full bg-secondary/20 p-4 mb-4">
+                        <Camera className="h-8 w-8 text-secondary" />
                       </div>
-                      <p className="text-sm text-muted-foreground text-center mb-4">
+                      <p className="text-sm text-white/50 text-center mb-4">
                         Scan a merchant's QR code to make a payment
                       </p>
-                      <Button onClick={startScanner} className="gap-2">
+                      <Button onClick={startScanner} className="gap-2 bg-secondary text-primary hover:bg-secondary/90">
                         <Camera className="h-4 w-4" /> Open Scanner
                       </Button>
                     </div>
                   )}
                   {scanning && (
                     <div className="p-4 text-center">
-                      <p className="text-sm text-muted-foreground">Point your camera at the merchant's QR code</p>
-                      <Button variant="outline" size="sm" className="mt-2" onClick={stopScanner}>Cancel</Button>
+                      <p className="text-sm text-white/50">Point your camera at the merchant's QR code</p>
+                      <Button variant="outline" size="sm" className="mt-2 border-white/20 text-white hover:bg-white/10" onClick={stopScanner}>Cancel</Button>
                     </div>
                   )}
                 </CardContent>
               </Card>
             )}
 
-            {/* Balance */}
-            <Card className="border-border/50">
+            <Card className="border-white/10 bg-white/5">
               <CardContent className="flex items-center gap-3 p-4">
-                <Wallet className="h-5 w-5 text-muted-foreground" />
+                <Wallet className="h-5 w-5 text-white/50" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Wallet Balance</p>
-                  <p className="font-display text-lg font-bold">RM {balance.toFixed(2)}</p>
+                  <p className="text-xs text-white/50">Wallet Balance</p>
+                  <p className="font-display text-lg font-bold text-secondary">RM {balance.toFixed(2)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -330,27 +321,27 @@ const QrPay = () => {
         {/* Confirm Step */}
         {step === "confirm" && branch && (
           <div className="space-y-4">
-            <Card className="border-0 shadow-lg">
+            <Card className="border-white/10 bg-white/5 shadow-lg">
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-center gap-3">
-                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary/10">
-                     <Store className="h-6 w-6 text-secondary" />
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary/20">
+                    <Store className="h-6 w-6 text-secondary" />
                   </div>
                   <div>
-                    <p className="font-display text-lg font-bold">{branch.branch_name}</p>
-                    <p className="text-xs text-muted-foreground">{branch.merchant_name}</p>
+                    <p className="font-display text-lg font-bold text-white">{branch.branch_name}</p>
+                    <p className="text-xs text-white/50">{branch.merchant_name}</p>
                   </div>
                 </div>
 
                 {dynamicQr?.description && (
-                  <div className="rounded-lg bg-muted p-3">
-                    <p className="text-xs text-muted-foreground">Description</p>
-                    <p className="text-sm font-medium">{dynamicQr.description}</p>
+                  <div className="rounded-lg bg-white/5 border border-white/10 p-3">
+                    <p className="text-xs text-white/50">Description</p>
+                    <p className="text-sm font-medium text-white">{dynamicQr.description}</p>
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="payAmount">Payment Amount (RM)</Label>
+                  <Label htmlFor="payAmount" className="text-white/70">Payment Amount (RM)</Label>
                   <Input
                     id="payAmount"
                     type="number"
@@ -359,28 +350,28 @@ const QrPay = () => {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     disabled={!!dynamicQr}
-                    className="text-2xl font-bold text-center h-14"
+                    className="text-2xl font-bold text-center h-14 bg-white/5 border-white/10 text-white placeholder:text-white/30"
                   />
                 </div>
 
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center justify-between text-sm text-white/50">
                   <span>Your Balance</span>
-                  <span className="font-semibold text-foreground">RM {balance.toFixed(2)}</span>
+                  <span className="font-semibold text-white">RM {balance.toFixed(2)}</span>
                 </div>
 
                 {Number(amount) > 0 && (
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between text-sm text-white/50">
                     <span>After Payment</span>
-                    <span className={`font-semibold ${balance - Number(amount) < 0 ? 'text-destructive' : 'text-foreground'}`}>
+                    <span className={`font-semibold ${balance - Number(amount) < 0 ? 'text-red-400' : 'text-white'}`}>
                       RM {(balance - Number(amount)).toFixed(2)}
                     </span>
                   </div>
                 )}
 
-                <Button className="w-full h-12 text-base" onClick={handleConfirm} disabled={!amount || Number(amount) <= 0}>
+                <Button className="w-full h-12 text-base bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleConfirm} disabled={!amount || Number(amount) <= 0}>
                   Pay RM {Number(amount || 0).toFixed(2)}
                 </Button>
-                <Button variant="ghost" className="w-full text-sm" onClick={resetFlow}>
+                <Button variant="ghost" className="w-full text-sm text-white/50 hover:text-white hover:bg-white/10" onClick={resetFlow}>
                   Cancel
                 </Button>
               </CardContent>
@@ -391,14 +382,14 @@ const QrPay = () => {
         {/* PIN Step */}
         {step === "pin" && (
           <div className="space-y-4">
-            <Card className="border-0 shadow-lg">
+            <Card className="border-white/10 bg-white/5 shadow-lg">
               <CardContent className="p-5 space-y-4">
                 <div className="flex flex-col items-center">
-                   <div className="rounded-full bg-secondary/10 p-3 mb-3">
-                     <ShieldCheck className="h-6 w-6 text-secondary" />
+                  <div className="rounded-full bg-secondary/20 p-3 mb-3">
+                    <ShieldCheck className="h-6 w-6 text-secondary" />
                   </div>
-                  <p className="font-display text-lg font-bold">Enter PIN</p>
-                  <p className="text-xs text-muted-foreground">Required for payments of RM50 and above</p>
+                  <p className="font-display text-lg font-bold text-white">Enter PIN</p>
+                  <p className="text-xs text-white/50">Required for payments of RM50 and above</p>
                 </div>
 
                 <div className="space-y-2">
@@ -408,27 +399,27 @@ const QrPay = () => {
                     placeholder="Enter your PIN"
                     value={pin}
                     onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-                    className="text-center text-xl tracking-widest"
+                    className="text-center text-xl tracking-widest bg-white/5 border-white/10 text-white placeholder:text-white/30"
                     maxLength={6}
                     autoFocus
                   />
                 </div>
 
-                <div className="rounded-lg bg-muted p-3 text-sm">
+                <div className="rounded-lg bg-white/5 border border-white/10 p-3 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Paying to</span>
-                    <span className="font-medium">{branch?.branch_name}</span>
+                    <span className="text-white/50">Paying to</span>
+                    <span className="font-medium text-white">{branch?.branch_name}</span>
                   </div>
                   <div className="flex justify-between mt-1">
-                    <span className="text-muted-foreground">Amount</span>
+                    <span className="text-white/50">Amount</span>
                     <span className="font-bold text-secondary">RM {Number(amount).toFixed(2)}</span>
                   </div>
                 </div>
 
-                <Button className="w-full h-12" onClick={handlePinSubmit} disabled={pin.length < 4}>
+                <Button className="w-full h-12 bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handlePinSubmit} disabled={pin.length < 4}>
                   Confirm Payment
                 </Button>
-                <Button variant="ghost" className="w-full text-sm" onClick={() => setStep("confirm")}>
+                <Button variant="ghost" className="w-full text-sm text-white/50 hover:text-white hover:bg-white/10" onClick={() => setStep("confirm")}>
                   ← Back
                 </Button>
               </CardContent>
@@ -440,49 +431,49 @@ const QrPay = () => {
         {step === "processing" && (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="h-12 w-12 animate-spin text-secondary mb-4" />
-            <p className="font-display text-lg font-semibold">Processing Payment...</p>
-            <p className="text-sm text-muted-foreground">Please wait</p>
+            <p className="font-display text-lg font-semibold text-white">Processing Payment...</p>
+            <p className="text-sm text-white/50">Please wait</p>
           </div>
         )}
 
         {/* Success Step */}
         {step === "success" && result && (
           <div className="space-y-4">
-            <Card className="border-0 shadow-lg">
+            <Card className="border-white/10 bg-white/5 shadow-lg">
               <CardContent className="p-5 space-y-4">
                 <div className="flex flex-col items-center py-4">
-                   <div className="rounded-full bg-secondary/10 p-4 mb-3">
-                     <CheckCircle2 className="h-10 w-10 text-secondary" />
+                  <div className="rounded-full bg-secondary/20 p-4 mb-3">
+                    <CheckCircle2 className="h-10 w-10 text-secondary" />
                   </div>
-                  <p className="font-display text-xl font-bold">Payment Successful!</p>
-                  <p className="text-sm text-muted-foreground mt-1">RM {Number(amount).toFixed(2)} paid to {result.branch_name}</p>
+                  <p className="font-display text-xl font-bold text-white">Payment Successful!</p>
+                  <p className="text-sm text-white/50 mt-1">RM {Number(amount).toFixed(2)} paid to {result.branch_name}</p>
                 </div>
 
                 {result.cashback > 0 && (
-                   <div className="flex items-center gap-2 rounded-lg bg-secondary/5 border border-secondary/20 p-3">
-                     <Gift className="h-5 w-5 text-secondary shrink-0" />
-                     <div>
-                       <p className="text-sm font-semibold text-secondary">Cashback earned!</p>
-                      <p className="text-xs text-muted-foreground">RM {result.cashback.toFixed(2)} added to your wallet</p>
+                  <div className="flex items-center gap-2 rounded-lg bg-secondary/10 border border-secondary/20 p-3">
+                    <Gift className="h-5 w-5 text-secondary shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-secondary">Cashback earned!</p>
+                      <p className="text-xs text-white/50">RM {result.cashback.toFixed(2)} added to your wallet</p>
                     </div>
                   </div>
                 )}
 
-                <div className="rounded-lg bg-muted p-3 text-sm space-y-1">
+                <div className="rounded-lg bg-white/5 border border-white/10 p-3 text-sm space-y-1">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">New Balance</span>
-                    <span className="font-bold">RM {result.new_balance.toFixed(2)}</span>
+                    <span className="text-white/50">New Balance</span>
+                    <span className="font-bold text-white">RM {result.new_balance.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Transaction ID</span>
-                    <span className="font-mono text-xs">{result.transaction_id?.slice(0, 8)}...</span>
+                    <span className="text-white/50">Transaction ID</span>
+                    <span className="font-mono text-xs text-white/70">{result.transaction_id?.slice(0, 8)}...</span>
                   </div>
                 </div>
 
-                <Button className="w-full" onClick={() => navigate("/dashboard")}>
+                <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => navigate("/dashboard")}>
                   Back to Home
                 </Button>
-                <Button variant="outline" className="w-full" onClick={resetFlow}>
+                <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10" onClick={resetFlow}>
                   Make Another Payment
                 </Button>
               </CardContent>
