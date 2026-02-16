@@ -4,10 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Play, ChevronDown, ChevronUp, Loader2, Copy, Check, History, RotateCcw, Trash2, Clock, Terminal } from "lucide-react";
+import { Play, ChevronDown, ChevronUp, Loader2, Copy, Check, History, RotateCcw, Trash2, Clock, Terminal, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import CodeBlock from "@/components/CodeBlock";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useApiCredentials } from "@/contexts/ApiCredentialsContext";
 
 interface ParamField {
   name: string;
@@ -50,9 +51,14 @@ const ApiTryIt = ({ method, endpoint, params, bodyFields, needsApiKey = true, ne
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
-  const [apiKey, setApiKey] = useState("");
-  const [apiSecret, setApiSecret] = useState("");
-  const [userToken, setUserToken] = useState("");
+  const { credentials, setCredentials, saved, save: saveCredentials, clear: clearCredentials } = useApiCredentials();
+
+  const apiKey = credentials.apiKey;
+  const apiSecret = credentials.apiSecret;
+  const userToken = credentials.userToken;
+  const setApiKey = (v: string) => setCredentials({ apiKey: v });
+  const setApiSecret = (v: string) => setCredentials({ apiSecret: v });
+  const setUserToken = (v: string) => setCredentials({ userToken: v });
   const [queryParams, setQueryParams] = useState<Record<string, string>>({});
   const [bodyParams, setBodyParams] = useState<Record<string, string>>({});
 
@@ -282,7 +288,33 @@ const ApiTryIt = ({ method, endpoint, params, bodyFields, needsApiKey = true, ne
 
           {/* Credentials */}
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Credentials</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Credentials</p>
+              <div className="flex gap-1">
+                {(apiKey || apiSecret || userToken) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1 text-[10px] h-6 px-2 text-muted-foreground hover:text-foreground"
+                    onClick={() => { saveCredentials(); toast.success("Credentials saved for all endpoints"); }}
+                  >
+                    <Save className="h-2.5 w-2.5" />
+                    {saved ? "Update" : "Save"}
+                  </Button>
+                )}
+                {saved && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1 text-[10px] h-6 px-2 text-muted-foreground hover:text-destructive"
+                    onClick={() => { clearCredentials(); toast("Saved credentials cleared"); }}
+                  >
+                    <X className="h-2.5 w-2.5" />
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {needsApiKey && (
                 <div className="space-y-1">
