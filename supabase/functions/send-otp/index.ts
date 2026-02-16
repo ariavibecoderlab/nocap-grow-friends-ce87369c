@@ -31,18 +31,7 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Check if user is properly registered (not auto-created by generateLink)
-    // We check auth.users for email_confirmed_at — only properly registered users have confirmed emails
-    const { data: { users }, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    const authUser = users?.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-    
-    if (listErr || !authUser || !authUser.email_confirmed_at) {
-      return new Response(JSON.stringify({ error: 'User not found' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Generate a magic link — this returns the OTP token we can send via email
+    // Generate a magic link for any email — creates user if they don't exist
     const { data, error } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email,
