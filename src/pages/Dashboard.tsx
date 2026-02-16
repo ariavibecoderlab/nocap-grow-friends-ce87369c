@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import TransactionDetail from "@/components/TransactionDetail";
 import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store, AlertCircle, Zap, Banknote, Send, UserPlus, Share2 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
@@ -55,7 +56,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [balance, setBalance] = useState<number>(0);
   const [showBalance, setShowBalance] = useState(true);
-  const [profile, setProfile] = useState<{ full_name: string; phone: string | null; referral_code: string; } | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string; phone: string | null; referral_code: string; avatar_url: string | null } | null>(null);
   const [referralCount, setReferralCount] = useState(0);
   const [networkCount, setNetworkCount] = useState(0);
   const [cashbackEarnings, setCashbackEarnings] = useState(0);
@@ -77,7 +78,7 @@ const Dashboard = () => {
       setLoadingData(true);
       const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes] = await Promise.all([
         supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
-        supabase.from("profiles").select("full_name, phone, referral_code").eq("user_id", user.id).maybeSingle(),
+        supabase.from("profiles").select("full_name, phone, referral_code, avatar_url").eq("user_id", user.id).maybeSingle(),
         supabase.from("referral_tree").select("id").eq("ancestor_id", user.id).eq("tier", 1),
         supabase.from("referral_tree").select("id").eq("ancestor_id", user.id),
         supabase.from("transactions").select("amount, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed"),
@@ -137,9 +138,19 @@ const Dashboard = () => {
       <div className="px-4 pt-8 pb-6">
         <div className="mx-auto max-w-md">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-white/50">Welcome back,</p>
-              <h1 className="font-display text-xl font-bold text-white">{profile?.full_name || "Member"}</h1>
+            <div className="flex items-center gap-3">
+              <button onClick={() => navigate("/my-profile")} className="shrink-0">
+                <Avatar className="h-10 w-10 border border-secondary/30">
+                  <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || "Avatar"} />
+                  <AvatarFallback className="bg-white/10 text-white text-sm font-bold">
+                    {profile?.full_name ? profile.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) : "?"}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+              <div>
+                <p className="text-sm text-white/50">Welcome back,</p>
+                <h1 className="font-display text-xl font-bold text-white">{profile?.full_name || "Member"}</h1>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <NotificationBell className="text-white" />
