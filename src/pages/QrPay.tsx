@@ -74,6 +74,18 @@ const QrPay = () => {
       }
       if (pinSettingRes.data) setMinPinAmount(Number(pinSettingRes.data.value));
     });
+
+    // Realtime wallet balance updates
+    const channel = supabase
+      .channel("qrpay-wallet")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const updated = payload.new as { balance: number; wallet_type: string };
+          if (updated.wallet_type === "member") setBalance(Number(updated.balance));
+        })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const startScanner = async () => {
