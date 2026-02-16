@@ -185,6 +185,19 @@ serve(async (req) => {
         .eq('user_id', branch.merchant_user_id);
     }
 
+    // Credit branch balance
+    const { data: branchRow } = await supabase
+      .from('merchant_branches')
+      .select('balance')
+      .eq('id', branch_id)
+      .single();
+    if (branchRow) {
+      await supabase
+        .from('merchant_branches')
+        .update({ balance: Number(branchRow.balance) + merchantCredit })
+        .eq('id', branch_id);
+    }
+
     // Get payer name
     const { data: payerProfile } = await supabase
       .from('profiles')

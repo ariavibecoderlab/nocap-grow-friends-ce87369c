@@ -79,6 +79,7 @@ export type Database = {
       }
       merchant_branches: {
         Row: {
+          balance: number
           branch_address: string | null
           branch_name: string
           commission_percent: number
@@ -86,10 +87,12 @@ export type Database = {
           id: string
           is_active: boolean
           merchant_user_id: string
+          owner_user_id: string | null
           qr_code_id: string
           updated_at: string
         }
         Insert: {
+          balance?: number
           branch_address?: string | null
           branch_name: string
           commission_percent?: number
@@ -97,10 +100,12 @@ export type Database = {
           id?: string
           is_active?: boolean
           merchant_user_id: string
+          owner_user_id?: string | null
           qr_code_id?: string
           updated_at?: string
         }
         Update: {
+          balance?: number
           branch_address?: string | null
           branch_name?: string
           commission_percent?: number
@@ -108,6 +113,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           merchant_user_id?: string
+          owner_user_id?: string | null
           qr_code_id?: string
           updated_at?: string
         }
@@ -408,6 +414,7 @@ export type Database = {
           bank_account_holder: string
           bank_account_no: string
           bank_name: string
+          branch_id: string | null
           created_at: string
           id: string
           rejection_reason: string | null
@@ -422,6 +429,7 @@ export type Database = {
           bank_account_holder: string
           bank_account_no: string
           bank_name: string
+          branch_id?: string | null
           created_at?: string
           id?: string
           rejection_reason?: string | null
@@ -436,6 +444,7 @@ export type Database = {
           bank_account_holder?: string
           bank_account_no?: string
           bank_name?: string
+          branch_id?: string | null
           created_at?: string
           id?: string
           rejection_reason?: string | null
@@ -445,7 +454,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_requests_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -462,7 +479,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "member" | "merchant" | "admin"
+      app_role: "member" | "merchant" | "admin" | "branch"
       transaction_status: "pending" | "completed" | "failed" | "cancelled"
       transaction_type:
         | "top_up"
@@ -600,7 +617,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["member", "merchant", "admin"],
+      app_role: ["member", "merchant", "admin", "branch"],
       transaction_status: ["pending", "completed", "failed", "cancelled"],
       transaction_type: [
         "top_up",

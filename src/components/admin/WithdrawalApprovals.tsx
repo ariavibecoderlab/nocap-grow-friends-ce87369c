@@ -16,7 +16,9 @@ interface WithdrawalRow {
   bank_account_holder: string;
   status: string;
   created_at: string;
+  branch_id: string | null;
   profiles?: { full_name: string | null; phone: string | null } | null;
+  branch_name?: string | null;
 }
 
 const WithdrawalApprovals = () => {
@@ -38,16 +40,31 @@ const WithdrawalApprovals = () => {
       .order("created_at", { ascending: true });
 
     if (data) {
-      // Fetch profile names for each
+      // Fetch profile names
       const userIds = [...new Set(data.map((d: any) => d.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name, phone")
         .in("user_id", userIds);
-
       const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
+
+      // Fetch branch names for branch withdrawals
+      const branchIds = data.filter((d: any) => d.branch_id).map((d: any) => d.branch_id);
+      let branchMap = new Map<string, string>();
+      if (branchIds.length > 0) {
+        const { data: branchData } = await supabase
+          .from("merchant_branches")
+          .select("id, branch_name")
+          .in("id", branchIds);
+        branchMap = new Map((branchData || []).map((b: any) => [b.id, b.branch_name]));
+      }
+
       setRequests(
-        (data as any[]).map((r) => ({ ...r, profiles: profileMap.get(r.user_id) || null }))
+        (data as any[]).map((r) => ({
+          ...r,
+          profiles: profileMap.get(r.user_id) || null,
+          branch_name: r.branch_id ? branchMap.get(r.branch_id) || null : null,
+        }))
       );
     }
     setLoading(false);
@@ -66,11 +83,13 @@ const WithdrawalApprovals = () => {
 
   const approve = async (req: WithdrawalRow) => {
     setProcessing(req.id);
+    const action = req.branch_id ? "approve_branch_withdrawal" : "approve_withdrawal";
     const { error } = await callAdmin({
-      action: "approve_withdrawal",
+      action,
       withdrawalId: req.id,
       withdrawalUserId: req.user_id,
       amount: req.amount,
+      ...(req.branch_id ? { branchId: req.branch_id } : {}),
     });
     if (error) {
       toast({ title: "Error", description: typeof error === "string" ? error : (error as any)?.message || "Unknown error", variant: "destructive" });
@@ -119,8 +138,9 @@ const WithdrawalApprovals = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold">RM {Number(r.amount).toFixed(2)}</p>
-                  <p className="text-[10px] text-muted-foreground">
+                   <p className="text-[10px] text-muted-foreground">
                     {r.profiles?.full_name || "Unknown"} • {r.profiles?.phone || ""}
+                    {r.branch_name && <span className="ml-1 text-primary">• Branch: {r.branch_name}</span>}
                   </p>
                 </div>
                 <p className="text-[10px] text-muted-foreground">

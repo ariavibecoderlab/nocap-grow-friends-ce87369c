@@ -354,6 +354,71 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "assign_branch_owner": {
+        // This action is for merchants, not just admins. We need a separate check.
+        // Actually this should be a merchant action, let's handle it here but also allow merchants.
+        break;
+      }
+
+      case "approve_branch_withdrawal": {
+        const { withdrawalId: bwId, branchId: bwBranchId, withdrawalUserId: bwUserId, amount: bwAmount } = body;
+
+        // Check branch balance
+        const { data: branchData, error: branchErr } = await adminClient
+          .from("merchant_branches")
+          .select("balance")
+          .eq("id", bwBranchId)
+          .single();
+        if (branchErr || !branchData) throw new Error("Branch not found");
+        if (Number(branchData.balance) < Number(bwAmount)) throw new Error("Insufficient branch balance");
+
+        // Deduct branch balance
+        await adminClient
+          .from("merchant_branches")
+          .update({ balance: Number(branchData.balance) - Number(bwAmount) })
+          .eq("id", bwBranchId);
+
+        // Credit branch owner's wallet
+        const { data: ownerWallet } = await adminClient
+          .from("wallets")
+          .select("balance")
+          .eq("user_id", bwUserId)
+          .single();
+        if (ownerWallet) {
+          await adminClient
+            .from("wallets")
+            .update({ balance: Number(ownerWallet.balance) + Number(bwAmount) })
+            .eq("user_id", bwUserId);
+        }
+
+        // Update request status
+        await adminClient
+          .from("withdrawal_requests")
+          .update({ status: "approved", reviewed_by: userId, reviewed_at: new Date().toISOString() })
+          .eq("id", bwId);
+
+        // Create transaction record
+        await adminClient.from("transactions").insert({
+          user_id: bwUserId,
+          type: "withdrawal",
+          amount: Number(bwAmount),
+          net_amount: Number(bwAmount),
+          status: "completed",
+          description: "Branch withdrawal to wallet",
+        });
+
+        // Notify branch owner
+        await adminClient.from("notifications").insert({
+          user_id: bwUserId,
+          title: "Branch Withdrawal Approved ✅",
+          message: `Your branch withdrawal of RM ${Number(bwAmount).toFixed(2)} has been approved and credited to your wallet.`,
+          type: "success",
+        });
+
+        result = { success: true };
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Unknown action" }), {
           status: 400,

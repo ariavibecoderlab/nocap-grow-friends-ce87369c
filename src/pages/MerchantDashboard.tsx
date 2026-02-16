@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 import MerchantTransactions from "@/components/merchant/MerchantTransactions";
 import MerchantWithdrawals from "@/components/merchant/MerchantWithdrawals";
+import BranchOwnerAssignment from "@/components/merchant/BranchOwnerAssignment";
 import NotificationBell from "@/components/NotificationBell";
 import {
   ArrowLeft,
@@ -39,6 +40,8 @@ interface Branch {
   commission_percent: number;
   is_active: boolean;
   qr_code_id: string;
+  owner_user_id: string | null;
+  balance: number;
 }
 
 interface DynamicQr {
@@ -609,11 +612,36 @@ const MerchantDashboard = () => {
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Branch Balance</span>
+                    <span className="font-medium">RM {Number((selectedBranch as any).balance || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">QR Code ID</span>
                     <span className="font-mono text-xs">{selectedBranch.qr_code_id.slice(0, 8)}...</span>
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Branch Owner Assignment */}
+              <BranchOwnerAssignment
+                branchId={selectedBranch.id}
+                currentOwnerId={(selectedBranch as any).owner_user_id}
+                onAssigned={() => {
+                  // Refresh branches
+                  supabase
+                    .from("merchant_branches")
+                    .select("*")
+                    .eq("merchant_user_id", user!.id)
+                    .order("created_at", { ascending: true })
+                    .then(({ data }) => {
+                      if (data) {
+                        setBranches(data as Branch[]);
+                        const updated = data.find((b: any) => b.id === selectedBranch.id);
+                        if (updated) setSelectedBranch(updated as Branch);
+                      }
+                    });
+                }}
+              />
             </TabsContent>
           </Tabs>
         )}
