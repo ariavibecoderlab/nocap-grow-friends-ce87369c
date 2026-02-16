@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Code } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import CodeBlock from "@/components/CodeBlock";
 
 const ApiDocs = () => {
   return (
@@ -49,21 +50,19 @@ const ApiDocs = () => {
                   </p>
                 </div>
                 <div className="space-y-2">
-                   <h3 className="font-semibold text-lg">3. Sandbox Mode</h3>
-                   <p className="text-sm text-muted-foreground">
-                     Enable <strong>Sandbox Mode</strong> when creating an API app to test integrations without using real money. 
-                     Sandbox transactions are immediately marked as completed and do not deduct from wallets.
-                   </p>
-                 </div>
+                  <h3 className="font-semibold text-lg">3. Sandbox Mode</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Enable <strong>Sandbox Mode</strong> when creating an API app to test integrations without using real money. 
+                    Sandbox transactions are immediately marked as completed and do not deduct from wallets.
+                  </p>
+                </div>
                 <div className="space-y-2">
-                   <h3 className="font-semibold text-lg">4. Base URL</h3>
-                   <p className="text-sm text-muted-foreground">All API requests should be made to our edge functions endpoint:</p>
-                   <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-                     https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/
-                   </pre>
-                 </div>
+                  <h3 className="font-semibold text-lg">4. Base URL</h3>
+                  <p className="text-sm text-muted-foreground">All API requests should be made to our edge functions endpoint:</p>
+                  <CodeBlock>{`https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/`}</CodeBlock>
+                </div>
                 <div className="space-y-2">
-                   <h3 className="font-semibold text-lg">5. Rate Limits</h3>
+                  <h3 className="font-semibold text-lg">5. Rate Limits</h3>
                   <p className="text-sm text-muted-foreground">
                     All API endpoints are rate limited per API key. Exceeding the limit returns a <code className="text-primary font-bold">429 Too Many Requests</code> response with a <code className="text-primary font-bold">Retry-After</code> header.
                   </p>
@@ -158,24 +157,20 @@ const ApiDocs = () => {
                     </ul>
                   </div>
                   <h4 className="text-sm font-semibold">Request Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-authorize" \\
+                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-authorize" \\
   -H "Authorization: Bearer user_supabase_session_token" \\
   -H "Content-Type: application/json" \\
   -d '{
     "app_id": "uuid-of-your-app",
     "scopes": ["balance", "charge"]
-  }'`}
-                  </pre>
+  }'`}</CodeBlock>
                   <h4 className="text-sm font-semibold">Response Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`{
+                  <CodeBlock>{`{
   "success": true,
   "access_token": "a1b2c3d4e5f6...64_hex_chars",
   "app_name": "My POS App",
   "scopes": ["balance", "charge"]
-}`}
-                  </pre>
+}`}</CodeBlock>
                   <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-md">
                     <p className="text-xs text-destructive">
                       <strong>⚠️ Important:</strong> The <code>access_token</code> is shown only once. Store it securely on your server. This token is used as the <code>Authorization: Bearer</code> header for all subsequent API calls.
@@ -204,16 +199,12 @@ const ApiDocs = () => {
                     </ul>
                   </div>
                   <h4 className="text-sm font-semibold">Request Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-revoke" \\
+                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-revoke" \\
   -H "Authorization: Bearer user_supabase_session_token" \\
   -H "Content-Type: application/json" \\
-  -d '{ "token_id": "uuid-of-the-token" }'`}
-                  </pre>
+  -d '{ "token_id": "uuid-of-the-token" }'`}</CodeBlock>
                   <h4 className="text-sm font-semibold">Response Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`{ "success": true }`}
-                  </pre>
+                  <CodeBlock>{`{ "success": true }`}</CodeBlock>
                 </CardContent>
               </Card>
             </div>
@@ -231,19 +222,15 @@ const ApiDocs = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <h4 className="text-sm font-semibold">Request Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-balance" \\
+                  <CodeBlock>{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-balance" \\
   -H "X-Api-Key: your_api_key" \\
   -H "X-Api-Secret: your_api_secret" \\
-  -H "Authorization: Bearer user_token"`}
-                  </pre>
+  -H "Authorization: Bearer user_token"`}</CodeBlock>
                   <h4 className="text-sm font-semibold">Response Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`{
+                  <CodeBlock>{`{
   "balance": 150.75,
   "currency": "MYR"
-}`}
-                  </pre>
+}`}</CodeBlock>
                 </CardContent>
               </Card>
 
@@ -266,8 +253,7 @@ const ApiDocs = () => {
                     </ul>
                   </div>
                   <h4 className="text-sm font-semibold">Request Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charge" \\
+                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charge" \\
   -H "X-Api-Key: your_api_key" \\
   -H "X-Api-Secret: your_api_secret" \\
   -H "Authorization: Bearer user_token" \\
@@ -277,11 +263,9 @@ const ApiDocs = () => {
     "description": "Order #12345",
     "reference": "txn_88291",
     "metadata": { "order_id": "ORD-123", "customer_email": "user@example.com" }
-  }'`}
-                  </pre>
+  }'`}</CodeBlock>
                   <h4 className="text-sm font-semibold">Response Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`{
+                  <CodeBlock>{`{
   "success": true,
   "charge_id": "uuid",
   "transaction_id": "uuid",
@@ -289,8 +273,7 @@ const ApiDocs = () => {
   "new_balance": 140.25,
   "cashback": 0.09,
   "branch_name": "My Store"
-}`}
-                  </pre>
+}`}</CodeBlock>
                 </CardContent>
               </Card>
 
@@ -302,19 +285,16 @@ const ApiDocs = () => {
                   </div>
                   <CardDescription>Check the status of a specific charge request.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   <h4 className="text-sm font-semibold mb-2">Query Parameters:</h4>
                   <p className="text-sm text-muted-foreground mb-4">
                     <code className="text-primary font-bold">charge_id</code> (string, required): The ID of the charge returned by the /api-charge endpoint.
                   </p>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charge-status?charge_id=uuid" \\
+                  <CodeBlock>{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charge-status?charge_id=uuid" \\
   -H "X-Api-Key: your_api_key" \\
-  -H "X-Api-Secret: your_api_secret"`}
-                  </pre>
+  -H "X-Api-Secret: your_api_secret"`}</CodeBlock>
                   <h4 className="text-sm font-semibold">Response Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`{
+                  <CodeBlock>{`{
   "id": "uuid",
   "amount": 10.50,
   "description": "Order #12345",
@@ -323,10 +303,10 @@ const ApiDocs = () => {
   "transaction_id": "uuid",
   "created_at": "2026-02-16T12:00:00.000Z",
   "completed_at": "2026-02-16T12:00:01.000Z"
-}`}
-                  </pre>
+}`}</CodeBlock>
                 </CardContent>
               </Card>
+
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
@@ -349,29 +329,26 @@ const ApiDocs = () => {
                     </ul>
                   </div>
                   <h4 className="text-sm font-semibold mb-2">Request Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-refund" \\
+                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-refund" \\
   -H "X-Api-Key: your_api_key" \\
   -H "X-Api-Secret: your_api_secret" \\
   -d '{
     "charge_id": "uuid-of-the-charge",
     "amount": 5.00,
     "reason": "Customer returned item"
-  }'`}
-                  </pre>
+  }'`}</CodeBlock>
                   <h4 className="text-sm font-semibold mb-2">Response Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`{
+                  <CodeBlock>{`{
   "success": true,
   "refund_amount": 5.00,
   "total_refunded": 5.00,
   "charge_amount": 10.50,
   "status": "partial_refund",
   "transaction_id": "uuid"
-}`}
-                  </pre>
+}`}</CodeBlock>
                 </CardContent>
               </Card>
+
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
@@ -394,14 +371,11 @@ const ApiDocs = () => {
                     </ul>
                   </div>
                   <h4 className="text-sm font-semibold">Request Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charges-list?page=1&limit=10&status=completed" \\
+                  <CodeBlock>{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charges-list?page=1&limit=10&status=completed" \\
   -H "X-Api-Key: your_api_key" \\
-  -H "X-Api-Secret: your_api_secret"`}
-                  </pre>
+  -H "X-Api-Secret: your_api_secret"`}</CodeBlock>
                   <h4 className="text-sm font-semibold">Response Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`{
+                  <CodeBlock>{`{
   "data": [
     {
       "id": "uuid",
@@ -424,8 +398,7 @@ const ApiDocs = () => {
     "total_pages": 5,
     "has_more": true
   }
-}`}
-                  </pre>
+}`}</CodeBlock>
                 </CardContent>
               </Card>
             </div>
@@ -467,8 +440,7 @@ const ApiDocs = () => {
                 <div className="space-y-2">
                   <h3 className="font-semibold text-lg">Payload Format</h3>
                   <h4 className="text-sm font-semibold">charge.completed</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`{
+                  <CodeBlock>{`{
   "event": "charge.completed",
   "charge_id": "uuid",
   "transaction_id": "uuid",
@@ -478,11 +450,9 @@ const ApiDocs = () => {
   "status": "completed",
   "metadata": { "order_id": "ORD-123", "customer_email": "user@example.com" },
   "timestamp": "2026-02-16T12:00:00.000Z"
-}`}
-                  </pre>
+}`}</CodeBlock>
                   <h4 className="text-sm font-semibold mt-3">charge.partial_refund / charge.refunded</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`{
+                  <CodeBlock>{`{
   "event": "charge.partial_refund",
   "charge_id": "uuid",
   "transaction_id": "uuid",
@@ -492,31 +462,30 @@ const ApiDocs = () => {
   "reason": "Customer returned item",
   "status": "partial_refund",
   "timestamp": "2026-02-16T12:30:00.000Z"
-}`}
-                  </pre>
+}`}</CodeBlock>
                 </div>
 
                 <div className="space-y-2">
-                   <h3 className="font-semibold text-lg">Sandbox Mode Testing</h3>
-                   <p className="text-sm text-muted-foreground">
-                     When an API app is in <strong>Sandbox Mode</strong>, all charges are immediately completed without requiring:
-                   </p>
-                   <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                     <li>Sufficient user wallet balance</li>
-                     <li>PIN verification</li>
-                     <li>Any balance deductions or transfers</li>
-                   </ul>
-                   <p className="text-sm text-muted-foreground mt-2">
-                     This allows you to test your integration flow end-to-end without creating test accounts with funds. 
-                     Webhooks are still sent, so you can verify your webhook endpoint integration.
-                   </p>
-                   <div className="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 rounded-md mt-2">
-                     <p className="text-xs text-amber-800 dark:text-amber-200">
-                       <strong>Note:</strong> Sandbox responses include an <code className="text-amber-900">is_sandbox: true</code> field. 
-                       Enable sandbox mode during development, then toggle it off before going to production.
-                     </p>
-                   </div>
-                 </div>
+                  <h3 className="font-semibold text-lg">Sandbox Mode Testing</h3>
+                  <p className="text-sm text-muted-foreground">
+                    When an API app is in <strong>Sandbox Mode</strong>, all charges are immediately completed without requiring:
+                  </p>
+                  <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                    <li>Sufficient user wallet balance</li>
+                    <li>PIN verification</li>
+                    <li>Any balance deductions or transfers</li>
+                  </ul>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    This allows you to test your integration flow end-to-end without creating test accounts with funds. 
+                    Webhooks are still sent, so you can verify your webhook endpoint integration.
+                  </p>
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 rounded-md mt-2">
+                    <p className="text-xs text-amber-800 dark:text-amber-200">
+                      <strong>Note:</strong> Sandbox responses include an <code className="text-amber-900">is_sandbox: true</code> field. 
+                      Enable sandbox mode during development, then toggle it off before going to production.
+                    </p>
+                  </div>
+                </div>
 
                 <div className="space-y-2">
                   <h3 className="font-semibold text-lg">Signature Verification</h3>
@@ -533,8 +502,7 @@ const ApiDocs = () => {
                     </ol>
                   </div>
                   <h4 className="text-sm font-semibold mt-3">Node.js Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`const crypto = require('crypto');
+                  <CodeBlock>{`const crypto = require('crypto');
 
 function verifyWebhook(body, signature, apiSecret) {
   // Step 1: SHA-256 hash of your API secret = signing key
@@ -568,19 +536,16 @@ app.post('/webhook', (req, res) => {
   // Process the webhook event
   console.log('Verified event:', req.body.event);
   res.status(200).json({ received: true });
-});`}
-                  </pre>
+});`}</CodeBlock>
                   <h4 className="text-sm font-semibold mt-3">Python Example:</h4>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-{`import hashlib, hmac
+                  <CodeBlock>{`import hashlib, hmac
 
 def verify_webhook(body: str, signature: str, api_secret: str) -> bool:
     signing_key = hashlib.sha256(api_secret.encode()).hexdigest()
     computed = hmac.new(
         signing_key.encode(), body.encode(), hashlib.sha256
     ).hexdigest()
-    return hmac.compare_digest(computed, signature)`}
-                  </pre>
+    return hmac.compare_digest(computed, signature)`}</CodeBlock>
                 </div>
 
                 <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-900 p-4 rounded-md">
