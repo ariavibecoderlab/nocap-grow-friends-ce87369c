@@ -45,6 +45,18 @@ const TopUp = () => {
       .then(({ data }) => {
         if (data) setBalance(Number(data.balance));
       });
+
+    // Realtime wallet balance updates (auto-refresh after payment completes)
+    const channel = supabase
+      .channel("topup-wallet")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const updated = payload.new as { balance: number; wallet_type: string };
+          if (updated.wallet_type === "member") setBalance(Number(updated.balance));
+        })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const handleTopUp = async () => {
