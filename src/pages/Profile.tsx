@@ -60,10 +60,8 @@ const Profile = () => {
 
     const phoneDigits = form.phone.replace(/\D/g, "");
     if (form.phone.trim()) {
-      if (!PHONE_REGEX.test(form.phone.trim())) {
+      if (!/^01\d{8,9}$/.test(phoneDigits)) {
         newErrors.phone = "Use Malaysian format: 01X-XXXXXXX (e.g. 012-3456789)";
-      } else if (phoneDigits.length < 10 || phoneDigits.length > 11) {
-        newErrors.phone = "Phone number must be 10-11 digits";
       }
     }
 
