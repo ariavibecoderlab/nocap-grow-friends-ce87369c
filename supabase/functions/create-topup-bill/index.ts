@@ -59,7 +59,7 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    // Format mobile number with country code
+    // Format mobile number with country code (60, no +)
     let mobile = profile?.phone || '60123456789';
     if (mobile.startsWith('0')) {
       mobile = '60' + mobile.substring(1);
@@ -88,20 +88,18 @@ serve(async (req) => {
       });
     }
 
-    // Determine callback URL (use the project URL)
-    const origin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '') || 'https://nocap-grow-friends.lovable.app';
-    const callbackUrl = `${origin}/top-up?status=success`;
-    const webhookUrl = `${SUPABASE_URL}/functions/v1/raudhahpay-webhook`;
-
-    // Create bill on RaudhahPay v2.0
+    // Due date: tomorrow
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 1);
     const dueDateStr = dueDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
+    // Build bill payload per RaudhahPay API v1/v2 docs
+    // Fields: due, currency, ref1, ref2, customer{}, product[]
     const billPayload = {
-      collection_code: RAUDHAHPAY_COLLECTION_CODE,
       due: dueDateStr,
       currency: 'MYR',
+      ref1: transaction.id,
+      ref2: user.id,
       customer: {
         first_name: profile?.full_name?.split(' ')[0] || 'Member',
         last_name: profile?.full_name?.split(' ').slice(1).join(' ') || 'User',
@@ -109,15 +107,13 @@ serve(async (req) => {
         mobile: mobile,
         address: profile?.address || 'Malaysia',
       },
-      product: `NOcap Wallet Top Up`,
-      amount: amount,
-      reference_1_label: 'Transaction ID',
-      reference_1: transaction.id,
-      reference_2_label: 'User ID',
-      reference_2: user.id,
-      redirect_url: callbackUrl,
-      callback_url: webhookUrl,
-      description: `NOcap Wallet Top Up - RM${amount.toFixed(2)}`,
+      product: [
+        {
+          title: `NOcap Wallet Top Up`,
+          price: amount.toFixed(2),
+          quantity: '1',
+        },
+      ],
     };
 
     console.log('Creating RaudhahPay bill:', JSON.stringify(billPayload));
@@ -172,14 +168,15 @@ serve(async (req) => {
       });
     }
 
-    // Store bill code in transaction metadata
+    // Extract bill code and payment URL from response
+    // Response structure: { data: { code: "...", url: "..." } }
     const billCode = rpData?.data?.code || rpData?.code || '';
     await supabase
       .from('transactions')
       .update({ metadata: { bill_code: billCode, raudhahpay_response: rpData } })
       .eq('id', transaction.id);
 
-    // Build payment URL
+    // Build payment URL - use the URL from response or construct from bill code
     const paymentUrl = rpData?.data?.url || rpData?.url || 
       `https://cloud.raudhahpay.com/billing/bills/bill-payment?code=${billCode}`;
 

@@ -26,7 +26,10 @@ const TopUp = () => {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    if (searchParams.get("status") === "success") {
+    // RaudhahPay redirect includes: status (4=Success), paid (true/false), ref1, ref2, etc.
+    const status = searchParams.get("status");
+    const paid = searchParams.get("paid");
+    if (status === "success" || status === "4" || paid === "true") {
       setShowSuccess(true);
     }
   }, [searchParams]);
