@@ -22,6 +22,7 @@ const Auth = () => {
   const [referralCode, setReferralCode] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isNewEmail, setIsNewEmail] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
