@@ -23,7 +23,7 @@ const MemberOnlyRoute = ({ children }: MemberOnlyRouteProps) => {
       .then(({ data }) => {
         const roles = data?.map((r) => r.role) ?? [];
         setHasSpecialRole(
-          roles.includes("admin") || roles.includes("merchant") || roles.includes("branch")
+          roles.includes("merchant") || roles.includes("branch")
         );
       });
   }, [user]);

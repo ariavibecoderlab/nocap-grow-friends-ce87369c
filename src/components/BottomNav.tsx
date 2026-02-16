@@ -37,7 +37,7 @@ const BottomNav = () => {
       });
   }, [user]);
 
-  const hasSpecialRole = isAdmin || isMerchant || isBranchOwner;
+  const hasSpecialRole = isMerchant || isBranchOwner;
 
   let navItems = hasSpecialRole
     ? baseNavItems.filter((item) => !memberOnlyPaths.includes(item.path))
