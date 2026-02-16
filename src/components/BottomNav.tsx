@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const baseNavItems = [
   { label: "Home", icon: Home, path: "/dashboard" },
-  { label: "QR Pay", icon: QrCode, path: "/qr-pay" },
+  { label: "Pay", icon: QrCode, path: "/qr-pay" },
   { label: "Transfer", icon: ArrowUpDown, path: "/transfer" },
   { label: "Referral", icon: Users, path: "/referral" },
   { label: "Profile", icon: User, path: "/profile" },
