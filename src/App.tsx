@@ -17,6 +17,10 @@ import MerchantRegister from "./pages/MerchantRegister";
 import BranchDashboard from "./pages/BranchDashboard";
 import Admin from "./pages/Admin";
 import Transactions from "./pages/Transactions";
+import HelpSupport from "./pages/HelpSupport";
+import TermsConditions from "./pages/TermsConditions";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +46,10 @@ const App = () => (
             <Route path="/branch" element={<BranchDashboard />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/transactions" element={<Transactions />} />
+            <Route path="/help-support" element={<HelpSupport />} />
+            <Route path="/terms" element={<TermsConditions />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/about" element={<About />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
