@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Plus, Store, Loader2 } from "lucide-react";
+import { Save, Plus, Store, Loader2, ShieldCheck } from "lucide-react";
 
 interface MerchantApp {
   id: string;
@@ -50,7 +50,8 @@ const FeeSettings = () => {
   });
 
   const globalMinSetting = settings?.find((s) => s.key === "min_withdrawal_amount");
-
+  const minPinSetting = settings?.find((s) => s.key === "min_pin_amount");
+  const [pinEditValue, setPinEditValue] = useState<string | null>(null);
   const updateMutation = useMutation({
     mutationFn: async ({ id, value }: { id: string; value: string }) => {
       const { error } = await supabase.functions.invoke("admin-actions", {
@@ -132,6 +133,55 @@ const FeeSettings = () => {
           </Card>
         ))
       )}
+
+      {/* PIN Enforcement Limit */}
+      <Separator className="my-4" />
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold flex items-center gap-1.5">
+          <ShieldCheck className="h-4 w-4" /> PIN Enforcement Limit
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Transactions equal to or above this amount (RM) will require PIN verification before processing.
+        </p>
+        {minPinSetting ? (
+          <Card>
+            <CardContent className="flex items-center gap-3 py-3">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">Minimum PIN Amount</p>
+                <p className="text-xs text-muted-foreground">
+                  Currently: RM {minPinSetting.value}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs text-muted-foreground shrink-0">RM</Label>
+                <Input
+                  className="w-24"
+                  type="number"
+                  min="1"
+                  defaultValue={minPinSetting.value}
+                  onChange={(e) => setPinEditValue(e.target.value)}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!pinEditValue || pinEditValue === minPinSetting.value}
+                  onClick={() => updateMutation.mutate({ id: minPinSetting.id, value: pinEditValue! })}
+                >
+                  <Save className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => createMutation.mutate({ key: "min_pin_amount", value: "100", description: "Minimum amount requiring PIN verification" })}
+          >
+            <Plus className="mr-1 h-4 w-4" /> Initialize PIN Limit (RM 100)
+          </Button>
+        )}
+      </div>
 
       {/* Per-Merchant Min Withdrawal Section */}
       <Separator className="my-4" />
