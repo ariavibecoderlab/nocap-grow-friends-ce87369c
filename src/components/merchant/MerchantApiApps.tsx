@@ -49,8 +49,9 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
   const [isSandbox, setIsSandbox] = useState(false);
 
   // Credentials dialog (shown once after creation)
-  const [credentials, setCredentials] = useState<{ api_key: string; api_secret: string } | null>(null);
+  const [credentials, setCredentials] = useState<{ api_key: string; api_secret: string; test_access_token?: string } | null>(null);
   const [showSecret, setShowSecret] = useState(false);
+  const [showTestToken, setShowTestToken] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -85,7 +86,7 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
     if (error || !data?.success) {
       toast({ title: "Error", description: data?.error || error?.message || "Failed to create app", variant: "destructive" });
     } else {
-      setCredentials({ api_key: data.api_key, api_secret: data.api_secret });
+      setCredentials({ api_key: data.api_key, api_secret: data.api_secret, test_access_token: data.test_access_token });
       setShowCreate(false);
       setAppName("");
       setAppDesc("");
@@ -271,6 +272,23 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
                 </Button>
               </div>
             </div>
+            {credentials?.test_access_token && (
+              <div>
+                <Label className="text-xs text-amber-500">🧪 Test Access Token (Sandbox)</Label>
+                <p className="text-[10px] text-white/40 mb-1">Use this token to skip the authorization flow during testing</p>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs text-white/70 bg-white/5 px-2 py-1.5 rounded flex-1 break-all">
+                    {showTestToken ? credentials.test_access_token : "••••••••••••••••"}
+                  </code>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/40" onClick={() => setShowTestToken(!showTestToken)}>
+                    {showTestToken ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/40" onClick={() => copyToClipboard(credentials.test_access_token!, "Test Token")}>
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           <Button onClick={() => setCredentials(null)} className="w-full bg-secondary text-primary hover:bg-secondary/90 mt-2">
             I've saved my credentials

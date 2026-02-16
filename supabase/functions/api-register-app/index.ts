@@ -110,12 +110,36 @@ serve(async (req) => {
       });
     }
 
+    // Auto-generate a test access token for sandbox apps
+    let testAccessToken: string | null = null;
+    if (is_sandbox) {
+      const tokenBytes = new Uint8Array(32);
+      crypto.getRandomValues(tokenBytes);
+      testAccessToken = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      const tokenHash = await hashSecret(testAccessToken);
+
+      const { error: tokenError } = await supabase
+        .from('api_access_tokens')
+        .insert({
+          app_id: app.id,
+          user_id: user.id,
+          access_token_hash: tokenHash,
+          scopes: ['balance', 'charge'],
+        });
+
+      if (tokenError) {
+        console.error('Test token insert error:', tokenError);
+        // Non-fatal: app was created, just warn about token
+      }
+    }
+
     return new Response(JSON.stringify({
       success: true,
       app_id: app.id,
       app_name: app.name,
       api_key: app.api_key,
       api_secret: apiSecret, // shown only once
+      ...(testAccessToken ? { test_access_token: testAccessToken } : {}),
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
