@@ -21,9 +21,10 @@ const ApiDocs = () => {
         </div>
 
         <Tabs defaultValue="getting-started" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="getting-started">Getting Started</TabsTrigger>
             <TabsTrigger value="authentication">Auth Flow</TabsTrigger>
+            <TabsTrigger value="sandbox">Sandbox</TabsTrigger>
             <TabsTrigger value="endpoints">Endpoints</TabsTrigger>
             <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
             <TabsTrigger value="errors">Error Codes</TabsTrigger>
@@ -233,6 +234,209 @@ const ApiDocs = () => {
   -d '{ "token_id": "uuid-of-the-token" }'`}</CodeBlock>
                   <h4 className="text-sm font-semibold">Response Example:</h4>
                   <CodeBlock>{`{ "success": true }`}</CodeBlock>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="sandbox">
+            <div className="space-y-6">
+              {/* Overview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Sandbox Testing Guide</CardTitle>
+                  <CardDescription>A complete end-to-end walkthrough for testing your integration without real money.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Sandbox mode lets you build and test your entire payment integration in a safe environment. 
+                    Transactions are simulated — no real funds move, charges complete instantly, and you get realistic API responses.
+                  </p>
+                  <div className="bg-primary/5 border border-primary/20 p-4 rounded-md">
+                    <p className="text-xs text-primary font-semibold mb-1">✅ What's different in Sandbox?</p>
+                    <ul className="text-xs text-muted-foreground list-disc pl-5 space-y-1">
+                      <li>Charges are marked <strong>completed</strong> immediately (no pending state)</li>
+                      <li>No wallet balance is deducted from users</li>
+                      <li>Webhooks still fire with realistic payloads</li>
+                      <li>A <strong>Test Access Token</strong> is auto-generated — no need to run the OAuth flow</li>
+                      <li>All sandbox charges are flagged with <code className="font-mono text-primary">is_sandbox: true</code></li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Step 1 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Step 1 — Create a Sandbox App</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <ol className="text-sm text-muted-foreground list-decimal pl-5 space-y-2">
+                    <li>Go to the <strong>Merchant Dashboard → API</strong> tab.</li>
+                    <li>Click <strong>"Register New App"</strong>.</li>
+                    <li>Toggle <strong>Sandbox Mode</strong> on.</li>
+                    <li>Fill in the app name and optional description, then submit.</li>
+                  </ol>
+                  <p className="text-sm text-muted-foreground">
+                    After creation you'll see a credentials dialog with your <strong>API Key</strong>, <strong>API Secret</strong>, and a <strong>Test Access Token</strong>. 
+                    Copy all three — the secret is only shown once.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Step 2 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Step 2 — Set Your Credentials</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Store the credentials in your server environment. Here's an example using shell variables:
+                  </p>
+                  <CodeBlock>{`export API_KEY="your_api_key"
+export API_SECRET="your_api_secret"
+export TEST_TOKEN="your_test_access_token"`}</CodeBlock>
+                  <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 p-3 rounded-md">
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      💡 <strong>Tip:</strong> Need another token? Click <strong>"Generate Test Token"</strong> on the sandbox app card anytime.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Step 3 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Step 3 — Check Balance</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Verify your credentials work by fetching the test user's balance:
+                  </p>
+                  <CodeBlock>{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-balance" \\
+  -H "X-Api-Key: $API_KEY" \\
+  -H "X-Api-Secret: $API_SECRET" \\
+  -H "Authorization: Bearer $TEST_TOKEN"`}</CodeBlock>
+                  <p className="text-xs text-muted-foreground">Expected response:</p>
+                  <CodeBlock>{`{
+  "balance": 150.75,
+  "currency": "MYR"
+}`}</CodeBlock>
+                </CardContent>
+              </Card>
+
+              {/* Step 4 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Step 4 — Create a Test Charge</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Create a charge. In sandbox mode it completes instantly:
+                  </p>
+                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charge" \\
+  -H "X-Api-Key: $API_KEY" \\
+  -H "X-Api-Secret: $API_SECRET" \\
+  -H "Authorization: Bearer $TEST_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "amount": 5.00,
+    "description": "Test order #1",
+    "reference": "order_001",
+    "metadata": { "item": "Widget", "qty": 2 }
+  }'`}</CodeBlock>
+                  <p className="text-xs text-muted-foreground">Expected response:</p>
+                  <CodeBlock>{`{
+  "success": true,
+  "charge_id": "uuid-of-the-charge",
+  "status": "completed",
+  "is_sandbox": true
+}`}</CodeBlock>
+                </CardContent>
+              </Card>
+
+              {/* Step 5 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Step 5 — Query Charge Status</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Verify the charge was recorded by querying its status:
+                  </p>
+                  <CodeBlock>{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charge-status?charge_id=uuid-of-the-charge" \\
+  -H "X-Api-Key: $API_KEY" \\
+  -H "X-Api-Secret: $API_SECRET"`}</CodeBlock>
+                  <p className="text-xs text-muted-foreground">Expected response:</p>
+                  <CodeBlock>{`{
+  "charge_id": "uuid-of-the-charge",
+  "amount": 5.00,
+  "status": "completed",
+  "is_sandbox": true,
+  "reference": "order_001",
+  "description": "Test order #1",
+  "metadata": { "item": "Widget", "qty": 2 },
+  "created_at": "2026-02-16T10:00:00Z",
+  "completed_at": "2026-02-16T10:00:00Z"
+}`}</CodeBlock>
+                </CardContent>
+              </Card>
+
+              {/* Step 6 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Step 6 — Test a Refund</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Issue a full or partial refund against the test charge:
+                  </p>
+                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-refund" \\
+  -H "X-Api-Key: $API_KEY" \\
+  -H "X-Api-Secret: $API_SECRET" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "charge_id": "uuid-of-the-charge",
+    "amount": 2.50,
+    "reason": "Partial refund test"
+  }'`}</CodeBlock>
+                </CardContent>
+              </Card>
+
+              {/* Step 7 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Step 7 — List All Charges</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Retrieve a paginated list of all sandbox charges to verify your test data:
+                  </p>
+                  <CodeBlock>{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charges-list?limit=10&status=completed" \\
+  -H "X-Api-Key: $API_KEY" \\
+  -H "X-Api-Secret: $API_SECRET"`}</CodeBlock>
+                </CardContent>
+              </Card>
+
+              {/* Going Live */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Going Live 🚀</CardTitle>
+                  <CardDescription>When you're ready to accept real payments.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <ol className="text-sm text-muted-foreground list-decimal pl-5 space-y-2">
+                    <li>Create a <strong>new API app</strong> with Sandbox Mode <strong>off</strong>.</li>
+                    <li>Replace your sandbox credentials with the new production <strong>API Key</strong> and <strong>API Secret</strong>.</li>
+                    <li>Implement the <strong>OAuth authorization flow</strong> (<code className="font-mono text-primary">/api-authorize</code>) to obtain real user tokens — test tokens won't work in production.</li>
+                    <li>Set up your <strong>webhook endpoint</strong> to receive payment notifications.</li>
+                    <li>Test with a small real charge, then scale up.</li>
+                  </ol>
+                  <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-md">
+                    <p className="text-xs text-destructive">
+                      <strong>⚠️ Important:</strong> Production charges deduct real funds from user wallets. Double-check your amount calculations before going live.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </div>
