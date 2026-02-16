@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
+import TransactionDetail from "@/components/TransactionDetail";
 import { ArrowLeft, ArrowDownLeft, ArrowUpRight, ArrowUpDown, Gift, Wallet } from "lucide-react";
 
 interface Transaction {
@@ -14,6 +15,9 @@ interface Transaction {
   status: string;
   description: string | null;
   created_at: string;
+  fee_amount?: number | null;
+  net_amount?: number | null;
+  reference_id?: string | null;
 }
 
 const transactionIcon = (type: string) => {
@@ -55,6 +59,7 @@ const Transactions = () => {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -69,7 +74,7 @@ const Transactions = () => {
       setLoading(true);
       const { data } = await supabase
         .from("transactions")
-        .select("id, type, amount, status, description, created_at")
+        .select("id, type, amount, status, description, created_at, fee_amount, net_amount, reference_id")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(100);
@@ -91,16 +96,10 @@ const Transactions = () => {
 
   return (
     <div className="min-h-screen bg-primary pb-20">
-      {/* Header */}
       <div className="px-4 pt-8 pb-6">
         <div className="mx-auto max-w-md">
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/10"
-              onClick={() => navigate("/dashboard")}
-            >
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => navigate("/dashboard")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="font-display text-xl font-bold text-white">All Transactions</h1>
@@ -120,7 +119,11 @@ const Transactions = () => {
         ) : (
           <div className="space-y-2">
             {transactions.map((tx) => (
-              <Card key={tx.id} className="border-white/10 bg-white/5">
+              <Card
+                key={tx.id}
+                className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"
+                onClick={() => setSelectedTx(tx)}
+              >
                 <CardContent className="flex items-center gap-3 p-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10">
                     {transactionIcon(tx.type)}
@@ -130,24 +133,12 @@ const Transactions = () => {
                       {tx.description || transactionLabel(tx.type)}
                     </p>
                     <p className="text-[10px] text-white/40">
-                      {new Date(tx.created_at).toLocaleDateString("en-MY", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                      {new Date(tx.created_at).toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" })}
                       {" · "}
-                      {new Date(tx.created_at).toLocaleTimeString("en-MY", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: true,
-                      })}
+                      {new Date(tx.created_at).toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit", hour12: true })}
                     </p>
                   </div>
-                  <p
-                    className={`text-sm font-semibold tabular-nums ${
-                      isCredit(tx.type) ? "text-secondary" : "text-white"
-                    }`}
-                  >
+                  <p className={`text-sm font-semibold tabular-nums ${isCredit(tx.type) ? "text-secondary" : "text-white"}`}>
                     {isCredit(tx.type) ? "+" : "-"}RM {Math.abs(tx.amount).toFixed(2)}
                   </p>
                 </CardContent>
@@ -156,6 +147,12 @@ const Transactions = () => {
           </div>
         )}
       </div>
+
+      <TransactionDetail
+        transaction={selectedTx}
+        open={!!selectedTx}
+        onOpenChange={(open) => { if (!open) setSelectedTx(null); }}
+      />
 
       <BottomNav />
     </div>

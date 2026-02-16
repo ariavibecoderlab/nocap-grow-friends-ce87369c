@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import TransactionDetail from "@/components/TransactionDetail";
 import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store, AlertCircle, Zap, Banknote, Send, UserPlus } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +61,7 @@ const Dashboard = () => {
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -268,7 +270,7 @@ const Dashboard = () => {
             </Card> :
             <div className="mt-3 space-y-2">
               {transactions.map((tx) =>
-                <Card key={tx.id} className="border-white/10 bg-white/5">
+                <Card key={tx.id} className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => setSelectedTx(tx)}>
                   <CardContent className="flex items-center gap-3 p-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10">
                       {transactionIcon(tx.type)}
@@ -291,6 +293,12 @@ const Dashboard = () => {
           }
         </div>
       </div>
+
+      <TransactionDetail
+        transaction={selectedTx}
+        open={!!selectedTx}
+        onOpenChange={(open) => { if (!open) setSelectedTx(null); }}
+      />
 
       <BottomNav />
     </div>
