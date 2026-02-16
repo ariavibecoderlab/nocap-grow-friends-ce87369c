@@ -340,32 +340,32 @@ const BranchDashboard = () => {
 
   if (authLoading || loadingData) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-primary">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-secondary border-t-transparent" />
       </div>
     );
   }
 
   if (!isBranchOwner) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="bg-primary px-4 pb-6 pt-8 text-primary-foreground">
+      <div className="min-h-screen bg-primary pb-20">
+        <div className="px-4 pb-6 pt-8">
           <div className="mx-auto max-w-md flex items-center gap-3">
-            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-primary-foreground/10 transition-colors">
+            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors text-white">
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="font-display text-xl font-bold">Branch</h1>
+            <h1 className="font-display text-xl font-bold text-white">Branch</h1>
           </div>
         </div>
         <div className="mx-auto max-w-md px-4 pt-8">
-          <Card className="border-0 shadow-lg">
+          <Card className="border-white/10 bg-white/5 shadow-2xl backdrop-blur">
             <CardContent className="flex flex-col items-center py-12">
-              <Store className="h-12 w-12 text-muted-foreground mb-4 opacity-40" />
-              <p className="font-display text-lg font-semibold">No Branch Assigned</p>
-              <p className="mt-2 text-sm text-muted-foreground text-center max-w-xs">
+              <Store className="h-12 w-12 text-white/30 mb-4" />
+              <p className="font-display text-lg font-semibold text-white">No Branch Assigned</p>
+              <p className="mt-2 text-sm text-white/50 text-center max-w-xs">
                 You haven't been assigned as a branch owner yet. Ask your merchant to assign you.
               </p>
-              <Button variant="ghost" size="sm" className="mt-4" onClick={() => navigate("/dashboard")}>
+              <Button variant="ghost" size="sm" className="mt-4 text-white/50 hover:text-white hover:bg-white/10" onClick={() => navigate("/dashboard")}>
                 Back to Home
               </Button>
             </CardContent>
@@ -377,30 +377,30 @@ const BranchDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="bg-primary px-4 pb-6 pt-8 text-primary-foreground">
+    <div className="min-h-screen bg-primary pb-20">
+      <div className="px-4 pb-6 pt-8">
         <div className="mx-auto max-w-md flex items-center gap-3">
-          <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors">
+          <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors text-white">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="font-display text-xl font-bold flex-1">Branch Dashboard</h1>
-          <NotificationBell className="text-primary-foreground" />
+          <h1 className="font-display text-xl font-bold flex-1 text-white">Branch Dashboard</h1>
+          <NotificationBell className="text-white" />
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 pt-4 space-y-4">
+      <div className="mx-auto max-w-md px-4 space-y-4">
         {/* Branch Selector */}
         {branches.length > 1 && (
           <div className="space-y-2">
             {branches.map((b) => (
-              <Card key={b.id} className={`border-border/50 cursor-pointer transition-all ${selectedBranch?.id === b.id ? 'ring-2 ring-primary' : ''}`}
+              <Card key={b.id} className={`border-white/10 bg-white/5 cursor-pointer transition-all ${selectedBranch?.id === b.id ? 'ring-2 ring-secondary' : ''}`}
                 onClick={() => setSelectedBranch(b)}>
                 <CardContent className="flex items-center justify-between p-3">
                   <div className="flex items-center gap-3">
                     <Store className="h-4 w-4 text-secondary" />
-                    <p className="text-sm font-medium">{b.branch_name}</p>
+                    <p className="text-sm font-medium text-white">{b.branch_name}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">RM {Number(b.balance).toFixed(2)}</p>
+                  <p className="text-xs text-white/40">RM {Number(b.balance).toFixed(2)}</p>
                 </CardContent>
               </Card>
             ))}
@@ -411,41 +411,41 @@ const BranchDashboard = () => {
           <>
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
-              <Card className="border-border/50">
+              <Card className="border-white/10 bg-white/5">
                 <CardContent className="p-3 text-center">
-                  <p className="font-display text-lg font-bold">RM {Number(selectedBranch.balance).toFixed(0)}</p>
-                  <p className="text-[10px] text-muted-foreground">Branch Balance</p>
+                  <p className="font-display text-lg font-bold text-white">RM {Number(selectedBranch.balance).toFixed(0)}</p>
+                  <p className="text-[10px] text-white/40">Branch Balance</p>
                 </CardContent>
               </Card>
-              <Card className="border-border/50">
+              <Card className="border-white/10 bg-white/5">
                 <CardContent className="p-3 text-center">
-                  <p className="font-display text-lg font-bold">RM {todaySales.toFixed(0)}</p>
-                  <p className="text-[10px] text-muted-foreground">Today</p>
+                  <p className="font-display text-lg font-bold text-white">RM {todaySales.toFixed(0)}</p>
+                  <p className="text-[10px] text-white/40">Today</p>
                 </CardContent>
               </Card>
-              <Card className="border-border/50">
+              <Card className="border-white/10 bg-white/5">
                 <CardContent className="p-3 text-center">
-                  <p className="font-display text-lg font-bold">RM {totalSales.toFixed(0)}</p>
-                  <p className="text-[10px] text-muted-foreground">Total</p>
+                  <p className="font-display text-lg font-bold text-white">RM {totalSales.toFixed(0)}</p>
+                  <p className="text-[10px] text-white/40">Total</p>
                 </CardContent>
               </Card>
             </div>
 
             <Tabs defaultValue="qr" className="mt-4">
-              <TabsList className="w-full grid grid-cols-2">
-                <TabsTrigger value="qr" className="gap-1.5 text-xs"><QrCode className="h-3.5 w-3.5" /> QR Codes</TabsTrigger>
-                <TabsTrigger value="withdraw" className="gap-1.5 text-xs"><Wallet className="h-3.5 w-3.5" /> Withdraw</TabsTrigger>
+              <TabsList className="w-full grid grid-cols-2 bg-white/5 border border-white/10">
+                <TabsTrigger value="qr" className="gap-1.5 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50"><QrCode className="h-3.5 w-3.5" /> QR Codes</TabsTrigger>
+                <TabsTrigger value="withdraw" className="gap-1.5 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50"><Wallet className="h-3.5 w-3.5" /> Withdraw</TabsTrigger>
               </TabsList>
 
               <TabsContent value="qr" className="mt-4 space-y-3">
                 {/* Static QR */}
-                <Card className="border-secondary/20 bg-secondary/5">
+                <Card className="border-secondary/20 bg-secondary/10">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold">Static QR Code</p>
-                      <p className="text-[11px] text-muted-foreground">Customer enters amount</p>
+                      <p className="text-sm font-semibold text-white">Static QR Code</p>
+                      <p className="text-[11px] text-white/40">Customer enters amount</p>
                     </div>
-                    <Button size="sm" onClick={() => showStaticQr(selectedBranch)} className="gap-1.5">
+                    <Button size="sm" onClick={() => showStaticQr(selectedBranch)} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90 font-semibold">
                       <QrCode className="h-3.5 w-3.5" /> Show
                     </Button>
                   </CardContent>
@@ -453,30 +453,30 @@ const BranchDashboard = () => {
 
                 {/* Dynamic QRs */}
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold">Dynamic QR Codes</p>
-                  <Button size="sm" variant="outline" onClick={() => setShowAddQr(true)} className="gap-1"><Plus className="h-3.5 w-3.5" /> Create</Button>
+                  <p className="text-sm font-semibold text-white">Dynamic QR Codes</p>
+                  <Button size="sm" variant="outline" onClick={() => setShowAddQr(true)} className="gap-1 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"><Plus className="h-3.5 w-3.5" /> Create</Button>
                 </div>
                 {dynamicQrs.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">No dynamic QR codes yet.</p>
+                  <p className="text-xs text-white/40 text-center py-4">No dynamic QR codes yet.</p>
                 ) : dynamicQrs.map((qr) => {
                   const status = getQrStatus(qr);
                   return (
-                    <Card key={qr.id} className={`border-border/50 ${status !== "active" ? 'opacity-60' : ''}`}>
+                    <Card key={qr.id} className={`border-white/10 bg-white/5 ${status !== "active" ? 'opacity-60' : ''}`}>
                       <CardContent className="flex items-center justify-between p-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold">RM {Number(qr.amount).toFixed(2)}</p>
-                          {qr.description && <p className="text-[10px] text-muted-foreground truncate">{qr.description}</p>}
+                          <p className="text-sm font-semibold text-white">RM {Number(qr.amount).toFixed(2)}</p>
+                          {qr.description && <p className="text-[10px] text-white/40 truncate">{qr.description}</p>}
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {status === "used" && <span className="text-[10px] text-secondary flex items-center gap-0.5"><CheckCircle2 className="h-3 w-3" /> Paid</span>}
                             {status === "expired" && <span className="text-[10px] text-destructive flex items-center gap-0.5"><XCircle className="h-3 w-3" /> Expired</span>}
-                            {status === "active" && qr.expires_at && <span className="text-[10px] text-amber-600 flex items-center gap-0.5"><Clock className="h-3 w-3" /> {formatTimeLeft(qr.expires_at)}</span>}
-                            {status === "active" && !qr.expires_at && <span className="text-[10px] text-muted-foreground">Active</span>}
+                            {status === "active" && qr.expires_at && <span className="text-[10px] text-amber-500 flex items-center gap-0.5"><Clock className="h-3 w-3" /> {formatTimeLeft(qr.expires_at)}</span>}
+                            {status === "active" && !qr.expires_at && <span className="text-[10px] text-white/40">Active</span>}
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
-                          {status === "active" && <Button size="sm" variant="ghost" onClick={() => showDynamicQrCode(qr)}><QrCode className="h-4 w-4" /></Button>}
+                          {status === "active" && <Button size="sm" variant="ghost" className="text-white/50 hover:text-white hover:bg-white/10" onClick={() => showDynamicQrCode(qr)}><QrCode className="h-4 w-4" /></Button>}
                           {!qr.is_used && (
-                            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => deleteQr(qr.id)} disabled={deletingQr === qr.id}>
+                            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-white/10" onClick={() => deleteQr(qr.id)} disabled={deletingQr === qr.id}>
                               {deletingQr === qr.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                             </Button>
                           )}
@@ -488,36 +488,36 @@ const BranchDashboard = () => {
               </TabsContent>
 
               <TabsContent value="withdraw" className="mt-4 space-y-3">
-                <Card className="border-secondary/20 bg-secondary/5">
+                <Card className="border-secondary/20 bg-secondary/10">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-muted-foreground">Branch Balance</p>
-                      <p className="text-xl font-bold font-display">RM {Number(selectedBranch.balance).toFixed(2)}</p>
+                      <p className="text-xs text-white/40">Branch Balance</p>
+                      <p className="text-xl font-bold font-display text-white">RM {Number(selectedBranch.balance).toFixed(2)}</p>
                     </div>
-                    <Button size="sm" onClick={() => setShowWithdrawForm(true)} disabled={hasPending} className="gap-1.5">
+                    <Button size="sm" onClick={() => setShowWithdrawForm(true)} disabled={hasPending} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90 font-semibold">
                       <ArrowDownToLine className="h-3.5 w-3.5" /> Withdraw
                     </Button>
                   </CardContent>
                 </Card>
 
-                {hasPending && <p className="text-xs text-amber-600 text-center">You have a pending withdrawal request.</p>}
+                {hasPending && <p className="text-xs text-amber-500 text-center">You have a pending withdrawal request.</p>}
 
                 {withdrawals.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">No withdrawal requests yet.</p>
+                  <p className="text-xs text-white/40 text-center py-6">No withdrawal requests yet.</p>
                 ) : withdrawals.map((w) => (
-                  <Card key={w.id} className="border-border/50">
+                  <Card key={w.id} className="border-white/10 bg-white/5">
                     <CardContent className="p-3 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {w.status === "approved" ? <CheckCircle2 className="h-4 w-4 text-secondary" /> :
                          w.status === "rejected" ? <XCircle className="h-4 w-4 text-destructive" /> :
                          <Clock className="h-4 w-4 text-amber-500" />}
-                        <p className="text-sm font-semibold">RM {Number(w.amount).toFixed(2)}</p>
+                        <p className="text-sm font-semibold text-white">RM {Number(w.amount).toFixed(2)}</p>
                       </div>
                       <div className="text-right">
                         <span className={`text-[10px] font-medium capitalize ${w.status === "approved" ? "text-secondary" : w.status === "rejected" ? "text-destructive" : "text-amber-500"}`}>
                           {w.status}
                         </span>
-                        <p className="text-[10px] text-muted-foreground">{new Date(w.created_at).toLocaleDateString()}</p>
+                        <p className="text-[10px] text-white/40">{new Date(w.created_at).toLocaleDateString()}</p>
                       </div>
                     </CardContent>
                     {w.rejection_reason && <p className="text-[10px] text-destructive px-3 pb-2">{w.rejection_reason}</p>}
@@ -531,15 +531,15 @@ const BranchDashboard = () => {
 
       {/* Create QR Dialog */}
       <Dialog open={showAddQr} onOpenChange={setShowAddQr}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle className="font-display">Create Dynamic QR</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-sm bg-primary border-white/10">
+          <DialogHeader><DialogTitle className="font-display text-white">Create Dynamic QR</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1"><Label>Amount (RM) *</Label><Input type="number" inputMode="decimal" placeholder="0.00" value={qrAmount} onChange={(e) => setQrAmount(e.target.value)} /></div>
-            <div className="space-y-1"><Label>Description</Label><Input placeholder="e.g. Table 5" value={qrDescription} onChange={(e) => setQrDescription(e.target.value)} /></div>
+            <div className="space-y-1"><Label className="text-white/70">Amount (RM) *</Label><Input type="number" inputMode="decimal" placeholder="0.00" value={qrAmount} onChange={(e) => setQrAmount(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" /></div>
+            <div className="space-y-1"><Label className="text-white/70">Description</Label><Input placeholder="e.g. Table 5" value={qrDescription} onChange={(e) => setQrDescription(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" /></div>
             <div className="space-y-1">
-              <Label>Expiry</Label>
+              <Label className="text-white/70">Expiry</Label>
               <Select value={qrExpiry} onValueChange={setQrExpiry}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="border-white/10 bg-white/5 text-white"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No expiry</SelectItem>
                   <SelectItem value="15">15 minutes</SelectItem>
@@ -549,7 +549,7 @@ const BranchDashboard = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button className="w-full" onClick={createDynamicQr} disabled={creatingQr || !qrAmount}>
+            <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={createDynamicQr} disabled={creatingQr || !qrAmount}>
               {creatingQr ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Create QR Code
             </Button>
           </div>
@@ -558,17 +558,17 @@ const BranchDashboard = () => {
 
       {/* QR Display Dialog */}
       <Dialog open={!!showQrDisplay} onOpenChange={() => setShowQrDisplay(null)}>
-        <DialogContent className="max-w-xs">
-          <DialogHeader><DialogTitle className="font-display text-center">{showQrDisplay?.type === "static" ? "Static QR" : "Dynamic QR"}</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-xs bg-primary border-white/10">
+          <DialogHeader><DialogTitle className="font-display text-center text-white">{showQrDisplay?.type === "static" ? "Static QR" : "Dynamic QR"}</DialogTitle></DialogHeader>
           <div className="flex flex-col items-center py-4">
             <div ref={qrRef} className="rounded-xl bg-white p-4 shadow-sm">
               <QRCodeSVG value={showQrDisplay?.data || ""} size={200} level="M" fgColor="hsl(157, 72%, 40%)" />
             </div>
             <p className="mt-3 font-display text-lg font-bold text-secondary">{showQrDisplay?.label}</p>
-            <p className="text-xs text-muted-foreground mt-1">{showQrDisplay?.type === "static" ? "Customer scans and enters amount" : "Amount is pre-filled"}</p>
+            <p className="text-xs text-white/40 mt-1">{showQrDisplay?.type === "static" ? "Customer scans and enters amount" : "Amount is pre-filled"}</p>
             <div className="flex gap-2 mt-4">
-              <Button size="sm" variant="outline" onClick={downloadQr} className="gap-1.5"><Download className="h-3.5 w-3.5" /> Download</Button>
-              <Button size="sm" variant="outline" onClick={async () => { try { await navigator.share({ title: `Payment QR - ${showQrDisplay?.label}`, text: `Pay via QR code` }); } catch {} }} className="gap-1.5"><Share2 className="h-3.5 w-3.5" /> Share</Button>
+              <Button size="sm" variant="outline" onClick={downloadQr} className="gap-1.5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"><Download className="h-3.5 w-3.5" /> Download</Button>
+              <Button size="sm" variant="outline" onClick={async () => { try { await navigator.share({ title: `Payment QR - ${showQrDisplay?.label}`, text: `Pay via QR code` }); } catch {} }} className="gap-1.5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"><Share2 className="h-3.5 w-3.5" /> Share</Button>
             </div>
           </div>
         </DialogContent>
@@ -576,15 +576,15 @@ const BranchDashboard = () => {
 
       {/* Withdraw Form Dialog */}
       <Dialog open={showWithdrawForm} onOpenChange={setShowWithdrawForm}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle className="font-display flex items-center gap-2"><Wallet className="h-5 w-5" /> Withdraw from Branch</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-sm bg-primary border-white/10">
+          <DialogHeader><DialogTitle className="font-display flex items-center gap-2 text-white"><Wallet className="h-5 w-5" /> Withdraw from Branch</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label>Amount (RM) *</Label>
-              <Input type="number" inputMode="decimal" placeholder="0.00" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} />
-              <p className="text-[10px] text-muted-foreground">Available: RM {Number(selectedBranch?.balance || 0).toFixed(2)}</p>
+              <Label className="text-white/70">Amount (RM) *</Label>
+              <Input type="number" inputMode="decimal" placeholder="0.00" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
+              <p className="text-[10px] text-white/40">Available: RM {Number(selectedBranch?.balance || 0).toFixed(2)}</p>
             </div>
-            <Button className="w-full" onClick={submitWithdrawal} disabled={submittingWithdraw}>
+            <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={submitWithdrawal} disabled={submittingWithdraw}>
               {submittingWithdraw ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Submit Request
             </Button>
           </div>
