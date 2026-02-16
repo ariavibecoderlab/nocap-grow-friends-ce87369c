@@ -11,6 +11,16 @@ import BottomNav from "@/components/BottomNav";
 import { LogOut, Mail, Shield, Save, Pencil, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
+const PHONE_REGEX = /^01[0-9]-?\d{7,8}$/;
+
+const formatPhoneDisplay = (phone: string) => {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length >= 10) {
+    return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  }
+  return phone;
+};
+
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -18,6 +28,7 @@ const Profile = () => {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ full_name: "", phone: "", address: "" });
+  const [errors, setErrors] = useState<{ phone?: string; full_name?: string; address?: string }>({});
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -38,14 +49,43 @@ const Profile = () => {
       });
   }, [user]);
 
+  const validate = () => {
+    const newErrors: typeof errors = {};
+
+    if (!form.full_name.trim()) {
+      newErrors.full_name = "Name is required";
+    } else if (form.full_name.trim().length > 100) {
+      newErrors.full_name = "Name must be under 100 characters";
+    }
+
+    const phoneDigits = form.phone.replace(/\D/g, "");
+    if (form.phone.trim()) {
+      if (!PHONE_REGEX.test(form.phone.trim())) {
+        newErrors.phone = "Use Malaysian format: 01X-XXXXXXX (e.g. 012-3456789)";
+      } else if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+        newErrors.phone = "Phone number must be 10-11 digits";
+      }
+    }
+
+    if (form.address.trim().length > 200) {
+      newErrors.address = "Address must be under 200 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSave = async () => {
     if (!user || !profile) return;
+    if (!validate()) return;
+
     setSaving(true);
+    const phoneDigits = form.phone.replace(/\D/g, "");
     const { error } = await supabase
       .from("profiles")
       .update({
         full_name: form.full_name.trim(),
-        phone: form.phone.trim(),
+        phone: phoneDigits,
         address: form.address.trim(),
       })
       .eq("user_id", user.id);
@@ -54,10 +94,21 @@ const Profile = () => {
     if (error) {
       toast({ title: "Error", description: "Failed to update profile.", variant: "destructive" });
     } else {
-      setProfile({ ...profile, ...form });
+      setProfile({ ...profile, full_name: form.full_name.trim(), phone: phoneDigits, address: form.address.trim() });
       setEditing(false);
+      setErrors({});
       toast({ title: "Profile updated" });
     }
+  };
+
+  const handleCancel = () => {
+    setEditing(false);
+    setErrors({});
+    setForm({
+      full_name: profile?.full_name || "",
+      phone: profile?.phone || "",
+      address: profile?.address || "",
+    });
   };
 
   const handleLogout = async () => {
@@ -86,7 +137,7 @@ const Profile = () => {
                 <Pencil className="h-4 w-4" />
               </Button>
             ) : (
-              <Button variant="ghost" size="icon" onClick={() => setEditing(false)}>
+              <Button variant="ghost" size="icon" onClick={handleCancel}>
                 <X className="h-4 w-4" />
               </Button>
             )}
@@ -99,35 +150,42 @@ const Profile = () => {
 
             {editing ? (
               <>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="full_name">Full Name</Label>
                   <Input
                     id="full_name"
                     value={form.full_name}
-                    onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                    onChange={(e) => { setForm({ ...form, full_name: e.target.value }); setErrors((p) => ({ ...p, full_name: undefined })); }}
                     placeholder="Your full name"
                     maxLength={100}
+                    className={errors.full_name ? "border-destructive" : ""}
                   />
+                  {errors.full_name && <p className="text-xs text-destructive">{errors.full_name}</p>}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input
                     id="phone"
                     value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    placeholder="e.g. 0131234567"
-                    maxLength={20}
+                    onChange={(e) => { setForm({ ...form, phone: e.target.value }); setErrors((p) => ({ ...p, phone: undefined })); }}
+                    placeholder="e.g. 012-3456789"
+                    maxLength={13}
+                    className={errors.phone ? "border-destructive" : ""}
                   />
+                  {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+                  <p className="text-xs text-muted-foreground">Malaysian format: 01X-XXXXXXX</p>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="address">Address</Label>
                   <Input
                     id="address"
                     value={form.address}
-                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    onChange={(e) => { setForm({ ...form, address: e.target.value }); setErrors((p) => ({ ...p, address: undefined })); }}
                     placeholder="Your address"
                     maxLength={200}
+                    className={errors.address ? "border-destructive" : ""}
                   />
+                  {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
                 </div>
                 <Button className="w-full" onClick={handleSave} disabled={saving}>
                   <Save className="mr-2 h-4 w-4" />
@@ -138,7 +196,7 @@ const Profile = () => {
               <>
                 <div className="flex items-center gap-3 text-sm">
                   <span className="text-muted-foreground">Phone:</span>
-                  <span>{profile?.phone || "Not set"}</span>
+                  <span>{profile?.phone ? formatPhoneDisplay(profile.phone) : "Not set"}</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <span className="text-muted-foreground">Address:</span>
