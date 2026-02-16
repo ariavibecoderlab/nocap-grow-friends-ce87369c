@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Code } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import CodeBlock from "@/components/CodeBlock";
+import ApiTryIt from "@/components/ApiTryIt";
 
 const ApiDocs = () => {
   return (
@@ -258,6 +259,12 @@ const ApiDocs = () => {
   "balance": 150.75,
   "currency": "MYR"
 }`}</CodeBlock>
+                  <ApiTryIt
+                    method="GET"
+                    endpoint="api-balance"
+                    params={[]}
+                    needsUserToken={true}
+                  />
                 </CardContent>
               </Card>
 
@@ -301,6 +308,18 @@ const ApiDocs = () => {
   "cashback": 0.09,
   "branch_name": "My Store"
 }`}</CodeBlock>
+                  <ApiTryIt
+                    method="POST"
+                    endpoint="api-charge"
+                    params={[]}
+                    bodyFields={[
+                      { name: "amount", placeholder: "10.50", type: "number", required: true },
+                      { name: "description", placeholder: "Order #12345", type: "string" },
+                      { name: "reference", placeholder: "txn_88291", type: "string" },
+                      { name: "metadata", placeholder: '{ "order_id": "ORD-123" }', type: "json" },
+                    ]}
+                    needsUserToken={true}
+                  />
                 </CardContent>
               </Card>
 
@@ -331,6 +350,14 @@ const ApiDocs = () => {
   "created_at": "2026-02-16T12:00:00.000Z",
   "completed_at": "2026-02-16T12:00:01.000Z"
 }`}</CodeBlock>
+                  <ApiTryIt
+                    method="GET"
+                    endpoint="api-charge-status"
+                    params={[
+                      { name: "charge_id", placeholder: "uuid-of-the-charge", required: true, type: "query" },
+                    ]}
+                    needsUserToken={false}
+                  />
                 </CardContent>
               </Card>
 
@@ -373,6 +400,17 @@ const ApiDocs = () => {
   "status": "partial_refund",
   "transaction_id": "uuid"
 }`}</CodeBlock>
+                  <ApiTryIt
+                    method="POST"
+                    endpoint="api-refund"
+                    params={[]}
+                    bodyFields={[
+                      { name: "charge_id", placeholder: "uuid-of-the-charge", type: "string", required: true },
+                      { name: "amount", placeholder: "5.00", type: "number" },
+                      { name: "reason", placeholder: "Customer returned item", type: "string" },
+                    ]}
+                    needsUserToken={false}
+                  />
                 </CardContent>
               </Card>
 
@@ -426,6 +464,20 @@ const ApiDocs = () => {
     "has_more": true
   }
 }`}</CodeBlock>
+                  <ApiTryIt
+                    method="GET"
+                    endpoint="api-charges-list"
+                    params={[
+                      { name: "page", placeholder: "1", type: "query" },
+                      { name: "limit", placeholder: "20", type: "query" },
+                      { name: "status", placeholder: "completed", type: "query" },
+                      { name: "from", placeholder: "2026-01-01", type: "query" },
+                      { name: "to", placeholder: "2026-12-31", type: "query" },
+                      { name: "reference", placeholder: "txn_88291", type: "query" },
+                      { name: "user_id", placeholder: "uuid", type: "query" },
+                    ]}
+                    needsUserToken={false}
+                  />
                 </CardContent>
               </Card>
             </div>
