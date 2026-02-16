@@ -10,8 +10,8 @@ import {
   QrCode,
   ShieldCheck,
   Rocket,
-  Zap,
-} from "lucide-react";
+  Zap } from
+"lucide-react";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -41,7 +41,7 @@ const Index = () => {
 
       {/* Hero */}
       <section className="flex flex-1 flex-col items-center justify-center px-6 py-20 text-center md:py-28">
-        <div className="inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-1.5 text-sm font-medium text-secondary">
+        <div className="inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-1.5 text-sm font-medium text-secondary">Malaysia's #1 Affiliate Marketplace
           <Rocket className="h-4 w-4" /> Malaysia's #1 Cashback Wallet
         </div>
 
@@ -199,8 +199,8 @@ const Index = () => {
       <footer className="bg-primary px-6 py-10 text-center text-white/40 text-sm">
         <p>© 2026 NOcap. All rights reserved.</p>
       </footer>
-    </div>
-  );
+    </div>);
+
 };
 
 export default Index;
