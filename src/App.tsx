@@ -24,8 +24,10 @@ import About from "./pages/About";
 import SetPassword from "./pages/SetPassword";
 import MyProfile from "./pages/MyProfile";
 import SetPin from "./pages/SetPin";
+import ResetPin from "./pages/ResetPin";
 import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
+import SessionManager from "./components/SessionManager";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +38,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <SessionManager />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
@@ -58,6 +61,7 @@ const App = () => (
             <Route path="/set-password" element={<SetPassword />} />
             <Route path="/my-profile" element={<MyProfile />} />
             <Route path="/set-pin" element={<SetPin />} />
+            <Route path="/reset-pin" element={<ResetPin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

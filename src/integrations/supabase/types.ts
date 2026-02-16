@@ -210,7 +210,9 @@ export type Database = {
           has_pin: boolean
           id: string
           phone: string | null
+          pin_attempts: number
           pin_hash: string | null
+          pin_locked_until: string | null
           referral_code: string
           referred_by: string | null
           updated_at: string
@@ -224,7 +226,9 @@ export type Database = {
           has_pin?: boolean
           id?: string
           phone?: string | null
+          pin_attempts?: number
           pin_hash?: string | null
+          pin_locked_until?: string | null
           referral_code: string
           referred_by?: string | null
           updated_at?: string
@@ -238,7 +242,9 @@ export type Database = {
           has_pin?: boolean
           id?: string
           phone?: string | null
+          pin_attempts?: number
           pin_hash?: string | null
+          pin_locked_until?: string | null
           referral_code?: string
           referred_by?: string | null
           updated_at?: string

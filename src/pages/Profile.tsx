@@ -72,6 +72,7 @@ const Profile = () => {
           <div className="space-y-2">
             {[
               { label: "Set PIN", icon: ShieldCheck, path: "/set-pin" },
+              { label: "Reset PIN", icon: KeyRound, path: "/reset-pin" },
               { label: "Set Password", icon: KeyRound, path: "/set-password" },
               { label: "Help & Support", icon: HelpCircle, path: "/help-support" },
               { label: "Terms & Conditions", icon: FileText, path: "/terms" },
