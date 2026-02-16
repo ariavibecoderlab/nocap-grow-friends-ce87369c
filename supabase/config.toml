@@ -14,3 +14,12 @@ verify_jwt = false
 
 [functions.admin-actions]
 verify_jwt = false
+
+[functions.daily-sales-email]
+verify_jwt = false
+
+[functions.send-otp]
+verify_jwt = false
+
+[functions.manage-pin]
+verify_jwt = false
