@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Key, Copy, Eye, EyeOff, Loader2, Globe } from "lucide-react";
+import { Plus, Key, Copy, Eye, EyeOff, Loader2, Globe, FlaskConical } from "lucide-react";
 
 interface Branch {
   id: string;
@@ -52,6 +52,7 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
   const [credentials, setCredentials] = useState<{ api_key: string; api_secret: string; test_access_token?: string } | null>(null);
   const [showSecret, setShowSecret] = useState(false);
   const [showTestToken, setShowTestToken] = useState(false);
+  const [generatingToken, setGeneratingToken] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -114,6 +115,21 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
       .eq("id", appId);
     setApps((prev) => prev.map((a) => (a.id === appId ? { ...a, is_sandbox: sandbox } : a)));
     toast({ title: `Sandbox mode ${sandbox ? 'enabled' : 'disabled'}` });
+  };
+
+  const generateTestToken = async (appId: string) => {
+    setGeneratingToken(appId);
+    const { data, error } = await supabase.functions.invoke("generate-test-token", {
+      body: { app_id: appId },
+    });
+
+    if (error || !data?.success) {
+      toast({ title: "Error", description: data?.error || error?.message || "Failed to generate token", variant: "destructive" });
+    } else {
+      setCredentials({ api_key: "", api_secret: "", test_access_token: data.test_access_token });
+      toast({ title: "Test token generated!" });
+    }
+    setGeneratingToken(null);
   };
 
   const copyToClipboard = (text: string, label: string) => {
@@ -187,6 +203,22 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
                   <Copy className="h-3 w-3" />
                 </Button>
               </div>
+              {app.is_sandbox && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full gap-1.5 border-amber-500/30 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400 text-[10px] h-7"
+                  onClick={() => generateTestToken(app.id)}
+                  disabled={generatingToken === app.id}
+                >
+                  {generatingToken === app.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <FlaskConical className="h-3 w-3" />
+                  )}
+                  Generate Test Token
+                </Button>
+              )}
               {app.description && <p className="text-[10px] text-white/30">{app.description}</p>}
             </CardContent>
           </Card>
@@ -244,34 +276,40 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
         <DialogContent className="bg-card border-white/10 text-white max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
-              <Key className="h-4 w-4 text-secondary" /> API Credentials
+              <Key className="h-4 w-4 text-secondary" /> {credentials?.api_key ? "API Credentials" : "Test Token Generated"}
             </DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-destructive font-semibold">⚠️ Save the API Secret now — it won't be shown again!</p>
+          {credentials?.api_key && (
+            <p className="text-xs text-destructive font-semibold">⚠️ Save the API Secret now — it won't be shown again!</p>
+          )}
           <div className="space-y-3">
-            <div>
-              <Label className="text-white/70 text-xs">API Key</Label>
-              <div className="flex items-center gap-2">
-                <code className="text-xs text-white/70 bg-white/5 px-2 py-1.5 rounded flex-1 break-all">{credentials?.api_key}</code>
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/40" onClick={() => copyToClipboard(credentials?.api_key || "", "API Key")}>
-                  <Copy className="h-3 w-3" />
-                </Button>
+            {credentials?.api_key && (
+              <div>
+                <Label className="text-white/70 text-xs">API Key</Label>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs text-white/70 bg-white/5 px-2 py-1.5 rounded flex-1 break-all">{credentials.api_key}</code>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/40" onClick={() => copyToClipboard(credentials.api_key, "API Key")}>
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
-            </div>
-            <div>
-              <Label className="text-white/70 text-xs">API Secret</Label>
-              <div className="flex items-center gap-2">
-                <code className="text-xs text-white/70 bg-white/5 px-2 py-1.5 rounded flex-1 break-all">
-                  {showSecret ? credentials?.api_secret : "••••••••••••••••"}
-                </code>
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/40" onClick={() => setShowSecret(!showSecret)}>
-                  {showSecret ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                </Button>
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/40" onClick={() => copyToClipboard(credentials?.api_secret || "", "API Secret")}>
-                  <Copy className="h-3 w-3" />
-                </Button>
+            )}
+            {credentials?.api_secret && (
+              <div>
+                <Label className="text-white/70 text-xs">API Secret</Label>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs text-white/70 bg-white/5 px-2 py-1.5 rounded flex-1 break-all">
+                    {showSecret ? credentials.api_secret : "••••••••••••••••"}
+                  </code>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/40" onClick={() => setShowSecret(!showSecret)}>
+                    {showSecret ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/40" onClick={() => copyToClipboard(credentials.api_secret, "API Secret")}>
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
             {credentials?.test_access_token && (
               <div>
                 <Label className="text-xs text-amber-500">🧪 Test Access Token (Sandbox)</Label>
