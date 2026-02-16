@@ -14,6 +14,7 @@ import Referral from "./pages/Referral";
 import QrPay from "./pages/QrPay";
 import MerchantDashboard from "./pages/MerchantDashboard";
 import MerchantRegister from "./pages/MerchantRegister";
+import BranchDashboard from "./pages/BranchDashboard";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/qr-pay" element={<QrPay />} />
             <Route path="/merchant" element={<MerchantDashboard />} />
             <Route path="/merchant/register" element={<MerchantRegister />} />
+            <Route path="/branch" element={<BranchDashboard />} />
             <Route path="/admin" element={<Admin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
