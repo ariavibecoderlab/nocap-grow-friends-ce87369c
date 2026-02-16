@@ -224,7 +224,7 @@ const Dashboard = () => {
           <Card className="border-white/10 bg-white/5">
             <CardContent className="p-4 text-center">
               <Gift className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-2 font-display text-2xl font-bold text-white">RM {totalEarnings.toFixed(0)}</p>
+              <p className="mt-2 font-display text-2xl font-bold text-white">RM {totalEarnings.toFixed(2)}</p>
               <p className="text-[10px] text-white/40">Earned</p>
             </CardContent>
           </Card>
