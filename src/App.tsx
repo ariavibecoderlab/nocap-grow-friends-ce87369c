@@ -16,6 +16,7 @@ import MerchantDashboard from "./pages/MerchantDashboard";
 import MerchantRegister from "./pages/MerchantRegister";
 import BranchDashboard from "./pages/BranchDashboard";
 import Admin from "./pages/Admin";
+import Transactions from "./pages/Transactions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/merchant/register" element={<MerchantRegister />} />
             <Route path="/branch" element={<BranchDashboard />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/transactions" element={<Transactions />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
