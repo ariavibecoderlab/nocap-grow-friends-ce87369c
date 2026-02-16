@@ -27,6 +27,7 @@ export type Database = {
           created_at: string
           document_urls: Json | null
           id: string
+          min_withdrawal_amount: number | null
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -46,6 +47,7 @@ export type Database = {
           created_at?: string
           document_urls?: Json | null
           id?: string
+          min_withdrawal_amount?: number | null
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -65,6 +67,7 @@ export type Database = {
           created_at?: string
           document_urls?: Json | null
           id?: string
+          min_withdrawal_amount?: number | null
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null

@@ -343,6 +343,17 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "update_merchant_min_withdrawal": {
+        const { applicationId: mwAppId, minAmount } = body;
+        const { error: mwErr } = await adminClient
+          .from("merchant_applications")
+          .update({ min_withdrawal_amount: minAmount })
+          .eq("id", mwAppId);
+        if (mwErr) throw mwErr;
+        result = { success: true };
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Unknown action" }), {
           status: 400,
