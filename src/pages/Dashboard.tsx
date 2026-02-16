@@ -277,6 +277,8 @@ const Dashboard = () => {
                       <p className="text-sm font-medium text-white truncate">{tx.description || transactionLabel(tx.type)}</p>
                       <p className="text-[10px] text-white/40">
                         {new Date(tx.created_at).toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" })}
+                        {" · "}
+                        {new Date(tx.created_at).toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit", hour12: true })}
                       </p>
                     </div>
                     <p className={`text-sm font-semibold tabular-nums ${isCredit(tx.type) ? "text-secondary" : "text-white"}`}>
