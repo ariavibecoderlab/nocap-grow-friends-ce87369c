@@ -363,35 +363,35 @@ const MerchantDashboard = () => {
 
   if (authLoading || loadingData) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-primary">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-secondary border-t-transparent" />
       </div>
     );
   }
 
   if (!isMerchant) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="bg-primary px-4 pb-6 pt-8 text-primary-foreground">
+      <div className="min-h-screen bg-primary pb-20">
+        <div className="px-4 pb-6 pt-8">
           <div className="mx-auto max-w-md flex items-center gap-3">
-            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-primary-foreground/10 transition-colors">
+            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors text-white">
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="font-display text-xl font-bold">Merchant</h1>
+            <h1 className="font-display text-xl font-bold text-white">Merchant</h1>
           </div>
         </div>
         <div className="mx-auto max-w-md px-4 pt-8">
-          <Card className="border-0 shadow-lg">
+          <Card className="border-white/10 bg-white/5 shadow-2xl backdrop-blur">
             <CardContent className="flex flex-col items-center py-12">
-              <Store className="h-12 w-12 text-muted-foreground mb-4 opacity-40" />
-              <p className="font-display text-lg font-semibold">Not a Merchant Yet</p>
-              <p className="mt-2 text-sm text-muted-foreground text-center max-w-xs">
+              <Store className="h-12 w-12 text-white/30 mb-4" />
+              <p className="font-display text-lg font-semibold text-white">Not a Merchant Yet</p>
+              <p className="mt-2 text-sm text-white/50 text-center max-w-xs">
                 Register as a merchant to start accepting payments and manage your business.
               </p>
-              <Button className="mt-6" onClick={() => navigate("/merchant/register")}>
+              <Button className="mt-6 bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => navigate("/merchant/register")}>
                 Apply Now
               </Button>
-              <Button variant="ghost" size="sm" className="mt-2" onClick={() => navigate("/dashboard")}>
+              <Button variant="ghost" size="sm" className="mt-2 text-white/50 hover:text-white hover:bg-white/10" onClick={() => navigate("/dashboard")}>
                 Back to Home
               </Button>
             </CardContent>
@@ -403,16 +403,16 @@ const MerchantDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-primary pb-20">
       {/* Header */}
-      <div className="bg-primary px-4 pb-6 pt-8 text-primary-foreground">
+      <div className="px-4 pb-6 pt-8">
         <div className="mx-auto max-w-md">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors">
+            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors text-white">
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="font-display text-xl font-bold flex-1">Merchant Dashboard</h1>
-            <NotificationBell className="text-primary-foreground" />
+            <h1 className="font-display text-xl font-bold flex-1 text-white">Merchant Dashboard</h1>
+            <NotificationBell className="text-white" />
           </div>
         </div>
       </div>
@@ -420,33 +420,33 @@ const MerchantDashboard = () => {
       <div className="mx-auto max-w-md px-4 pt-4 space-y-4">
         {/* Sales Stats */}
         <div className="grid grid-cols-2 gap-3">
-          <Card className="border-border/50">
+          <Card className="border-white/10 bg-white/5">
             <CardContent className="p-4 text-center">
-              <BarChart3 className="mx-auto h-4 w-4 text-muted-foreground" />
-              <p className="mt-1 font-display text-xl font-bold">RM {todaySales.toFixed(0)}</p>
-              <p className="text-[10px] text-muted-foreground">Today's Sales</p>
+              <BarChart3 className="mx-auto h-4 w-4 text-secondary" />
+              <p className="mt-1 font-display text-xl font-bold text-white">RM {todaySales.toFixed(0)}</p>
+              <p className="text-[10px] text-white/40">Today's Sales</p>
             </CardContent>
           </Card>
-          <Card className="border-border/50">
+          <Card className="border-white/10 bg-white/5">
             <CardContent className="p-4 text-center">
-              <BarChart3 className="mx-auto h-4 w-4 text-muted-foreground" />
-              <p className="mt-1 font-display text-xl font-bold">RM {totalSales.toFixed(0)}</p>
-              <p className="text-[10px] text-muted-foreground">Total Sales</p>
+              <BarChart3 className="mx-auto h-4 w-4 text-secondary" />
+              <p className="mt-1 font-display text-xl font-bold text-white">RM {totalSales.toFixed(0)}</p>
+              <p className="text-[10px] text-white/40">Total Sales</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Branches */}
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg font-semibold">Branches</h2>
-          <Button size="sm" variant="outline" onClick={() => setShowAddBranch(true)} className="gap-1">
+          <h2 className="font-display text-lg font-semibold text-white">Branches</h2>
+          <Button size="sm" variant="outline" onClick={() => setShowAddBranch(true)} className="gap-1 border-white/10 text-white/70 hover:bg-white/10 hover:text-white">
             <Plus className="h-3.5 w-3.5" /> Add
           </Button>
         </div>
 
         {branches.length === 0 ? (
-          <Card className="border-border/50">
-            <CardContent className="flex flex-col items-center py-8 text-muted-foreground">
+          <Card className="border-white/10 bg-white/5">
+            <CardContent className="flex flex-col items-center py-8 text-white/40">
               <Store className="h-8 w-8 mb-2 opacity-40" />
               <p className="text-sm font-medium">No branches yet</p>
               <p className="text-xs mt-1">Add your first branch to start receiving payments</p>
@@ -457,24 +457,24 @@ const MerchantDashboard = () => {
             {branches.map((b) => (
               <Card
                 key={b.id}
-                className={`border-border/50 cursor-pointer transition-all ${selectedBranch?.id === b.id ? 'ring-2 ring-primary' : ''}`}
+                className={`border-white/10 bg-white/5 cursor-pointer transition-all ${selectedBranch?.id === b.id ? 'ring-2 ring-secondary' : ''}`}
                 onClick={() => setSelectedBranch(b)}
               >
                 <CardContent className="flex items-center justify-between p-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary/10">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary/20">
                       <Store className="h-4 w-4 text-secondary" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{b.branch_name}</p>
+                      <p className="text-sm font-medium text-white">{b.branch_name}</p>
                       {b.branch_address && (
-                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <p className="text-[10px] text-white/40 flex items-center gap-1">
                           <MapPin className="h-3 w-3" /> {b.branch_address}
                         </p>
                       )}
                     </div>
                   </div>
-                  <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); showStaticQr(b); }}>
+                  <Button size="sm" variant="ghost" className="text-white/50 hover:text-white hover:bg-white/10" onClick={(e) => { e.stopPropagation(); showStaticQr(b); }}>
                     <QrCode className="h-4 w-4" />
                   </Button>
                 </CardContent>
@@ -486,31 +486,31 @@ const MerchantDashboard = () => {
         {/* Selected Branch Details */}
         {selectedBranch && (
           <Tabs defaultValue="qr" className="mt-4">
-            <TabsList className="w-full grid grid-cols-4">
-              <TabsTrigger value="qr" className="gap-1.5 text-xs">
+            <TabsList className="w-full grid grid-cols-4 bg-white/5 border border-white/10">
+              <TabsTrigger value="qr" className="gap-1.5 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 <QrCode className="h-3.5 w-3.5" /> QR
               </TabsTrigger>
-              <TabsTrigger value="txns" className="gap-1.5 text-xs">
+              <TabsTrigger value="txns" className="gap-1.5 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 <BarChart3 className="h-3.5 w-3.5" /> Txns
               </TabsTrigger>
-              <TabsTrigger value="withdraw" className="gap-1.5 text-xs">
+              <TabsTrigger value="withdraw" className="gap-1.5 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 <Wallet className="h-3.5 w-3.5" /> Withdraw
               </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-1.5 text-xs">
+              <TabsTrigger value="settings" className="gap-1.5 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 Settings
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="qr" className="mt-4 space-y-3">
               {/* Static QR */}
-              <Card className="border-secondary/20 bg-secondary/5">
+              <Card className="border-secondary/20 bg-secondary/10">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold">Static QR Code</p>
-                      <p className="text-[11px] text-muted-foreground">Customer enters the amount</p>
+                      <p className="text-sm font-semibold text-white">Static QR Code</p>
+                      <p className="text-[11px] text-white/40">Customer enters the amount</p>
                     </div>
-                    <Button size="sm" onClick={() => showStaticQr(selectedBranch)} className="gap-1.5">
+                    <Button size="sm" onClick={() => showStaticQr(selectedBranch)} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90 font-semibold">
                       <QrCode className="h-3.5 w-3.5" /> Show
                     </Button>
                   </div>
@@ -519,23 +519,23 @@ const MerchantDashboard = () => {
 
               {/* Dynamic QRs */}
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold">Dynamic QR Codes</p>
-                <Button size="sm" variant="outline" onClick={() => setShowAddQr(true)} className="gap-1">
+                <p className="text-sm font-semibold text-white">Dynamic QR Codes</p>
+                <Button size="sm" variant="outline" onClick={() => setShowAddQr(true)} className="gap-1 border-white/10 text-white/70 hover:bg-white/10 hover:text-white">
                   <Plus className="h-3.5 w-3.5" /> Create
                 </Button>
               </div>
 
               {dynamicQrs.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">No dynamic QR codes yet. Create one with a pre-filled amount.</p>
+                <p className="text-xs text-white/40 text-center py-4">No dynamic QR codes yet. Create one with a pre-filled amount.</p>
               ) : (
                 dynamicQrs.map((qr) => {
                   const status = getQrStatus(qr);
                   return (
-                    <Card key={qr.id} className={`border-border/50 ${status !== "active" ? 'opacity-60' : ''}`}>
+                    <Card key={qr.id} className={`border-white/10 bg-white/5 ${status !== "active" ? 'opacity-60' : ''}`}>
                       <CardContent className="flex items-center justify-between p-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold">RM {Number(qr.amount).toFixed(2)}</p>
-                          {qr.description && <p className="text-[10px] text-muted-foreground truncate">{qr.description}</p>}
+                          <p className="text-sm font-semibold text-white">RM {Number(qr.amount).toFixed(2)}</p>
+                          {qr.description && <p className="text-[10px] text-white/40 truncate">{qr.description}</p>}
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {status === "used" && (
                               <span className="text-[10px] text-secondary flex items-center gap-0.5">
@@ -548,18 +548,18 @@ const MerchantDashboard = () => {
                               </span>
                             )}
                             {status === "active" && qr.expires_at && (
-                              <span className="text-[10px] text-amber-600 flex items-center gap-0.5">
+                              <span className="text-[10px] text-amber-500 flex items-center gap-0.5">
                                 <Clock className="h-3 w-3" /> {formatTimeLeft(qr.expires_at)}
                               </span>
                             )}
                             {status === "active" && !qr.expires_at && (
-                              <span className="text-[10px] text-muted-foreground">Active</span>
+                              <span className="text-[10px] text-white/40">Active</span>
                             )}
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
                           {status === "active" && (
-                            <Button size="sm" variant="ghost" onClick={() => showDynamicQrCode(qr)}>
+                            <Button size="sm" variant="ghost" className="text-white/50 hover:text-white hover:bg-white/10" onClick={() => showDynamicQrCode(qr)}>
                               <QrCode className="h-4 w-4" />
                             </Button>
                           )}
@@ -595,29 +595,29 @@ const MerchantDashboard = () => {
             </TabsContent>
 
             <TabsContent value="settings" className="mt-4 space-y-3">
-              <Card className="border-border/50">
+              <Card className="border-white/10 bg-white/5">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Branch Name</span>
-                    <span className="font-medium">{selectedBranch.branch_name}</span>
+                    <span className="text-white/40">Branch Name</span>
+                    <span className="font-medium text-white">{selectedBranch.branch_name}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Commission Rate</span>
-                    <span className="font-medium">{selectedBranch.commission_percent}%</span>
+                    <span className="text-white/40">Commission Rate</span>
+                    <span className="font-medium text-white">{selectedBranch.commission_percent}%</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Status</span>
+                    <span className="text-white/40">Status</span>
                     <span className={`font-medium ${selectedBranch.is_active ? 'text-secondary' : 'text-destructive'}`}>
                       {selectedBranch.is_active ? "Active" : "Inactive"}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Branch Balance</span>
-                    <span className="font-medium">RM {Number((selectedBranch as any).balance || 0).toFixed(2)}</span>
+                    <span className="text-white/40">Branch Balance</span>
+                    <span className="font-medium text-white">RM {Number((selectedBranch as any).balance || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">QR Code ID</span>
-                    <span className="font-mono text-xs">{selectedBranch.qr_code_id.slice(0, 8)}...</span>
+                    <span className="text-white/40">QR Code ID</span>
+                    <span className="font-mono text-xs text-white/70">{selectedBranch.qr_code_id.slice(0, 8)}...</span>
                   </div>
                 </CardContent>
               </Card>
@@ -649,20 +649,20 @@ const MerchantDashboard = () => {
 
       {/* Add Branch Dialog */}
       <Dialog open={showAddBranch} onOpenChange={setShowAddBranch}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm bg-primary border-white/10">
           <DialogHeader>
-            <DialogTitle className="font-display">Add Branch</DialogTitle>
+            <DialogTitle className="font-display text-white">Add Branch</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label>Branch Name *</Label>
-              <Input placeholder="e.g. Main Outlet" value={newBranchName} onChange={(e) => setNewBranchName(e.target.value)} />
+              <Label className="text-white/70">Branch Name *</Label>
+              <Input placeholder="e.g. Main Outlet" value={newBranchName} onChange={(e) => setNewBranchName(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
             </div>
             <div className="space-y-1">
-              <Label>Address</Label>
-              <Input placeholder="Branch address" value={newBranchAddress} onChange={(e) => setNewBranchAddress(e.target.value)} />
+              <Label className="text-white/70">Address</Label>
+              <Input placeholder="Branch address" value={newBranchAddress} onChange={(e) => setNewBranchAddress(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
             </div>
-            <Button className="w-full" onClick={addBranch} disabled={addingBranch || !newBranchName.trim()}>
+            <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={addBranch} disabled={addingBranch || !newBranchName.trim()}>
               {addingBranch ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Add Branch
             </Button>
@@ -672,23 +672,23 @@ const MerchantDashboard = () => {
 
       {/* Create Dynamic QR Dialog */}
       <Dialog open={showAddQr} onOpenChange={setShowAddQr}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm bg-primary border-white/10">
           <DialogHeader>
-            <DialogTitle className="font-display">Create Dynamic QR</DialogTitle>
+            <DialogTitle className="font-display text-white">Create Dynamic QR</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label>Amount (RM) *</Label>
-              <Input type="number" inputMode="decimal" placeholder="0.00" value={qrAmount} onChange={(e) => setQrAmount(e.target.value)} />
+              <Label className="text-white/70">Amount (RM) *</Label>
+              <Input type="number" inputMode="decimal" placeholder="0.00" value={qrAmount} onChange={(e) => setQrAmount(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
             </div>
             <div className="space-y-1">
-              <Label>Description</Label>
-              <Input placeholder="e.g. Table 5 order" value={qrDescription} onChange={(e) => setQrDescription(e.target.value)} />
+              <Label className="text-white/70">Description</Label>
+              <Input placeholder="e.g. Table 5 order" value={qrDescription} onChange={(e) => setQrDescription(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
             </div>
             <div className="space-y-1">
-              <Label>Expiry</Label>
+              <Label className="text-white/70">Expiry</Label>
               <Select value={qrExpiry} onValueChange={setQrExpiry}>
-                <SelectTrigger>
+                <SelectTrigger className="border-white/10 bg-white/5 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -700,7 +700,7 @@ const MerchantDashboard = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button className="w-full" onClick={createDynamicQr} disabled={creatingQr || !qrAmount}>
+            <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={createDynamicQr} disabled={creatingQr || !qrAmount}>
               {creatingQr ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Create QR Code
             </Button>
@@ -710,9 +710,9 @@ const MerchantDashboard = () => {
 
       {/* QR Display Dialog */}
       <Dialog open={!!showQrDisplay} onOpenChange={() => setShowQrDisplay(null)}>
-        <DialogContent className="max-w-xs">
+        <DialogContent className="max-w-xs bg-primary border-white/10">
           <DialogHeader>
-            <DialogTitle className="font-display text-center">
+            <DialogTitle className="font-display text-center text-white">
               {showQrDisplay?.type === "static" ? "Static QR" : "Dynamic QR"}
             </DialogTitle>
           </DialogHeader>
@@ -726,14 +726,14 @@ const MerchantDashboard = () => {
               />
             </div>
             <p className="mt-3 font-display text-lg font-bold text-secondary">{showQrDisplay?.label}</p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-white/40 mt-1">
               {showQrDisplay?.type === "static" ? "Customer scans and enters amount" : "Amount is pre-filled for customer"}
             </p>
             <div className="flex gap-2 mt-4">
-              <Button size="sm" variant="outline" onClick={downloadQr} className="gap-1.5">
+              <Button size="sm" variant="outline" onClick={downloadQr} className="gap-1.5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white">
                 <Download className="h-3.5 w-3.5" /> Download
               </Button>
-              <Button size="sm" variant="outline" onClick={shareQr} className="gap-1.5">
+              <Button size="sm" variant="outline" onClick={shareQr} className="gap-1.5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white">
                 <Share2 className="h-3.5 w-3.5" /> Share
               </Button>
             </div>
