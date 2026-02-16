@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { signOut } from "@/lib/auth";
 import BottomNav from "@/components/BottomNav";
-import { LogOut, Mail, Shield, Save, Pencil, X, HelpCircle, FileText, Lock, Info, ChevronRight } from "lucide-react";
+import { LogOut, Mail, Shield, Save, Pencil, X, HelpCircle, FileText, Lock, Info, ChevronRight, KeyRound, Settings } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const PHONE_REGEX = /^01[0-9]-?\d{7,8}$/;
@@ -225,24 +225,31 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Menu Items */}
-        <div className="mt-6 space-y-2">
-          {[
-            { label: "Help & Support", icon: HelpCircle, path: "/help-support" },
-            { label: "Terms & Conditions", icon: FileText, path: "/terms" },
-            { label: "Privacy Policy", icon: Lock, path: "/privacy" },
-            { label: "About NOcap", icon: Info, path: "/about" },
-          ].map((item) => (
-            <Card key={item.path} className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate(item.path)}>
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-3">
-                  <item.icon className="h-4 w-4 text-white/40" />
-                  <span className="text-sm text-white/70">{item.label}</span>
-                </div>
-                <ChevronRight className="h-4 w-4 text-white/20" />
-              </CardContent>
-            </Card>
-          ))}
+        {/* Settings */}
+        <div className="mt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Settings className="h-4 w-4 text-white/40" />
+            <h2 className="font-display text-sm font-semibold text-white/60">Settings</h2>
+          </div>
+          <div className="space-y-2">
+            {[
+              { label: "Set Password", icon: KeyRound, path: "/set-password" },
+              { label: "Help & Support", icon: HelpCircle, path: "/help-support" },
+              { label: "Terms & Conditions", icon: FileText, path: "/terms" },
+              { label: "Privacy Policy", icon: Lock, path: "/privacy" },
+              { label: "About NOcap", icon: Info, path: "/about" },
+            ].map((item) => (
+              <Card key={item.path} className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate(item.path)}>
+                <CardContent className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3">
+                    <item.icon className="h-4 w-4 text-white/40" />
+                    <span className="text-sm text-white/70">{item.label}</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-white/20" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
 
         <Button className="mt-6 w-full border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20" onClick={handleLogout}>
