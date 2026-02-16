@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { signOut } from "@/lib/auth";
 import BottomNav from "@/components/BottomNav";
-import { LogOut, HelpCircle, FileText, Lock, Info, ChevronRight, KeyRound, Settings, User } from "lucide-react";
+import { LogOut, HelpCircle, FileText, Lock, Info, ChevronRight, KeyRound, Settings, User, ShieldCheck } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const Profile = () => {
@@ -71,6 +71,7 @@ const Profile = () => {
           </div>
           <div className="space-y-2">
             {[
+              { label: "Set PIN", icon: ShieldCheck, path: "/set-pin" },
               { label: "Set Password", icon: KeyRound, path: "/set-password" },
               { label: "Help & Support", icon: HelpCircle, path: "/help-support" },
               { label: "Terms & Conditions", icon: FileText, path: "/terms" },

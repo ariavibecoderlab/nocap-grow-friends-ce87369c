@@ -39,6 +39,7 @@ const Transfer = () => {
   const [showMyQR, setShowMyQR] = useState(false);
   const [scannerActive, setScannerActive] = useState(false);
   const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
+  const [minPinAmount, setMinPinAmount] = useState(100);
   const scannerRef = useRef<any>(null);
   const scannerContainerId = "qr-reader";
 
@@ -51,11 +52,13 @@ const Transfer = () => {
     Promise.all([
       supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
       supabase.from("profiles").select("full_name, phone").eq("user_id", user.id).maybeSingle(),
-    ]).then(([walletRes, profileRes]) => {
+      supabase.from("system_settings").select("value").eq("key", "min_pin_amount").maybeSingle(),
+    ]).then(([walletRes, profileRes, pinSettingRes]) => {
       if (walletRes.data) setBalance(Number(walletRes.data.balance));
       if (profileRes.data) {
         setProfileComplete(!!profileRes.data.full_name && !!profileRes.data.phone);
       }
+      if (pinSettingRes.data) setMinPinAmount(Number(pinSettingRes.data.value));
     });
   }, [user]);
 
@@ -152,7 +155,7 @@ const Transfer = () => {
 
   const handleConfirm = () => {
     const numAmount = parseFloat(amount);
-    if (numAmount >= 50) {
+    if (numAmount >= minPinAmount) {
       setStep("pin");
     } else {
       executeTransfer();

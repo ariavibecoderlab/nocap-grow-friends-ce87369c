@@ -23,6 +23,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import About from "./pages/About";
 import SetPassword from "./pages/SetPassword";
 import MyProfile from "./pages/MyProfile";
+import SetPin from "./pages/SetPin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/set-password" element={<SetPassword />} />
             <Route path="/my-profile" element={<MyProfile />} />
+            <Route path="/set-pin" element={<SetPin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
