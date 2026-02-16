@@ -125,7 +125,7 @@ const Dashboard = () => {
   }
 
   const quickActions = [
-    { label: "QR Pay", icon: QrCode, path: "/qr-pay" },
+    { label: "Pay", icon: QrCode, path: "/qr-pay" },
     { label: "Top Up", icon: Banknote, path: "/top-up" },
     { label: "Transfer", icon: Send, path: "/transfer" },
     { label: "Referral", icon: UserPlus, path: "/referral" },
