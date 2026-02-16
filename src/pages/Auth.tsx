@@ -44,10 +44,15 @@ const Auth = () => {
   }, [user, authLoading, navigate]);
 
   const sendOtpViaEdgeFunction = async (targetEmail: string) => {
-    const response = await supabase.functions.invoke('send-otp', {
-      body: { email: targetEmail },
-    });
-    return response;
+    try {
+      const response = await supabase.functions.invoke('send-otp', {
+        body: { email: targetEmail },
+      });
+      return response;
+    } catch (err) {
+      // Return error in a structured way to avoid unhandled exception
+      return { data: null, error: err };
+    }
   };
 
   const handleEmailSubmit = async () => {
