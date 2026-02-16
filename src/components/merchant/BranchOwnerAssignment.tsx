@@ -101,34 +101,34 @@ const BranchOwnerAssignment = ({ branchId, currentOwnerId, onAssigned }: Props) 
   };
 
   return (
-    <Card className="border-border/50">
+    <Card className="border-white/10 bg-white/5">
       <CardContent className="p-4 space-y-3">
-        <p className="text-sm font-semibold flex items-center gap-1.5">
+        <p className="text-sm font-semibold flex items-center gap-1.5 text-white">
           <UserPlus className="h-4 w-4" /> Branch Owner
         </p>
 
         {currentOwnerId && ownerProfile ? (
-          <div className="bg-muted/50 rounded px-3 py-2 flex items-center justify-between">
+          <div className="bg-white/5 border border-white/10 rounded px-3 py-2 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">{ownerProfile.full_name || "Unnamed"}</p>
-              <p className="text-[10px] text-muted-foreground">{ownerProfile.phone || "No phone"}</p>
+              <p className="text-sm font-medium text-white">{ownerProfile.full_name || "Unnamed"}</p>
+              <p className="text-[10px] text-white/40">{ownerProfile.phone || "No phone"}</p>
             </div>
-            <Button size="sm" variant="ghost" className="text-destructive" onClick={removeOwner} disabled={assigning}>
+            <Button size="sm" variant="ghost" className="text-destructive hover:bg-white/10" onClick={removeOwner} disabled={assigning}>
               <UserX className="h-4 w-4" />
             </Button>
           </div>
         ) : (
           <>
-            <p className="text-xs text-muted-foreground">Search by phone number or referral code to assign a member as branch owner.</p>
+            <p className="text-xs text-white/40">Search by phone number or referral code to assign a member as branch owner.</p>
             <div className="flex gap-2">
               <Input
                 placeholder="Phone or referral code"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && searchMembers()}
-                className="flex-1"
+                className="flex-1 border-white/10 bg-white/5 text-white placeholder:text-white/30"
               />
-              <Button size="sm" onClick={searchMembers} disabled={searching} variant="outline">
+              <Button size="sm" onClick={searchMembers} disabled={searching} variant="outline" className="border-white/10 text-white/70 hover:bg-white/10 hover:text-white">
                 {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               </Button>
             </div>
@@ -136,12 +136,12 @@ const BranchOwnerAssignment = ({ branchId, currentOwnerId, onAssigned }: Props) 
             {searchResults.length > 0 && (
               <div className="space-y-1">
                 {searchResults.map((p) => (
-                  <div key={p.user_id} className="flex items-center justify-between bg-muted/30 rounded px-3 py-2">
+                  <div key={p.user_id} className="flex items-center justify-between bg-white/5 border border-white/10 rounded px-3 py-2">
                     <div>
-                      <p className="text-sm font-medium">{p.full_name || "Unnamed"}</p>
-                      <p className="text-[10px] text-muted-foreground">{p.phone || p.referral_code}</p>
+                      <p className="text-sm font-medium text-white">{p.full_name || "Unnamed"}</p>
+                      <p className="text-[10px] text-white/40">{p.phone || p.referral_code}</p>
                     </div>
-                    <Button size="sm" onClick={() => assignOwner(p.user_id)} disabled={assigning}>
+                    <Button size="sm" onClick={() => assignOwner(p.user_id)} disabled={assigning} className="bg-secondary text-primary hover:bg-secondary/90 font-semibold">
                       {assigning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Assign"}
                     </Button>
                   </div>
