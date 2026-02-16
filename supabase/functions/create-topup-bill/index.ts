@@ -89,7 +89,7 @@ serve(async (req) => {
     }
 
     // Determine callback URL (use the project URL)
-    const origin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '') || '';
+    const origin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '') || 'https://nocap-grow-friends.lovable.app';
     const callbackUrl = `${origin}/top-up?status=success`;
     const webhookUrl = `${SUPABASE_URL}/functions/v1/raudhahpay-webhook`;
 
@@ -110,13 +110,6 @@ serve(async (req) => {
         address: profile?.address || 'Malaysia',
       },
       product: `NOcap Wallet Top Up`,
-      products: [
-        {
-          title: `NOcap Wallet Top Up - RM${amount.toFixed(2)}`,
-          quantity: 1,
-          price: amount,
-        }
-      ],
       amount: amount,
       reference_1_label: 'Transaction ID',
       reference_1: transaction.id,
