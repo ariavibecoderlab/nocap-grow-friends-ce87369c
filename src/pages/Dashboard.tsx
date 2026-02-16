@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import TransactionDetail from "@/components/TransactionDetail";
-import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store, AlertCircle, Zap, Banknote, Send, UserPlus } from "lucide-react";
+import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store, AlertCircle, Zap, Banknote, Send, UserPlus, Share2 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { useToast } from "@/hooks/use-toast";
 
@@ -95,10 +95,20 @@ const Dashboard = () => {
     fetchData();
   }, [user]);
 
-  const copyReferralCode = () => {
-    if (profile?.referral_code) {
-      navigator.clipboard.writeText(profile.referral_code);
-      toast({ title: "Copied!", description: "Referral code copied to clipboard." });
+  const shareReferralCode = async () => {
+    if (!profile?.referral_code) return;
+    const referralUrl = `${window.location.origin}/auth?ref=${profile.referral_code}`;
+    const shareText = `Join NOcap and earn cashback on every transaction! Use my referral code: ${profile.referral_code}\n\n${referralUrl}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Join NOcap", text: shareText, url: referralUrl });
+      } catch {
+        // User cancelled
+      }
+    } else {
+      navigator.clipboard.writeText(shareText);
+      toast({ title: "Copied!", description: "Referral link copied to clipboard." });
     }
   };
 
@@ -227,8 +237,8 @@ const Dashboard = () => {
               <p className="text-xs text-white/50">Your Referral Code</p>
               <p className="font-display text-lg font-bold tracking-wider text-secondary">{profile?.referral_code || "—"}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={copyReferralCode} className="gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-primary">
-              <Copy className="h-3.5 w-3.5" /> Copy
+            <Button variant="outline" size="sm" onClick={shareReferralCode} className="gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-primary">
+              <Share2 className="h-3.5 w-3.5" /> Share
             </Button>
           </CardContent>
         </Card>
