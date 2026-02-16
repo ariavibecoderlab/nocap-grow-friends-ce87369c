@@ -377,11 +377,14 @@ const MerchantDashboard = () => {
           <Card className="border-0 shadow-lg">
             <CardContent className="flex flex-col items-center py-12">
               <Store className="h-12 w-12 text-muted-foreground mb-4 opacity-40" />
-              <p className="font-display text-lg font-semibold">Not a Merchant</p>
+              <p className="font-display text-lg font-semibold">Not a Merchant Yet</p>
               <p className="mt-2 text-sm text-muted-foreground text-center max-w-xs">
-                You need to apply and be approved as a merchant to access this dashboard. Contact admin for more info.
+                Register as a merchant to start accepting payments and manage your business.
               </p>
-              <Button className="mt-6" onClick={() => navigate("/dashboard")}>
+              <Button className="mt-6" onClick={() => navigate("/merchant/register")}>
+                Apply Now
+              </Button>
+              <Button variant="ghost" size="sm" className="mt-2" onClick={() => navigate("/dashboard")}>
                 Back to Home
               </Button>
             </CardContent>
