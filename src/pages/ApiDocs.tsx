@@ -55,6 +55,17 @@ const ApiDocs = () => {
                     Enable <strong>Sandbox Mode</strong> when creating an API app to test integrations without using real money. 
                     Sandbox transactions are immediately marked as completed and do not deduct from wallets.
                   </p>
+                  <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 p-4 rounded-md space-y-2">
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">🧪 Test Access Token</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      When you create a sandbox app, a <strong>Test Access Token</strong> is automatically generated and shown in the credentials dialog. 
+                      This token lets you skip the user authorization flow entirely — use it as the <code className="font-mono font-bold">Authorization: Bearer</code> header 
+                      in place of a real user token.
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      Need more tokens? Click <strong>"Generate Test Token"</strong> on any sandbox app in the Merchant Dashboard to create additional ones.
+                    </p>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <h3 className="font-semibold text-lg">4. Base URL</h3>
@@ -174,6 +185,22 @@ const ApiDocs = () => {
                   <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-md">
                     <p className="text-xs text-destructive">
                       <strong>⚠️ Important:</strong> The <code>access_token</code> is shown only once. Store it securely on your server. This token is used as the <code>Authorization: Bearer</code> header for all subsequent API calls.
+                    </p>
+                  </div>
+                  <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 p-4 rounded-md space-y-2">
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">🧪 Sandbox Shortcut: Skip This Step</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      If your app is in <strong>Sandbox Mode</strong>, you don't need to call <code className="font-mono">/api-authorize</code>. 
+                      A test access token is auto-generated when you create the app. Use it directly:
+                    </p>
+                    <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charge" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Authorization: Bearer your_test_access_token" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "amount": 1.00, "description": "Test charge" }'`}</CodeBlock>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      You can generate additional test tokens anytime from the Merchant Dashboard → API tab → <strong>"Generate Test Token"</strong>.
                     </p>
                   </div>
                 </CardContent>
