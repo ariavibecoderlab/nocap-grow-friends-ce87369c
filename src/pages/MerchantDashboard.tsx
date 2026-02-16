@@ -17,6 +17,7 @@ import MerchantWithdrawals from "@/components/merchant/MerchantWithdrawals";
 import BranchOwnerAssignment from "@/components/merchant/BranchOwnerAssignment";
 import MerchantAnalytics from "@/components/merchant/MerchantAnalytics";
 import MerchantSettlement from "@/components/merchant/MerchantSettlement";
+import MerchantApiApps from "@/components/merchant/MerchantApiApps";
 import NotificationBell from "@/components/NotificationBell";
 import {
   ArrowLeft,
@@ -488,7 +489,7 @@ const MerchantDashboard = () => {
         {/* Selected Branch Details */}
         {selectedBranch && (
           <Tabs defaultValue="qr" className="mt-4">
-            <TabsList className="w-full grid grid-cols-6 bg-white/5 border border-white/10">
+            <TabsList className="w-full grid grid-cols-7 bg-white/5 border border-white/10">
               <TabsTrigger value="qr" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 <QrCode className="h-3 w-3" /> QR
               </TabsTrigger>
@@ -503,6 +504,9 @@ const MerchantDashboard = () => {
               </TabsTrigger>
               <TabsTrigger value="withdraw" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 Withdraw
+              </TabsTrigger>
+              <TabsTrigger value="api" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                API
               </TabsTrigger>
               <TabsTrigger value="settings" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 Settings
@@ -608,6 +612,10 @@ const MerchantDashboard = () => {
 
             <TabsContent value="withdraw" className="mt-4">
               <MerchantWithdrawals userId={user!.id} />
+            </TabsContent>
+
+            <TabsContent value="api" className="mt-4">
+              <MerchantApiApps branches={branches} />
             </TabsContent>
 
             <TabsContent value="settings" className="mt-4 space-y-3">

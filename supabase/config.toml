@@ -23,3 +23,21 @@ verify_jwt = false
 
 [functions.manage-pin]
 verify_jwt = false
+
+[functions.api-register-app]
+verify_jwt = false
+
+[functions.api-authorize]
+verify_jwt = false
+
+[functions.api-revoke]
+verify_jwt = false
+
+[functions.api-balance]
+verify_jwt = false
+
+[functions.api-charge]
+verify_jwt = false
+
+[functions.api-charge-status]
+verify_jwt = false

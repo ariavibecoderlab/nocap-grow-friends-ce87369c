@@ -9,6 +9,7 @@ import { signOut } from "@/lib/auth";
 import BottomNav from "@/components/BottomNav";
 import { LogOut, HelpCircle, FileText, Lock, Info, ChevronRight, KeyRound, Settings, User, ShieldCheck } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import ConnectedApps from "@/components/member/ConnectedApps";
 
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
@@ -91,6 +92,9 @@ const Profile = () => {
             ))}
           </div>
         </div>
+
+        {/* Connected Apps */}
+        <ConnectedApps />
 
         <Button className="mt-6 w-full border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20" onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" /> Sign Out
