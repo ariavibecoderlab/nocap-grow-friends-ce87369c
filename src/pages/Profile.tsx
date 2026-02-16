@@ -79,11 +79,27 @@ const Profile = () => {
 
     setSaving(true);
     const phoneDigits = form.phone.replace(/\D/g, "");
+
+    // Check phone uniqueness if changed
+    if (phoneDigits && phoneDigits !== profile.phone) {
+      const { data: existing } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("phone", phoneDigits)
+        .neq("user_id", user.id)
+        .maybeSingle();
+      if (existing) {
+        setErrors((p) => ({ ...p, phone: "This phone number is already registered to another account" }));
+        setSaving(false);
+        return;
+      }
+    }
+    const savePhone = form.phone.replace(/\D/g, "");
     const { error } = await supabase
       .from("profiles")
       .update({
         full_name: form.full_name.trim(),
-        phone: phoneDigits,
+        phone: savePhone,
         address: form.address.trim(),
       })
       .eq("user_id", user.id);
