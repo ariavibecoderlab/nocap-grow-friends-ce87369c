@@ -15,6 +15,8 @@ import { QRCodeSVG } from "qrcode.react";
 import MerchantTransactions from "@/components/merchant/MerchantTransactions";
 import MerchantWithdrawals from "@/components/merchant/MerchantWithdrawals";
 import BranchOwnerAssignment from "@/components/merchant/BranchOwnerAssignment";
+import MerchantAnalytics from "@/components/merchant/MerchantAnalytics";
+import MerchantSettlement from "@/components/merchant/MerchantSettlement";
 import NotificationBell from "@/components/NotificationBell";
 import {
   ArrowLeft,
@@ -486,17 +488,23 @@ const MerchantDashboard = () => {
         {/* Selected Branch Details */}
         {selectedBranch && (
           <Tabs defaultValue="qr" className="mt-4">
-            <TabsList className="w-full grid grid-cols-4 bg-white/5 border border-white/10">
-              <TabsTrigger value="qr" className="gap-1.5 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                <QrCode className="h-3.5 w-3.5" /> QR
+            <TabsList className="w-full grid grid-cols-6 bg-white/5 border border-white/10">
+              <TabsTrigger value="qr" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                <QrCode className="h-3 w-3" /> QR
               </TabsTrigger>
-              <TabsTrigger value="txns" className="gap-1.5 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                <BarChart3 className="h-3.5 w-3.5" /> Txns
+              <TabsTrigger value="txns" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                Txns
               </TabsTrigger>
-              <TabsTrigger value="withdraw" className="gap-1.5 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                <Wallet className="h-3.5 w-3.5" /> Withdraw
+              <TabsTrigger value="analytics" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                Analytics
               </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-1.5 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+              <TabsTrigger value="reports" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                Reports
+              </TabsTrigger>
+              <TabsTrigger value="withdraw" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                Withdraw
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 Settings
               </TabsTrigger>
             </TabsList>
@@ -588,6 +596,14 @@ const MerchantDashboard = () => {
 
             <TabsContent value="txns" className="mt-4">
               <MerchantTransactions userId={user!.id} branchId={selectedBranch.id} />
+            </TabsContent>
+
+            <TabsContent value="analytics" className="mt-4">
+              <MerchantAnalytics userId={user!.id} branches={branches} />
+            </TabsContent>
+
+            <TabsContent value="reports" className="mt-4">
+              <MerchantSettlement userId={user!.id} branches={branches} />
             </TabsContent>
 
             <TabsContent value="withdraw" className="mt-4">

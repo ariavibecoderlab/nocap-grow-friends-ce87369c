@@ -13,6 +13,8 @@ import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 import NotificationBell from "@/components/NotificationBell";
+import BranchSalesSummary from "@/components/branch/BranchSalesSummary";
+import BranchTransactionSearch from "@/components/branch/BranchTransactionSearch";
 import {
   ArrowLeft, Plus, Store, QrCode, BarChart3, Loader2, Trash2, Download, Share2,
   Clock, CheckCircle2, XCircle, Wallet, ArrowDownToLine,
@@ -431,11 +433,17 @@ const BranchDashboard = () => {
               </Card>
             </div>
 
-            <Tabs defaultValue="qr" className="mt-4">
-              <TabsList className="w-full grid grid-cols-2 bg-white/5 border border-white/10">
-                <TabsTrigger value="qr" className="gap-1.5 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50"><QrCode className="h-3.5 w-3.5" /> QR Codes</TabsTrigger>
-                <TabsTrigger value="withdraw" className="gap-1.5 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50"><Wallet className="h-3.5 w-3.5" /> Withdraw</TabsTrigger>
+            <Tabs defaultValue="summary" className="mt-4">
+              <TabsList className="w-full grid grid-cols-4 bg-white/5 border border-white/10">
+                <TabsTrigger value="summary" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Summary</TabsTrigger>
+                <TabsTrigger value="qr" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50"><QrCode className="h-3 w-3" /> QR</TabsTrigger>
+                <TabsTrigger value="search" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Search</TabsTrigger>
+                <TabsTrigger value="withdraw" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50"><Wallet className="h-3 w-3" /> Withdraw</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="summary" className="mt-4">
+                <BranchSalesSummary branchId={selectedBranch.id} merchantUserId={selectedBranch.merchant_user_id} />
+              </TabsContent>
 
               <TabsContent value="qr" className="mt-4 space-y-3">
                 {/* Static QR */}
@@ -485,6 +493,10 @@ const BranchDashboard = () => {
                     </Card>
                   );
                 })}
+              </TabsContent>
+
+              <TabsContent value="search" className="mt-4">
+                <BranchTransactionSearch branchId={selectedBranch.id} merchantUserId={selectedBranch.merchant_user_id} />
               </TabsContent>
 
               <TabsContent value="withdraw" className="mt-4 space-y-3">
