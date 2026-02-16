@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,8 +24,17 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [isNewEmail, setIsNewEmail] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+
+  // Auto-fill referral code from URL query parameter
+  useEffect(() => {
+    const refCode = searchParams.get("ref");
+    if (refCode && !referralCode) {
+      setReferralCode(refCode.toUpperCase());
+    }
+  }, [searchParams]);
 
   // Redirect if already authenticated
   useEffect(() => {
