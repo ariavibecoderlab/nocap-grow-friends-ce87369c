@@ -17,6 +17,7 @@ interface WithdrawalRow {
   status: string;
   created_at: string;
   branch_id: string | null;
+  wallet_type: string;
   profiles?: { full_name: string | null; phone: string | null } | null;
   branch_name?: string | null;
 }
@@ -89,6 +90,7 @@ const WithdrawalApprovals = () => {
       withdrawalId: req.id,
       withdrawalUserId: req.user_id,
       amount: req.amount,
+      walletType: req.wallet_type,
       ...(req.branch_id ? { branchId: req.branch_id } : {}),
     });
     if (error) {
@@ -142,6 +144,13 @@ const WithdrawalApprovals = () => {
                     {r.profiles?.full_name || "Unknown"} • {r.profiles?.phone || ""}
                     {r.branch_name && <span className="ml-1 text-primary">• Branch: {r.branch_name}</span>}
                   </p>
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                    r.wallet_type === 'member' ? 'bg-blue-100 text-blue-700' :
+                    r.wallet_type === 'merchant' ? 'bg-purple-100 text-purple-700' :
+                    'bg-amber-100 text-amber-700'
+                  }`}>
+                    {r.wallet_type === 'member' ? 'Member' : r.wallet_type === 'merchant' ? 'Merchant' : 'Branch'} Wallet
+                  </span>
                 </div>
                 <p className="text-[10px] text-muted-foreground">
                   {new Date(r.created_at).toLocaleDateString()}

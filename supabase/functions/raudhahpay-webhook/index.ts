@@ -94,11 +94,12 @@ serve(async (req) => {
         })
         .eq('id', transactionId);
 
-      // Credit wallet
+      // Credit member wallet
       const { data: wallet } = await supabase
         .from('wallets')
         .select('balance')
         .eq('user_id', transaction.user_id)
+        .eq('wallet_type', 'member')
         .single();
 
       if (wallet) {
@@ -106,7 +107,8 @@ serve(async (req) => {
         await supabase
           .from('wallets')
           .update({ balance: newBalance, updated_at: new Date().toISOString() })
-          .eq('user_id', transaction.user_id);
+          .eq('user_id', transaction.user_id)
+          .eq('wallet_type', 'member');
       }
 
       console.log(`Top-up successful: ${transactionId}, amount: ${transaction.amount}, user: ${transaction.user_id}`);

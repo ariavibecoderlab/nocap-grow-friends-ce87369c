@@ -53,7 +53,7 @@ serve(async (req) => {
     // Get branch info
     const { data: branch } = await supabase
       .from('merchant_branches')
-      .select('id, merchant_user_id, branch_name, commission_percent, is_active')
+      .select('id, merchant_user_id, branch_name, commission_percent, is_active, owner_user_id')
       .eq('id', branch_id)
       .single();
 
@@ -128,11 +128,12 @@ serve(async (req) => {
       }
     }
 
-    // Check payer wallet
+    // Check payer's MEMBER wallet
     const { data: payerWallet } = await supabase
       .from('wallets')
       .select('balance')
       .eq('user_id', payerId)
+      .eq('wallet_type', 'member')
       .single();
 
     if (!payerWallet || Number(payerWallet.balance) < amount) {
@@ -160,32 +161,35 @@ serve(async (req) => {
     const cashbackShare = Math.floor((commissionPool / 6) * 100) / 100;
     const tierShare = Math.floor((commissionPool / 6) * 100) / 100;
 
-    // Debit payer
+    // Debit payer's member wallet
     const newPayerBalance = Number(payerWallet.balance) - amount;
     await supabase
       .from('wallets')
       .update({ balance: newPayerBalance, updated_at: new Date().toISOString() })
-      .eq('user_id', payerId);
+      .eq('user_id', payerId)
+      .eq('wallet_type', 'member');
 
-    // Credit merchant (net amount minus commission pool)
-    const merchantCredit = netAmount - commissionPool;
-    const { data: merchantWallet } = await supabase
+    // Credit BRANCH wallet (payment goes directly to branch wallet)
+    const branchCredit = netAmount - commissionPool;
+    const { data: branchWallet } = await supabase
       .from('wallets')
       .select('balance')
-      .eq('user_id', branch.merchant_user_id)
+      .eq('wallet_type', 'branch')
+      .eq('branch_id', branch_id)
       .single();
 
-    if (merchantWallet) {
+    if (branchWallet) {
       await supabase
         .from('wallets')
         .update({
-          balance: Number(merchantWallet.balance) + merchantCredit,
+          balance: Number(branchWallet.balance) + branchCredit,
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', branch.merchant_user_id);
+        .eq('wallet_type', 'branch')
+        .eq('branch_id', branch_id);
     }
 
-    // Credit branch balance
+    // Also update merchant_branches.balance for backward compatibility
     const { data: branchRow } = await supabase
       .from('merchant_branches')
       .select('balance')
@@ -194,7 +198,7 @@ serve(async (req) => {
     if (branchRow) {
       await supabase
         .from('merchant_branches')
-        .update({ balance: Number(branchRow.balance) + merchantCredit })
+        .update({ balance: Number(branchRow.balance) + branchCredit })
         .eq('id', branch_id);
     }
 
@@ -222,23 +226,24 @@ serve(async (req) => {
       .select('id')
       .single();
 
-    // Create income transaction for merchant
+    // Create income transaction for branch owner (or merchant if no owner)
+    const branchIncomeUserId = branch.owner_user_id || branch.merchant_user_id;
     await supabase.from('transactions').insert({
-      user_id: branch.merchant_user_id,
+      user_id: branchIncomeUserId,
       type: 'top_up',
-      amount: merchantCredit,
+      amount: branchCredit,
       status: 'completed',
       description: `Payment from ${payerName}`,
       reference_id: paymentTx?.id || null,
       metadata: { branch_id, branch_name: branch.branch_name },
     });
 
-    // Distribute cashback to payer
+    // Distribute cashback to payer's member wallet
     if (cashbackShare > 0) {
       await supabase.from('wallets').update({
         balance: newPayerBalance + cashbackShare,
         updated_at: new Date().toISOString(),
-      }).eq('user_id', payerId);
+      }).eq('user_id', payerId).eq('wallet_type', 'member');
 
       await supabase.from('transactions').insert({
         user_id: payerId,
@@ -250,7 +255,7 @@ serve(async (req) => {
       });
     }
 
-    // Distribute tier commissions to referral ancestors
+    // Distribute tier commissions to referral ancestors (member wallets)
     const { data: ancestors } = await supabase
       .from('referral_tree')
       .select('ancestor_id, tier')
@@ -267,13 +272,14 @@ serve(async (req) => {
             .from('wallets')
             .select('balance')
             .eq('user_id', ancestor.ancestor_id)
+            .eq('wallet_type', 'member')
             .single();
 
           if (ancestorWallet) {
             await supabase.from('wallets').update({
               balance: Number(ancestorWallet.balance) + tierShare,
               updated_at: new Date().toISOString(),
-            }).eq('user_id', ancestor.ancestor_id);
+            }).eq('user_id', ancestor.ancestor_id).eq('wallet_type', 'member');
 
             await supabase.from('transactions').insert({
               user_id: ancestor.ancestor_id,
@@ -297,19 +303,20 @@ serve(async (req) => {
       unclaimedCommission = 5 * tierShare;
     }
 
-    // Return unclaimed commissions to merchant
-    if (unclaimedCommission > 0 && merchantWallet) {
-      const { data: updatedMerchantWallet } = await supabase
+    // Return unclaimed commissions to branch wallet
+    if (unclaimedCommission > 0 && branchWallet) {
+      const { data: updatedBranchWallet } = await supabase
         .from('wallets')
         .select('balance')
-        .eq('user_id', branch.merchant_user_id)
+        .eq('wallet_type', 'branch')
+        .eq('branch_id', branch_id)
         .single();
 
-      if (updatedMerchantWallet) {
+      if (updatedBranchWallet) {
         await supabase.from('wallets').update({
-          balance: Number(updatedMerchantWallet.balance) + unclaimedCommission,
+          balance: Number(updatedBranchWallet.balance) + unclaimedCommission,
           updated_at: new Date().toISOString(),
-        }).eq('user_id', branch.merchant_user_id);
+        }).eq('wallet_type', 'branch').eq('branch_id', branch_id);
       }
     }
 

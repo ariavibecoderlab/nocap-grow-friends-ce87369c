@@ -85,11 +85,12 @@ serve(async (req) => {
       }
     }
 
-    // Check sender wallet balance
+    // Check sender's MEMBER wallet balance
     const { data: senderWallet } = await supabase
       .from('wallets')
       .select('balance')
       .eq('user_id', senderId)
+      .eq('wallet_type', 'member')
       .single();
 
     if (!senderWallet || Number(senderWallet.balance) < amount) {
@@ -98,11 +99,12 @@ serve(async (req) => {
       });
     }
 
-    // Check recipient exists
+    // Check recipient's MEMBER wallet exists
     const { data: recipientWallet } = await supabase
       .from('wallets')
       .select('balance')
       .eq('user_id', recipient_user_id)
+      .eq('wallet_type', 'member')
       .single();
 
     if (!recipientWallet) {
@@ -127,19 +129,21 @@ serve(async (req) => {
     const recipientName = recipientProfile?.full_name || 'Member';
     const senderName = senderProfileName?.full_name || 'Member';
 
-    // Debit sender
+    // Debit sender's member wallet
     const newSenderBalance = Number(senderWallet.balance) - amount;
     await supabase
       .from('wallets')
       .update({ balance: newSenderBalance, updated_at: new Date().toISOString() })
-      .eq('user_id', senderId);
+      .eq('user_id', senderId)
+      .eq('wallet_type', 'member');
 
-    // Credit recipient
+    // Credit recipient's member wallet
     const newRecipientBalance = Number(recipientWallet.balance) + amount;
     await supabase
       .from('wallets')
       .update({ balance: newRecipientBalance, updated_at: new Date().toISOString() })
-      .eq('user_id', recipient_user_id);
+      .eq('user_id', recipient_user_id)
+      .eq('wallet_type', 'member');
 
     // Create transfer_out transaction for sender
     const { data: outTx } = await supabase

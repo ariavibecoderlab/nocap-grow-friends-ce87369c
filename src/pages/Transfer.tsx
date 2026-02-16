@@ -47,7 +47,7 @@ const Transfer = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("wallets").select("balance").eq("user_id", user.id).maybeSingle()
+    supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle()
       .then(({ data }) => { if (data) setBalance(Number(data.balance)); });
   }, [user]);
 

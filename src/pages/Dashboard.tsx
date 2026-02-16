@@ -73,7 +73,7 @@ const Dashboard = () => {
     const fetchData = async () => {
       setLoadingData(true);
       const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes] = await Promise.all([
-      supabase.from("wallets").select("balance").eq("user_id", user.id).maybeSingle(),
+      supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
       supabase.from("profiles").select("full_name, referral_code").eq("user_id", user.id).maybeSingle(),
       supabase.from("referral_tree").select("id").eq("ancestor_id", user.id).eq("tier", 1),
       supabase.from("referral_tree").select("id").eq("ancestor_id", user.id),
