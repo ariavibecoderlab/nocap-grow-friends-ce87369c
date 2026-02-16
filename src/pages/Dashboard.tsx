@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
-import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store } from "lucide-react";
+import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store, AlertCircle } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { useToast } from "@/hooks/use-toast";
 
@@ -54,7 +54,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [balance, setBalance] = useState<number>(0);
   const [showBalance, setShowBalance] = useState(true);
-  const [profile, setProfile] = useState<{full_name: string;referral_code: string;} | null>(null);
+  const [profile, setProfile] = useState<{full_name: string; phone: string | null; referral_code: string;} | null>(null);
   const [referralCount, setReferralCount] = useState(0);
   const [networkCount, setNetworkCount] = useState(0);
   const [totalEarnings, setTotalEarnings] = useState(0);
@@ -74,7 +74,7 @@ const Dashboard = () => {
       setLoadingData(true);
       const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes] = await Promise.all([
       supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
-      supabase.from("profiles").select("full_name, referral_code").eq("user_id", user.id).maybeSingle(),
+      supabase.from("profiles").select("full_name, phone, referral_code").eq("user_id", user.id).maybeSingle(),
       supabase.from("referral_tree").select("id").eq("ancestor_id", user.id).eq("tier", 1),
       supabase.from("referral_tree").select("id").eq("ancestor_id", user.id),
       supabase.from("transactions").select("amount").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed"),
@@ -154,6 +154,26 @@ const Dashboard = () => {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Profile Completion Banner */}
+        {profile && (!profile.full_name || !profile.phone) && (
+          <Card className="mt-4 border-secondary bg-secondary/10">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary/20">
+                <AlertCircle className="h-5 w-5 text-secondary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">Complete your profile</p>
+                <p className="text-[10px] text-muted-foreground">
+                  Add your {!profile.full_name && "name"}{!profile.full_name && !profile.phone && " & "}{!profile.phone && "phone number"} to get started.
+                </p>
+              </div>
+              <Button size="sm" variant="secondary" onClick={() => navigate("/profile")} className="shrink-0">
+                Update
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quick Actions */}
         <div className="mt-6 grid grid-cols-4 gap-3">
