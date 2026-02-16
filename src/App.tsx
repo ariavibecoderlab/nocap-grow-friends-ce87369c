@@ -24,6 +24,7 @@ import About from "./pages/About";
 import SetPassword from "./pages/SetPassword";
 import MyProfile from "./pages/MyProfile";
 import SetPin from "./pages/SetPin";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/branch" element={<BranchDashboard />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/transactions" element={<Transactions />} />
+            <Route path="/analytics" element={<Analytics />} />
             <Route path="/help-support" element={<HelpSupport />} />
             <Route path="/terms" element={<TermsConditions />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
