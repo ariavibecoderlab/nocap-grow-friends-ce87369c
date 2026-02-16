@@ -17,6 +17,7 @@ import MerchantRegister from "./pages/MerchantRegister";
 import BranchDashboard from "./pages/BranchDashboard";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import MemberOnlyRoute from "./components/MemberOnlyRoute";
 
 const queryClient = new QueryClient();
 
@@ -32,10 +33,10 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/top-up" element={<TopUp />} />
-            <Route path="/transfer" element={<Transfer />} />
+            <Route path="/top-up" element={<MemberOnlyRoute><TopUp /></MemberOnlyRoute>} />
+            <Route path="/transfer" element={<MemberOnlyRoute><Transfer /></MemberOnlyRoute>} />
             <Route path="/referral" element={<Referral />} />
-            <Route path="/qr-pay" element={<QrPay />} />
+            <Route path="/qr-pay" element={<MemberOnlyRoute><QrPay /></MemberOnlyRoute>} />
             <Route path="/merchant" element={<MerchantDashboard />} />
             <Route path="/merchant/register" element={<MerchantRegister />} />
             <Route path="/branch" element={<BranchDashboard />} />
