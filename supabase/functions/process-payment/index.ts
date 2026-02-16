@@ -130,25 +130,29 @@ serve(async (req) => {
 
     // PIN verification for amounts at or above the configured limit
     if (amount >= minPinAmount) {
+      console.log(`PIN required: amount=${amount}, minPinAmount=${minPinAmount}, pin provided=${!!pin}`);
       if (!pin) {
         return new Response(JSON.stringify({ error: `PIN is required for payments of RM${minPinAmount} and above` }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      const { data: payerProfile } = await supabase
+      const { data: pinProfile, error: pinProfileError } = await supabase
         .from('profiles')
         .select('has_pin, pin_hash')
         .eq('user_id', payerId)
         .single();
 
-      if (!payerProfile?.has_pin || !payerProfile.pin_hash) {
+      console.log(`PIN profile lookup: has_pin=${pinProfile?.has_pin}, hash_format=${pinProfile?.pin_hash?.includes(':') ? 'hashed' : 'plaintext'}, error=${pinProfileError?.message || 'none'}`);
+
+      if (!pinProfile?.has_pin || !pinProfile.pin_hash) {
         return new Response(JSON.stringify({ error: 'Please set up your PIN first in Settings', code: 'PIN_NOT_SET' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      const pinValid = await verifyPin(pin, payerProfile.pin_hash);
+      const pinValid = await verifyPin(pin, pinProfile.pin_hash);
+      console.log(`PIN verification result: ${pinValid}`);
       if (!pinValid) {
         return new Response(JSON.stringify({ error: 'Invalid PIN' }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
