@@ -8,6 +8,7 @@ import MerchantApprovals from "@/components/admin/MerchantApprovals";
 import FeeSettings from "@/components/admin/FeeSettings";
 import UserManagement from "@/components/admin/UserManagement";
 import TransactionsList from "@/components/admin/TransactionsList";
+import WithdrawalApprovals from "@/components/admin/WithdrawalApprovals";
 import { Shield } from "lucide-react";
 
 const Admin = () => {
@@ -39,13 +40,15 @@ const Admin = () => {
 
       <div className="mx-auto max-w-md px-4 -mt-3">
         <Tabs defaultValue="merchants" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="merchants" className="text-xs">Merchants</TabsTrigger>
+            <TabsTrigger value="withdrawals" className="text-xs">Withdraw</TabsTrigger>
             <TabsTrigger value="fees" className="text-xs">Fees</TabsTrigger>
             <TabsTrigger value="users" className="text-xs">Users</TabsTrigger>
             <TabsTrigger value="transactions" className="text-xs">Txns</TabsTrigger>
           </TabsList>
           <TabsContent value="merchants"><MerchantApprovals /></TabsContent>
+          <TabsContent value="withdrawals"><WithdrawalApprovals /></TabsContent>
           <TabsContent value="fees"><FeeSettings /></TabsContent>
           <TabsContent value="users"><UserManagement /></TabsContent>
           <TabsContent value="transactions"><TransactionsList /></TabsContent>

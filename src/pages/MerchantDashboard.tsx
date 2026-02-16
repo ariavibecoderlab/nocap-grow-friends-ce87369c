@@ -13,6 +13,7 @@ import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 import MerchantTransactions from "@/components/merchant/MerchantTransactions";
+import MerchantWithdrawals from "@/components/merchant/MerchantWithdrawals";
 import NotificationBell from "@/components/NotificationBell";
 import {
   ArrowLeft,
@@ -28,6 +29,7 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  Wallet,
 } from "lucide-react";
 
 interface Branch {
@@ -481,14 +483,17 @@ const MerchantDashboard = () => {
         {/* Selected Branch Details */}
         {selectedBranch && (
           <Tabs defaultValue="qr" className="mt-4">
-            <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="qr" className="gap-1.5">
-                <QrCode className="h-3.5 w-3.5" /> QR Codes
+            <TabsList className="w-full grid grid-cols-4">
+              <TabsTrigger value="qr" className="gap-1.5 text-xs">
+                <QrCode className="h-3.5 w-3.5" /> QR
               </TabsTrigger>
-              <TabsTrigger value="txns" className="gap-1.5">
+              <TabsTrigger value="txns" className="gap-1.5 text-xs">
                 <BarChart3 className="h-3.5 w-3.5" /> Txns
               </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-1.5">
+              <TabsTrigger value="withdraw" className="gap-1.5 text-xs">
+                <Wallet className="h-3.5 w-3.5" /> Withdraw
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="gap-1.5 text-xs">
                 Settings
               </TabsTrigger>
             </TabsList>
@@ -580,6 +585,10 @@ const MerchantDashboard = () => {
 
             <TabsContent value="txns" className="mt-4">
               <MerchantTransactions userId={user!.id} branchId={selectedBranch.id} />
+            </TabsContent>
+
+            <TabsContent value="withdraw" className="mt-4">
+              <MerchantWithdrawals userId={user!.id} />
             </TabsContent>
 
             <TabsContent value="settings" className="mt-4 space-y-3">

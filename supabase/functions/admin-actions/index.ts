@@ -251,6 +251,98 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "approve_withdrawal": {
+        const { withdrawalId, withdrawalUserId, amount: wdAmount } = body;
+
+        // Check wallet balance
+        const { data: walletData, error: walletErr } = await adminClient
+          .from("wallets")
+          .select("balance")
+          .eq("user_id", withdrawalUserId)
+          .single();
+        if (walletErr || !walletData) throw new Error("Wallet not found");
+        if (Number(walletData.balance) < Number(wdAmount)) throw new Error("Insufficient balance");
+
+        // Deduct balance
+        const { error: deductErr } = await adminClient
+          .from("wallets")
+          .update({ balance: Number(walletData.balance) - Number(wdAmount) })
+          .eq("user_id", withdrawalUserId);
+        if (deductErr) throw deductErr;
+
+        // Update request status
+        const { error: wdUpdateErr } = await adminClient
+          .from("withdrawal_requests")
+          .update({ status: "approved", reviewed_by: userId, reviewed_at: new Date().toISOString() })
+          .eq("id", withdrawalId);
+        if (wdUpdateErr) throw wdUpdateErr;
+
+        // Create transaction record
+        await adminClient.from("transactions").insert({
+          user_id: withdrawalUserId,
+          type: "withdrawal",
+          amount: Number(wdAmount),
+          net_amount: Number(wdAmount),
+          status: "completed",
+          description: "Wallet withdrawal to bank account",
+        });
+
+        // Notify merchant
+        await adminClient.from("notifications").insert({
+          user_id: withdrawalUserId,
+          title: "Withdrawal Approved ✅",
+          message: `Your withdrawal of RM ${Number(wdAmount).toFixed(2)} has been approved and will be transferred to your bank account.`,
+          type: "success",
+          link: "/merchant",
+        });
+
+        // Send email
+        const { data: wdUser } = await adminClient.auth.admin.getUserById(withdrawalUserId);
+        if (wdUser?.user?.email) {
+          await sendMerchantEmail(
+            wdUser.user.email,
+            "Your NOcap Withdrawal Has Been Approved ✅",
+            `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+              <h2 style="color: #2dac76;">NOcap</h2>
+              <p>Your withdrawal of <strong>RM ${Number(wdAmount).toFixed(2)}</strong> has been approved and will be transferred to your bank account.</p>
+              <p style="color: #888; font-size: 13px;">Thank you for using NOcap!</p>
+            </div>`
+          );
+        }
+
+        result = { success: true };
+        break;
+      }
+
+      case "reject_withdrawal": {
+        const { withdrawalId: rejWdId, reason: wdReason } = body;
+        const { error: rejWdErr } = await adminClient
+          .from("withdrawal_requests")
+          .update({ status: "rejected", rejection_reason: wdReason || null, reviewed_by: userId, reviewed_at: new Date().toISOString() })
+          .eq("id", rejWdId);
+        if (rejWdErr) throw rejWdErr;
+
+        // Get user_id for notification
+        const { data: rejWdReq } = await adminClient
+          .from("withdrawal_requests")
+          .select("user_id, amount")
+          .eq("id", rejWdId)
+          .single();
+
+        if (rejWdReq) {
+          await adminClient.from("notifications").insert({
+            user_id: rejWdReq.user_id,
+            title: "Withdrawal Rejected",
+            message: wdReason ? `Reason: ${wdReason}` : "Your withdrawal request was not approved.",
+            type: "error",
+            link: "/merchant",
+          });
+        }
+
+        result = { success: true };
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Unknown action" }), {
           status: 400,
