@@ -136,7 +136,7 @@ const Profile = () => {
     <div className="min-h-screen bg-primary pb-20">
       <div className="px-4 pb-6 pt-8">
         <div className="mx-auto max-w-md">
-          <h1 className="font-display text-xl font-bold text-white">Profile</h1>
+          <h1 className="font-display text-xl font-bold text-white">Settings</h1>
         </div>
       </div>
 
