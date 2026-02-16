@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, QrCode, Search, Wallet, User, CheckCircle2, Loader2, Camera } from "lucide-react";
+import { ArrowLeft, QrCode, Search, Wallet, User, CheckCircle2, Loader2, Camera, AlertCircle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 interface RecipientInfo {
@@ -38,6 +38,7 @@ const Transfer = () => {
   const [searching, setSearching] = useState(false);
   const [showMyQR, setShowMyQR] = useState(false);
   const [scannerActive, setScannerActive] = useState(false);
+  const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
   const scannerRef = useRef<any>(null);
   const scannerContainerId = "qr-reader";
 
@@ -47,8 +48,15 @@ const Transfer = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle()
-      .then(({ data }) => { if (data) setBalance(Number(data.balance)); });
+    Promise.all([
+      supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
+      supabase.from("profiles").select("full_name, phone").eq("user_id", user.id).maybeSingle(),
+    ]).then(([walletRes, profileRes]) => {
+      if (walletRes.data) setBalance(Number(walletRes.data.balance));
+      if (profileRes.data) {
+        setProfileComplete(!!profileRes.data.full_name && !!profileRes.data.phone);
+      }
+    });
   }, [user]);
 
   // Cleanup scanner on unmount
@@ -235,6 +243,26 @@ const Transfer = () => {
         {/* Step: Select Recipient */}
         {step === "select" && (
           <>
+            {/* Profile incomplete gate */}
+            {profileComplete === false && (
+              <Card className="mt-4 border-secondary bg-secondary/10">
+                <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary/20">
+                    <AlertCircle className="h-6 w-6 text-secondary" />
+                  </div>
+                  <p className="font-display text-lg font-bold">Complete Your Profile</p>
+                  <p className="text-sm text-muted-foreground">
+                    Please update your name and phone number before making a transfer.
+                  </p>
+                  <Button onClick={() => navigate("/profile")} className="mt-2 gap-2">
+                    Go to Profile
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {profileComplete !== false && (
+            <>
             {/* Balance */}
             <Card className="mt-4 border-border/50">
               <CardContent className="flex items-center gap-3 p-4">
@@ -314,6 +342,8 @@ const Transfer = () => {
                 )}
               </TabsContent>
             </Tabs>
+            </>
+            )}
           </>
         )}
 
