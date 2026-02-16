@@ -85,13 +85,23 @@ serve(async (req) => {
     const callbackUrl = `${origin}/top-up?status=success`;
     const webhookUrl = `${SUPABASE_URL}/functions/v1/raudhahpay-webhook`;
 
-    // Create bill on RaudhahPay
+    // Create bill on RaudhahPay v2.0
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 1);
+    const dueDateStr = dueDate.toISOString().split('T')[0]; // YYYY-MM-DD
+
     const billPayload = {
       collection_code: RAUDHAHPAY_COLLECTION_CODE,
-      customer_first_name: profile?.full_name?.split(' ')[0] || 'Member',
-      customer_last_name: profile?.full_name?.split(' ').slice(1).join(' ') || '',
-      customer_email: user.email,
-      customer_phone: profile?.phone || '',
+      due: dueDateStr,
+      currency: 'MYR',
+      customer: {
+        first_name: profile?.full_name?.split(' ')[0] || 'Member',
+        last_name: profile?.full_name?.split(' ').slice(1).join(' ') || '-',
+        email: user.email || 'noemail@nocap.app',
+        mobile: profile?.phone || '0000000000',
+        address: profile?.address || 'Malaysia',
+      },
+      product: `NOcap Wallet Top Up - RM${amount.toFixed(2)}`,
       reference_1_label: 'Transaction ID',
       reference_1: transaction.id,
       reference_2_label: 'User ID',
@@ -99,14 +109,7 @@ serve(async (req) => {
       redirect_url: callbackUrl,
       callback_url: webhookUrl,
       description: `NOcap Wallet Top Up - RM${amount.toFixed(2)}`,
-      products: [
-        {
-          title: 'Wallet Top Up',
-          description: `Top up RM${amount.toFixed(2)}`,
-          quantity: 1,
-          price: amount,
-        },
-      ],
+      amount: Math.round(amount * 100), // amount in cents
     };
 
     console.log('Creating RaudhahPay bill:', JSON.stringify(billPayload));
