@@ -1,5 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+
+async function hashPin(pin: string, salt: string): Promise<string> {
+  const data = new TextEncoder().encode(pin + salt);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return encodeBase64(new Uint8Array(hashBuffer));
+}
+
+async function verifyPin(pin: string, storedHash: string): Promise<boolean> {
+  const [salt, hash] = storedHash.split(':');
+  if (!salt || !hash) return false;
+  const computed = await hashPin(pin, salt);
+  return computed === hash;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -129,7 +143,8 @@ serve(async (req) => {
         });
       }
 
-      if (payerProfile.pin_hash !== pin) {
+      const pinValid = await verifyPin(pin, payerProfile.pin_hash);
+      if (!pinValid) {
         return new Response(JSON.stringify({ error: 'Invalid PIN' }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
