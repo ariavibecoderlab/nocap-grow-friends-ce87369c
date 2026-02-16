@@ -110,6 +110,14 @@ serve(async (req) => {
         address: profile?.address || 'Malaysia',
       },
       product: `NOcap Wallet Top Up`,
+      products: [
+        {
+          title: `NOcap Wallet Top Up - RM${amount.toFixed(2)}`,
+          quantity: 1,
+          price: amount,
+        }
+      ],
+      amount: amount,
       reference_1_label: 'Transaction ID',
       reference_1: transaction.id,
       reference_2_label: 'User ID',
@@ -117,7 +125,6 @@ serve(async (req) => {
       redirect_url: callbackUrl,
       callback_url: webhookUrl,
       description: `NOcap Wallet Top Up - RM${amount.toFixed(2)}`,
-      amount: Math.round(amount * 100), // amount in cents
     };
 
     console.log('Creating RaudhahPay bill:', JSON.stringify(billPayload));
