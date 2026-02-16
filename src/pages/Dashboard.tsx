@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import TransactionDetail from "@/components/TransactionDetail";
 import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store, AlertCircle, Zap, Banknote, Send, UserPlus, Share2 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
+import OnboardingChecklist from "@/components/OnboardingChecklist";
 import { useToast } from "@/hooks/use-toast";
 
 interface Transaction {
@@ -56,7 +57,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [balance, setBalance] = useState<number>(0);
   const [showBalance, setShowBalance] = useState(true);
-  const [profile, setProfile] = useState<{ full_name: string; phone: string | null; referral_code: string; avatar_url: string | null } | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string; phone: string | null; referral_code: string; avatar_url: string | null; address: string | null; has_pin: boolean } | null>(null);
   const [referralCount, setReferralCount] = useState(0);
   const [networkCount, setNetworkCount] = useState(0);
   const [cashbackEarnings, setCashbackEarnings] = useState(0);
@@ -78,7 +79,7 @@ const Dashboard = () => {
       setLoadingData(true);
       const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes] = await Promise.all([
         supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
-        supabase.from("profiles").select("full_name, phone, referral_code, avatar_url").eq("user_id", user.id).maybeSingle(),
+        supabase.from("profiles").select("full_name, phone, referral_code, avatar_url, address, has_pin").eq("user_id", user.id).maybeSingle(),
         supabase.from("referral_tree").select("id").eq("ancestor_id", user.id).eq("tier", 1),
         supabase.from("referral_tree").select("id").eq("ancestor_id", user.id),
         supabase.from("transactions").select("amount, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed"),
@@ -220,25 +221,14 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Profile Completion Banner */}
-        {profile && (!profile.full_name || !profile.phone) && (
-          <Card className="mt-4 border-secondary/30 bg-secondary/10">
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary/20">
-                <AlertCircle className="h-5 w-5 text-secondary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white">Complete your profile</p>
-                <p className="text-[10px] text-white/50">
-                  Add your {!profile.full_name && "name"}{!profile.full_name && !profile.phone && " & "}{!profile.phone && "phone number"} to get started.
-                </p>
-              </div>
-              <Button size="sm" className="shrink-0 bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => navigate("/profile")}>
-                Update
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        {/* Onboarding Checklist */}
+        <div className="mt-4">
+          <OnboardingChecklist
+            profile={profile}
+            hasPin={profile?.has_pin ?? false}
+            hasTransactions={transactions.length > 0}
+          />
+        </div>
 
         {/* Quick Actions */}
         <div className="mt-6 grid grid-cols-4 gap-3">
