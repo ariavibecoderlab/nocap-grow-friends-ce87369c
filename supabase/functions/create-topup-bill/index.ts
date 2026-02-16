@@ -55,9 +55,17 @@ serve(async (req) => {
     // Get user profile
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name, phone')
+      .select('full_name, phone, address')
       .eq('user_id', user.id)
       .single();
+
+    // Format mobile number with country code
+    let mobile = profile?.phone || '60000000000';
+    if (mobile.startsWith('0')) {
+      mobile = '60' + mobile.substring(1);
+    } else if (!mobile.startsWith('6')) {
+      mobile = '60' + mobile;
+    }
 
     // Create a pending transaction
     const { data: transaction, error: txError } = await supabase
@@ -98,7 +106,7 @@ serve(async (req) => {
         first_name: profile?.full_name?.split(' ')[0] || 'Member',
         last_name: profile?.full_name?.split(' ').slice(1).join(' ') || '-',
         email: user.email || 'noemail@nocap.app',
-        mobile: profile?.phone || '0000000000',
+        mobile: mobile,
         address: profile?.address || 'Malaysia',
       },
       product: `NOcap Wallet Top Up - RM${amount.toFixed(2)}`,
