@@ -262,6 +262,7 @@ const ApiDocs = () => {
                       <li><code className="text-primary font-bold">amount</code> (number, required): The payment amount.</li>
                       <li><code className="text-primary font-bold">description</code> (string, optional): A brief description of the charge.</li>
                       <li><code className="text-primary font-bold">reference</code> (string, optional): Your internal transaction reference ID.</li>
+                      <li><code className="text-primary font-bold">metadata</code> (object, optional): Custom key-value data (max 4KB). Returned in webhooks and charge queries.</li>
                     </ul>
                   </div>
                   <h4 className="text-sm font-semibold">Request Example:</h4>
@@ -274,7 +275,8 @@ const ApiDocs = () => {
   -d '{
     "amount": 10.50,
     "description": "Order #12345",
-    "reference": "txn_88291"
+    "reference": "txn_88291",
+    "metadata": { "order_id": "ORD-123", "customer_email": "user@example.com" }
   }'`}
                   </pre>
                   <h4 className="text-sm font-semibold">Response Example:</h4>
@@ -474,6 +476,7 @@ const ApiDocs = () => {
   "description": "Order #12345",
   "reference": "txn_88291",
   "status": "completed",
+  "metadata": { "order_id": "ORD-123", "customer_email": "user@example.com" },
   "timestamp": "2026-02-16T12:00:00.000Z"
 }`}
                   </pre>

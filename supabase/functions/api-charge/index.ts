@@ -115,7 +115,22 @@ serve(async (req) => {
     // Update last_used_at
     await supabase.from('api_access_tokens').update({ last_used_at: new Date().toISOString() }).eq('id', token.id);
 
-    const { amount, description, reference, pin } = await req.json();
+    const { amount, description, reference, pin, metadata: customMetadata } = await req.json();
+
+    // Validate custom metadata
+    if (customMetadata !== undefined && customMetadata !== null) {
+      if (typeof customMetadata !== 'object' || Array.isArray(customMetadata)) {
+        return new Response(JSON.stringify({ error: 'metadata must be a JSON object' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const metadataStr = JSON.stringify(customMetadata);
+      if (metadataStr.length > 4096) {
+        return new Response(JSON.stringify({ error: 'metadata must be less than 4KB' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
     const payerId = token.user_id;
     const branch_id = app.branch_id;
 
@@ -145,6 +160,7 @@ serve(async (req) => {
     }
 
     // Create charge record
+    const chargeMetadata = customMetadata ? { custom: customMetadata } : {};
     const { data: charge, error: chargeError } = await supabase
       .from('api_charges')
       .insert({
@@ -155,6 +171,7 @@ serve(async (req) => {
         reference: reference || null,
         status: 'pending',
         is_sandbox: app.is_sandbox,
+        metadata: chargeMetadata,
       })
       .select('id')
       .single();
@@ -171,7 +188,7 @@ serve(async (req) => {
       await supabase.from('api_charges').update({
         status: 'completed',
         completed_at: new Date().toISOString(),
-        metadata: { sandbox: true }
+        metadata: { sandbox: true, ...(customMetadata ? { custom: customMetadata } : {}) }
       }).eq('id', charge.id);
 
       console.log(`[SANDBOX] API Charge: ${payerId} -> ${branch.branch_name}, RM${amount}, app: ${app.name}`);
@@ -186,6 +203,7 @@ serve(async (req) => {
           reference: reference || null,
           status: 'completed',
           is_sandbox: true,
+          metadata: customMetadata || {},
           timestamp: new Date().toISOString(),
         };
         const payloadStr = JSON.stringify(webhookPayload);
@@ -456,6 +474,7 @@ serve(async (req) => {
         description: description || null,
         reference: reference || null,
         status: 'completed',
+        metadata: customMetadata || {},
         timestamp: new Date().toISOString(),
       };
       const payloadStr = JSON.stringify(webhookPayload);
