@@ -34,7 +34,7 @@ serve(async (req) => {
     // Validate API app
     const { data: app } = await supabase
       .from('api_applications')
-      .select('id, merchant_user_id, branch_id, is_active, name, api_secret_hash')
+      .select('id, merchant_user_id, branch_id, is_active, name, api_secret_hash, webhook_url')
       .eq('api_key', apiKey)
       .single();
 
@@ -196,13 +196,7 @@ serve(async (req) => {
     console.log(`API Refund: RM${actualRefund} back to ${charge.user_id}, charge: ${charge_id}, app: ${app.name}`);
 
     // Send webhook notification (fire-and-forget)
-    const { data: appWithWebhook } = await supabase
-      .from('api_applications')
-      .select('webhook_url')
-      .eq('id', app.id)
-      .single();
-
-    if (appWithWebhook?.webhook_url) {
+    if (app.webhook_url) {
       const webhookPayload = {
         event: newStatus === 'refunded' ? 'charge.refunded' : 'charge.partial_refund',
         charge_id,
@@ -214,10 +208,24 @@ serve(async (req) => {
         status: newStatus,
         timestamp: new Date().toISOString(),
       };
-      fetch(appWithWebhook.webhook_url, {
+      const payloadStr = JSON.stringify(webhookPayload);
+
+      // HMAC-SHA256 signature using the app's api_secret_hash as key
+      const encoder = new TextEncoder();
+      const hmacKey = await crypto.subtle.importKey(
+        'raw', encoder.encode(app.api_secret_hash),
+        { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+      );
+      const sigBuf = await crypto.subtle.sign('HMAC', hmacKey, encoder.encode(payloadStr));
+      const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+      fetch(app.webhook_url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(webhookPayload),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Signature': signature,
+        },
+        body: payloadStr,
       }).catch(err => console.error('Webhook delivery failed:', err));
     }
 
