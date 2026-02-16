@@ -60,7 +60,7 @@ serve(async (req) => {
       .single();
 
     // Format mobile number with country code
-    let mobile = profile?.phone || '60000000000';
+    let mobile = profile?.phone || '60123456789';
     if (mobile.startsWith('0')) {
       mobile = '60' + mobile.substring(1);
     } else if (!mobile.startsWith('6')) {
@@ -104,7 +104,7 @@ serve(async (req) => {
       currency: 'MYR',
       customer: {
         first_name: profile?.full_name?.split(' ')[0] || 'Member',
-        last_name: profile?.full_name?.split(' ').slice(1).join(' ') || '-',
+        last_name: profile?.full_name?.split(' ').slice(1).join(' ') || 'User',
         email: user.email || 'noemail@nocap.app',
         mobile: mobile,
         address: profile?.address || 'Malaysia',
@@ -117,7 +117,7 @@ serve(async (req) => {
       redirect_url: callbackUrl,
       callback_url: webhookUrl,
       description: `NOcap Wallet Top Up - RM${amount.toFixed(2)}`,
-      amount: Math.round(amount * 100), // amount in cents
+      amount: amount, // amount in MYR
     };
 
     console.log('Creating RaudhahPay bill:', JSON.stringify(billPayload));
@@ -136,7 +136,7 @@ serve(async (req) => {
     );
 
     const rpData = await rpResponse.json();
-    console.log('RaudhahPay response:', JSON.stringify(rpData));
+    console.log('RaudhahPay response status:', rpResponse.status, 'body:', JSON.stringify(rpData));
 
     if (!rpResponse.ok) {
       console.error('RaudhahPay API error:', rpData);
