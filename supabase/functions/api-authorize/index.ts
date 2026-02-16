@@ -18,6 +18,7 @@ serve(async (req) => {
   }
 
   try {
+    const startTime = Date.now();
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -112,9 +113,17 @@ serve(async (req) => {
       });
     }
 
+    const resBody = { success: true, access_token: '[redacted]', app_name: app.name, scopes: validScopes };
+    try {
+      await supabase.from('api_request_logs').insert({
+        app_id: app_id, endpoint: '/api-authorize', method: 'POST', status_code: 200,
+        request_body: { app_id, scopes: validScopes }, response_body: resBody, user_id: user.id,
+        duration_ms: Date.now() - startTime,
+      });
+    } catch (_) { /* ignore */ }
     return new Response(JSON.stringify({
       success: true,
-      access_token: accessToken, // shown once
+      access_token: accessToken,
       app_name: app.name,
       scopes: validScopes,
     }), {
