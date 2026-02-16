@@ -210,34 +210,32 @@ const Dashboard = () => {
         </div>
 
         {/* Referral Stats */}
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        <div className="mt-6 grid grid-cols-4 gap-2">
           <Card className="border-white/10 bg-white/5">
-            <CardContent className="p-4 text-center">
+            <CardContent className="p-3 text-center">
               <Users className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-2 font-display text-2xl font-bold text-white">{referralCount}</p>
+              <p className="mt-1 font-display text-lg font-bold text-white">{referralCount}</p>
               <p className="text-[10px] text-white/40">Direct</p>
             </CardContent>
           </Card>
           <Card className="border-white/10 bg-white/5">
-            <CardContent className="p-4 text-center">
+            <CardContent className="p-3 text-center">
               <TrendingUp className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-2 font-display text-2xl font-bold text-white">{networkCount}</p>
+              <p className="mt-1 font-display text-lg font-bold text-white">{networkCount}</p>
               <p className="text-[10px] text-white/40">Network</p>
             </CardContent>
           </Card>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-3">
           <Card className="border-white/10 bg-white/5">
-            <CardContent className="p-4 text-center">
+            <CardContent className="p-3 text-center">
               <Gift className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-2 font-display text-2xl font-bold text-white">RM {cashbackEarnings.toFixed(2)}</p>
+              <p className="mt-1 font-display text-lg font-bold text-white">RM {cashbackEarnings.toFixed(2)}</p>
               <p className="text-[10px] text-white/40">Cashback</p>
             </CardContent>
           </Card>
           <Card className="border-white/10 bg-white/5">
-            <CardContent className="p-4 text-center">
+            <CardContent className="p-3 text-center">
               <Banknote className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-2 font-display text-2xl font-bold text-white">RM {commissionEarnings.toFixed(2)}</p>
+              <p className="mt-1 font-display text-lg font-bold text-white">RM {commissionEarnings.toFixed(2)}</p>
               <p className="text-[10px] text-white/40">Commission</p>
             </CardContent>
           </Card>
