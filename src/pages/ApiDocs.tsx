@@ -5,9 +5,11 @@ import { Code } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import CodeBlock from "@/components/CodeBlock";
 import ApiTryIt from "@/components/ApiTryIt";
+import { ApiCredentialsProvider } from "@/contexts/ApiCredentialsContext";
 
 const ApiDocs = () => {
   return (
+    <ApiCredentialsProvider>
     <div className="min-h-screen bg-background pb-20">
       <div className="container max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-8">
@@ -1044,6 +1046,7 @@ def verify_webhook(body: str, signature: str, api_secret: str) -> bool:
       </div>
       <BottomNav />
     </div>
+    </ApiCredentialsProvider>
   );
 };
 
