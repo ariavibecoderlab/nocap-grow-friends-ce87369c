@@ -17,6 +17,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== 'GET') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -51,9 +57,10 @@ serve(async (req) => {
       });
     }
 
-    const { charge_id } = await req.json();
+    const url = new URL(req.url);
+    const charge_id = url.searchParams.get('charge_id');
     if (!charge_id) {
-      return new Response(JSON.stringify({ error: 'charge_id is required' }), {
+      return new Response(JSON.stringify({ error: 'charge_id query parameter is required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
