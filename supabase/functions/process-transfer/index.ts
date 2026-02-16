@@ -57,10 +57,18 @@ serve(async (req) => {
       });
     }
 
-    // PIN verification for RM50 and above
-    if (amount >= 50) {
+    // Get min PIN amount from system_settings
+    const { data: pinSetting } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'min_pin_amount')
+      .single();
+    const minPinAmount = pinSetting ? Number(pinSetting.value) : 100;
+
+    // PIN verification for amounts at or above the configured limit
+    if (amount >= minPinAmount) {
       if (!pin) {
-        return new Response(JSON.stringify({ error: 'PIN is required for transfers of RM50 and above' }), {
+        return new Response(JSON.stringify({ error: `PIN is required for transfers of RM${minPinAmount} and above` }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -72,12 +80,11 @@ serve(async (req) => {
         .single();
 
       if (!senderProfile?.has_pin || !senderProfile.pin_hash) {
-        return new Response(JSON.stringify({ error: 'Please set up your PIN first in Profile settings', code: 'PIN_NOT_SET' }), {
+        return new Response(JSON.stringify({ error: 'Please set up your PIN first in Settings', code: 'PIN_NOT_SET' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      // Simple PIN comparison (in production, use proper hash comparison)
       if (senderProfile.pin_hash !== pin) {
         return new Response(JSON.stringify({ error: 'Invalid PIN' }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

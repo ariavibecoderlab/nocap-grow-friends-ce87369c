@@ -51,6 +51,7 @@ const QrPay = () => {
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(false);
   const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
+  const [minPinAmount, setMinPinAmount] = useState(100);
   const [result, setResult] = useState<{ transaction_id: string; cashback: number; new_balance: number; branch_name: string } | null>(null);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -65,11 +66,13 @@ const QrPay = () => {
     Promise.all([
       supabase.from("wallets").select("balance").eq("user_id", user.id).maybeSingle(),
       supabase.from("profiles").select("full_name, phone").eq("user_id", user.id).maybeSingle(),
-    ]).then(([walletRes, profileRes]) => {
+      supabase.from("system_settings").select("value").eq("key", "min_pin_amount").maybeSingle(),
+    ]).then(([walletRes, profileRes, pinSettingRes]) => {
       if (walletRes.data) setBalance(Number(walletRes.data.balance));
       if (profileRes.data) {
         setProfileComplete(!!profileRes.data.full_name && !!profileRes.data.phone);
       }
+      if (pinSettingRes.data) setMinPinAmount(Number(pinSettingRes.data.value));
     });
   }, [user]);
 
@@ -187,7 +190,7 @@ const QrPay = () => {
       toast({ title: "Insufficient balance", description: `Your balance is RM ${balance.toFixed(2)}.`, variant: "destructive" });
       return;
     }
-    if (amt >= 50) {
+    if (amt >= minPinAmount) {
       setStep("pin");
     } else {
       processPayment(amt, "");
@@ -389,7 +392,7 @@ const QrPay = () => {
                     <ShieldCheck className="h-6 w-6 text-secondary" />
                   </div>
                   <p className="font-display text-lg font-bold text-white">Enter PIN</p>
-                  <p className="text-xs text-white/50">Required for payments of RM50 and above</p>
+                  <p className="text-xs text-white/50">Required for payments of RM{minPinAmount} and above</p>
                 </div>
 
                 <div className="space-y-2">
