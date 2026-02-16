@@ -64,7 +64,7 @@ const QrPay = () => {
   useEffect(() => {
     if (!user) return;
     Promise.all([
-      supabase.from("wallets").select("balance").eq("user_id", user.id).maybeSingle(),
+      supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
       supabase.from("profiles").select("full_name, phone").eq("user_id", user.id).maybeSingle(),
       supabase.from("system_settings").select("value").eq("key", "min_pin_amount").maybeSingle(),
     ]).then(([walletRes, profileRes, pinSettingRes]) => {
