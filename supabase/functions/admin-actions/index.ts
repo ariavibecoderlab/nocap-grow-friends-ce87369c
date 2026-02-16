@@ -316,6 +316,7 @@ Deno.serve(async (req) => {
           title: "Withdrawal Approved ✅",
           message: `Your ${walletLabel.toLowerCase()} withdrawal of RM ${Number(wdAmount).toFixed(2)} has been approved and will be transferred to your bank account.`,
           type: "success",
+          branch_id: wType === 'branch' ? branchId : null,
         });
 
         // Send email
@@ -351,11 +352,19 @@ Deno.serve(async (req) => {
           .single();
 
         if (rejWdReq) {
+          // Get branch_id for the rejection notification
+          const { data: rejWdFull } = await adminClient
+            .from("withdrawal_requests")
+            .select("branch_id, wallet_type")
+            .eq("id", rejWdId)
+            .single();
+
           await adminClient.from("notifications").insert({
             user_id: rejWdReq.user_id,
             title: "Withdrawal Rejected",
             message: wdReason ? `Reason: ${wdReason}` : "Your withdrawal request was not approved.",
             type: "error",
+            branch_id: rejWdFull?.wallet_type === 'branch' ? rejWdFull.branch_id : null,
           });
         }
 
@@ -448,6 +457,7 @@ Deno.serve(async (req) => {
           title: "Branch Withdrawal Approved ✅",
           message: `Your branch withdrawal of RM ${Number(bwAmount).toFixed(2)} has been approved and credited to your member wallet.`,
           type: "success",
+          branch_id: bwBranchId,
         });
 
         result = { success: true };
