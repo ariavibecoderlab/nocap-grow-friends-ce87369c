@@ -126,9 +126,29 @@ const Auth = () => {
     }
 
     setLoading(true);
-    const { error } = await signUp(email, password, fullName, phone, referralCode.toUpperCase());
+
+    // Check if phone number already exists
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone) {
+      const { data: existingPhone } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("phone", cleanPhone)
+        .maybeSingle();
+      if (existingPhone) {
+        toast({ title: "Phone number already registered", description: "This phone number is already associated with another account.", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+    }
+
+    const { error } = await signUp(email, password, fullName, cleanPhone, referralCode.toUpperCase());
     if (error) {
-      toast({ title: "Registration failed", description: error.message, variant: "destructive" });
+      if (error.message?.toLowerCase().includes("already registered") || error.message?.toLowerCase().includes("already been registered")) {
+        toast({ title: "Email already registered", description: "This email address is already associated with an account. Please sign in instead.", variant: "destructive" });
+      } else {
+        toast({ title: "Registration failed", description: error.message, variant: "destructive" });
+      }
     } else {
       setStep("registration-success");
     }
