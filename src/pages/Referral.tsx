@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
@@ -20,6 +21,8 @@ import {
   ArrowLeft,
   UserPlus,
   Layers,
+  Coins,
+  Network,
 } from "lucide-react";
 
 interface ReferralMember {
@@ -44,12 +47,20 @@ const tierLabels: Record<number, string> = {
   5: "Tier 5",
 };
 
-const tierColors: Record<number, string> = {
-  1: "bg-secondary/15 text-secondary",
-  2: "bg-[hsl(var(--info))]/15 text-[hsl(var(--info))]",
-  3: "bg-secondary/10 text-secondary",
-  4: "bg-[hsl(var(--warning))]/15 text-[hsl(var(--warning))]",
-  5: "bg-white/10 text-white/50",
+const tierColors: Record<number, { bg: string; text: string; dot: string; line: string }> = {
+  1: { bg: "bg-secondary/15", text: "text-secondary", dot: "bg-secondary", line: "border-secondary/40" },
+  2: { bg: "bg-blue-500/15", text: "text-blue-400", dot: "bg-blue-400", line: "border-blue-400/40" },
+  3: { bg: "bg-purple-500/15", text: "text-purple-400", dot: "bg-purple-400", line: "border-purple-400/40" },
+  4: { bg: "bg-amber-500/15", text: "text-amber-400", dot: "bg-amber-400", line: "border-amber-400/40" },
+  5: { bg: "bg-white/10", text: "text-white/50", dot: "bg-white/40", line: "border-white/20" },
+};
+
+const tierCommissionLabels: Record<number, string> = {
+  1: "~0.33%",
+  2: "~0.33%",
+  3: "~0.33%",
+  4: "~0.33%",
+  5: "~0.33%",
 };
 
 const Referral = () => {
@@ -78,7 +89,7 @@ const Referral = () => {
       const [profileRes, referralRes, commissionRes] = await Promise.all([
         supabase.from("profiles").select("full_name, referral_code").eq("user_id", user.id).maybeSingle(),
         supabase.from("referral_tree").select("user_id, tier").eq("ancestor_id", user.id).order("tier", { ascending: true }),
-        supabase.from("transactions").select("id, amount, description, created_at, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed").order("created_at", { ascending: false }).limit(20),
+        supabase.from("transactions").select("id, amount, description, created_at, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed").order("created_at", { ascending: false }).limit(50),
       ]);
 
       if (profileRes.data) setProfile(profileRes.data);
@@ -142,16 +153,25 @@ const Referral = () => {
     setExpandedTiers((prev) => ({ ...prev, [tier]: !prev[tier] }));
   };
 
-  const referralsByTier = referrals.reduce<Record<number, ReferralMember[]>>((acc, r) => {
-    if (!acc[r.tier]) acc[r.tier] = [];
-    acc[r.tier].push(r);
-    return acc;
-  }, {});
+  const referralsByTier = useMemo(() => {
+    return referrals.reduce<Record<number, ReferralMember[]>>((acc, r) => {
+      if (!acc[r.tier]) acc[r.tier] = [];
+      acc[r.tier].push(r);
+      return acc;
+    }, {});
+  }, [referrals]);
 
   const tierCounts = [1, 2, 3, 4, 5].map((tier) => ({
     tier,
     count: referralsByTier[tier]?.length || 0,
   }));
+
+  // Per-tier earnings breakdown
+  const earningsByType = useMemo(() => {
+    const cashback = commissions.filter((c) => c.type === "cashback").reduce((s, c) => s + Number(c.amount), 0);
+    const commission = commissions.filter((c) => c.type === "commission").reduce((s, c) => s + Number(c.amount), 0);
+    return { cashback, commission };
+  }, [commissions]);
 
   if (authLoading || loadingData) {
     return (
@@ -160,6 +180,8 @@ const Referral = () => {
       </div>
     );
   }
+
+  const maxTierCount = Math.max(...tierCounts.map((t) => t.count), 1);
 
   return (
     <div className="min-h-screen bg-primary pb-20">
@@ -179,21 +201,26 @@ const Referral = () => {
         {/* Stats Overview */}
         <Card className="-mt-10 border-white/10 bg-white/5 shadow-2xl">
           <CardContent className="p-5">
-            <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="grid grid-cols-4 gap-3 text-center">
               <div>
-                <Users className="mx-auto h-5 w-5 text-secondary" />
-                <p className="mt-1 font-display text-2xl font-bold text-white">{referrals.filter((r) => r.tier === 1).length}</p>
+                <Users className="mx-auto h-4 w-4 text-secondary" />
+                <p className="mt-1 font-display text-xl font-bold text-white">{referrals.filter((r) => r.tier === 1).length}</p>
                 <p className="text-[10px] text-white/40">Direct</p>
               </div>
               <div>
-                <TrendingUp className="mx-auto h-5 w-5 text-secondary" />
-                <p className="mt-1 font-display text-2xl font-bold text-white">{referrals.length}</p>
-                <p className="text-[10px] text-white/40">Total Network</p>
+                <Network className="mx-auto h-4 w-4 text-secondary" />
+                <p className="mt-1 font-display text-xl font-bold text-white">{referrals.length}</p>
+                <p className="text-[10px] text-white/40">Network</p>
               </div>
               <div>
-                <Gift className="mx-auto h-5 w-5 text-secondary" />
-                <p className="mt-1 font-display text-2xl font-bold text-white">RM {totalEarnings.toFixed(0)}</p>
-                <p className="text-[10px] text-white/40">Total Earned</p>
+                <Gift className="mx-auto h-4 w-4 text-secondary" />
+                <p className="mt-1 font-display text-xl font-bold text-white">RM {earningsByType.cashback.toFixed(2)}</p>
+                <p className="text-[10px] text-white/40">Cashback</p>
+              </div>
+              <div>
+                <Coins className="mx-auto h-4 w-4 text-secondary" />
+                <p className="mt-1 font-display text-xl font-bold text-white">RM {earningsByType.commission.toFixed(2)}</p>
+                <p className="text-[10px] text-white/40">Commission</p>
               </div>
             </div>
           </CardContent>
@@ -231,7 +258,7 @@ const Referral = () => {
         <Tabs defaultValue="tree" className="mt-6">
           <TabsList className="w-full grid grid-cols-2 bg-white/5 border border-white/10">
             <TabsTrigger value="tree" className="gap-1.5 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-              <Layers className="h-3.5 w-3.5" /> Referral Tree
+              <Layers className="h-3.5 w-3.5" /> Network Tree
             </TabsTrigger>
             <TabsTrigger value="earnings" className="gap-1.5 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
               <Gift className="h-3.5 w-3.5" /> Earnings
@@ -239,14 +266,31 @@ const Referral = () => {
           </TabsList>
 
           {/* Referral Tree Tab */}
-          <TabsContent value="tree" className="mt-4 space-y-3">
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {tierCounts.map(({ tier, count }) => (
-                <div key={tier} className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${tierColors[tier]}`}>
-                  T{tier}: {count}
-                </div>
-              ))}
-            </div>
+          <TabsContent value="tree" className="mt-4 space-y-0">
+            {/* Visual Tier Progress */}
+            <Card className="border-white/10 bg-white/5 mb-4">
+              <CardContent className="p-4 space-y-3">
+                <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">Tier Distribution</p>
+                {tierCounts.map(({ tier, count }) => {
+                  const colors = tierColors[tier];
+                  const pct = maxTierCount > 0 ? (count / maxTierCount) * 100 : 0;
+                  return (
+                    <div key={tier} className="flex items-center gap-3">
+                      <div className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${colors.bg} ${colors.text}`}>
+                        T{tier}
+                      </div>
+                      <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${colors.dot} transition-all duration-500`}
+                          style={{ width: `${Math.max(pct, count > 0 ? 5 : 0)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs tabular-nums text-white/50 w-6 text-right">{count}</span>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
 
             {referrals.length === 0 ? (
               <Card className="border-white/10 bg-white/5">
@@ -257,65 +301,159 @@ const Referral = () => {
                 </CardContent>
               </Card>
             ) : (
-              [1, 2, 3, 4, 5].map((tier) => {
-                const members = referralsByTier[tier];
-                if (!members || members.length === 0) return null;
-                const isExpanded = expandedTiers[tier] ?? false;
+              /* Visual Tree with connecting lines */
+              <div className="relative">
+                {/* You (root node) */}
+                <div className="flex items-center gap-3 mb-2 px-1">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary text-sm font-bold">
+                    {(profile?.full_name || "Y").charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{profile?.full_name || "You"}</p>
+                    <p className="text-[10px] text-white/40">Root • {referrals.length} in network</p>
+                  </div>
+                </div>
 
-                return (
-                  <Card key={tier} className="border-white/10 bg-white/5 overflow-hidden">
-                    <button
-                      onClick={() => toggleTier(tier)}
-                      className="flex w-full items-center justify-between p-3 text-left hover:bg-white/5 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${tierColors[tier]}`}>
-                          T{tier}
-                        </div>
-                        <span className="text-sm font-medium text-white">{tierLabels[tier]}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-white/40">{members.length} member{members.length !== 1 ? "s" : ""}</span>
-                        {isExpanded ? (
-                          <ChevronDown className="h-4 w-4 text-white/40" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 text-white/40" />
-                        )}
-                      </div>
-                    </button>
-                    {isExpanded && (
-                      <div className="border-t border-white/10">
-                        {members.map((member) => (
-                          <div
-                            key={member.user_id}
-                            className="flex items-center gap-3 px-4 py-2.5 border-b border-white/5 last:border-b-0"
-                          >
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-semibold text-white/50">
-                              {(member.full_name || "?").charAt(0).toUpperCase()}
+                {/* Tier sections with visual tree lines */}
+                {[1, 2, 3, 4, 5].map((tier) => {
+                  const members = referralsByTier[tier];
+                  if (!members || members.length === 0) return null;
+                  const isExpanded = expandedTiers[tier] ?? false;
+                  const colors = tierColors[tier];
+
+                  return (
+                    <div key={tier} className="relative ml-5">
+                      {/* Vertical connector line from parent */}
+                      <div className={`absolute left-0 top-0 h-full w-px border-l-2 border-dashed ${colors.line}`} />
+
+                      {/* Tier header with horizontal branch */}
+                      <div className="relative pl-6">
+                        {/* Horizontal branch line */}
+                        <div className={`absolute left-0 top-1/2 w-5 border-t-2 border-dashed ${colors.line}`} />
+                        {/* Branch dot */}
+                        <div className={`absolute left-[-5px] top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full ${colors.dot} ring-2 ring-primary`} />
+
+                        <button
+                          onClick={() => toggleTier(tier)}
+                          className="flex w-full items-center justify-between rounded-lg p-2.5 text-left hover:bg-white/5 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${colors.bg} ${colors.text}`}>
+                              T{tier}
                             </div>
-                            <span className="text-sm text-white">{member.full_name || "Member"}</span>
+                            <div>
+                              <span className="text-sm font-medium text-white">{tierLabels[tier]}</span>
+                              <span className="ml-2 text-[10px] text-white/30">{tierCommissionLabels[tier]} per txn</span>
+                            </div>
                           </div>
-                        ))}
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-semibold ${colors.text}`}>{members.length}</span>
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4 text-white/40" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-white/40" />
+                            )}
+                          </div>
+                        </button>
                       </div>
-                    )}
-                  </Card>
-                );
-              })
+
+                      {/* Expanded member list */}
+                      {isExpanded && (
+                        <div className="relative pl-6 pb-1">
+                          {members.map((member, idx) => (
+                            <div key={member.user_id} className="relative">
+                              {/* Connecting line for each member */}
+                              <div className={`absolute left-0 top-0 w-4 border-t border-dashed ${colors.line}`} style={{ top: '50%' }} />
+                              {idx < members.length - 1 && (
+                                <div className={`absolute left-0 top-0 h-full w-px border-l border-dashed ${colors.line}`} />
+                              )}
+                              {idx === members.length - 1 && (
+                                <div className={`absolute left-0 top-0 h-1/2 w-px border-l border-dashed ${colors.line}`} />
+                              )}
+                              {/* Small dot */}
+                              <div className={`absolute left-[-3px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full ${colors.dot}`} />
+
+                              <div className="flex items-center gap-3 pl-5 py-2">
+                                <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${colors.bg} text-[10px] font-semibold ${colors.text}`}>
+                                  {(member.full_name || "?").charAt(0).toUpperCase()}
+                                </div>
+                                <span className="text-sm text-white/80 truncate">{member.full_name || "Member"}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </TabsContent>
 
           {/* Earnings Tab */}
           <TabsContent value="earnings" className="mt-4 space-y-3">
+            {/* Earnings Summary Cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <Card className="border-white/10 bg-white/5">
+                <CardContent className="p-3 text-center">
+                  <Gift className="mx-auto h-4 w-4 text-secondary mb-1" />
+                  <p className="font-display text-lg font-bold text-secondary">RM {earningsByType.cashback.toFixed(2)}</p>
+                  <p className="text-[10px] text-white/40">Cashback</p>
+                </CardContent>
+              </Card>
+              <Card className="border-white/10 bg-white/5">
+                <CardContent className="p-3 text-center">
+                  <Coins className="mx-auto h-4 w-4 text-secondary mb-1" />
+                  <p className="font-display text-lg font-bold text-secondary">RM {earningsByType.commission.toFixed(2)}</p>
+                  <p className="text-[10px] text-white/40">Commission</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Commission Structure */}
             <Card className="border-white/10 bg-white/5">
               <CardContent className="p-4">
-                <p className="text-xs font-semibold text-white mb-2">Commission Structure</p>
-                <p className="text-[11px] text-white/40 leading-relaxed">
-                  The commission pool is split equally into 6 parts: 1 part as buyer cashback and 5 parts
-                  distributed across referral tiers. Unclaimed tier commissions are returned to the merchant.
-                </p>
+                <p className="text-xs font-semibold text-white mb-3">Commission Structure</p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-white/50">Platform Fee</span>
+                    <span className="text-white/70 font-medium">1% per transaction</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-white/50">Merchant Commission</span>
+                    <span className="text-white/70 font-medium">Min 2% (merchant sets)</span>
+                  </div>
+                  <div className="border-t border-white/10 pt-2 mt-2">
+                    <p className="text-[10px] text-white/40 mb-2">Distribution (from merchant commission pool):</p>
+                    {[
+                      { label: "Buyer Cashback", share: "1/6" },
+                      { label: "Tier 1 (Direct)", share: "1/6" },
+                      { label: "Tier 2", share: "1/6" },
+                      { label: "Tier 3", share: "1/6" },
+                      { label: "Tier 4", share: "1/6" },
+                      { label: "Tier 5", share: "1/6" },
+                    ].map((item, i) => {
+                      const colors = i === 0 ? tierColors[1] : tierColors[Math.min(i, 5)];
+                      return (
+                        <div key={i} className="flex items-center justify-between py-1">
+                          <div className="flex items-center gap-2">
+                            <div className={`h-2 w-2 rounded-full ${i === 0 ? 'bg-secondary' : colors.dot}`} />
+                            <span className="text-[11px] text-white/60">{item.label}</span>
+                          </div>
+                          <span className="text-[11px] text-white/40">{item.share}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] text-white/30 mt-1 leading-relaxed">
+                    Unclaimed tier commissions (no referrer at that level) are returned to the merchant.
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
+            {/* Transaction History */}
+            <p className="text-xs font-semibold text-white/60 uppercase tracking-wider pt-1">Recent Earnings</p>
             {commissions.length === 0 ? (
               <Card className="border-white/10 bg-white/5">
                 <CardContent className="flex flex-col items-center justify-center py-10 text-white/40">
@@ -328,8 +466,12 @@ const Referral = () => {
               commissions.map((tx) => (
                 <Card key={tx.id} className="border-white/10 bg-white/5">
                   <CardContent className="flex items-center gap-3 p-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary/20">
-                      <Gift className="h-4 w-4 text-secondary" />
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${tx.type === "cashback" ? "bg-secondary/20" : "bg-blue-500/20"}`}>
+                      {tx.type === "cashback" ? (
+                        <Gift className="h-4 w-4 text-secondary" />
+                      ) : (
+                        <Coins className="h-4 w-4 text-blue-400" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-white truncate">
@@ -341,9 +483,13 @@ const Referral = () => {
                           month: "short",
                           year: "numeric",
                         })}
+                        {" · "}
+                        <span className={tx.type === "cashback" ? "text-secondary/60" : "text-blue-400/60"}>
+                          {tx.type === "cashback" ? "Cashback" : "Commission"}
+                        </span>
                       </p>
                     </div>
-                    <p className="text-sm font-semibold text-secondary tabular-nums">
+                    <p className={`text-sm font-semibold tabular-nums ${tx.type === "cashback" ? "text-secondary" : "text-blue-400"}`}>
                       +RM {Number(tx.amount).toFixed(2)}
                     </p>
                   </CardContent>
