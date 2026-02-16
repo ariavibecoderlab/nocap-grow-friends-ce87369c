@@ -109,7 +109,7 @@ serve(async (req) => {
         mobile: mobile,
         address: profile?.address || 'Malaysia',
       },
-      product: `NOcap Wallet Top Up - RM${amount.toFixed(2)}`,
+      product: `NOcap Wallet Top Up`,
       reference_1_label: 'Transaction ID',
       reference_1: transaction.id,
       reference_2_label: 'User ID',
@@ -117,7 +117,7 @@ serve(async (req) => {
       redirect_url: callbackUrl,
       callback_url: webhookUrl,
       description: `NOcap Wallet Top Up - RM${amount.toFixed(2)}`,
-      amount: amount, // amount in MYR
+      amount: Math.round(amount * 100), // amount in cents
     };
 
     console.log('Creating RaudhahPay bill:', JSON.stringify(billPayload));
@@ -132,17 +132,41 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(billPayload),
+        signal: AbortSignal.timeout(30000),
       }
     );
 
-    const rpData = await rpResponse.json();
+    // Defensive response parsing
+    const contentType = rpResponse.headers.get('content-type');
+    let rpData: any;
+
+    if (!contentType?.includes('application/json')) {
+      const textResponse = await rpResponse.text();
+      console.error('RaudhahPay returned non-JSON (status', rpResponse.status, '):', textResponse.substring(0, 500));
+      await supabase.from('transactions').update({ status: 'failed' }).eq('id', transaction.id);
+      return new Response(JSON.stringify({ error: 'Payment gateway returned invalid response', status: rpResponse.status }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    try {
+      rpData = await rpResponse.json();
+    } catch (parseError) {
+      console.error('Failed to parse RaudhahPay response:', parseError);
+      await supabase.from('transactions').update({ status: 'failed' }).eq('id', transaction.id);
+      return new Response(JSON.stringify({ error: 'Payment gateway returned malformed response' }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     console.log('RaudhahPay response status:', rpResponse.status, 'body:', JSON.stringify(rpData));
 
     if (!rpResponse.ok) {
       console.error('RaudhahPay API error:', rpData);
-      // Mark transaction as failed
       await supabase.from('transactions').update({ status: 'failed' }).eq('id', transaction.id);
-      return new Response(JSON.stringify({ error: 'Payment gateway error', details: rpData }), {
+      return new Response(JSON.stringify({ error: 'Payment gateway error', details: rpData, status: rpResponse.status }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
