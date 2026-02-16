@@ -116,6 +116,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          metadata: Json | null
           reference: string | null
           status: string
           transaction_id: string | null
@@ -128,6 +129,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          metadata?: Json | null
           reference?: string | null
           status?: string
           transaction_id?: string | null
@@ -140,6 +142,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          metadata?: Json | null
           reference?: string | null
           status?: string
           transaction_id?: string | null

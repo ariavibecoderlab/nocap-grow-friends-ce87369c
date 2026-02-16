@@ -159,6 +159,51 @@ const ApiDocs = () => {
                   </pre>
                 </CardContent>
               </Card>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 text-xs font-bold rounded">POST</span>
+                    <CardTitle className="text-lg">/api-refund</CardTitle>
+                  </div>
+                  <CardDescription>Issue a full or partial refund for a completed charge. Funds are returned from the branch wallet to the member's wallet.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Headers:</h4>
+                    <p className="text-sm text-muted-foreground">Only <code className="text-primary font-bold">X-Api-Key</code> and <code className="text-primary font-bold">X-Api-Secret</code> are required. No user access token needed — the merchant initiates refunds.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Body Parameters:</h4>
+                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                      <li><code className="text-primary font-bold">charge_id</code> (string, required): The charge ID to refund.</li>
+                      <li><code className="text-primary font-bold">amount</code> (number, optional): Partial refund amount. Omit for full refund.</li>
+                      <li><code className="text-primary font-bold">reason</code> (string, optional): Reason for the refund.</li>
+                    </ul>
+                  </div>
+                  <h4 className="text-sm font-semibold mb-2">Request Example:</h4>
+                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
+{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-refund" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -d '{
+    "charge_id": "uuid-of-the-charge",
+    "amount": 5.00,
+    "reason": "Customer returned item"
+  }'`}
+                  </pre>
+                  <h4 className="text-sm font-semibold mb-2">Response Example:</h4>
+                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
+{`{
+  "success": true,
+  "refund_amount": 5.00,
+  "total_refunded": 5.00,
+  "charge_amount": 10.50,
+  "status": "partial_refund",
+  "transaction_id": "uuid"
+}`}
+                  </pre>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
         </Tabs>

@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.api-charge-status]
 verify_jwt = false
+
+[functions.api-refund]
+verify_jwt = false
