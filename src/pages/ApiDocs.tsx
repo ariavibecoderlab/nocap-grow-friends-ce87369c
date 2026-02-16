@@ -388,6 +388,71 @@ const ApiDocs = () => {
                   </pre>
                 </div>
 
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Signature Verification</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Every webhook request includes an <code className="text-primary font-bold">X-Webhook-Signature</code> header containing an HMAC-SHA256 signature of the request body.
+                    You should verify this signature to ensure the webhook is authentic and hasn't been tampered with.
+                  </p>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-semibold">How it works:</h4>
+                    <ol className="text-sm text-muted-foreground list-decimal pl-5 space-y-1">
+                      <li>Compute <code className="text-primary">SHA-256</code> of your <strong>API Secret</strong> to get the signing key.</li>
+                      <li>Compute <code className="text-primary">HMAC-SHA256(request_body, signing_key)</code>.</li>
+                      <li>Compare the result (hex) with the <code className="text-primary">X-Webhook-Signature</code> header.</li>
+                    </ol>
+                  </div>
+                  <h4 className="text-sm font-semibold mt-3">Node.js Example:</h4>
+                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
+{`const crypto = require('crypto');
+
+function verifyWebhook(body, signature, apiSecret) {
+  // Step 1: SHA-256 hash of your API secret = signing key
+  const signingKey = crypto
+    .createHash('sha256')
+    .update(apiSecret)
+    .digest('hex');
+
+  // Step 2: HMAC-SHA256 of the raw body using the signing key
+  const computed = crypto
+    .createHmac('sha256', signingKey)
+    .update(body) // raw request body string
+    .digest('hex');
+
+  // Step 3: Compare
+  return crypto.timingSafeEqual(
+    Buffer.from(computed, 'hex'),
+    Buffer.from(signature, 'hex')
+  );
+}
+
+// Express middleware example
+app.post('/webhook', (req, res) => {
+  const signature = req.headers['x-webhook-signature'];
+  const rawBody = JSON.stringify(req.body);
+
+  if (!verifyWebhook(rawBody, signature, YOUR_API_SECRET)) {
+    return res.status(403).json({ error: 'Invalid signature' });
+  }
+
+  // Process the webhook event
+  console.log('Verified event:', req.body.event);
+  res.status(200).json({ received: true });
+});`}
+                  </pre>
+                  <h4 className="text-sm font-semibold mt-3">Python Example:</h4>
+                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
+{`import hashlib, hmac
+
+def verify_webhook(body: str, signature: str, api_secret: str) -> bool:
+    signing_key = hashlib.sha256(api_secret.encode()).hexdigest()
+    computed = hmac.new(
+        signing_key.encode(), body.encode(), hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(computed, signature)`}
+                  </pre>
+                </div>
+
                 <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-900 p-4 rounded-md">
                   <p className="text-xs text-yellow-800 dark:text-yellow-200">
                     <strong>Note:</strong> Webhook delivery is best-effort. Your endpoint should respond with a 2xx status code within 5 seconds. 
