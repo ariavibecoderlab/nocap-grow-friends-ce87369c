@@ -1,17 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Play, ChevronDown, ChevronUp, Loader2, Copy, Check } from "lucide-react";
+import { Play, ChevronDown, ChevronUp, Loader2, Copy, Check, History, RotateCcw, Trash2, Clock } from "lucide-react";
 import CodeBlock from "@/components/CodeBlock";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ParamField {
   name: string;
   placeholder: string;
   required?: boolean;
   type?: 'header' | 'query' | 'body';
+}
+
+interface HistoryEntry {
+  id: string;
+  timestamp: Date;
+  method: string;
+  url: string;
+  status: number;
+  responseBody: string;
+  queryParams: Record<string, string>;
+  bodyParams: Record<string, string>;
+  apiKey: string;
+  apiSecret: string;
+  userToken: string;
 }
 
 interface ApiTryItProps {
@@ -31,6 +46,8 @@ const ApiTryIt = ({ method, endpoint, params, bodyFields, needsApiKey = true, ne
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<{ status: number; body: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   const [apiKey, setApiKey] = useState("");
   const [apiSecret, setApiSecret] = useState("");
@@ -45,7 +62,6 @@ const ApiTryIt = ({ method, endpoint, params, bodyFields, needsApiKey = true, ne
     try {
       let url = `${BASE_URL}/${endpoint}`;
       
-      // Build query params
       const qp = new URLSearchParams();
       for (const [key, value] of Object.entries(queryParams)) {
         if (value.trim()) qp.set(key, value.trim());
@@ -53,7 +69,6 @@ const ApiTryIt = ({ method, endpoint, params, bodyFields, needsApiKey = true, ne
       const qs = qp.toString();
       if (qs) url += `?${qs}`;
 
-      // Build headers
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -61,7 +76,6 @@ const ApiTryIt = ({ method, endpoint, params, bodyFields, needsApiKey = true, ne
       if (needsApiSecret && apiSecret.trim()) headers['X-Api-Secret'] = apiSecret.trim();
       if (needsUserToken && userToken.trim()) headers['Authorization'] = `Bearer ${userToken.trim()}`;
 
-      // Build body
       let body: string | undefined;
       if (method === 'POST' && bodyFields?.length) {
         const bodyObj: Record<string, unknown> = {};
@@ -89,12 +103,45 @@ const ApiTryIt = ({ method, endpoint, params, bodyFields, needsApiKey = true, ne
         formatted = text;
       }
 
-      setResponse({ status: res.status, body: formatted });
+      const result = { status: res.status, body: formatted };
+      setResponse(result);
+
+      // Add to history
+      const entry: HistoryEntry = {
+        id: crypto.randomUUID(),
+        timestamp: new Date(),
+        method,
+        url,
+        status: res.status,
+        responseBody: formatted,
+        queryParams: { ...queryParams },
+        bodyParams: { ...bodyParams },
+        apiKey,
+        apiSecret,
+        userToken,
+      };
+      setHistory(prev => [entry, ...prev].slice(0, 20));
     } catch (err) {
-      setResponse({ status: 0, body: err instanceof Error ? err.message : 'Network error' });
+      const result = { status: 0, body: err instanceof Error ? err.message : 'Network error' };
+      setResponse(result);
     }
     setLoading(false);
   };
+
+  const replayEntry = useCallback((entry: HistoryEntry) => {
+    setApiKey(entry.apiKey);
+    setApiSecret(entry.apiSecret);
+    setUserToken(entry.userToken);
+    setQueryParams(entry.queryParams);
+    setBodyParams(entry.bodyParams);
+    setResponse({ status: entry.status, body: entry.responseBody });
+    setShowHistory(false);
+  }, []);
+
+  const clearHistory = useCallback(() => {
+    setHistory([]);
+    setShowHistory(false);
+  }, []);
 
   const copyResponse = async () => {
     if (!response) return;
@@ -109,6 +156,10 @@ const ApiTryIt = ({ method, endpoint, params, bodyFields, needsApiKey = true, ne
     return "text-destructive";
   };
 
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  };
+
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger asChild>
@@ -119,11 +170,77 @@ const ApiTryIt = ({ method, endpoint, params, bodyFields, needsApiKey = true, ne
         >
           <Play className="h-3.5 w-3.5" />
           Try It
+          {history.length > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 text-[10px] rounded-full bg-primary/10 font-mono">
+              {history.length}
+            </span>
+          )}
           {open ? <ChevronUp className="h-3.5 w-3.5 ml-auto" /> : <ChevronDown className="h-3.5 w-3.5 ml-auto" />}
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-3">
         <div className="border border-border rounded-lg p-4 bg-muted/30 space-y-4">
+          {/* History Toggle */}
+          {history.length > 0 && (
+            <div className="flex items-center justify-between">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs h-7 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowHistory(!showHistory)}
+              >
+                <History className="h-3 w-3" />
+                History ({history.length})
+                {showHistory ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </Button>
+              {showHistory && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs h-7 text-muted-foreground hover:text-destructive"
+                  onClick={clearHistory}
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Clear
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* History List */}
+          {showHistory && history.length > 0 && (
+            <ScrollArea className="max-h-[200px]">
+              <div className="space-y-1.5">
+                {history.map((entry) => (
+                  <button
+                    key={entry.id}
+                    onClick={() => replayEntry(entry)}
+                    className="w-full flex items-center gap-2 p-2 rounded-md text-left hover:bg-accent/50 transition-colors border border-border/50 group"
+                  >
+                    <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded ${
+                      entry.method === 'GET' 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' 
+                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                    }`}>
+                      {entry.method}
+                    </span>
+                    <span className={`text-xs font-mono font-semibold ${statusColor(entry.status)}`}>
+                      {entry.status || 'ERR'}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate flex-1 font-mono">
+                      /{endpoint}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
+                      <Clock className="h-2.5 w-2.5" />
+                      {formatTime(entry.timestamp)}
+                    </span>
+                    <RotateCcw className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+
           {/* Credentials */}
           <div className="space-y-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Credentials</p>
