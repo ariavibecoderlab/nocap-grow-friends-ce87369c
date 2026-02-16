@@ -418,6 +418,92 @@ export TEST_TOKEN="your_test_access_token"`}</CodeBlock>
                 </CardContent>
               </Card>
 
+              {/* Step 8 — Webhook Testing */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Step 8 — Test Webhooks</CardTitle>
+                  <CardDescription>Verify your server receives payment notifications correctly.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">8a. Set your webhook URL</h4>
+                    <p className="text-sm text-muted-foreground">
+                      When registering or editing your sandbox app, set the <strong>Webhook URL</strong> field to your server endpoint. 
+                      For local development, use a tunnel service like <strong>ngrok</strong> or <strong>localtunnel</strong>:
+                    </p>
+                    <CodeBlock>{`# Start a tunnel to your local server
+ngrok http 3000
+
+# Copy the HTTPS URL, e.g. https://abc123.ngrok.io
+# Set it as your webhook URL in the Merchant Dashboard → API tab`}</CodeBlock>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">8b. Create a webhook handler</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Your endpoint should accept POST requests and return a <code className="font-mono text-primary">200</code> status. Here's a minimal Node.js example:
+                    </p>
+                    <CodeBlock>{`// Express webhook handler
+app.post("/webhook/nocap", (req, res) => {
+  const event = req.body;
+
+  console.log("Webhook received:", event.type);
+  console.log("Charge ID:", event.charge_id);
+  console.log("Amount:", event.amount);
+  console.log("Status:", event.status);
+  console.log("Sandbox:", event.is_sandbox);
+
+  // TODO: Update your order status in your database
+
+  res.status(200).json({ received: true });
+});`}</CodeBlock>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">8c. Trigger a webhook</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Create a sandbox charge (Step 4) — it completes instantly and fires a webhook to your URL:
+                    </p>
+                    <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charge" \\
+  -H "X-Api-Key: $API_KEY" \\
+  -H "X-Api-Secret: $API_SECRET" \\
+  -H "Authorization: Bearer $TEST_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "amount": 3.00, "description": "Webhook test", "reference": "wh_test_001" }'`}</CodeBlock>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">8d. Expected webhook payload</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Your endpoint will receive a POST request with the following JSON body:
+                    </p>
+                    <CodeBlock>{`{
+  "type": "charge.completed",
+  "charge_id": "uuid-of-the-charge",
+  "app_id": "uuid-of-your-app",
+  "amount": 3.00,
+  "status": "completed",
+  "is_sandbox": true,
+  "reference": "wh_test_001",
+  "description": "Webhook test",
+  "metadata": null,
+  "transaction_id": "uuid-of-the-transaction",
+  "completed_at": "2026-02-16T10:00:00Z"
+}`}</CodeBlock>
+                  </div>
+
+                  <div className="bg-primary/5 border border-primary/20 p-4 rounded-md">
+                    <p className="text-xs text-primary font-semibold mb-1">💡 Debugging Tips</p>
+                    <ul className="text-xs text-muted-foreground list-disc pl-5 space-y-1">
+                      <li>Check your tunnel dashboard (e.g. <code className="font-mono">http://localhost:4040</code> for ngrok) to inspect raw requests</li>
+                      <li>If your endpoint returns a non-200 status, the webhook will <strong>not</strong> retry in sandbox mode</li>
+                      <li>Verify your server logs show the payload — if not, check the webhook URL is correct in your app settings</li>
+                      <li>Sandbox webhooks have <code className="font-mono text-primary">is_sandbox: true</code> — use this flag to skip real order processing</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Going Live */}
               <Card>
                 <CardHeader>
