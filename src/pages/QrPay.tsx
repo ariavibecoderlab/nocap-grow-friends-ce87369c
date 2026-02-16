@@ -18,6 +18,7 @@ import {
   Wallet,
   ShieldCheck,
   Gift,
+  AlertCircle,
 } from "lucide-react";
 
 type PayStep = "scan" | "confirm" | "pin" | "processing" | "success";
@@ -49,6 +50,7 @@ const QrPay = () => {
   const [pin, setPin] = useState("");
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
   const [result, setResult] = useState<{ transaction_id: string; cashback: number; new_balance: number; branch_name: string } | null>(null);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -60,8 +62,15 @@ const QrPay = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("wallets").select("balance").eq("user_id", user.id).maybeSingle()
-      .then(({ data }) => { if (data) setBalance(Number(data.balance)); });
+    Promise.all([
+      supabase.from("wallets").select("balance").eq("user_id", user.id).maybeSingle(),
+      supabase.from("profiles").select("full_name, phone").eq("user_id", user.id).maybeSingle(),
+    ]).then(([walletRes, profileRes]) => {
+      if (walletRes.data) setBalance(Number(walletRes.data.balance));
+      if (profileRes.data) {
+        setProfileComplete(!!profileRes.data.full_name && !!profileRes.data.phone);
+      }
+    });
   }, [user]);
 
   const startScanner = async () => {
@@ -259,30 +268,51 @@ const QrPay = () => {
         {/* Scan Step */}
         {step === "scan" && (
           <div className="space-y-4">
-            <Card className="overflow-hidden border-0 shadow-lg">
-              <CardContent className="p-0">
-                <div id={scannerContainerId} className="w-full" style={{ minHeight: scanning ? 300 : 0 }} />
-                {!scanning && (
-                  <div className="flex flex-col items-center justify-center py-16 px-6">
-                     <div className="rounded-full bg-secondary/10 p-4 mb-4">
-                       <Camera className="h-8 w-8 text-secondary" />
+            {/* Profile incomplete gate */}
+            {profileComplete === false && (
+              <Card className="border-secondary bg-secondary/10">
+                <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary/20">
+                    <AlertCircle className="h-6 w-6 text-secondary" />
+                  </div>
+                  <p className="font-display text-lg font-bold">Complete Your Profile</p>
+                  <p className="text-sm text-muted-foreground">
+                    Please update your name and phone number before making a payment.
+                  </p>
+                  <Button onClick={() => navigate("/profile")} className="mt-2 gap-2">
+                    Go to Profile
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Scanner - only shown when profile is complete */}
+            {profileComplete !== false && (
+              <Card className="overflow-hidden border-0 shadow-lg">
+                <CardContent className="p-0">
+                  <div id={scannerContainerId} className="w-full" style={{ minHeight: scanning ? 300 : 0 }} />
+                  {!scanning && (
+                    <div className="flex flex-col items-center justify-center py-16 px-6">
+                       <div className="rounded-full bg-secondary/10 p-4 mb-4">
+                         <Camera className="h-8 w-8 text-secondary" />
+                      </div>
+                      <p className="text-sm text-muted-foreground text-center mb-4">
+                        Scan a merchant's QR code to make a payment
+                      </p>
+                      <Button onClick={startScanner} className="gap-2">
+                        <Camera className="h-4 w-4" /> Open Scanner
+                      </Button>
                     </div>
-                    <p className="text-sm text-muted-foreground text-center mb-4">
-                      Scan a merchant's QR code to make a payment
-                    </p>
-                    <Button onClick={startScanner} className="gap-2">
-                      <Camera className="h-4 w-4" /> Open Scanner
-                    </Button>
-                  </div>
-                )}
-                {scanning && (
-                  <div className="p-4 text-center">
-                    <p className="text-sm text-muted-foreground">Point your camera at the merchant's QR code</p>
-                    <Button variant="outline" size="sm" className="mt-2" onClick={stopScanner}>Cancel</Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                  {scanning && (
+                    <div className="p-4 text-center">
+                      <p className="text-sm text-muted-foreground">Point your camera at the merchant's QR code</p>
+                      <Button variant="outline" size="sm" className="mt-2" onClick={stopScanner}>Cancel</Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Balance */}
             <Card className="border-border/50">
