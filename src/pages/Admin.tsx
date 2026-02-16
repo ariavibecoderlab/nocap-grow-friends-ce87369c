@@ -23,14 +23,14 @@ const Admin = () => {
   }, [authLoading, adminLoading, isAdmin, user, navigate]);
 
   if (authLoading || adminLoading) {
-    return <div className="flex items-center justify-center min-h-screen text-muted-foreground">Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen bg-primary text-white/40">Loading...</div>;
   }
 
   if (!isAdmin) return null;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="bg-primary px-4 pt-12 pb-6">
+    <div className="min-h-screen bg-primary pb-20">
+      <div className="px-4 pt-12 pb-6">
         <div className="mx-auto max-w-md flex items-center gap-2">
           <Shield className="h-6 w-6 text-secondary" />
           <h1 className="text-xl font-bold text-secondary">
@@ -39,15 +39,15 @@ const Admin = () => {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 -mt-3">
+      <div className="mx-auto max-w-md px-4">
         <Tabs defaultValue="merchants" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="merchants" className="text-xs">Merchants</TabsTrigger>
-            <TabsTrigger value="withdrawals" className="text-xs">Withdraw</TabsTrigger>
-            <TabsTrigger value="fees" className="text-xs">Fees</TabsTrigger>
-            <TabsTrigger value="users" className="text-xs">Users</TabsTrigger>
-            <TabsTrigger value="transactions" className="text-xs">Txns</TabsTrigger>
-            <TabsTrigger value="api-apps" className="text-xs">API</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-6 bg-white/5 border border-white/10">
+            <TabsTrigger value="merchants" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Merchants</TabsTrigger>
+            <TabsTrigger value="withdrawals" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Withdraw</TabsTrigger>
+            <TabsTrigger value="fees" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Fees</TabsTrigger>
+            <TabsTrigger value="users" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Users</TabsTrigger>
+            <TabsTrigger value="transactions" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Txns</TabsTrigger>
+            <TabsTrigger value="api-apps" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">API</TabsTrigger>
           </TabsList>
           <TabsContent value="merchants"><MerchantApprovals /></TabsContent>
           <TabsContent value="withdrawals"><WithdrawalApprovals /></TabsContent>

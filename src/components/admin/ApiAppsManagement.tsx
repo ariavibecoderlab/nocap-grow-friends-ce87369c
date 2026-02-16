@@ -23,9 +23,7 @@ const ApiAppsManagement = () => {
   const [apps, setApps] = useState<ApiAppAdmin[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchApps();
-  }, []);
+  useEffect(() => { fetchApps(); }, []);
 
   const fetchApps = async () => {
     setLoading(true);
@@ -54,30 +52,30 @@ const ApiAppsManagement = () => {
   if (loading) {
     return (
       <div className="flex justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className="h-6 w-6 animate-spin text-white/40" />
       </div>
     );
   }
 
   return (
     <div className="space-y-3 mt-4">
-      <p className="text-sm text-muted-foreground">{apps.length} registered API app(s)</p>
+      <p className="text-sm text-white/40">{apps.length} registered API app(s)</p>
 
       {apps.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center py-8 text-muted-foreground">
+        <Card className="border-white/10 bg-white/5">
+          <CardContent className="flex flex-col items-center py-8 text-white/40">
             <Globe className="h-8 w-8 mb-2 opacity-40" />
             <p className="text-sm">No API apps registered yet</p>
           </CardContent>
         </Card>
       ) : (
         apps.map((app) => (
-          <Card key={app.id}>
+          <Card key={app.id} className="border-white/10 bg-white/5">
             <CardContent className="p-3 space-y-1">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium">{app.name}</p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-sm font-medium text-white">{app.name}</p>
+                  <p className="text-[10px] text-white/40">
                     Created {new Date(app.created_at).toLocaleDateString()}
                   </p>
                 </div>
@@ -88,8 +86,8 @@ const ApiAppsManagement = () => {
                   <Switch checked={app.is_active} onCheckedChange={(v) => toggleApp(app.id, v)} />
                 </div>
               </div>
-              <code className="text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded block truncate">{app.api_key}</code>
-              {app.description && <p className="text-[10px] text-muted-foreground">{app.description}</p>}
+              <code className="text-[9px] text-white/50 bg-white/5 px-1.5 py-0.5 rounded block truncate">{app.api_key}</code>
+              {app.description && <p className="text-[10px] text-white/40">{app.description}</p>}
             </CardContent>
           </Card>
         ))

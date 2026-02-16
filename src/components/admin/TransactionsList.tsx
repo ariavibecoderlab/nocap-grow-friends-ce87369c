@@ -36,10 +36,10 @@ const TransactionsList = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mt-4">
       <div className="flex gap-2 flex-wrap">
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectTrigger className="w-36 border-white/10 bg-white/5 text-white"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
             {Constants.public.Enums.transaction_type.map((t) => (
@@ -48,7 +48,7 @@ const TransactionsList = () => {
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-36 border-white/10 bg-white/5 text-white"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
             {Constants.public.Enums.transaction_status.map((s) => (
@@ -59,25 +59,25 @@ const TransactionsList = () => {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Card><CardContent className="py-3 text-center"><p className="text-xs text-muted-foreground">Volume</p><p className="font-bold text-lg">RM {totalVolume.toFixed(2)}</p></CardContent></Card>
-        <Card><CardContent className="py-3 text-center"><p className="text-xs text-muted-foreground">Fees</p><p className="font-bold text-lg">RM {totalFees.toFixed(2)}</p></CardContent></Card>
+        <Card className="border-white/10 bg-white/5"><CardContent className="py-3 text-center"><p className="text-xs text-white/40">Volume</p><p className="font-bold text-lg text-white">RM {totalVolume.toFixed(2)}</p></CardContent></Card>
+        <Card className="border-white/10 bg-white/5"><CardContent className="py-3 text-center"><p className="text-xs text-white/40">Fees</p><p className="font-bold text-lg text-white">RM {totalFees.toFixed(2)}</p></CardContent></Card>
       </div>
 
       {isLoading ? (
-        <p className="text-muted-foreground text-sm">Loading...</p>
+        <p className="text-white/40 text-sm">Loading...</p>
       ) : !transactions?.length ? (
-        <p className="text-muted-foreground text-sm">No transactions found.</p>
+        <p className="text-white/40 text-sm">No transactions found.</p>
       ) : (
         transactions.map((t) => (
-          <Card key={t.id}>
+          <Card key={t.id} className="border-white/10 bg-white/5">
             <CardContent className="py-3 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">{t.type.replace(/_/g, " ")}</p>
-                <p className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleString()}</p>
-                {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
+                <p className="text-sm font-medium text-white">{t.type.replace(/_/g, " ")}</p>
+                <p className="text-xs text-white/40">{new Date(t.created_at).toLocaleString()}</p>
+                {t.description && <p className="text-xs text-white/40">{t.description}</p>}
               </div>
               <div className="text-right">
-                <p className="font-semibold text-sm">RM {Number(t.amount).toFixed(2)}</p>
+                <p className="font-semibold text-sm text-white">RM {Number(t.amount).toFixed(2)}</p>
                 <Badge variant={statusColor(t.status)} className="text-xs">{t.status}</Badge>
               </div>
             </CardContent>

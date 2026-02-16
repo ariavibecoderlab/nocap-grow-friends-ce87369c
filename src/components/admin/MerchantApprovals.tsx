@@ -67,11 +67,11 @@ const MerchantApprovals = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mt-4">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-muted-foreground">Filter:</span>
+        <span className="text-sm font-medium text-white/40">Filter:</span>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-36">
+          <SelectTrigger className="w-36 border-white/10 bg-white/5 text-white">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -84,29 +84,29 @@ const MerchantApprovals = () => {
       </div>
 
       {isLoading ? (
-        <p className="text-muted-foreground text-sm">Loading...</p>
+        <p className="text-white/40 text-sm">Loading...</p>
       ) : !applications?.length ? (
-        <p className="text-muted-foreground text-sm">No applications found.</p>
+        <p className="text-white/40 text-sm">No applications found.</p>
       ) : (
         applications.map((app) => (
-          <Card key={app.id}>
+          <Card key={app.id} className="border-white/10 bg-white/5">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">{app.business_name}</CardTitle>
+                <CardTitle className="text-base text-white">{app.business_name}</CardTitle>
                 <Badge variant={statusColor(app.status)}>{app.status}</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
-              <p><span className="text-muted-foreground">Type:</span> {app.business_type || "—"}</p>
-              <p><span className="text-muted-foreground">Reg No:</span> {app.business_registration_no || "—"}</p>
-              <p><span className="text-muted-foreground">Bank:</span> {app.bank_name} — {app.bank_account_no} ({app.bank_account_holder})</p>
-              <p><span className="text-muted-foreground">Address:</span> {app.business_address || "—"}</p>
+              <p className="text-white/70"><span className="text-white/40">Type:</span> {app.business_type || "—"}</p>
+              <p className="text-white/70"><span className="text-white/40">Reg No:</span> {app.business_registration_no || "—"}</p>
+              <p className="text-white/70"><span className="text-white/40">Bank:</span> {app.bank_name} — {app.bank_account_no} ({app.bank_account_holder})</p>
+              <p className="text-white/70"><span className="text-white/40">Address:</span> {app.business_address || "—"}</p>
               {app.rejection_reason && (
-                <p className="text-destructive"><span className="text-muted-foreground">Reason:</span> {app.rejection_reason}</p>
+                <p className="text-destructive"><span className="text-white/40">Reason:</span> {app.rejection_reason}</p>
               )}
               {app.status === "pending" && (
                 <div className="flex gap-2 pt-2">
-                  <Button size="sm" onClick={() => approveMutation.mutate({ id: app.id, userId: app.user_id })} disabled={approveMutation.isPending}>
+                  <Button size="sm" className="bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => approveMutation.mutate({ id: app.id, userId: app.user_id })} disabled={approveMutation.isPending}>
                     <CheckCircle className="mr-1 h-4 w-4" /> Approve
                   </Button>
                   <Button size="sm" variant="destructive" onClick={() => setRejectDialog({ open: true, id: app.id })} disabled={rejectMutation.isPending}>
@@ -120,9 +120,9 @@ const MerchantApprovals = () => {
       )}
 
       <Dialog open={rejectDialog.open} onOpenChange={(o) => !o && setRejectDialog({ open: false, id: "" })}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Reject Application</DialogTitle></DialogHeader>
-          <Textarea placeholder="Rejection reason..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
+        <DialogContent className="bg-primary border-white/10 max-w-sm">
+          <DialogHeader><DialogTitle className="text-white">Reject Application</DialogTitle></DialogHeader>
+          <Textarea placeholder="Rejection reason..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
           <DialogFooter>
             <Button variant="destructive" onClick={() => rejectMutation.mutate({ id: rejectDialog.id, reason: rejectReason })} disabled={!rejectReason || rejectMutation.isPending}>
               Confirm Reject

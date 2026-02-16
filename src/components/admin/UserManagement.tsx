@@ -72,18 +72,18 @@ const UserManagement = () => {
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="space-y-3 mt-4">
         {isLoading ? (
-          <p className="text-muted-foreground text-sm">Loading...</p>
+          <p className="text-white/40 text-sm">Loading...</p>
         ) : (
           users?.map((u) => (
-            <Card key={u.id}>
+            <Card key={u.id} className="border-white/10 bg-white/5">
               <CardContent className="py-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="font-medium text-sm">{u.full_name || "No name"}</p>
-                  <span className="text-xs text-muted-foreground">RM {Number(u.balance).toFixed(2)}</span>
+                  <p className="font-medium text-sm text-white">{u.full_name || "No name"}</p>
+                  <span className="text-xs text-white/40">RM {Number(u.balance).toFixed(2)}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">{u.phone || "—"} · {u.referral_code}</p>
+                <p className="text-xs text-white/40">{u.phone || "—"} · {u.referral_code}</p>
                 <div className="flex flex-wrap gap-1">
                   {ALL_ROLES.map((role) => {
                     const has = u.roles.includes(role);
@@ -92,7 +92,7 @@ const UserManagement = () => {
                         key={role}
                         size="sm"
                         variant={has ? "default" : "outline"}
-                        className="h-6 text-xs px-2"
+                        className={`h-6 text-xs px-2 ${has ? "bg-secondary text-primary hover:bg-secondary/90" : "border-white/10 text-white/50 hover:bg-white/10 hover:text-white"}`}
                         onClick={() => handleRoleClick(u.user_id, role, has, u.full_name || "this user")}
                         disabled={roleMutation.isPending}
                       >
@@ -108,20 +108,21 @@ const UserManagement = () => {
       </div>
 
       <AlertDialog open={!!pendingAction} onOpenChange={(open) => !open && setPendingAction(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-primary border-white/10 max-w-sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="text-white">
               {pendingAction?.remove ? "Remove Admin Role" : "Grant Admin Role"}
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-white/50">
               {pendingAction?.remove
                 ? `Are you sure you want to remove admin privileges from "${pendingAction.userName}"? They will lose access to the admin panel.`
                 : `Are you sure you want to grant admin privileges to "${pendingAction?.userName}"? They will have full access to the admin panel.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="border-white/10 text-white/70 hover:bg-white/10 hover:text-white">Cancel</AlertDialogCancel>
             <AlertDialogAction
+              className="bg-secondary text-primary hover:bg-secondary/90 font-semibold"
               onClick={() => {
                 if (pendingAction) {
                   roleMutation.mutate({
