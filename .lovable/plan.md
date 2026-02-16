@@ -1,73 +1,33 @@
 
 
-# Admin Panel for NOcap
+# Fix: Top-Up Mobile Number Format for RaudhahPay
 
-## Overview
-Build a comprehensive admin dashboard accessible only to users with the `admin` role. The panel will have 4 tabs: Merchant Approvals, Fee Settings, User Management, and Transactions overview.
+## Problem
+RaudhahPay requires the mobile number to include a country code (e.g., `60131234567` for Malaysia). The current fallback `0000000000` is rejected. Also, the `address` field is not being fetched from the profile.
 
-## What Gets Built
+## Changes
 
-### 1. Admin Page (`/admin`)
-A new page with role-based access control (redirects non-admins). Contains a tabbed interface:
+**File: `supabase/functions/create-topup-bill/index.ts`**
 
-**Tab 1 -- Merchant Approvals**
-- List all `merchant_applications` with status filters (pending, approved, rejected)
-- Show business name, applicant email, bank details, registration number
-- Approve button: updates status to `approved`, assigns `merchant` role to the user
-- Reject button: opens a dialog to enter rejection reason, updates status to `rejected`
+1. Update the profile query to also select `address`:
+   - Change `.select('full_name, phone')` to `.select('full_name, phone, address')`
 
-**Tab 2 -- Fee Settings**
-- Display and edit `system_settings` values (e.g., `platform_fee_percent`, cashback rates, tier commission percentages)
-- Inline edit with save button for each setting
-- Add new setting capability
+2. Fix the mobile fallback to use a valid Malaysian format:
+   - If the user has a phone number starting with `0` (e.g., `0131234567`), auto-convert to `60131234567`
+   - If no phone at all, use `60000000000` as fallback (valid format that won't block the bill creation)
 
-**Tab 3 -- User Management**
-- List all users (from `profiles` table joined with `user_roles` and `wallets`)
-- Show name, email, phone, roles, wallet balance, referral code
-- Ability to assign/remove roles (member, merchant, admin)
-- View user's referral tree count
+3. Use the actual `profile.address` from the database instead of hardcoded `'Malaysia'`.
 
-**Tab 4 -- Transactions**
-- List all transactions across the platform with filters (type, status, date range)
-- Show total volume stats
+## Technical Detail
 
-### 2. Edge Function: `admin-actions`
-A single backend function to handle admin-only operations securely:
-- Approve/reject merchant applications (updates status + assigns merchant role)
-- Update user roles
-- Update system settings
+```
+// Phone formatting logic:
+let mobile = profile?.phone || '60000000000';
+if (mobile.startsWith('0')) {
+  mobile = '60' + mobile.substring(1);
+} else if (!mobile.startsWith('6')) {
+  mobile = '60' + mobile;
+}
+```
 
-This ensures sensitive operations like role assignment happen server-side with proper admin verification.
-
-### 3. Navigation Update
-- Add an "Admin" link in the `BottomNav` (only visible to admin users)
-- Add `/admin` route in `App.tsx`
-
-### 4. Admin Role Check Hook
-- Create `useAdminCheck` hook that queries `user_roles` to verify admin status
-- Used by both the admin page and the bottom nav for conditional rendering
-
-## Technical Details
-
-### New Files
-- `src/pages/Admin.tsx` -- Main admin page with tabs
-- `src/components/admin/MerchantApprovals.tsx` -- Merchant application list and actions
-- `src/components/admin/FeeSettings.tsx` -- System settings editor
-- `src/components/admin/UserManagement.tsx` -- User list with role management
-- `src/components/admin/TransactionsList.tsx` -- All transactions view
-- `supabase/functions/admin-actions/index.ts` -- Secure backend for admin operations
-
-### Modified Files
-- `src/App.tsx` -- Add `/admin` route
-- `src/components/BottomNav.tsx` -- Conditionally show Admin tab for admin users
-
-### Database
-- No schema changes needed -- all required tables and RLS policies already exist
-- The `has_role` security definer function is already in place
-- Admin RLS policies are already configured on all tables
-
-### Security
-- Admin check done server-side in the edge function using `getUser()` + `has_role` query
-- Client-side admin check is only for UI visibility (not security)
-- All write operations (approve, reject, role changes) go through the edge function
-
+This is a single-file fix with no schema changes required.
