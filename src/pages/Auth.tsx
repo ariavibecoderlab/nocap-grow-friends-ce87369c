@@ -10,6 +10,7 @@ import { signUp, verifyOtp, signInWithPassword, updatePassword } from "@/lib/aut
 import { supabase } from "@/integrations/supabase/client";
 
 type AuthStep = "email" | "otp" | "password" | "set-password";
+const REGISTERING_FLAG = "nocap_registering";
 
 const Auth = () => {
   const [step, setStep] = useState<AuthStep>("email");
@@ -32,9 +33,9 @@ const Auth = () => {
     }
   }, [searchParams]);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (skip during registration)
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && !sessionStorage.getItem(REGISTERING_FLAG)) {
       navigate("/dashboard");
     }
   }, [user, authLoading, navigate]);
@@ -76,6 +77,8 @@ const Auth = () => {
       }
 
       // Sign up with random password (auto-confirm is enabled)
+      // Set flag to prevent auth redirect during signup flow
+      sessionStorage.setItem(REGISTERING_FLAG, "1");
       const randomPassword = crypto.randomUUID();
       const { error: signUpError } = await signUp(email, randomPassword, "", "", referralCode.toUpperCase());
 
@@ -92,6 +95,7 @@ const Auth = () => {
 
       // Sign out so user verifies via OTP
       await supabase.auth.signOut();
+      sessionStorage.removeItem(REGISTERING_FLAG);
 
       // Send OTP to newly created user
       const { error: otpError, data: otpData } = await sendOtpViaEdgeFunction(email);
