@@ -25,6 +25,7 @@ export type Database = {
           business_registration_no: string | null
           business_type: string | null
           created_at: string
+          document_urls: Json | null
           id: string
           rejection_reason: string | null
           reviewed_at: string | null
@@ -43,6 +44,7 @@ export type Database = {
           business_registration_no?: string | null
           business_type?: string | null
           created_at?: string
+          document_urls?: Json | null
           id?: string
           rejection_reason?: string | null
           reviewed_at?: string | null
@@ -61,6 +63,7 @@ export type Database = {
           business_registration_no?: string | null
           business_type?: string | null
           created_at?: string
+          document_urls?: Json | null
           id?: string
           rejection_reason?: string | null
           reviewed_at?: string | null
