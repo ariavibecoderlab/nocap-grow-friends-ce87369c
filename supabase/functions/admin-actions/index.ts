@@ -94,7 +94,6 @@ Deno.serve(async (req) => {
     switch (action) {
       case "approve_merchant": {
         const { applicationId, applicationUserId } = body;
-        // Update application status
         const { error: updateErr } = await adminClient
           .from("merchant_applications")
           .update({
@@ -105,12 +104,20 @@ Deno.serve(async (req) => {
           .eq("id", applicationId);
         if (updateErr) throw updateErr;
 
-        // Assign merchant role (ignore if already exists)
+        // Assign merchant role
         await adminClient
           .from("user_roles")
           .upsert(
             { user_id: applicationUserId, role: "merchant" },
             { onConflict: "user_id,role" }
+          );
+
+        // Create merchant wallet for the user
+        await adminClient
+          .from("wallets")
+          .upsert(
+            { user_id: applicationUserId, wallet_type: "merchant", balance: 0 },
+            { onConflict: "user_id,wallet_type,branch_id" }
           );
 
         // Send approval email
@@ -123,18 +130,11 @@ Deno.serve(async (req) => {
               <h2 style="color: #2dac76; margin-bottom: 8px;">NOcap</h2>
               <p style="color: #333;">Great news! Your merchant application has been <strong style="color: #2dac76;">approved</strong>.</p>
               <p style="color: #333;">You can now access your Merchant Dashboard to set up branches, generate QR codes, and start accepting payments.</p>
-              <div style="margin: 24px 0; text-align: center;">
-                <a href="${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovable.app") || "#"}/merchant"
-                   style="background: #2dac76; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
-                  Go to Merchant Dashboard
-                </a>
-              </div>
               <p style="color: #888; font-size: 13px;">Thank you for joining NOcap as a merchant!</p>
             </div>`
           );
         }
 
-        // Insert in-app notification
         await adminClient.from("notifications").insert({
           user_id: applicationUserId,
           title: "Application Approved! 🎉",
@@ -160,7 +160,6 @@ Deno.serve(async (req) => {
           .eq("id", rejId);
         if (rejErr) throw rejErr;
 
-        // Get applicant user_id for email and notification
         const { data: rejApp } = await adminClient
           .from("merchant_applications")
           .select("user_id")
@@ -168,7 +167,6 @@ Deno.serve(async (req) => {
           .single();
 
         if (rejApp) {
-          // Send rejection email
           const { data: rejUser } = await adminClient.auth.admin.getUserById(rejApp.user_id);
           if (rejUser?.user?.email) {
             await sendMerchantEmail(
@@ -181,18 +179,11 @@ Deno.serve(async (req) => {
                   <p style="color: #333; margin: 0; font-size: 14px;"><strong>Reason:</strong> ${reason}</p>
                 </div>` : ""}
                 <p style="color: #333;">You can update your application and re-submit it for review.</p>
-                <div style="margin: 24px 0; text-align: center;">
-                  <a href="${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovable.app") || "#"}/merchant/register"
-                     style="background: #2dac76; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
-                    Update Application
-                  </a>
-                </div>
                 <p style="color: #888; font-size: 13px;">If you have questions, please contact our support team.</p>
               </div>`
             );
           }
 
-          // Insert in-app notification
           await adminClient.from("notifications").insert({
             user_id: rejApp.user_id,
             title: "Application Not Approved",
@@ -250,23 +241,56 @@ Deno.serve(async (req) => {
       }
 
       case "approve_withdrawal": {
-        const { withdrawalId, withdrawalUserId, amount: wdAmount } = body;
+        const { withdrawalId, withdrawalUserId, amount: wdAmount, walletType } = body;
+        const wType = walletType || 'member';
 
-        // Check wallet balance
-        const { data: walletData, error: walletErr } = await adminClient
+        // Check the correct wallet based on wallet_type
+        const walletQuery = adminClient
           .from("wallets")
           .select("balance")
           .eq("user_id", withdrawalUserId)
-          .single();
+          .eq("wallet_type", wType);
+        
+        // For branch wallets we also need branch_id from the withdrawal request
+        let branchId: string | null = null;
+        if (wType === 'branch') {
+          const { data: wdReq } = await adminClient
+            .from("withdrawal_requests")
+            .select("branch_id")
+            .eq("id", withdrawalId)
+            .single();
+          branchId = wdReq?.branch_id || null;
+          if (branchId) walletQuery.eq("branch_id", branchId);
+        }
+
+        const { data: walletData, error: walletErr } = await walletQuery.single();
         if (walletErr || !walletData) throw new Error("Wallet not found");
         if (Number(walletData.balance) < Number(wdAmount)) throw new Error("Insufficient balance");
 
-        // Deduct balance
-        const { error: deductErr } = await adminClient
+        // Deduct balance from the specific wallet
+        const deductQuery = adminClient
           .from("wallets")
           .update({ balance: Number(walletData.balance) - Number(wdAmount) })
-          .eq("user_id", withdrawalUserId);
+          .eq("user_id", withdrawalUserId)
+          .eq("wallet_type", wType);
+        if (wType === 'branch' && branchId) deductQuery.eq("branch_id", branchId);
+        const { error: deductErr } = await deductQuery;
         if (deductErr) throw deductErr;
+
+        // Also update merchant_branches.balance for branch withdrawals
+        if (wType === 'branch' && branchId) {
+          const { data: branchRow } = await adminClient
+            .from("merchant_branches")
+            .select("balance")
+            .eq("id", branchId)
+            .single();
+          if (branchRow) {
+            await adminClient
+              .from("merchant_branches")
+              .update({ balance: Number(branchRow.balance) - Number(wdAmount) })
+              .eq("id", branchId);
+          }
+        }
 
         // Update request status
         const { error: wdUpdateErr } = await adminClient
@@ -276,22 +300,22 @@ Deno.serve(async (req) => {
         if (wdUpdateErr) throw wdUpdateErr;
 
         // Create transaction record
+        const walletLabel = wType === 'member' ? 'Member' : wType === 'merchant' ? 'Merchant' : 'Branch';
         await adminClient.from("transactions").insert({
           user_id: withdrawalUserId,
           type: "withdrawal",
           amount: Number(wdAmount),
           net_amount: Number(wdAmount),
           status: "completed",
-          description: "Wallet withdrawal to bank account",
+          description: `${walletLabel} wallet withdrawal to bank account`,
         });
 
-        // Notify merchant
+        // Notify user
         await adminClient.from("notifications").insert({
           user_id: withdrawalUserId,
           title: "Withdrawal Approved ✅",
-          message: `Your withdrawal of RM ${Number(wdAmount).toFixed(2)} has been approved and will be transferred to your bank account.`,
+          message: `Your ${walletLabel.toLowerCase()} withdrawal of RM ${Number(wdAmount).toFixed(2)} has been approved and will be transferred to your bank account.`,
           type: "success",
-          link: "/merchant",
         });
 
         // Send email
@@ -302,7 +326,7 @@ Deno.serve(async (req) => {
             "Your NOcap Withdrawal Has Been Approved ✅",
             `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
               <h2 style="color: #2dac76;">NOcap</h2>
-              <p>Your withdrawal of <strong>RM ${Number(wdAmount).toFixed(2)}</strong> has been approved and will be transferred to your bank account.</p>
+              <p>Your ${walletLabel.toLowerCase()} withdrawal of <strong>RM ${Number(wdAmount).toFixed(2)}</strong> has been approved and will be transferred to your bank account.</p>
               <p style="color: #888; font-size: 13px;">Thank you for using NOcap!</p>
             </div>`
           );
@@ -320,7 +344,6 @@ Deno.serve(async (req) => {
           .eq("id", rejWdId);
         if (rejWdErr) throw rejWdErr;
 
-        // Get user_id for notification
         const { data: rejWdReq } = await adminClient
           .from("withdrawal_requests")
           .select("user_id, amount")
@@ -333,7 +356,6 @@ Deno.serve(async (req) => {
             title: "Withdrawal Rejected",
             message: wdReason ? `Reason: ${wdReason}` : "Your withdrawal request was not approved.",
             type: "error",
-            link: "/merchant",
           });
         }
 
@@ -353,40 +375,55 @@ Deno.serve(async (req) => {
       }
 
       case "assign_branch_owner": {
-        // This action is for merchants, not just admins. We need a separate check.
-        // Actually this should be a merchant action, let's handle it here but also allow merchants.
         break;
       }
 
+      // Legacy: approve_branch_withdrawal now handled by approve_withdrawal with wallet_type
       case "approve_branch_withdrawal": {
         const { withdrawalId: bwId, branchId: bwBranchId, withdrawalUserId: bwUserId, amount: bwAmount } = body;
 
-        // Check branch balance
-        const { data: branchData, error: branchErr } = await adminClient
+        // Deduct from branch wallet in wallets table
+        const { data: branchWallet, error: bwErr } = await adminClient
+          .from("wallets")
+          .select("balance")
+          .eq("wallet_type", "branch")
+          .eq("branch_id", bwBranchId)
+          .single();
+        if (bwErr || !branchWallet) throw new Error("Branch wallet not found");
+        if (Number(branchWallet.balance) < Number(bwAmount)) throw new Error("Insufficient branch balance");
+
+        await adminClient
+          .from("wallets")
+          .update({ balance: Number(branchWallet.balance) - Number(bwAmount) })
+          .eq("wallet_type", "branch")
+          .eq("branch_id", bwBranchId);
+
+        // Also update merchant_branches.balance
+        const { data: branchData } = await adminClient
           .from("merchant_branches")
           .select("balance")
           .eq("id", bwBranchId)
           .single();
-        if (branchErr || !branchData) throw new Error("Branch not found");
-        if (Number(branchData.balance) < Number(bwAmount)) throw new Error("Insufficient branch balance");
+        if (branchData) {
+          await adminClient
+            .from("merchant_branches")
+            .update({ balance: Number(branchData.balance) - Number(bwAmount) })
+            .eq("id", bwBranchId);
+        }
 
-        // Deduct branch balance
-        await adminClient
-          .from("merchant_branches")
-          .update({ balance: Number(branchData.balance) - Number(bwAmount) })
-          .eq("id", bwBranchId);
-
-        // Credit branch owner's wallet
+        // Credit branch owner's MEMBER wallet
         const { data: ownerWallet } = await adminClient
           .from("wallets")
           .select("balance")
           .eq("user_id", bwUserId)
+          .eq("wallet_type", "member")
           .single();
         if (ownerWallet) {
           await adminClient
             .from("wallets")
             .update({ balance: Number(ownerWallet.balance) + Number(bwAmount) })
-            .eq("user_id", bwUserId);
+            .eq("user_id", bwUserId)
+            .eq("wallet_type", "member");
         }
 
         // Update request status
@@ -402,14 +439,14 @@ Deno.serve(async (req) => {
           amount: Number(bwAmount),
           net_amount: Number(bwAmount),
           status: "completed",
-          description: "Branch withdrawal to wallet",
+          description: "Branch withdrawal to member wallet",
         });
 
         // Notify branch owner
         await adminClient.from("notifications").insert({
           user_id: bwUserId,
           title: "Branch Withdrawal Approved ✅",
-          message: `Your branch withdrawal of RM ${Number(bwAmount).toFixed(2)} has been approved and credited to your wallet.`,
+          message: `Your branch withdrawal of RM ${Number(bwAmount).toFixed(2)} has been approved and credited to your member wallet.`,
           type: "success",
         });
 

@@ -38,6 +38,7 @@ const TopUp = () => {
       .from("wallets")
       .select("balance")
       .eq("user_id", user.id)
+      .eq("wallet_type", "member")
       .maybeSingle()
       .then(({ data }) => {
         if (data) setBalance(Number(data.balance));

@@ -387,26 +387,40 @@ export type Database = {
       wallets: {
         Row: {
           balance: number
+          branch_id: string | null
           created_at: string
           id: string
           updated_at: string
           user_id: string
+          wallet_type: string
         }
         Insert: {
           balance?: number
+          branch_id?: string | null
           created_at?: string
           id?: string
           updated_at?: string
           user_id: string
+          wallet_type?: string
         }
         Update: {
           balance?: number
+          branch_id?: string | null
           created_at?: string
           id?: string
           updated_at?: string
           user_id?: string
+          wallet_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "wallets_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       withdrawal_requests: {
         Row: {
@@ -423,6 +437,7 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string
+          wallet_type: string
         }
         Insert: {
           amount: number
@@ -438,6 +453,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id: string
+          wallet_type?: string
         }
         Update: {
           amount?: number
@@ -453,6 +469,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+          wallet_type?: string
         }
         Relationships: [
           {

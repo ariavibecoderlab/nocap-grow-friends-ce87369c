@@ -141,18 +141,25 @@ const BranchDashboard = () => {
     fetchData();
   }, [user]);
 
-  // Fetch branch-specific transactions for sales stats
+  // Fetch branch-specific transactions for sales stats + branch wallet balance
   useEffect(() => {
     if (!selectedBranch || !user) return;
     const fetchSales = async () => {
-      // Use metadata->branch_id to filter merchant transactions
-      const { data: txns } = await supabase
-        .from("transactions")
-        .select("amount, created_at")
-        .eq("user_id", selectedBranch.merchant_user_id)
-        .eq("type", "top_up")
-        .eq("status", "completed")
-        .contains("metadata", { branch_id: selectedBranch.id });
+      const [{ data: txns }, { data: branchWallet }] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select("amount, created_at")
+          .eq("user_id", selectedBranch.merchant_user_id)
+          .eq("type", "top_up")
+          .eq("status", "completed")
+          .contains("metadata", { branch_id: selectedBranch.id }),
+        supabase
+          .from("wallets")
+          .select("balance")
+          .eq("wallet_type", "branch")
+          .eq("branch_id", selectedBranch.id)
+          .maybeSingle(),
+      ]);
 
       if (txns) {
         setTotalSales(txns.reduce((s, t) => s + Number(t.amount), 0));
@@ -161,9 +168,13 @@ const BranchDashboard = () => {
           txns.filter((t) => t.created_at.startsWith(today)).reduce((s, t) => s + Number(t.amount), 0)
         );
       }
+      // Update branch balance from wallets table
+      if (branchWallet && selectedBranch) {
+        setSelectedBranch(prev => prev ? { ...prev, balance: Number(branchWallet.balance) } : prev);
+      }
     };
     fetchSales();
-  }, [selectedBranch, user]);
+  }, [selectedBranch?.id, user]);
 
   // Fetch withdrawals for selected branch
   useEffect(() => {
@@ -305,6 +316,7 @@ const BranchDashboard = () => {
       bank_account_no: bankAccountNo,
       bank_account_holder: bankAccountHolder,
       branch_id: selectedBranch.id,
+      wallet_type: "branch",
     });
 
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); }

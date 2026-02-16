@@ -47,7 +47,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(20),
-      supabase.from("wallets").select("balance").eq("user_id", userId).single(),
+      supabase.from("wallets").select("balance").eq("user_id", userId).eq("wallet_type", "merchant").single(),
       supabase
         .from("merchant_applications")
         .select("bank_name, bank_account_no, bank_account_holder, min_withdrawal_amount")
@@ -117,6 +117,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
       bank_name: bankName.trim(),
       bank_account_no: bankAccountNo.trim(),
       bank_account_holder: bankAccountHolder.trim(),
+      wallet_type: "merchant",
     });
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
