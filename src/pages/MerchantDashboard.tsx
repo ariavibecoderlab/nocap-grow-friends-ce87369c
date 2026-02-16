@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
+import MerchantTransactions from "@/components/merchant/MerchantTransactions";
 import {
   ArrowLeft,
   Plus,
@@ -478,9 +479,12 @@ const MerchantDashboard = () => {
         {/* Selected Branch Details */}
         {selectedBranch && (
           <Tabs defaultValue="qr" className="mt-4">
-            <TabsList className="w-full grid grid-cols-2">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="qr" className="gap-1.5">
                 <QrCode className="h-3.5 w-3.5" /> QR Codes
+              </TabsTrigger>
+              <TabsTrigger value="txns" className="gap-1.5">
+                <BarChart3 className="h-3.5 w-3.5" /> Txns
               </TabsTrigger>
               <TabsTrigger value="settings" className="gap-1.5">
                 Settings
@@ -570,6 +574,10 @@ const MerchantDashboard = () => {
                   );
                 })
               )}
+            </TabsContent>
+
+            <TabsContent value="txns" className="mt-4">
+              <MerchantTransactions userId={user!.id} branchId={selectedBranch.id} />
             </TabsContent>
 
             <TabsContent value="settings" className="mt-4 space-y-3">
