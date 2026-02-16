@@ -49,14 +49,21 @@ const ApiDocs = () => {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">3. Base URL</h3>
-                  <p className="text-sm text-muted-foreground">All API requests should be made to our edge functions endpoint:</p>
-                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
-                    https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/
-                  </pre>
-                </div>
+                   <h3 className="font-semibold text-lg">3. Sandbox Mode</h3>
+                   <p className="text-sm text-muted-foreground">
+                     Enable <strong>Sandbox Mode</strong> when creating an API app to test integrations without using real money. 
+                     Sandbox transactions are immediately marked as completed and do not deduct from wallets.
+                   </p>
+                 </div>
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">4. Rate Limits</h3>
+                   <h3 className="font-semibold text-lg">4. Base URL</h3>
+                   <p className="text-sm text-muted-foreground">All API requests should be made to our edge functions endpoint:</p>
+                   <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
+                     https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/
+                   </pre>
+                 </div>
+                <div className="space-y-2">
+                   <h3 className="font-semibold text-lg">5. Rate Limits</h3>
                   <p className="text-sm text-muted-foreground">
                     All API endpoints are rate limited per API key. Exceeding the limit returns a <code className="text-primary font-bold">429 Too Many Requests</code> response with a <code className="text-primary font-bold">Retry-After</code> header.
                   </p>
@@ -425,6 +432,28 @@ const ApiDocs = () => {
 }`}
                   </pre>
                 </div>
+
+                <div className="space-y-2">
+                   <h3 className="font-semibold text-lg">Sandbox Mode Testing</h3>
+                   <p className="text-sm text-muted-foreground">
+                     When an API app is in <strong>Sandbox Mode</strong>, all charges are immediately completed without requiring:
+                   </p>
+                   <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                     <li>Sufficient user wallet balance</li>
+                     <li>PIN verification</li>
+                     <li>Any balance deductions or transfers</li>
+                   </ul>
+                   <p className="text-sm text-muted-foreground mt-2">
+                     This allows you to test your integration flow end-to-end without creating test accounts with funds. 
+                     Webhooks are still sent, so you can verify your webhook endpoint integration.
+                   </p>
+                   <div className="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 rounded-md mt-2">
+                     <p className="text-xs text-amber-800 dark:text-amber-200">
+                       <strong>Note:</strong> Sandbox responses include an <code className="text-amber-900">is_sandbox: true</code> field. 
+                       Enable sandbox mode during development, then toggle it off before going to production.
+                     </p>
+                   </div>
+                 </div>
 
                 <div className="space-y-2">
                   <h3 className="font-semibold text-lg">Signature Verification</h3>

@@ -67,6 +67,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          is_sandbox: boolean
           merchant_user_id: string
           name: string
           updated_at: string
@@ -80,6 +81,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_sandbox?: boolean
           merchant_user_id: string
           name: string
           updated_at?: string
@@ -93,6 +95,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_sandbox?: boolean
           merchant_user_id?: string
           name?: string
           updated_at?: string
@@ -116,6 +119,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_sandbox: boolean
           metadata: Json | null
           reference: string | null
           status: string
@@ -129,6 +133,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_sandbox?: boolean
           metadata?: Json | null
           reference?: string | null
           status?: string
@@ -142,6 +147,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_sandbox?: boolean
           metadata?: Json | null
           reference?: string | null
           status?: string

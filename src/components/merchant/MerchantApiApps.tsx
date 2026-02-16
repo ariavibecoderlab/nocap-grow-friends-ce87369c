@@ -25,6 +25,7 @@ interface ApiApp {
   branch_id: string;
   webhook_url: string | null;
   is_active: boolean;
+  is_sandbox: boolean;
   created_at: string;
 }
 
@@ -45,6 +46,7 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
   const [appDesc, setAppDesc] = useState("");
   const [branchId, setBranchId] = useState("");
   const [webhookUrl, setWebhookUrl] = useState("");
+  const [isSandbox, setIsSandbox] = useState(false);
 
   // Credentials dialog (shown once after creation)
   const [credentials, setCredentials] = useState<{ api_key: string; api_secret: string } | null>(null);
@@ -59,7 +61,7 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
     setLoading(true);
     const { data } = await supabase
       .from("api_applications")
-      .select("id, name, description, api_key, branch_id, webhook_url, is_active, created_at")
+      .select("id, name, description, api_key, branch_id, webhook_url, is_active, is_sandbox, created_at")
       .eq("merchant_user_id", user!.id)
       .order("created_at", { ascending: false });
     if (data) setApps(data as ApiApp[]);
@@ -76,6 +78,7 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
         description: appDesc.trim() || null,
         branch_id: branchId,
         webhook_url: webhookUrl.trim() || null,
+        is_sandbox: isSandbox,
       },
     });
 
@@ -88,6 +91,7 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
       setAppDesc("");
       setBranchId("");
       setWebhookUrl("");
+      setIsSandbox(false);
       fetchApps();
       toast({ title: "API App created!" });
     }
@@ -100,6 +104,15 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
       .update({ is_active: active })
       .eq("id", appId);
     setApps((prev) => prev.map((a) => (a.id === appId ? { ...a, is_active: active } : a)));
+  };
+
+  const toggleSandbox = async (appId: string, sandbox: boolean) => {
+    await supabase
+      .from("api_applications")
+      .update({ is_sandbox: sandbox })
+      .eq("id", appId);
+    setApps((prev) => prev.map((a) => (a.id === appId ? { ...a, is_sandbox: sandbox } : a)));
+    toast({ title: `Sandbox mode ${sandbox ? 'enabled' : 'disabled'}` });
   };
 
   const copyToClipboard = (text: string, label: string) => {
@@ -140,14 +153,31 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
             <CardContent className="p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-white">{app.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-white">{app.name}</p>
+                    {app.is_sandbox && (
+                      <Badge variant="outline" className="text-[9px] h-4 border-amber-500/50 text-amber-500 py-0 px-1">
+                        SANDBOX
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-[10px] text-white/40">Branch: {branchName(app.branch_id)}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={app.is_active ? "default" : "secondary"} className="text-[10px]">
-                    {app.is_active ? "Active" : "Inactive"}
-                  </Badge>
-                  <Switch checked={app.is_active} onCheckedChange={(v) => toggleApp(app.id, v)} />
+                <div className="flex flex-col items-end gap-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={app.is_active ? "default" : "secondary"} className="text-[10px]">
+                      {app.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                    <Switch checked={app.is_active} onCheckedChange={(v) => toggleApp(app.id, v)} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-white/40">Sandbox</span>
+                    <Switch 
+                      checked={app.is_sandbox} 
+                      onCheckedChange={(v) => toggleSandbox(app.id, v)}
+                      className="data-[state=checked]:bg-amber-500 scale-75"
+                    />
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -193,6 +223,13 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
             <div>
               <Label className="text-white/70 text-xs">Webhook URL (optional)</Label>
               <Input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://..." className="bg-white/5 border-white/10 text-white" />
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
+              <div className="space-y-0.5">
+                <Label className="text-white text-xs">Sandbox Mode</Label>
+                <p className="text-[10px] text-white/40">Test integrations without using real money</p>
+              </div>
+              <Switch checked={isSandbox} onCheckedChange={setIsSandbox} className="data-[state=checked]:bg-amber-500" />
             </div>
             <Button onClick={createApp} disabled={creating || !appName.trim() || !branchId} className="w-full bg-secondary text-primary hover:bg-secondary/90">
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create & Get Credentials"}

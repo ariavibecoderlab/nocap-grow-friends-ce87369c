@@ -104,7 +104,63 @@ serve(async (req) => {
       });
     }
 
-    // Check branch wallet has sufficient balance
+    // Check for sandbox mode
+    const isSandbox = !!charge.is_sandbox;
+
+    if (isSandbox) {
+      // SANDBOX MODE: Skip balance checks and real money movement
+      const newTotalRefunded = alreadyRefunded + actualRefund;
+      const newStatus = newTotalRefunded >= Number(charge.amount) ? 'refunded' : 'partial_refund';
+
+      await supabase.from('api_charges').update({
+        status: newStatus,
+        metadata: { ...metadata, total_refunded: newTotalRefunded, sandbox: true },
+      }).eq('id', charge_id);
+
+      console.log(`[SANDBOX] API Refund: RM${actualRefund}, charge: ${charge_id}, app: ${app.name}`);
+
+      // Webhook for sandbox
+      if (app.webhook_url) {
+        const payload = {
+          event: newStatus === 'refunded' ? 'charge.refunded' : 'charge.partial_refund',
+          charge_id,
+          refund_amount: actualRefund,
+          total_refunded: newTotalRefunded,
+          charge_amount: Number(charge.amount),
+          status: newStatus,
+          is_sandbox: true,
+          timestamp: new Date().toISOString(),
+        };
+        const payloadStr = JSON.stringify(payload);
+
+        const encoder = new TextEncoder();
+        const hmacKey = await crypto.subtle.importKey(
+          'raw', encoder.encode(app.api_secret_hash),
+          { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+        );
+        const sigBuf = await crypto.subtle.sign('HMAC', hmacKey, encoder.encode(payloadStr));
+        const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+        fetch(app.webhook_url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Webhook-Signature': signature },
+          body: payloadStr
+        }).catch(() => {});
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        refund_amount: actualRefund,
+        total_refunded: newTotalRefunded,
+        charge_amount: Number(charge.amount),
+        status: newStatus,
+        is_sandbox: true,
+      }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // REAL MODE: Check branch wallet has sufficient balance
     const { data: branchWallet } = await supabase
       .from('wallets')
       .select('balance')
