@@ -277,7 +277,22 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Referral Code Banner */}
+        {/* Analytics Link */}
+        <Card className="mt-4 border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate("/analytics")}>
+          <CardContent className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/20">
+                <TrendingUp className="h-5 w-5 text-secondary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Spending Analytics</p>
+                <p className="text-[10px] text-white/40">View charts & spending breakdown</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-white/30" />
+          </CardContent>
+        </Card>
+
         <Card className="mt-4 border-secondary/20 bg-secondary/10">
           <CardContent className="flex items-center justify-between p-4">
             <div>
