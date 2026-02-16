@@ -31,14 +31,12 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Check if user exists before generating magic link (generateLink auto-creates users)
-    const { data: lookupRes, error: lookupErr } = await supabase.auth.admin.listUsers({
-      filter: `email.eq.${email}`,
-      page: 1,
-      perPage: 1,
-    });
+    // Check if user is properly registered (not auto-created by generateLink)
+    // We check auth.users for email_confirmed_at — only properly registered users have confirmed emails
+    const { data: { users }, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const authUser = users?.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
     
-    if (lookupErr || !lookupRes?.users?.length) {
+    if (listErr || !authUser || !authUser.email_confirmed_at) {
       return new Response(JSON.stringify({ error: 'User not found' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
