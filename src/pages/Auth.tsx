@@ -66,8 +66,8 @@ const Auth = () => {
 
     setLoading(true);
     try {
-      const { error } = await sendOtpViaEdgeFunction(email);
-      if (error) {
+      const { data, error } = await sendOtpViaEdgeFunction(email);
+      if (error || data?.error) {
         // User doesn't exist → show referral code field
         setIsNewEmail(true);
       } else {

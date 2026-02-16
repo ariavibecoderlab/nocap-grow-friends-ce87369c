@@ -31,6 +31,14 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
+    // Check if user exists before generating magic link (generateLink auto-creates users)
+    const { data: lookupRes, error: lookupErr } = await supabase.auth.admin.getUserByEmail(email);
+    if (lookupErr || !lookupRes?.user) {
+      return new Response(JSON.stringify({ error: 'User not found' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Generate a magic link — this returns the OTP token we can send via email
     const { data, error } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
@@ -39,8 +47,8 @@ serve(async (req) => {
 
     if (error) {
       console.error('Generate link error:', error.message);
-      return new Response(JSON.stringify({ error: 'User not found' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      return new Response(JSON.stringify({ error: 'Failed to generate OTP' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
