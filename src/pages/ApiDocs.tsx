@@ -55,6 +55,44 @@ const ApiDocs = () => {
                     https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/
                   </pre>
                 </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">4. Rate Limits</h3>
+                  <p className="text-sm text-muted-foreground">
+                    All API endpoints are rate limited per API key. Exceeding the limit returns a <code className="text-primary font-bold">429 Too Many Requests</code> response with a <code className="text-primary font-bold">Retry-After</code> header.
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-2 pr-4 font-semibold">Endpoint</th>
+                          <th className="text-left py-2 font-semibold">Limit</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-authorize</td>
+                          <td className="py-2">10 req/min</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-charge</td>
+                          <td className="py-2">30 req/min</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-refund</td>
+                          <td className="py-2">20 req/min</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-balance</td>
+                          <td className="py-2">60 req/min</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-charge-status</td>
+                          <td className="py-2">60 req/min</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -504,6 +542,11 @@ def verify_webhook(body: str, signature: str, api_secret: str) -> bool:
                         <td className="py-2 pr-4"><code className="text-primary">403</code></td>
                         <td className="py-2 pr-4 font-mono text-xs">Insufficient scope</td>
                         <td className="py-2">Token doesn't have the required scope (e.g., "charge" or "balance").</td>
+                      </tr>
+                      <tr className="border-b border-border/50">
+                        <td className="py-2 pr-4"><code className="text-primary">429</code></td>
+                        <td className="py-2 pr-4 font-mono text-xs">Rate limit exceeded</td>
+                        <td className="py-2">Too many requests. Check <code className="text-primary">Retry-After</code> header for wait time in seconds.</td>
                       </tr>
                       <tr className="border-b border-border/50">
                         <td className="py-2 pr-4"><code className="text-primary">400</code></td>

@@ -40,6 +40,17 @@ serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Rate limit: 10 requests per minute per user (brute-force protection)
+    const { data: allowed } = await supabase.rpc('check_rate_limit', {
+      p_identifier: user.id, p_endpoint: 'api-authorize', p_max_requests: 10, p_window_seconds: 60,
+    });
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 10 requests per minute.' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
+      });
+    }
+
     const { app_id, scopes } = await req.json();
 
     if (!app_id) {

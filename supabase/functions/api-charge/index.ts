@@ -74,6 +74,16 @@ serve(async (req) => {
       });
     }
 
+    // Rate limit: 30 requests per minute per API key
+    const { data: allowed } = await supabase.rpc('check_rate_limit', {
+      p_identifier: apiKey, p_endpoint: 'api-charge', p_max_requests: 30, p_window_seconds: 60,
+    });
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 30 requests per minute.' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
+      });
+    }
+
     // Validate access token
     const tokenHash = await hashSecret(bearerToken);
     const { data: token } = await supabase
