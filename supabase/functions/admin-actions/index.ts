@@ -6,6 +6,40 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function sendMerchantEmail(
+  to: string,
+  subject: string,
+  htmlBody: string
+) {
+  const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
+  const SENDGRID_FROM_EMAIL = Deno.env.get("SENDGRID_FROM_EMAIL");
+  if (!SENDGRID_API_KEY || !SENDGRID_FROM_EMAIL) {
+    console.warn("SendGrid not configured, skipping email");
+    return;
+  }
+
+  const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${SENDGRID_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: SENDGRID_FROM_EMAIL, name: "NOcap" },
+      subject,
+      content: [{ type: "text/html", value: htmlBody }],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("SendGrid error:", err);
+  } else {
+    console.log(`Email sent to ${to}: ${subject}`);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -81,11 +115,29 @@ Deno.serve(async (req) => {
             { onConflict: "user_id,role" }
           );
 
+        // Send approval email
+        const { data: appUser } = await adminClient.auth.admin.getUserById(applicationUserId);
+        if (appUser?.user?.email) {
+          await sendMerchantEmail(
+            appUser.user.email,
+            "Your NOcap Merchant Application is Approved! 🎉",
+            `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+              <h2 style="color: #2dac76; margin-bottom: 8px;">NOcap</h2>
+              <p style="color: #333;">Great news! Your merchant application has been <strong style="color: #2dac76;">approved</strong>.</p>
+              <p style="color: #333;">You can now access your Merchant Dashboard to set up branches, generate QR codes, and start accepting payments.</p>
+              <div style="margin: 24px 0; text-align: center;">
+                <a href="${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovable.app") || "#"}/merchant"
+                   style="background: #2dac76; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                  Go to Merchant Dashboard
+                </a>
+              </div>
+              <p style="color: #888; font-size: 13px;">Thank you for joining NOcap as a merchant!</p>
+            </div>`
+          );
+        }
+
         result = { success: true };
         break;
-      }
-
-      case "reject_merchant": {
         const { applicationId: rejId, reason } = body;
         const { error: rejErr } = await adminClient
           .from("merchant_applications")
@@ -97,6 +149,38 @@ Deno.serve(async (req) => {
           })
           .eq("id", rejId);
         if (rejErr) throw rejErr;
+
+        // Send rejection email
+        const { data: rejApp } = await adminClient
+          .from("merchant_applications")
+          .select("user_id")
+          .eq("id", rejId)
+          .single();
+        if (rejApp) {
+          const { data: rejUser } = await adminClient.auth.admin.getUserById(rejApp.user_id);
+          if (rejUser?.user?.email) {
+            await sendMerchantEmail(
+              rejUser.user.email,
+              "Update on Your NOcap Merchant Application",
+              `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+                <h2 style="color: #2dac76; margin-bottom: 8px;">NOcap</h2>
+                <p style="color: #333;">We've reviewed your merchant application and unfortunately it was <strong style="color: #e53e3e;">not approved</strong> at this time.</p>
+                ${reason ? `<div style="background: #fff5f5; border-left: 3px solid #e53e3e; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+                  <p style="color: #333; margin: 0; font-size: 14px;"><strong>Reason:</strong> ${reason}</p>
+                </div>` : ""}
+                <p style="color: #333;">You can update your application and re-submit it for review.</p>
+                <div style="margin: 24px 0; text-align: center;">
+                  <a href="${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovable.app") || "#"}/merchant/register"
+                     style="background: #2dac76; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                    Update Application
+                  </a>
+                </div>
+                <p style="color: #888; font-size: 13px;">If you have questions, please contact our support team.</p>
+              </div>`
+            );
+          }
+        }
+
         result = { success: true };
         break;
       }
