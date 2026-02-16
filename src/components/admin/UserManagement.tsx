@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
-const ALL_ROLES: AppRole[] = ["member", "merchant", "admin"];
+const ALL_ROLES: AppRole[] = ["member", "merchant", "branch", "admin"];
 
 const UserManagement = () => {
   const { toast } = useToast();
