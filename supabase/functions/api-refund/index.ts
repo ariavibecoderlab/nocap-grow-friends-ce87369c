@@ -195,6 +195,32 @@ serve(async (req) => {
 
     console.log(`API Refund: RM${actualRefund} back to ${charge.user_id}, charge: ${charge_id}, app: ${app.name}`);
 
+    // Send webhook notification (fire-and-forget)
+    const { data: appWithWebhook } = await supabase
+      .from('api_applications')
+      .select('webhook_url')
+      .eq('id', app.id)
+      .single();
+
+    if (appWithWebhook?.webhook_url) {
+      const webhookPayload = {
+        event: newStatus === 'refunded' ? 'charge.refunded' : 'charge.partial_refund',
+        charge_id,
+        transaction_id: refundTx?.id,
+        refund_amount: actualRefund,
+        total_refunded: newTotalRefunded,
+        charge_amount: Number(charge.amount),
+        reason: reason || null,
+        status: newStatus,
+        timestamp: new Date().toISOString(),
+      };
+      fetch(appWithWebhook.webhook_url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(webhookPayload),
+      }).catch(err => console.error('Webhook delivery failed:', err));
+    }
+
     return new Response(JSON.stringify({
       success: true,
       refund_amount: actualRefund,

@@ -381,6 +381,31 @@ serve(async (req) => {
 
     console.log(`API Charge completed: ${payerId} -> ${branch.branch_name}, RM${amount}, app: ${app.name}`);
 
+    // Send webhook notification (fire-and-forget)
+    const { data: appWithWebhook } = await supabase
+      .from('api_applications')
+      .select('webhook_url')
+      .eq('id', app.id)
+      .single();
+
+    if (appWithWebhook?.webhook_url) {
+      const webhookPayload = {
+        event: 'charge.completed',
+        charge_id: charge.id,
+        transaction_id: paymentTx?.id,
+        amount,
+        description: description || null,
+        reference: reference || null,
+        status: 'completed',
+        timestamp: new Date().toISOString(),
+      };
+      fetch(appWithWebhook.webhook_url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(webhookPayload),
+      }).catch(err => console.error('Webhook delivery failed:', err));
+    }
+
     return new Response(JSON.stringify({
       success: true,
       charge_id: charge.id,

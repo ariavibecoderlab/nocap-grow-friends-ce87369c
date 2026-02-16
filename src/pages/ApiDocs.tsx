@@ -19,10 +19,11 @@ const ApiDocs = () => {
         </div>
 
         <Tabs defaultValue="getting-started" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="getting-started">Getting Started</TabsTrigger>
             <TabsTrigger value="authentication">Authentication</TabsTrigger>
             <TabsTrigger value="endpoints">Endpoints</TabsTrigger>
+            <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
           </TabsList>
 
           <TabsContent value="getting-started">
@@ -205,6 +206,80 @@ const ApiDocs = () => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="webhooks">
+            <Card>
+              <CardHeader>
+                <CardTitle>Webhooks</CardTitle>
+                <CardDescription>Receive real-time notifications for payment events at your configured webhook URL.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Setup</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Set a <strong>Webhook URL</strong> when registering your API application in the Merchant Dashboard.
+                    We will send a <code className="text-primary font-bold">POST</code> request with a JSON payload to this URL whenever a payment event occurs.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Events</h3>
+                  <div className="p-4 bg-muted rounded-md space-y-3 text-sm">
+                    <div className="flex items-start gap-3">
+                      <code className="text-primary font-bold whitespace-nowrap">charge.completed</code>
+                      <span className="text-muted-foreground">Sent when a charge is successfully processed.</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <code className="text-primary font-bold whitespace-nowrap">charge.partial_refund</code>
+                      <span className="text-muted-foreground">Sent when a partial refund is issued for a charge.</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <code className="text-primary font-bold whitespace-nowrap">charge.refunded</code>
+                      <span className="text-muted-foreground">Sent when a charge is fully refunded.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Payload Format</h3>
+                  <h4 className="text-sm font-semibold">charge.completed</h4>
+                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
+{`{
+  "event": "charge.completed",
+  "charge_id": "uuid",
+  "transaction_id": "uuid",
+  "amount": 10.50,
+  "description": "Order #12345",
+  "reference": "txn_88291",
+  "status": "completed",
+  "timestamp": "2026-02-16T12:00:00.000Z"
+}`}
+                  </pre>
+                  <h4 className="text-sm font-semibold mt-3">charge.partial_refund / charge.refunded</h4>
+                  <pre className="p-4 bg-muted rounded-md text-xs overflow-x-auto">
+{`{
+  "event": "charge.partial_refund",
+  "charge_id": "uuid",
+  "transaction_id": "uuid",
+  "refund_amount": 5.00,
+  "total_refunded": 5.00,
+  "charge_amount": 10.50,
+  "reason": "Customer returned item",
+  "status": "partial_refund",
+  "timestamp": "2026-02-16T12:30:00.000Z"
+}`}
+                  </pre>
+                </div>
+
+                <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-900 p-4 rounded-md">
+                  <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                    <strong>Note:</strong> Webhook delivery is best-effort. Your endpoint should respond with a 2xx status code within 5 seconds. 
+                    Failed deliveries are not retried. Always use the <code>/api-charge-status</code> endpoint as the source of truth for charge status.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
