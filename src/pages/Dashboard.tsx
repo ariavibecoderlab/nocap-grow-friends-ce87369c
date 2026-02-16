@@ -92,7 +92,7 @@ const Dashboard = () => {
       if (earningsRes.data) setTotalEarnings(earningsRes.data.reduce((sum, t) => sum + Number(t.amount), 0));
       if (txRes.data) setTransactions(txRes.data as Transaction[]);
       const roles = rolesRes.data?.map((r) => r.role) ?? [];
-      setHasSpecialRole(roles.some((r) => ["admin", "merchant", "branch"].includes(r)));
+      setHasSpecialRole(roles.some((r) => ["merchant", "branch"].includes(r)));
       setLoadingData(false);
     };
 
