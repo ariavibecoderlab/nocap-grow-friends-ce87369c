@@ -136,8 +136,20 @@ Deno.serve(async (req) => {
           );
         }
 
+        // Insert in-app notification
+        await adminClient.from("notifications").insert({
+          user_id: applicationUserId,
+          title: "Application Approved! 🎉",
+          message: "Your merchant application has been approved. You can now set up branches and start accepting payments.",
+          type: "success",
+          link: "/merchant",
+        });
+
         result = { success: true };
         break;
+      }
+
+      case "reject_merchant": {
         const { applicationId: rejId, reason } = body;
         const { error: rejErr } = await adminClient
           .from("merchant_applications")
@@ -150,13 +162,15 @@ Deno.serve(async (req) => {
           .eq("id", rejId);
         if (rejErr) throw rejErr;
 
-        // Send rejection email
+        // Get applicant user_id for email and notification
         const { data: rejApp } = await adminClient
           .from("merchant_applications")
           .select("user_id")
           .eq("id", rejId)
           .single();
+
         if (rejApp) {
+          // Send rejection email
           const { data: rejUser } = await adminClient.auth.admin.getUserById(rejApp.user_id);
           if (rejUser?.user?.email) {
             await sendMerchantEmail(
@@ -179,6 +193,15 @@ Deno.serve(async (req) => {
               </div>`
             );
           }
+
+          // Insert in-app notification
+          await adminClient.from("notifications").insert({
+            user_id: rejApp.user_id,
+            title: "Application Not Approved",
+            message: reason ? `Reason: ${reason}. You can update and re-submit your application.` : "Your merchant application was not approved. You can update and re-submit.",
+            type: "error",
+            link: "/merchant/register",
+          });
         }
 
         result = { success: true };

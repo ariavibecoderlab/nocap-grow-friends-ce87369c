@@ -13,6 +13,7 @@ import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 import MerchantTransactions from "@/components/merchant/MerchantTransactions";
+import NotificationBell from "@/components/NotificationBell";
 import {
   ArrowLeft,
   Plus,
@@ -405,7 +406,8 @@ const MerchantDashboard = () => {
             <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="font-display text-xl font-bold">Merchant Dashboard</h1>
+            <h1 className="font-display text-xl font-bold flex-1">Merchant Dashboard</h1>
+            <NotificationBell className="text-primary-foreground" />
           </div>
         </div>
       </div>
