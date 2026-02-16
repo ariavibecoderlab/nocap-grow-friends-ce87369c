@@ -9,6 +9,11 @@ async function hashPin(pin: string, salt: string): Promise<string> {
 }
 
 async function verifyPin(pin: string, storedHash: string): Promise<boolean> {
+  // Handle legacy plaintext PINs (no ':' separator)
+  if (!storedHash.includes(':')) {
+    return pin === storedHash;
+  }
+  // Handle properly hashed PINs (salt:hash format)
   const [salt, hash] = storedHash.split(':');
   if (!salt || !hash) return false;
   const computed = await hashPin(pin, salt);
