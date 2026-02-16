@@ -29,7 +29,7 @@ const BottomNav = () => {
               key={item.path}
               onClick={() => navigate(item.path)}
               className={`flex flex-col items-center gap-0.5 px-3 py-1 text-xs transition-colors ${
-                isActive ? "text-primary" : "text-muted-foreground"
+                isActive ? "text-secondary" : "text-muted-foreground"
               }`}
             >
               <item.icon className="h-5 w-5" />

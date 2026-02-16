@@ -136,13 +136,13 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-foreground p-4">
+    <div className="flex min-h-screen items-center justify-center bg-primary p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="font-display text-4xl font-bold tracking-tight text-background">
-            NO<span className="text-primary">cap</span>
+          <h1 className="font-display text-4xl font-bold tracking-tight text-white">
+            NO<span className="text-secondary">cap</span>
           </h1>
-          <p className="mt-2 text-sm text-background/60">Affiliate Cashback Platform</p>
+          <p className="mt-2 text-sm text-white/60">Affiliate Cashback Platform</p>
         </div>
 
         <Card className="border-0 shadow-lg">
@@ -275,8 +275,8 @@ const Auth = () => {
             {step === "registration-success" && (
               <>
                 <div className="flex flex-col items-center space-y-4 py-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                    <CheckCircle2 className="h-8 w-8 text-primary" />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary/10">
+                    <CheckCircle2 className="h-8 w-8 text-secondary" />
                   </div>
                   <p className="text-center text-sm text-muted-foreground">
                     We've sent a verification link to <span className="font-medium text-foreground">{email}</span>. Click the link in your email to activate your account, then come back to sign in.

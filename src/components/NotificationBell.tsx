@@ -22,7 +22,7 @@ const typeIcon = (type: string) => {
   switch (type) {
     case "success": return <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />;
     case "error": return <XCircle className="h-4 w-4 text-destructive shrink-0" />;
-    case "announcement": return <Megaphone className="h-4 w-4 text-primary shrink-0" />;
+    case "announcement": return <Megaphone className="h-4 w-4 text-secondary shrink-0" />;
     default: return <Info className="h-4 w-4 text-muted-foreground shrink-0" />;
   }
 };
@@ -142,7 +142,7 @@ const NotificationBell = ({ className }: { className?: string }) => {
                   onClick={() => handleClick(n)}
                   className={cn(
                     "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50",
-                    !n.is_read && "bg-primary/5"
+                    !n.is_read && "bg-secondary/5"
                   )}
                 >
                   <div className="mt-0.5">{typeIcon(n.type)}</div>

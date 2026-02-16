@@ -114,7 +114,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
   };
 
   const statusIcon = (s: string) => {
-    if (s === "approved") return <CheckCircle2 className="h-4 w-4 text-primary" />;
+    if (s === "approved") return <CheckCircle2 className="h-4 w-4 text-secondary" />;
     if (s === "rejected") return <XCircle className="h-4 w-4 text-destructive" />;
     return <Clock className="h-4 w-4 text-amber-500" />;
   };
@@ -126,7 +126,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
   return (
     <div className="space-y-3">
       {/* Balance & request button */}
-      <Card className="border-primary/20 bg-primary/5">
+      <Card className="border-secondary/20 bg-secondary/5">
         <CardContent className="p-4 flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground">Available Balance</p>
@@ -160,7 +160,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className={`text-[10px] font-medium capitalize ${r.status === "approved" ? "text-primary" : r.status === "rejected" ? "text-destructive" : "text-amber-500"}`}>
+                  <span className={`text-[10px] font-medium capitalize ${r.status === "approved" ? "text-secondary" : r.status === "rejected" ? "text-destructive" : "text-amber-500"}`}>
                     {r.status}
                   </span>
                   <p className="text-[10px] text-muted-foreground">

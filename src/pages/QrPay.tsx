@@ -247,7 +247,7 @@ const QrPay = () => {
       <div className="bg-primary px-4 pb-6 pt-8 text-primary-foreground">
         <div className="mx-auto max-w-md">
           <div className="flex items-center gap-3">
-            <button onClick={() => step === "scan" ? navigate("/dashboard") : resetFlow()} className="rounded-full p-1 hover:bg-white/10 transition-colors">
+            <button onClick={() => step === "scan" ? navigate("/dashboard") : resetFlow()} className="rounded-full p-1 hover:bg-primary-foreground/10 transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <h1 className="font-display text-xl font-bold">QR Pay</h1>
@@ -264,8 +264,8 @@ const QrPay = () => {
                 <div id={scannerContainerId} className="w-full" style={{ minHeight: scanning ? 300 : 0 }} />
                 {!scanning && (
                   <div className="flex flex-col items-center justify-center py-16 px-6">
-                    <div className="rounded-full bg-primary/10 p-4 mb-4">
-                      <Camera className="h-8 w-8 text-primary" />
+                     <div className="rounded-full bg-secondary/10 p-4 mb-4">
+                       <Camera className="h-8 w-8 text-secondary" />
                     </div>
                     <p className="text-sm text-muted-foreground text-center mb-4">
                       Scan a merchant's QR code to make a payment
@@ -303,8 +303,8 @@ const QrPay = () => {
             <Card className="border-0 shadow-lg">
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <Store className="h-6 w-6 text-primary" />
+                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary/10">
+                     <Store className="h-6 w-6 text-secondary" />
                   </div>
                   <div>
                     <p className="font-display text-lg font-bold">{branch.branch_name}</p>
@@ -364,8 +364,8 @@ const QrPay = () => {
             <Card className="border-0 shadow-lg">
               <CardContent className="p-5 space-y-4">
                 <div className="flex flex-col items-center">
-                  <div className="rounded-full bg-primary/10 p-3 mb-3">
-                    <ShieldCheck className="h-6 w-6 text-primary" />
+                   <div className="rounded-full bg-secondary/10 p-3 mb-3">
+                     <ShieldCheck className="h-6 w-6 text-secondary" />
                   </div>
                   <p className="font-display text-lg font-bold">Enter PIN</p>
                   <p className="text-xs text-muted-foreground">Required for payments of RM50 and above</p>
@@ -391,7 +391,7 @@ const QrPay = () => {
                   </div>
                   <div className="flex justify-between mt-1">
                     <span className="text-muted-foreground">Amount</span>
-                    <span className="font-bold text-primary">RM {Number(amount).toFixed(2)}</span>
+                    <span className="font-bold text-secondary">RM {Number(amount).toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -409,7 +409,7 @@ const QrPay = () => {
         {/* Processing Step */}
         {step === "processing" && (
           <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <Loader2 className="h-12 w-12 animate-spin text-secondary mb-4" />
             <p className="font-display text-lg font-semibold">Processing Payment...</p>
             <p className="text-sm text-muted-foreground">Please wait</p>
           </div>
@@ -421,18 +421,18 @@ const QrPay = () => {
             <Card className="border-0 shadow-lg">
               <CardContent className="p-5 space-y-4">
                 <div className="flex flex-col items-center py-4">
-                  <div className="rounded-full bg-primary/10 p-4 mb-3">
-                    <CheckCircle2 className="h-10 w-10 text-primary" />
+                   <div className="rounded-full bg-secondary/10 p-4 mb-3">
+                     <CheckCircle2 className="h-10 w-10 text-secondary" />
                   </div>
                   <p className="font-display text-xl font-bold">Payment Successful!</p>
                   <p className="text-sm text-muted-foreground mt-1">RM {Number(amount).toFixed(2)} paid to {result.branch_name}</p>
                 </div>
 
                 {result.cashback > 0 && (
-                  <div className="flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/20 p-3">
-                    <Gift className="h-5 w-5 text-primary shrink-0" />
-                    <div>
-                      <p className="text-sm font-semibold text-primary">Cashback earned!</p>
+                   <div className="flex items-center gap-2 rounded-lg bg-secondary/5 border border-secondary/20 p-3">
+                     <Gift className="h-5 w-5 text-secondary shrink-0" />
+                     <div>
+                       <p className="text-sm font-semibold text-secondary">Cashback earned!</p>
                       <p className="text-xs text-muted-foreground">RM {result.cashback.toFixed(2)} added to your wallet</p>
                     </div>
                   </div>

@@ -256,7 +256,7 @@ const MerchantRegister = () => {
       <div className="min-h-screen bg-background pb-20">
         <div className="bg-primary px-4 pb-6 pt-8 text-primary-foreground">
           <div className="mx-auto max-w-md flex items-center gap-3">
-            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors">
+            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-primary-foreground/10 transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <h1 className="font-display text-xl font-bold">Merchant Application</h1>
@@ -276,7 +276,7 @@ const MerchantRegister = () => {
               )}
               {existingApp.status === "approved" && (
                 <>
-                  <CheckCircle2 className="h-12 w-12 text-primary mb-4" />
+                  <CheckCircle2 className="h-12 w-12 text-secondary mb-4" />
                   <p className="font-display text-lg font-semibold">Application Approved!</p>
                   <p className="mt-2 text-sm text-muted-foreground text-center max-w-xs">
                     Your merchant account is active. Head to your merchant dashboard.
@@ -304,7 +304,7 @@ const MerchantRegister = () => {
       {/* Header */}
       <div className="bg-primary px-4 pb-6 pt-8 text-primary-foreground">
         <div className="mx-auto max-w-md flex items-center gap-3">
-          <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors">
+          <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-primary-foreground/10 transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="font-display text-xl font-bold">Merchant Registration</h1>
@@ -332,13 +332,13 @@ const MerchantRegister = () => {
         <div className="flex items-center justify-between px-2">
           {STEPS.map((s, i) => (
             <div key={s.key} className="flex items-center">
-              <div className={`flex flex-col items-center ${i <= stepIndex ? "text-primary" : "text-muted-foreground"}`}>
+              <div className={`flex flex-col items-center ${i <= stepIndex ? "text-secondary" : "text-muted-foreground"}`}>
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors ${
                     i < stepIndex
-                      ? "bg-primary border-primary text-primary-foreground"
+                      ? "bg-secondary border-secondary text-secondary-foreground"
                       : i === stepIndex
-                      ? "border-primary text-primary"
+                      ? "border-secondary text-secondary"
                       : "border-muted-foreground/30"
                   }`}
                 >
@@ -434,7 +434,7 @@ const MerchantRegister = () => {
                 ))}
               </div>
 
-              <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30 py-8 transition-colors hover:border-primary/50 hover:bg-primary/5">
+              <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30 py-8 transition-colors hover:border-secondary/50 hover:bg-secondary/5">
                 {uploading ? (
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 ) : (
