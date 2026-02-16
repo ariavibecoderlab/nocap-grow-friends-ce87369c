@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
-import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight } from "lucide-react";
+import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Transaction {
@@ -204,6 +204,22 @@ const Dashboard = () => {
             <Button variant="outline" size="sm" onClick={copyReferralCode} className="gap-1.5">
               <Copy className="h-3.5 w-3.5" /> Copy
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Become a Merchant */}
+        <Card className="mt-4 border-border/50 cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/merchant/register")}>
+          <CardContent className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <Store className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Become a Merchant</p>
+                <p className="text-[10px] text-muted-foreground">Start accepting payments for your business</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </CardContent>
         </Card>
 
