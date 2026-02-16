@@ -57,7 +57,7 @@ serve(async (req) => {
     // Validate API app
     const { data: app } = await supabase
       .from('api_applications')
-      .select('id, merchant_user_id, branch_id, is_active, name, api_secret_hash, webhook_url')
+      .select('id, merchant_user_id, branch_id, is_active, is_sandbox, name, api_secret_hash, webhook_url')
       .eq('api_key', apiKey)
       .single();
 
@@ -154,6 +154,7 @@ serve(async (req) => {
         description: description || null,
         reference: reference || null,
         status: 'pending',
+        is_sandbox: app.is_sandbox,
       })
       .select('id')
       .single();
@@ -161,6 +162,60 @@ serve(async (req) => {
     if (chargeError) {
       return new Response(JSON.stringify({ error: 'Failed to create charge' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // === SANDBOX MODE ===
+    if (app.is_sandbox) {
+      // Skip all validations and balance checks
+      await supabase.from('api_charges').update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        metadata: { sandbox: true }
+      }).eq('id', charge.id);
+
+      console.log(`[SANDBOX] API Charge: ${payerId} -> ${branch.branch_name}, RM${amount}, app: ${app.name}`);
+
+      // Send webhook for sandbox
+      if (app.webhook_url) {
+        const webhookPayload = {
+          event: 'charge.completed',
+          charge_id: charge.id,
+          amount,
+          description: description || null,
+          reference: reference || null,
+          status: 'completed',
+          is_sandbox: true,
+          timestamp: new Date().toISOString(),
+        };
+        const payloadStr = JSON.stringify(webhookPayload);
+
+        const encoder = new TextEncoder();
+        const hmacKey = await crypto.subtle.importKey(
+          'raw', encoder.encode(app.api_secret_hash),
+          { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+        );
+        const sigBuf = await crypto.subtle.sign('HMAC', hmacKey, encoder.encode(payloadStr));
+        const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+        fetch(app.webhook_url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-Signature': signature,
+          },
+          body: payloadStr,
+        }).catch(err => console.error('Webhook delivery failed:', err));
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        charge_id: charge.id,
+        amount,
+        is_sandbox: true,
+        message: 'Sandbox transaction completed (no real money movement)',
+      }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 

@@ -55,7 +55,7 @@ serve(async (req) => {
       });
     }
 
-    const { name, description, branch_id, webhook_url } = await req.json();
+    const { name, description, branch_id, webhook_url, is_sandbox } = await req.json();
 
     if (!name || typeof name !== 'string' || name.trim().length === 0 || name.trim().length > 100) {
       return new Response(JSON.stringify({ error: 'App name is required (max 100 chars)' }), {
@@ -98,6 +98,7 @@ serve(async (req) => {
         merchant_user_id: user.id,
         branch_id,
         webhook_url: webhook_url?.trim() || null,
+        is_sandbox: !!is_sandbox,
       })
       .select('id, api_key, name')
       .single();
