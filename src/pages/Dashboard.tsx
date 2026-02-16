@@ -98,6 +98,41 @@ const Dashboard = () => {
     };
 
     fetchData();
+
+    // Realtime: auto-refresh wallet balance & transactions on changes
+    const walletChannel = supabase
+      .channel("dashboard-wallet")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const updated = payload.new as { balance: number; wallet_type: string };
+          if (updated.wallet_type === "member") {
+            setBalance(Number(updated.balance));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "transactions", filter: `user_id=eq.${user.id}` },
+        () => {
+          // Refresh transactions list
+          supabase
+            .from("transactions")
+            .select("id, type, amount, status, description, created_at")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(5)
+            .then(({ data }) => {
+              if (data) setTransactions(data as Transaction[]);
+            });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(walletChannel);
+    };
   }, [user]);
 
   const shareReferralCode = async () => {
