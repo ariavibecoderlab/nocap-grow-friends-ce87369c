@@ -169,16 +169,11 @@ serve(async (req) => {
     }
 
     // Extract bill code and payment URL from response
-    // Response structure: { data: { code: "...", url: "..." } }
-    const billCode = rpData?.data?.code || rpData?.code || '';
-    await supabase
-      .from('transactions')
-      .update({ metadata: { bill_code: billCode, raudhahpay_response: rpData } })
-      .eq('id', transaction.id);
-
-    // Build payment URL - use the URL from response or construct from bill code
-    const paymentUrl = rpData?.data?.url || rpData?.url || 
-      `https://cloud.raudhahpay.com/billing/bills/bill-payment?code=${billCode}`;
+    const billCode = rpData?.bill_no || rpData?.data?.code || rpData?.code || '';
+    
+    // Use payment_url from response (the correct field name from RaudhahPay API)
+    const paymentUrl = rpData?.payment_url || rpData?.bill_url || rpData?.data?.payment_url || rpData?.data?.url || 
+      `https://cloud.raudhahpay.com/payment/gateway/secure-pay?bill_no=${billCode}`;
 
     return new Response(JSON.stringify({ 
       payment_url: paymentUrl,
