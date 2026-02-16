@@ -143,35 +143,35 @@ const MerchantWithdrawals = ({ userId }: Props) => {
   return (
     <div className="space-y-3">
       {/* Balance & request button */}
-      <Card className="border-secondary/20 bg-secondary/5">
+      <Card className="border-secondary/20 bg-secondary/10">
         <CardContent className="p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs text-muted-foreground">Available Balance</p>
-            <p className="text-xl font-bold font-display">RM {walletBalance.toFixed(2)}</p>
+            <p className="text-xs text-white/40">Available Balance</p>
+            <p className="text-xl font-bold font-display text-white">RM {walletBalance.toFixed(2)}</p>
           </div>
-          <Button size="sm" onClick={() => setShowForm(true)} disabled={hasPending} className="gap-1.5">
+          <Button size="sm" onClick={() => setShowForm(true)} disabled={hasPending} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90 font-semibold">
             <ArrowDownToLine className="h-3.5 w-3.5" /> Withdraw
           </Button>
         </CardContent>
       </Card>
 
       {hasPending && (
-        <p className="text-xs text-amber-600 text-center">You have a pending withdrawal request. Please wait for it to be processed.</p>
+        <p className="text-xs text-amber-500 text-center">You have a pending withdrawal request. Please wait for it to be processed.</p>
       )}
 
       {/* History */}
       {requests.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-6">No withdrawal requests yet.</p>
+        <p className="text-xs text-white/40 text-center py-6">No withdrawal requests yet.</p>
       ) : (
         requests.map((r) => (
-          <Card key={r.id} className="border-border/50">
+          <Card key={r.id} className="border-white/10 bg-white/5">
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {statusIcon(r.status)}
                   <div>
-                    <p className="text-sm font-semibold">RM {Number(r.amount).toFixed(2)}</p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-sm font-semibold text-white">RM {Number(r.amount).toFixed(2)}</p>
+                    <p className="text-[10px] text-white/40">
                       {r.bank_name} • {r.bank_account_no}
                     </p>
                   </div>
@@ -180,7 +180,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
                   <span className={`text-[10px] font-medium capitalize ${r.status === "approved" ? "text-secondary" : r.status === "rejected" ? "text-destructive" : "text-amber-500"}`}>
                     {r.status}
                   </span>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-[10px] text-white/40">
                     {new Date(r.created_at).toLocaleDateString()}
                   </p>
                 </div>
@@ -197,31 +197,31 @@ const MerchantWithdrawals = ({ userId }: Props) => {
 
       {/* Withdrawal Form Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm bg-primary border-white/10">
           <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
+            <DialogTitle className="font-display flex items-center gap-2 text-white">
               <Wallet className="h-5 w-5" /> Request Withdrawal
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label>Amount (RM) *</Label>
-              <Input type="number" inputMode="decimal" placeholder={minWithdrawal.toFixed(2)} value={amount} onChange={(e) => setAmount(e.target.value)} min={minWithdrawal} />
-              <p className="text-[10px] text-muted-foreground">Min: RM {minWithdrawal.toFixed(2)} • Available: RM {walletBalance.toFixed(2)}</p>
+              <Label className="text-white/70">Amount (RM) *</Label>
+              <Input type="number" inputMode="decimal" placeholder={minWithdrawal.toFixed(2)} value={amount} onChange={(e) => setAmount(e.target.value)} min={minWithdrawal} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
+              <p className="text-[10px] text-white/40">Min: RM {minWithdrawal.toFixed(2)} • Available: RM {walletBalance.toFixed(2)}</p>
             </div>
             <div className="space-y-1">
-              <Label>Bank Name *</Label>
-              <Input placeholder="e.g. CIMB Bank" value={bankName} onChange={(e) => setBankName(e.target.value)} />
+              <Label className="text-white/70">Bank Name *</Label>
+              <Input placeholder="e.g. CIMB Bank" value={bankName} onChange={(e) => setBankName(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
             </div>
             <div className="space-y-1">
-              <Label>Account Number *</Label>
-              <Input placeholder="e.g. 7778889990" value={bankAccountNo} onChange={(e) => setBankAccountNo(e.target.value)} />
+              <Label className="text-white/70">Account Number *</Label>
+              <Input placeholder="e.g. 7778889990" value={bankAccountNo} onChange={(e) => setBankAccountNo(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
             </div>
             <div className="space-y-1">
-              <Label>Account Holder Name *</Label>
-              <Input placeholder="Full name" value={bankAccountHolder} onChange={(e) => setBankAccountHolder(e.target.value)} />
+              <Label className="text-white/70">Account Holder Name *</Label>
+              <Input placeholder="Full name" value={bankAccountHolder} onChange={(e) => setBankAccountHolder(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
             </div>
-            <Button className="w-full" onClick={submit} disabled={submitting}>
+            <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={submit} disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Submit Request
             </Button>
