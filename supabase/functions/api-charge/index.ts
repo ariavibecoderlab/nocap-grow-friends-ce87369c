@@ -27,12 +27,28 @@ async function verifyPin(pin: string, storedHash: string): Promise<boolean> {
   return computed === hash;
 }
 
+async function logRequest(supabase: any, appId: string, endpoint: string, method: string, statusCode: number, reqBody: any, resBody: any, userId?: string, startTime?: number) {
+  try {
+    await supabase.from('api_request_logs').insert({
+      app_id: appId,
+      endpoint,
+      method,
+      status_code: statusCode,
+      request_body: reqBody || {},
+      response_body: resBody || {},
+      user_id: userId || null,
+      duration_ms: startTime ? Date.now() - startTime : null,
+    });
+  } catch (e) { console.error('Log insert failed:', e); }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const startTime = Date.now();
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -226,13 +242,9 @@ serve(async (req) => {
         }).catch(err => console.error('Webhook delivery failed:', err));
       }
 
-      return new Response(JSON.stringify({
-        success: true,
-        charge_id: charge.id,
-        amount,
-        is_sandbox: true,
-        message: 'Sandbox transaction completed (no real money movement)',
-      }), {
+      const sandboxRes = { success: true, charge_id: charge.id, amount, is_sandbox: true, message: 'Sandbox transaction completed (no real money movement)' };
+      await logRequest(supabase, app.id, '/api-charge', 'POST', 200, { amount, description, reference, is_sandbox: true }, sandboxRes, payerId, startTime);
+      return new Response(JSON.stringify(sandboxRes), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -498,21 +510,22 @@ serve(async (req) => {
       }).catch(err => console.error('Webhook delivery failed:', err));
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      charge_id: charge.id,
-      transaction_id: paymentTx?.id,
-      amount,
-      new_balance: newPayerBalance + cashbackShare,
-      cashback: cashbackShare,
-      branch_name: branch.branch_name,
-    }), {
+    const successRes = { success: true, charge_id: charge.id, transaction_id: paymentTx?.id, amount, new_balance: newPayerBalance + cashbackShare, cashback: cashbackShare, branch_name: branch.branch_name };
+    await logRequest(supabase, app.id, '/api-charge', 'POST', 200, { amount, description, reference }, successRes, payerId, startTime);
+    return new Response(JSON.stringify(successRes), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error: unknown) {
     console.error('Charge error:', error);
     const msg = error instanceof Error ? error.message : 'Unknown error';
+    // Best-effort log on error
+    try {
+      const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      await logRequest(sb, 'unknown', '/api-charge', 'POST', 500, {}, { error: msg });
+    } catch (_) { /* ignore */ }
     return new Response(JSON.stringify({ error: msg }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

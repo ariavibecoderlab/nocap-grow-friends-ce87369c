@@ -24,6 +24,7 @@ serve(async (req) => {
   }
 
   try {
+    const startTime = Date.now();
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -88,6 +89,14 @@ serve(async (req) => {
       });
     }
 
+    // Log request
+    try {
+      await supabase.from('api_request_logs').insert({
+        app_id: app.id, endpoint: '/api-charge-status', method: 'GET', status_code: 200,
+        request_body: { charge_id }, response_body: charge,
+        duration_ms: Date.now() - startTime,
+      });
+    } catch (_) { /* ignore */ }
     return new Response(JSON.stringify(charge), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -61,6 +61,7 @@ serve(async (req) => {
   }
 
   try {
+    const startTime = Date.now();
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -122,10 +123,16 @@ serve(async (req) => {
       .eq('wallet_type', 'member')
       .single();
 
-    return new Response(JSON.stringify({
-      balance: wallet ? Number(wallet.balance) : 0,
-      currency: 'MYR',
-    }), {
+    const resBody = { balance: wallet ? Number(wallet.balance) : 0, currency: 'MYR' };
+    // Log request
+    try {
+      await supabase.from('api_request_logs').insert({
+        app_id: app.id, endpoint: '/api-balance', method: 'GET', status_code: 200,
+        request_body: {}, response_body: resBody, user_id: token.user_id,
+        duration_ms: Date.now() - startTime,
+      });
+    } catch (_) { /* ignore */ }
+    return new Response(JSON.stringify(resBody), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

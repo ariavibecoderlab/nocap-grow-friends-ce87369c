@@ -171,6 +171,48 @@ export type Database = {
           },
         ]
       }
+      api_request_logs: {
+        Row: {
+          app_id: string
+          created_at: string
+          duration_ms: number | null
+          endpoint: string
+          id: string
+          ip_address: string | null
+          method: string
+          request_body: Json | null
+          response_body: Json | null
+          status_code: number
+          user_id: string | null
+        }
+        Insert: {
+          app_id: string
+          created_at?: string
+          duration_ms?: number | null
+          endpoint: string
+          id?: string
+          ip_address?: string | null
+          method?: string
+          request_body?: Json | null
+          response_body?: Json | null
+          status_code: number
+          user_id?: string | null
+        }
+        Update: {
+          app_id?: string
+          created_at?: string
+          duration_ms?: number | null
+          endpoint?: string
+          id?: string
+          ip_address?: string | null
+          method?: string
+          request_body?: Json | null
+          response_body?: Json | null
+          status_code?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       merchant_applications: {
         Row: {
           bank_account_holder: string | null
@@ -690,6 +732,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_old_api_logs: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       generate_referral_code: { Args: never; Returns: string }
       has_role: {
