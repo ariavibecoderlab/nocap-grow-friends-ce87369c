@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BottomNav from "@/components/BottomNav";
 import TransactionDetail from "@/components/TransactionDetail";
-import { ArrowLeft, ArrowDownLeft, ArrowUpRight, ArrowUpDown, Gift, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowDownLeft, ArrowUpRight, ArrowUpDown, Gift, Wallet, Search, X } from "lucide-react";
 
 interface Transaction {
   id: string;
@@ -54,12 +56,16 @@ const transactionLabel = (type: string) => {
 const isCredit = (type: string) =>
   ["top_up", "transfer_in", "cashback", "commission", "refund"].includes(type);
 
+type FilterType = "all" | "in" | "out";
+
 const Transactions = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<FilterType>("all");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -86,6 +92,28 @@ const Transactions = () => {
     fetchTransactions();
   }, [user]);
 
+  const filtered = useMemo(() => {
+    let result = transactions;
+
+    if (filter === "in") {
+      result = result.filter((tx) => isCredit(tx.type));
+    } else if (filter === "out") {
+      result = result.filter((tx) => !isCredit(tx.type));
+    }
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (tx) =>
+          (tx.description && tx.description.toLowerCase().includes(q)) ||
+          transactionLabel(tx.type).toLowerCase().includes(q) ||
+          tx.amount.toFixed(2).includes(q)
+      );
+    }
+
+    return result;
+  }, [transactions, filter, search]);
+
   if (authLoading || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-primary">
@@ -96,7 +124,7 @@ const Transactions = () => {
 
   return (
     <div className="min-h-screen bg-primary pb-20">
-      <div className="px-4 pt-8 pb-6">
+      <div className="px-4 pt-8 pb-4">
         <div className="mx-auto max-w-md">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => navigate("/dashboard")}>
@@ -107,18 +135,49 @@ const Transactions = () => {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4">
-        {transactions.length === 0 ? (
+      <div className="mx-auto max-w-md px-4 space-y-3">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+          <Input
+            placeholder="Search by description or amount..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="border-white/10 bg-white/5 pl-9 pr-9 text-white placeholder:text-white/30 focus-visible:ring-secondary"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Filter tabs */}
+        <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterType)}>
+          <TabsList className="w-full bg-white/5 border border-white/10">
+            <TabsTrigger value="all" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/60">All</TabsTrigger>
+            <TabsTrigger value="in" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/60">Money In</TabsTrigger>
+            <TabsTrigger value="out" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/60">Money Out</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {/* Results count */}
+        {(search || filter !== "all") && (
+          <p className="text-xs text-white/40">{filtered.length} transaction{filtered.length !== 1 ? "s" : ""} found</p>
+        )}
+
+        {/* Transaction list */}
+        {filtered.length === 0 ? (
           <Card className="border-white/10 bg-white/5">
             <CardContent className="flex flex-col items-center justify-center py-10 text-white/40">
               <Wallet className="h-8 w-8 mb-2 opacity-40" />
-              <p className="text-sm font-medium">No transactions yet</p>
-              <p className="mt-1 text-xs">Your activity will appear here</p>
+              <p className="text-sm font-medium">{transactions.length === 0 ? "No transactions yet" : "No matching transactions"}</p>
+              <p className="mt-1 text-xs">{transactions.length === 0 ? "Your activity will appear here" : "Try a different search or filter"}</p>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-2">
-            {transactions.map((tx) => (
+            {filtered.map((tx) => (
               <Card
                 key={tx.id}
                 className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"
