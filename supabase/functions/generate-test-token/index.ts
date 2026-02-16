@@ -1,0 +1,112 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+};
+
+async function hashSecret(secret: string): Promise<string> {
+  const data = new TextEncoder().encode(secret);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Not authenticated' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const { app_id } = await req.json();
+    if (!app_id) {
+      return new Response(JSON.stringify({ error: 'app_id is required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Verify the app belongs to this merchant and is a sandbox app
+    const { data: app, error: appError } = await supabase
+      .from('api_applications')
+      .select('id, is_sandbox, merchant_user_id')
+      .eq('id', app_id)
+      .single();
+
+    if (appError || !app) {
+      return new Response(JSON.stringify({ error: 'App not found' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (app.merchant_user_id !== user.id) {
+      return new Response(JSON.stringify({ error: 'Not your app' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!app.is_sandbox) {
+      return new Response(JSON.stringify({ error: 'Test tokens can only be generated for sandbox apps' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Generate new test access token
+    const tokenBytes = new Uint8Array(32);
+    crypto.getRandomValues(tokenBytes);
+    const testAccessToken = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    const tokenHash = await hashSecret(testAccessToken);
+
+    const { error: tokenError } = await supabase
+      .from('api_access_tokens')
+      .insert({
+        app_id: app.id,
+        user_id: user.id,
+        access_token_hash: tokenHash,
+        scopes: ['balance', 'charge'],
+      });
+
+    if (tokenError) {
+      console.error('Token insert error:', tokenError);
+      return new Response(JSON.stringify({ error: 'Failed to generate token' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      test_access_token: testAccessToken,
+    }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error: unknown) {
+    console.error('Error:', error);
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
