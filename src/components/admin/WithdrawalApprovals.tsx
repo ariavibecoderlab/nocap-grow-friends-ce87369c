@@ -27,8 +27,6 @@ const WithdrawalApprovals = () => {
   const [requests, setRequests] = useState<WithdrawalRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
-
-  // Rejection dialog
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -41,7 +39,6 @@ const WithdrawalApprovals = () => {
       .order("created_at", { ascending: true });
 
     if (data) {
-      // Fetch profile names
       const userIds = [...new Set(data.map((d: any) => d.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
@@ -49,7 +46,6 @@ const WithdrawalApprovals = () => {
         .in("user_id", userIds);
       const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
 
-      // Fetch branch names for branch withdrawals
       const branchIds = data.filter((d: any) => d.branch_id).map((d: any) => d.branch_id);
       let branchMap = new Map<string, string>();
       if (branchIds.length > 0) {
@@ -71,15 +67,12 @@ const WithdrawalApprovals = () => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
+  useEffect(() => { fetchRequests(); }, []);
 
   const callAdmin = async (body: Record<string, unknown>) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return { error: "No session" };
-    const res = await supabase.functions.invoke("admin-actions", { body });
-    return res;
+    return await supabase.functions.invoke("admin-actions", { body });
   };
 
   const approve = async (req: WithdrawalRow) => {
@@ -122,49 +115,49 @@ const WithdrawalApprovals = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+    return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>;
   }
 
   return (
     <div className="space-y-3 mt-4">
-      <h3 className="text-sm font-semibold flex items-center gap-1.5">
+      <h3 className="text-sm font-semibold flex items-center gap-1.5 text-white">
         <Wallet className="h-4 w-4" /> Pending Withdrawals ({requests.length})
       </h3>
 
       {requests.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-6">No pending withdrawal requests.</p>
+        <p className="text-xs text-white/40 text-center py-6">No pending withdrawal requests.</p>
       ) : (
         requests.map((r) => (
-          <Card key={r.id} className="border-border/50">
+          <Card key={r.id} className="border-white/10 bg-white/5">
             <CardContent className="p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold">RM {Number(r.amount).toFixed(2)}</p>
-                   <p className="text-[10px] text-muted-foreground">
+                  <p className="text-sm font-semibold text-white">RM {Number(r.amount).toFixed(2)}</p>
+                  <p className="text-[10px] text-white/40">
                     {r.profiles?.full_name || "Unknown"} • {r.profiles?.phone || ""}
-                    {r.branch_name && <span className="ml-1 text-primary">• Branch: {r.branch_name}</span>}
+                    {r.branch_name && <span className="ml-1 text-secondary">• Branch: {r.branch_name}</span>}
                   </p>
                   <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                    r.wallet_type === 'member' ? 'bg-blue-100 text-blue-700' :
-                    r.wallet_type === 'merchant' ? 'bg-purple-100 text-purple-700' :
-                    'bg-amber-100 text-amber-700'
+                    r.wallet_type === 'member' ? 'bg-blue-500/20 text-blue-400' :
+                    r.wallet_type === 'merchant' ? 'bg-purple-500/20 text-purple-400' :
+                    'bg-amber-500/20 text-amber-400'
                   }`}>
                     {r.wallet_type === 'member' ? 'Member' : r.wallet_type === 'merchant' ? 'Merchant' : 'Branch'} Wallet
                   </span>
                 </div>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-[10px] text-white/40">
                   {new Date(r.created_at).toLocaleDateString()}
                 </p>
               </div>
-              <div className="bg-muted/50 rounded px-2 py-1.5 text-xs space-y-0.5">
-                <p><span className="text-muted-foreground">Bank:</span> {r.bank_name}</p>
-                <p><span className="text-muted-foreground">Account:</span> {r.bank_account_no}</p>
-                <p><span className="text-muted-foreground">Holder:</span> {r.bank_account_holder}</p>
+              <div className="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-xs space-y-0.5">
+                <p className="text-white/70"><span className="text-white/40">Bank:</span> {r.bank_name}</p>
+                <p className="text-white/70"><span className="text-white/40">Account:</span> {r.bank_account_no}</p>
+                <p className="text-white/70"><span className="text-white/40">Holder:</span> {r.bank_account_holder}</p>
               </div>
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  className="flex-1 gap-1"
+                  className="flex-1 gap-1 bg-secondary text-primary hover:bg-secondary/90 font-semibold"
                   onClick={() => approve(r)}
                   disabled={processing === r.id}
                 >
@@ -186,17 +179,17 @@ const WithdrawalApprovals = () => {
         ))
       )}
 
-      {/* Rejection Dialog */}
       <Dialog open={!!rejectTarget} onOpenChange={(o) => { if (!o) { setRejectTarget(null); setRejectReason(""); } }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm bg-primary border-white/10">
           <DialogHeader>
-            <DialogTitle className="font-display">Reject Withdrawal</DialogTitle>
+            <DialogTitle className="font-display text-white">Reject Withdrawal</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <Input
               placeholder="Reason for rejection (optional)"
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
+              className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
             />
             <Button variant="destructive" className="w-full" onClick={reject} disabled={processing !== null}>
               {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
