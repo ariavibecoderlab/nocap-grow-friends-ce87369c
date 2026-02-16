@@ -6,9 +6,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import BottomNav from "@/components/BottomNav";
 import TransactionDetail from "@/components/TransactionDetail";
-import { ArrowLeft, ArrowDownLeft, ArrowUpRight, ArrowUpDown, Gift, Wallet, Search, X } from "lucide-react";
+import { ArrowLeft, ArrowDownLeft, ArrowUpRight, ArrowUpDown, Gift, Wallet, Search, X, CalendarIcon, ChevronDown } from "lucide-react";
+import { format, startOfDay, endOfDay, startOfWeek, startOfMonth, subDays } from "date-fns";
+import { cn } from "@/lib/utils";
+import { DateRange } from "react-day-picker";
 
 interface Transaction {
   id: string;
@@ -57,6 +62,15 @@ const isCredit = (type: string) =>
   ["top_up", "transfer_in", "cashback", "commission", "refund"].includes(type);
 
 type FilterType = "all" | "in" | "out";
+type DatePreset = "all" | "today" | "week" | "month" | "custom";
+
+const datePresets: { value: DatePreset; label: string }[] = [
+  { value: "all", label: "All Time" },
+  { value: "today", label: "Today" },
+  { value: "week", label: "This Week" },
+  { value: "month", label: "This Month" },
+  { value: "custom", label: "Custom" },
+];
 
 const Transactions = () => {
   const { user, loading: authLoading } = useAuth();
@@ -66,6 +80,9 @@ const Transactions = () => {
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
+  const [datePreset, setDatePreset] = useState<DatePreset>("all");
+  const [customRange, setCustomRange] = useState<DateRange | undefined>();
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -92,6 +109,25 @@ const Transactions = () => {
     fetchTransactions();
   }, [user]);
 
+  const dateRange = useMemo((): { from: Date; to: Date } | null => {
+    const now = new Date();
+    switch (datePreset) {
+      case "today":
+        return { from: startOfDay(now), to: endOfDay(now) };
+      case "week":
+        return { from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfDay(now) };
+      case "month":
+        return { from: startOfMonth(now), to: endOfDay(now) };
+      case "custom":
+        if (customRange?.from) {
+          return { from: startOfDay(customRange.from), to: endOfDay(customRange.to || customRange.from) };
+        }
+        return null;
+      default:
+        return null;
+    }
+  }, [datePreset, customRange]);
+
   const filtered = useMemo(() => {
     let result = transactions;
 
@@ -99,6 +135,13 @@ const Transactions = () => {
       result = result.filter((tx) => isCredit(tx.type));
     } else if (filter === "out") {
       result = result.filter((tx) => !isCredit(tx.type));
+    }
+
+    if (dateRange) {
+      result = result.filter((tx) => {
+        const txDate = new Date(tx.created_at);
+        return txDate >= dateRange.from && txDate <= dateRange.to;
+      });
     }
 
     if (search.trim()) {
@@ -112,7 +155,11 @@ const Transactions = () => {
     }
 
     return result;
-  }, [transactions, filter, search]);
+  }, [transactions, filter, search, dateRange]);
+
+  const hasActiveFilters = search || filter !== "all" || datePreset !== "all";
+
+  const activeDateLabel = datePresets.find((p) => p.value === datePreset)?.label || "All Time";
 
   if (authLoading || loading) {
     return (
@@ -152,18 +199,83 @@ const Transactions = () => {
           )}
         </div>
 
-        {/* Filter tabs */}
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterType)}>
-          <TabsList className="w-full bg-white/5 border border-white/10">
-            <TabsTrigger value="all" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/60">All</TabsTrigger>
-            <TabsTrigger value="in" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/60">Money In</TabsTrigger>
-            <TabsTrigger value="out" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/60">Money Out</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {/* Filter tabs + Date filter row */}
+        <div className="flex items-center gap-2">
+          <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterType)} className="flex-1">
+            <TabsList className="w-full bg-white/5 border border-white/10">
+              <TabsTrigger value="all" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/60">All</TabsTrigger>
+              <TabsTrigger value="in" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/60">Money In</TabsTrigger>
+              <TabsTrigger value="out" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/60">Money Out</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        {/* Date range presets */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {datePresets.filter((p) => p.value !== "custom").map((preset) => (
+            <button
+              key={preset.value}
+              onClick={() => { setDatePreset(preset.value); setCustomRange(undefined); }}
+              className={cn(
+                "rounded-full px-3 py-1 text-[11px] font-medium transition-colors border",
+                datePreset === preset.value
+                  ? "bg-secondary text-primary border-secondary"
+                  : "bg-white/5 text-white/50 border-white/10 hover:bg-white/10"
+              )}
+            >
+              {preset.label}
+            </button>
+          ))}
+
+          {/* Custom date picker */}
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className={cn(
+                  "flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-medium transition-colors border",
+                  datePreset === "custom"
+                    ? "bg-secondary text-primary border-secondary"
+                    : "bg-white/5 text-white/50 border-white/10 hover:bg-white/10"
+                )}
+              >
+                <CalendarIcon className="h-3 w-3" />
+                {datePreset === "custom" && customRange?.from
+                  ? `${format(customRange.from, "dd MMM")}${customRange.to ? ` – ${format(customRange.to, "dd MMM")}` : ""}`
+                  : "Custom"}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 border-white/10 bg-primary" align="end">
+              <Calendar
+                mode="range"
+                selected={customRange}
+                onSelect={(range) => {
+                  setCustomRange(range);
+                  setDatePreset("custom");
+                  if (range?.from && range?.to) {
+                    setCalendarOpen(false);
+                  }
+                }}
+                disabled={(date) => date > new Date()}
+                numberOfMonths={1}
+                className={cn("p-3 pointer-events-auto text-white")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
 
         {/* Results count */}
-        {(search || filter !== "all") && (
-          <p className="text-xs text-white/40">{filtered.length} transaction{filtered.length !== 1 ? "s" : ""} found</p>
+        {hasActiveFilters && (
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-white/40">{filtered.length} transaction{filtered.length !== 1 ? "s" : ""} found</p>
+            {hasActiveFilters && (
+              <button
+                onClick={() => { setSearch(""); setFilter("all"); setDatePreset("all"); setCustomRange(undefined); }}
+                className="text-xs text-secondary hover:text-secondary/80"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
         )}
 
         {/* Transaction list */}
