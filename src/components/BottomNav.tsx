@@ -5,6 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const memberOnlyPaths = ["/qr-pay", "/transfer"];
+
 const baseNavItems = [
   { label: "Home", icon: Home, path: "/dashboard" },
   { label: "QR Pay", icon: QrCode, path: "/qr-pay" },
@@ -20,17 +22,26 @@ const BottomNav = () => {
   const { user } = useAuth();
   const [isBranchOwner, setIsBranchOwner] = useState(false);
 
+  const [isMerchant, setIsMerchant] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
-      .eq("role", "branch")
-      .then(({ data }) => setIsBranchOwner((data?.length ?? 0) > 0));
+      .then(({ data }) => {
+        const roles = data?.map((r) => r.role) ?? [];
+        setIsBranchOwner(roles.includes("branch"));
+        setIsMerchant(roles.includes("merchant"));
+      });
   }, [user]);
 
-  let navItems = [...baseNavItems];
+  const hasSpecialRole = isAdmin || isMerchant || isBranchOwner;
+
+  let navItems = hasSpecialRole
+    ? baseNavItems.filter((item) => !memberOnlyPaths.includes(item.path))
+    : [...baseNavItems];
   if (isBranchOwner) navItems = [...navItems, { label: "Branch", icon: Store, path: "/branch" }];
   if (isAdmin) navItems = [...navItems, { label: "Admin", icon: Shield, path: "/admin" }];
 
