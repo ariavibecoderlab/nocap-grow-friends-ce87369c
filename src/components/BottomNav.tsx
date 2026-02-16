@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, QrCode, ArrowUpDown, Users, User, Shield, Store } from "lucide-react";
+import { Home, QrCode, ArrowUpDown, Users, Settings, Shield, Store } from "lucide-react";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -10,7 +10,7 @@ const baseNavItems = [
   { label: "Pay", icon: QrCode, path: "/qr-pay" },
   { label: "Transfer", icon: ArrowUpDown, path: "/transfer" },
   { label: "Referral", icon: Users, path: "/referral" },
-  { label: "Profile", icon: User, path: "/profile" },
+  { label: "Settings", icon: Settings, path: "/profile" },
 ];
 
 const BottomNav = () => {
