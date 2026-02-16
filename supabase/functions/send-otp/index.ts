@@ -32,8 +32,13 @@ serve(async (req) => {
     });
 
     // Check if user exists before generating magic link (generateLink auto-creates users)
-    const { data: lookupRes, error: lookupErr } = await supabase.auth.admin.getUserByEmail(email);
-    if (lookupErr || !lookupRes?.user) {
+    const { data: lookupRes, error: lookupErr } = await supabase.auth.admin.listUsers({
+      filter: `email.eq.${email}`,
+      page: 1,
+      perPage: 1,
+    });
+    
+    if (lookupErr || !lookupRes?.users?.length) {
       return new Response(JSON.stringify({ error: 'User not found' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
