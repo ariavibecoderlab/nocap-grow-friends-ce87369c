@@ -36,10 +36,11 @@ const MerchantWithdrawals = ({ userId }: Props) => {
   const [bankName, setBankName] = useState("");
   const [bankAccountNo, setBankAccountNo] = useState("");
   const [bankAccountHolder, setBankAccountHolder] = useState("");
+  const [minWithdrawal, setMinWithdrawal] = useState(50);
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: wr }, { data: wallet }, { data: app }] = await Promise.all([
+    const [{ data: wr }, { data: wallet }, { data: app }, { data: globalSettings }] = await Promise.all([
       supabase
         .from("withdrawal_requests")
         .select("*")
@@ -49,10 +50,15 @@ const MerchantWithdrawals = ({ userId }: Props) => {
       supabase.from("wallets").select("balance").eq("user_id", userId).single(),
       supabase
         .from("merchant_applications")
-        .select("bank_name, bank_account_no, bank_account_holder")
+        .select("bank_name, bank_account_no, bank_account_holder, min_withdrawal_amount")
         .eq("user_id", userId)
         .eq("status", "approved")
         .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("system_settings")
+        .select("value")
+        .eq("key", "min_withdrawal_amount")
         .maybeSingle(),
     ]);
     if (wr) setRequests(wr as WithdrawalRequest[]);
@@ -61,6 +67,12 @@ const MerchantWithdrawals = ({ userId }: Props) => {
       setBankName(app.bank_name || "");
       setBankAccountNo(app.bank_account_no || "");
       setBankAccountHolder(app.bank_account_holder || "");
+      // Per-merchant override takes priority over global default
+      const merchantMin = app.min_withdrawal_amount != null ? Number(app.min_withdrawal_amount) : null;
+      const globalMin = globalSettings?.value ? Number(globalSettings.value) : 50;
+      setMinWithdrawal(merchantMin ?? globalMin);
+    } else if (globalSettings?.value) {
+      setMinWithdrawal(Number(globalSettings.value));
     }
     setLoading(false);
   };
@@ -84,6 +96,10 @@ const MerchantWithdrawals = ({ userId }: Props) => {
     const amt = Number(amount);
     if (!amt || amt <= 0) {
       toast({ title: "Enter a valid amount", variant: "destructive" });
+      return;
+    }
+    if (amt < minWithdrawal) {
+      toast({ title: `Minimum withdrawal is RM ${minWithdrawal.toFixed(2)}`, variant: "destructive" });
       return;
     }
     if (amt > walletBalance) {
@@ -189,8 +205,8 @@ const MerchantWithdrawals = ({ userId }: Props) => {
           <div className="space-y-3">
             <div className="space-y-1">
               <Label>Amount (RM) *</Label>
-              <Input type="number" inputMode="decimal" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} />
-              <p className="text-[10px] text-muted-foreground">Available: RM {walletBalance.toFixed(2)}</p>
+              <Input type="number" inputMode="decimal" placeholder={minWithdrawal.toFixed(2)} value={amount} onChange={(e) => setAmount(e.target.value)} min={minWithdrawal} />
+              <p className="text-[10px] text-muted-foreground">Min: RM {minWithdrawal.toFixed(2)} • Available: RM {walletBalance.toFixed(2)}</p>
             </div>
             <div className="space-y-1">
               <Label>Bank Name *</Label>
