@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
-import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store, AlertCircle } from "lucide-react";
+import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store, AlertCircle, Zap, Banknote, Send, UserPlus } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,14 +20,14 @@ interface Transaction {
 
 const transactionIcon = (type: string) => {
   switch (type) {
-    case "top_up":return <ArrowDownLeft className="h-4 w-4 text-secondary" />;
+    case "top_up": return <ArrowDownLeft className="h-4 w-4 text-secondary" />;
     case "cashback":
-    case "commission":return <Gift className="h-4 w-4 text-secondary" />;
-    case "transfer_in":return <ArrowDownLeft className="h-4 w-4 text-secondary" />;
+    case "commission": return <Gift className="h-4 w-4 text-secondary" />;
+    case "transfer_in": return <ArrowDownLeft className="h-4 w-4 text-secondary" />;
     case "transfer_out":
     case "payment":
-    case "withdrawal":return <ArrowUpRight className="h-4 w-4 text-destructive" />;
-    default:return <ArrowUpDown className="h-4 w-4 text-muted-foreground" />;
+    case "withdrawal": return <ArrowUpRight className="h-4 w-4 text-red-400" />;
+    default: return <ArrowUpDown className="h-4 w-4 text-white/50" />;
   }
 };
 
@@ -46,7 +46,7 @@ const transactionLabel = (type: string) => {
 };
 
 const isCredit = (type: string) =>
-["top_up", "transfer_in", "cashback", "commission", "refund"].includes(type);
+  ["top_up", "transfer_in", "cashback", "commission", "refund"].includes(type);
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -54,7 +54,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [balance, setBalance] = useState<number>(0);
   const [showBalance, setShowBalance] = useState(true);
-  const [profile, setProfile] = useState<{full_name: string; phone: string | null; referral_code: string;} | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string; phone: string | null; referral_code: string; } | null>(null);
   const [referralCount, setReferralCount] = useState(0);
   const [networkCount, setNetworkCount] = useState(0);
   const [totalEarnings, setTotalEarnings] = useState(0);
@@ -73,13 +73,13 @@ const Dashboard = () => {
     const fetchData = async () => {
       setLoadingData(true);
       const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes] = await Promise.all([
-      supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
-      supabase.from("profiles").select("full_name, phone, referral_code").eq("user_id", user.id).maybeSingle(),
-      supabase.from("referral_tree").select("id").eq("ancestor_id", user.id).eq("tier", 1),
-      supabase.from("referral_tree").select("id").eq("ancestor_id", user.id),
-      supabase.from("transactions").select("amount").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed"),
-      supabase.from("transactions").select("id, type, amount, status, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5)]
-      );
+        supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
+        supabase.from("profiles").select("full_name, phone, referral_code").eq("user_id", user.id).maybeSingle(),
+        supabase.from("referral_tree").select("id").eq("ancestor_id", user.id).eq("tier", 1),
+        supabase.from("referral_tree").select("id").eq("ancestor_id", user.id),
+        supabase.from("transactions").select("amount").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed"),
+        supabase.from("transactions").select("id, type, amount, status, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5)
+      ]);
 
       if (walletRes.data) setBalance(Number(walletRes.data.balance));
       if (profileRes.data) setProfile(profileRes.data);
@@ -102,32 +102,35 @@ const Dashboard = () => {
 
   if (authLoading || loadingData) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>);
-
+      <div className="flex min-h-screen items-center justify-center bg-primary">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-secondary border-t-transparent" />
+      </div>
+    );
   }
 
   const quickActions = [
-  { label: "QR Pay", icon: QrCode, path: "/qr-pay", bgClass: "bg-secondary/10", iconClass: "text-secondary" },
-  { label: "Top Up", icon: Plus, path: "/top-up", bgClass: "bg-[hsl(var(--success))]/10", iconClass: "text-[hsl(var(--success))]" },
-  { label: "Transfer", icon: ArrowUpDown, path: "/transfer", bgClass: "bg-[hsl(var(--info))]/10", iconClass: "text-[hsl(var(--info))]" },
-  { label: "Referral", icon: Users, path: "/referral", bgClass: "bg-destructive/10", iconClass: "text-destructive" }];
-
+    { label: "QR Pay", icon: QrCode, path: "/qr-pay" },
+    { label: "Top Up", icon: Banknote, path: "/top-up" },
+    { label: "Transfer", icon: Send, path: "/transfer" },
+    { label: "Referral", icon: UserPlus, path: "/referral" },
+  ];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-primary pb-20">
       {/* Header */}
-      <div className="bg-primary px-4 pb-14 pt-8 text-primary-foreground">
+      <div className="px-4 pt-8 pb-6">
         <div className="mx-auto max-w-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm opacity-80">Welcome back,</p>
-              <h1 className="font-display text-xl font-bold">{profile?.full_name || "Member"}</h1>
+              <p className="text-sm text-white/50">Welcome back,</p>
+              <h1 className="font-display text-xl font-bold text-white">{profile?.full_name || "Member"}</h1>
             </div>
-            <div className="font-display text-lg font-bold tracking-tight flex items-center gap-2">
-              <NotificationBell className="text-primary-foreground" />
-              NO<span className="opacity-80">cap</span>
+            <div className="flex items-center gap-3">
+              <NotificationBell className="text-white" />
+              <div className="font-display text-lg font-bold tracking-tight text-white flex items-center gap-1">
+                <Zap className="h-5 w-5 text-secondary fill-secondary" />
+                NO<span className="text-secondary">cap</span>
+              </div>
             </div>
           </div>
         </div>
@@ -135,21 +138,21 @@ const Dashboard = () => {
 
       <div className="mx-auto max-w-md px-4">
         {/* Wallet Card */}
-        <Card className="-mt-10 border-0 shadow-lg">
+        <Card className="border-white/10 bg-white/5 shadow-2xl backdrop-blur">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 text-sm text-white/50">
                 <Wallet className="h-4 w-4" />
                 <span>Wallet Balance</span>
               </div>
-              <button onClick={() => setShowBalance(!showBalance)} className="text-muted-foreground hover:text-foreground transition-colors">
+              <button onClick={() => setShowBalance(!showBalance)} className="text-white/50 hover:text-white transition-colors">
                 {showBalance ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               </button>
             </div>
-            <p className="mt-2 font-display text-3xl font-bold tracking-tight">
+            <p className="mt-2 font-display text-3xl font-bold tracking-tight text-secondary">
               {showBalance ? `RM ${balance.toFixed(2)}` : "RM ••••••"}
             </p>
-            <Button size="sm" className="mt-3" onClick={() => navigate("/top-up")}>
+            <Button size="sm" className="mt-3 bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => navigate("/top-up")}>
               <Plus className="mr-1 h-4 w-4" /> Top Up
             </Button>
           </CardContent>
@@ -157,18 +160,18 @@ const Dashboard = () => {
 
         {/* Profile Completion Banner */}
         {profile && (!profile.full_name || !profile.phone) && (
-          <Card className="mt-4 border-secondary bg-secondary/10">
+          <Card className="mt-4 border-secondary/30 bg-secondary/10">
             <CardContent className="flex items-center gap-3 p-4">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary/20">
                 <AlertCircle className="h-5 w-5 text-secondary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">Complete your profile</p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-sm font-semibold text-white">Complete your profile</p>
+                <p className="text-[10px] text-white/50">
                   Add your {!profile.full_name && "name"}{!profile.full_name && !profile.phone && " & "}{!profile.phone && "phone number"} to get started.
                 </p>
               </div>
-              <Button size="sm" variant="secondary" onClick={() => navigate("/profile")} className="shrink-0">
+              <Button size="sm" className="shrink-0 bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => navigate("/profile")}>
                 Update
               </Button>
             </CardContent>
@@ -178,120 +181,118 @@ const Dashboard = () => {
         {/* Quick Actions */}
         <div className="mt-6 grid grid-cols-4 gap-3">
           {quickActions.map((action) =>
-          <button
-            key={action.path}
-            onClick={() => navigate(action.path)}
-            className="flex flex-col items-center gap-2 rounded-xl p-3 transition-all hover:bg-muted active:scale-95">
-
-              <div className={`rounded-full p-3 ${action.bgClass}`}>
-                <action.icon className={`h-5 w-5 ${action.iconClass}`} />
+            <button
+              key={action.path}
+              onClick={() => navigate(action.path)}
+              className="flex flex-col items-center gap-2.5 rounded-2xl border border-white/10 bg-white/5 p-4 transition-all hover:bg-white/10 active:scale-95">
+              <div className="rounded-full bg-secondary/20 p-3">
+                <action.icon className="h-5 w-5 text-secondary" />
               </div>
-              <span className="text-xs font-medium text-foreground">{action.label}</span>
+              <span className="text-xs font-medium text-white">{action.label}</span>
             </button>
           )}
         </div>
 
         {/* Referral Stats */}
         <div className="mt-6 grid grid-cols-3 gap-3">
-          <Card className="border-border/50">
+          <Card className="border-white/10 bg-white/5">
             <CardContent className="p-4 text-center">
-              <Users className="mx-auto h-4 w-4 text-muted-foreground" />
-              <p className="mt-2 font-display text-2xl font-bold">{referralCount}</p>
-              <p className="text-[10px] text-muted-foreground">Direct</p>
+              <Users className="mx-auto h-4 w-4 text-secondary" />
+              <p className="mt-2 font-display text-2xl font-bold text-white">{referralCount}</p>
+              <p className="text-[10px] text-white/40">Direct</p>
             </CardContent>
           </Card>
-          <Card className="border-border/50">
+          <Card className="border-white/10 bg-white/5">
             <CardContent className="p-4 text-center">
-              <TrendingUp className="mx-auto h-4 w-4 text-muted-foreground" />
-              <p className="mt-2 font-display text-2xl font-bold">{networkCount}</p>
-              <p className="text-[10px] text-muted-foreground">Network</p>
+              <TrendingUp className="mx-auto h-4 w-4 text-secondary" />
+              <p className="mt-2 font-display text-2xl font-bold text-white">{networkCount}</p>
+              <p className="text-[10px] text-white/40">Network</p>
             </CardContent>
           </Card>
-          <Card className="border-border/50">
+          <Card className="border-white/10 bg-white/5">
             <CardContent className="p-4 text-center">
-              <Gift className="mx-auto h-4 w-4 text-muted-foreground" />
-              <p className="mt-2 font-display text-2xl font-bold">RM {totalEarnings.toFixed(0)}</p>
-              <p className="text-[10px] text-muted-foreground">Earned</p>
+              <Gift className="mx-auto h-4 w-4 text-secondary" />
+              <p className="mt-2 font-display text-2xl font-bold text-white">RM {totalEarnings.toFixed(0)}</p>
+              <p className="text-[10px] text-white/40">Earned</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Referral Code Banner */}
-        <Card className="mt-4 border-secondary/20 bg-secondary/5">
+        <Card className="mt-4 border-secondary/20 bg-secondary/10">
           <CardContent className="flex items-center justify-between p-4">
             <div>
-              <p className="text-xs text-muted-foreground">Your Referral Code</p>
-              <p className="font-display text-lg font-bold tracking-wider text-foreground">{profile?.referral_code || "—"}</p>
+              <p className="text-xs text-white/50">Your Referral Code</p>
+              <p className="font-display text-lg font-bold tracking-wider text-secondary">{profile?.referral_code || "—"}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={copyReferralCode} className="gap-1.5">
+            <Button variant="outline" size="sm" onClick={copyReferralCode} className="gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-primary">
               <Copy className="h-3.5 w-3.5" /> Copy
             </Button>
           </CardContent>
         </Card>
 
         {/* Become a Merchant */}
-        <Card className="mt-4 border-border/50 cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/merchant/register")}>
+        <Card className="mt-4 border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate("/merchant/register")}>
           <CardContent className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/10">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/20">
                 <Store className="h-5 w-5 text-secondary" />
               </div>
               <div>
-                <p className="text-sm font-semibold">Become a Merchant</p>
-                <p className="text-[10px] text-muted-foreground">Start accepting payments for your business</p>
+                <p className="text-sm font-semibold text-white">Become a Merchant</p>
+                <p className="text-[10px] text-white/40">Start accepting payments for your business</p>
               </div>
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <ChevronRight className="h-4 w-4 text-white/30" />
           </CardContent>
         </Card>
 
         {/* Recent Transactions */}
         <div className="mt-6">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold">Recent Activity</h2>
+            <h2 className="font-display text-lg font-semibold text-white">Recent Activity</h2>
             {transactions.length > 0 &&
-            <button onClick={() => navigate("/transactions")} className="flex items-center gap-0.5 text-xs text-secondary font-medium">
+              <button onClick={() => navigate("/transactions")} className="flex items-center gap-0.5 text-xs text-secondary font-medium">
                 View All <ChevronRight className="h-3.5 w-3.5" />
               </button>
             }
           </div>
 
           {transactions.length === 0 ?
-          <Card className="mt-3 border-border/50">
-              <CardContent className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+            <Card className="mt-3 border-white/10 bg-white/5">
+              <CardContent className="flex flex-col items-center justify-center py-10 text-white/40">
                 <Wallet className="h-8 w-8 mb-2 opacity-40" />
                 <p className="text-sm font-medium">No transactions yet</p>
                 <p className="mt-1 text-xs">Your activity will appear here</p>
               </CardContent>
             </Card> :
-
-          <div className="mt-3 space-y-2">
+            <div className="mt-3 space-y-2">
               {transactions.map((tx) =>
-            <Card key={tx.id} className="border-border/50">
+                <Card key={tx.id} className="border-white/10 bg-white/5">
                   <CardContent className="flex items-center gap-3 p-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10">
                       {transactionIcon(tx.type)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{tx.description || transactionLabel(tx.type)}</p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-sm font-medium text-white truncate">{tx.description || transactionLabel(tx.type)}</p>
+                      <p className="text-[10px] text-white/40">
                         {new Date(tx.created_at).toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" })}
                       </p>
                     </div>
-                    <p className={`text-sm font-semibold tabular-nums ${isCredit(tx.type) ? "text-secondary" : "text-foreground"}`}>
+                    <p className={`text-sm font-semibold tabular-nums ${isCredit(tx.type) ? "text-secondary" : "text-white"}`}>
                       {isCredit(tx.type) ? "+" : "-"}RM {Math.abs(tx.amount).toFixed(2)}
                     </p>
                   </CardContent>
                 </Card>
-            )}
+              )}
             </div>
           }
         </div>
       </div>
 
       <BottomNav />
-    </div>);
-
+    </div>
+  );
 };
 
 export default Dashboard;
