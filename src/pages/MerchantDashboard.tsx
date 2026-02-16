@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
@@ -20,7 +21,11 @@ import {
   BarChart3,
   Loader2,
   Trash2,
-  Copy,
+  Download,
+  Share2,
+  Clock,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 
 interface Branch {
@@ -38,12 +43,29 @@ interface DynamicQr {
   description: string | null;
   is_used: boolean;
   created_at: string;
+  expires_at: string | null;
+}
+
+function getQrStatus(qr: DynamicQr): "used" | "expired" | "active" {
+  if (qr.is_used) return "used";
+  if (qr.expires_at && new Date(qr.expires_at) < new Date()) return "expired";
+  return "active";
+}
+
+function formatTimeLeft(expiresAt: string): string {
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  if (diff <= 0) return "Expired";
+  const mins = Math.floor(diff / 60000);
+  const hrs = Math.floor(mins / 60);
+  if (hrs > 0) return `${hrs}h ${mins % 60}m left`;
+  return `${mins}m left`;
 }
 
 const MerchantDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const qrRef = useRef<HTMLDivElement>(null);
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
@@ -61,6 +83,7 @@ const MerchantDashboard = () => {
   const [showAddQr, setShowAddQr] = useState(false);
   const [qrAmount, setQrAmount] = useState("");
   const [qrDescription, setQrDescription] = useState("");
+  const [qrExpiry, setQrExpiry] = useState("none");
   const [creatingQr, setCreatingQr] = useState(false);
 
   // QR display dialog
@@ -69,6 +92,16 @@ const MerchantDashboard = () => {
   // Sales stats
   const [totalSales, setTotalSales] = useState(0);
   const [todaySales, setTodaySales] = useState(0);
+
+  // Deleting state
+  const [deletingQr, setDeletingQr] = useState<string | null>(null);
+
+  // Timer tick for expiry countdowns
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -79,7 +112,6 @@ const MerchantDashboard = () => {
     const fetchData = async () => {
       setLoadingData(true);
 
-      // Check merchant role
       const { data: roles } = await supabase
         .from("user_roles")
         .select("role")
@@ -93,7 +125,6 @@ const MerchantDashboard = () => {
       }
       setIsMerchant(true);
 
-      // Fetch branches
       const { data: branchData } = await supabase
         .from("merchant_branches")
         .select("*")
@@ -107,7 +138,6 @@ const MerchantDashboard = () => {
         }
       }
 
-      // Sales totals
       const { data: allSales } = await supabase
         .from("transactions")
         .select("amount, created_at")
@@ -130,16 +160,48 @@ const MerchantDashboard = () => {
     fetchData();
   }, [user]);
 
-  useEffect(() => {
+  const fetchDynamicQrs = useCallback(async () => {
     if (!selectedBranch) return;
-    supabase
+    const { data } = await supabase
       .from("merchant_qr_codes")
       .select("*")
       .eq("branch_id", selectedBranch.id)
       .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }) => { if (data) setDynamicQrs(data as DynamicQr[]); });
+      .limit(20);
+    if (data) setDynamicQrs(data as DynamicQr[]);
   }, [selectedBranch]);
+
+  useEffect(() => {
+    fetchDynamicQrs();
+  }, [fetchDynamicQrs]);
+
+  // Realtime payment tracking
+  useEffect(() => {
+    if (!selectedBranch) return;
+    const channel = supabase
+      .channel(`qr-payments-${selectedBranch.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "merchant_qr_codes",
+          filter: `branch_id=eq.${selectedBranch.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as DynamicQr;
+          setDynamicQrs((prev) =>
+            prev.map((qr) => (qr.id === updated.id ? updated : qr))
+          );
+          if (updated.is_used) {
+            toast({ title: "Payment received!", description: `RM ${Number(updated.amount).toFixed(2)} paid` });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedBranch, toast]);
 
   const addBranch = async () => {
     if (!newBranchName.trim()) return;
@@ -170,12 +232,20 @@ const MerchantDashboard = () => {
   const createDynamicQr = async () => {
     if (!qrAmount || !selectedBranch) return;
     setCreatingQr(true);
+
+    let expiresAt: string | null = null;
+    if (qrExpiry !== "none") {
+      const mins = parseInt(qrExpiry);
+      expiresAt = new Date(Date.now() + mins * 60000).toISOString();
+    }
+
     const { data, error } = await supabase
       .from("merchant_qr_codes")
       .insert({
         branch_id: selectedBranch.id,
         amount: Number(qrAmount),
         description: qrDescription.trim() || null,
+        expires_at: expiresAt,
       })
       .select()
       .single();
@@ -187,11 +257,27 @@ const MerchantDashboard = () => {
       setShowAddQr(false);
       setQrAmount("");
       setQrDescription("");
-      // Show the QR immediately
+      setQrExpiry("none");
       const qrData = JSON.stringify({ branch_id: selectedBranch.id, qr_id: (data as DynamicQr).id });
       setShowQrDisplay({ type: "dynamic", data: qrData, label: `RM ${Number(qrAmount).toFixed(2)}` });
     }
     setCreatingQr(false);
+  };
+
+  const deleteQr = async (qrId: string) => {
+    setDeletingQr(qrId);
+    const { error } = await supabase
+      .from("merchant_qr_codes")
+      .delete()
+      .eq("id", qrId);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setDynamicQrs((prev) => prev.filter((q) => q.id !== qrId));
+      toast({ title: "QR code deleted" });
+    }
+    setDeletingQr(null);
   };
 
   const showStaticQr = (branch: Branch) => {
@@ -202,6 +288,70 @@ const MerchantDashboard = () => {
     if (!selectedBranch) return;
     const qrData = JSON.stringify({ branch_id: selectedBranch.id, qr_id: qr.id });
     setShowQrDisplay({ type: "dynamic", data: qrData, label: `RM ${Number(qr.amount).toFixed(2)}` });
+  };
+
+  const downloadQr = () => {
+    if (!qrRef.current) return;
+    const svg = qrRef.current.querySelector("svg");
+    if (!svg) return;
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const img = new Image();
+    const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+
+    img.onload = () => {
+      canvas.width = 600;
+      canvas.height = 700;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, 600, 700);
+      ctx.drawImage(img, 100, 40, 400, 400);
+
+      // Label
+      ctx.fillStyle = "#16a34a";
+      ctx.font = "bold 28px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(showQrDisplay?.label || "", 300, 500);
+
+      ctx.fillStyle = "#666666";
+      ctx.font = "16px sans-serif";
+      ctx.fillText(
+        showQrDisplay?.type === "static" ? "Scan & enter amount" : "Amount pre-filled",
+        300, 540
+      );
+
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `qr-${showQrDisplay?.label || "code"}.png`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  };
+
+  const shareQr = async () => {
+    if (!navigator.share) {
+      toast({ title: "Sharing not supported on this device" });
+      return;
+    }
+    try {
+      await navigator.share({
+        title: `Payment QR - ${showQrDisplay?.label}`,
+        text: showQrDisplay?.type === "static"
+          ? `Scan this QR to pay ${showQrDisplay?.label}`
+          : `Pay RM ${showQrDisplay?.label} via QR code`,
+      });
+    } catch {
+      // User cancelled share
+    }
   };
 
   if (authLoading || loadingData) {
@@ -361,22 +511,61 @@ const MerchantDashboard = () => {
               {dynamicQrs.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-4">No dynamic QR codes yet. Create one with a pre-filled amount.</p>
               ) : (
-                dynamicQrs.map((qr) => (
-                  <Card key={qr.id} className={`border-border/50 ${qr.is_used ? 'opacity-50' : ''}`}>
-                    <CardContent className="flex items-center justify-between p-3">
-                      <div>
-                        <p className="text-sm font-semibold">RM {Number(qr.amount).toFixed(2)}</p>
-                        {qr.description && <p className="text-[10px] text-muted-foreground">{qr.description}</p>}
-                        <p className="text-[10px] text-muted-foreground">{qr.is_used ? "Used" : "Active"}</p>
-                      </div>
-                      {!qr.is_used && (
-                        <Button size="sm" variant="ghost" onClick={() => showDynamicQrCode(qr)}>
-                          <QrCode className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
+                dynamicQrs.map((qr) => {
+                  const status = getQrStatus(qr);
+                  return (
+                    <Card key={qr.id} className={`border-border/50 ${status !== "active" ? 'opacity-60' : ''}`}>
+                      <CardContent className="flex items-center justify-between p-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold">RM {Number(qr.amount).toFixed(2)}</p>
+                          {qr.description && <p className="text-[10px] text-muted-foreground truncate">{qr.description}</p>}
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {status === "used" && (
+                              <span className="text-[10px] text-primary flex items-center gap-0.5">
+                                <CheckCircle2 className="h-3 w-3" /> Paid
+                              </span>
+                            )}
+                            {status === "expired" && (
+                              <span className="text-[10px] text-destructive flex items-center gap-0.5">
+                                <XCircle className="h-3 w-3" /> Expired
+                              </span>
+                            )}
+                            {status === "active" && qr.expires_at && (
+                              <span className="text-[10px] text-amber-600 flex items-center gap-0.5">
+                                <Clock className="h-3 w-3" /> {formatTimeLeft(qr.expires_at)}
+                              </span>
+                            )}
+                            {status === "active" && !qr.expires_at && (
+                              <span className="text-[10px] text-muted-foreground">Active</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {status === "active" && (
+                            <Button size="sm" variant="ghost" onClick={() => showDynamicQrCode(qr)}>
+                              <QrCode className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {!qr.is_used && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => deleteQr(qr.id)}
+                              disabled={deletingQr === qr.id}
+                            >
+                              {deletingQr === qr.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
               )}
             </TabsContent>
 
@@ -446,6 +635,21 @@ const MerchantDashboard = () => {
               <Label>Description</Label>
               <Input placeholder="e.g. Table 5 order" value={qrDescription} onChange={(e) => setQrDescription(e.target.value)} />
             </div>
+            <div className="space-y-1">
+              <Label>Expiry</Label>
+              <Select value={qrExpiry} onValueChange={setQrExpiry}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No expiry</SelectItem>
+                  <SelectItem value="15">15 minutes</SelectItem>
+                  <SelectItem value="30">30 minutes</SelectItem>
+                  <SelectItem value="60">1 hour</SelectItem>
+                  <SelectItem value="1440">24 hours</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button className="w-full" onClick={createDynamicQr} disabled={creatingQr || !qrAmount}>
               {creatingQr ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Create QR Code
@@ -463,7 +667,7 @@ const MerchantDashboard = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center py-4">
-            <div className="rounded-xl bg-white p-4 shadow-sm">
+            <div ref={qrRef} className="rounded-xl bg-white p-4 shadow-sm">
               <QRCodeSVG
                 value={showQrDisplay?.data || ""}
                 size={200}
@@ -475,6 +679,14 @@ const MerchantDashboard = () => {
             <p className="text-xs text-muted-foreground mt-1">
               {showQrDisplay?.type === "static" ? "Customer scans and enters amount" : "Amount is pre-filled for customer"}
             </p>
+            <div className="flex gap-2 mt-4">
+              <Button size="sm" variant="outline" onClick={downloadQr} className="gap-1.5">
+                <Download className="h-3.5 w-3.5" /> Download
+              </Button>
+              <Button size="sm" variant="outline" onClick={shareQr} className="gap-1.5">
+                <Share2 className="h-3.5 w-3.5" /> Share
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
