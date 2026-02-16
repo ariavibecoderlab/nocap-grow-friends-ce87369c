@@ -1,0 +1,247 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Key, Copy, Eye, EyeOff, Loader2, Globe } from "lucide-react";
+
+interface Branch {
+  id: string;
+  branch_name: string;
+}
+
+interface ApiApp {
+  id: string;
+  name: string;
+  description: string | null;
+  api_key: string;
+  branch_id: string;
+  webhook_url: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+interface MerchantApiAppsProps {
+  branches: Branch[];
+}
+
+const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [apps, setApps] = useState<ApiApp[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  // Form
+  const [appName, setAppName] = useState("");
+  const [appDesc, setAppDesc] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("");
+
+  // Credentials dialog (shown once after creation)
+  const [credentials, setCredentials] = useState<{ api_key: string; api_secret: string } | null>(null);
+  const [showSecret, setShowSecret] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchApps();
+  }, [user]);
+
+  const fetchApps = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("api_applications")
+      .select("id, name, description, api_key, branch_id, webhook_url, is_active, created_at")
+      .eq("merchant_user_id", user!.id)
+      .order("created_at", { ascending: false });
+    if (data) setApps(data as ApiApp[]);
+    setLoading(false);
+  };
+
+  const createApp = async () => {
+    if (!appName.trim() || !branchId) return;
+    setCreating(true);
+
+    const { data, error } = await supabase.functions.invoke("api-register-app", {
+      body: {
+        name: appName.trim(),
+        description: appDesc.trim() || null,
+        branch_id: branchId,
+        webhook_url: webhookUrl.trim() || null,
+      },
+    });
+
+    if (error || !data?.success) {
+      toast({ title: "Error", description: data?.error || error?.message || "Failed to create app", variant: "destructive" });
+    } else {
+      setCredentials({ api_key: data.api_key, api_secret: data.api_secret });
+      setShowCreate(false);
+      setAppName("");
+      setAppDesc("");
+      setBranchId("");
+      setWebhookUrl("");
+      fetchApps();
+      toast({ title: "API App created!" });
+    }
+    setCreating(false);
+  };
+
+  const toggleApp = async (appId: string, active: boolean) => {
+    await supabase
+      .from("api_applications")
+      .update({ is_active: active })
+      .eq("id", appId);
+    setApps((prev) => prev.map((a) => (a.id === appId ? { ...a, is_active: active } : a)));
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: `${label} copied!` });
+  };
+
+  const branchName = (id: string) => branches.find((b) => b.id === id)?.branch_name || "Unknown";
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-white">API Applications</p>
+        <Button size="sm" variant="outline" onClick={() => setShowCreate(true)} className="gap-1 border-white/10 text-white/70 hover:bg-white/10 hover:text-white">
+          <Plus className="h-3.5 w-3.5" /> Register App
+        </Button>
+      </div>
+
+      {apps.length === 0 ? (
+        <Card className="border-white/10 bg-white/5">
+          <CardContent className="flex flex-col items-center py-8 text-white/40">
+            <Globe className="h-8 w-8 mb-2 opacity-40" />
+            <p className="text-sm font-medium">No API apps yet</p>
+            <p className="text-xs mt-1">Register a third-party app to accept payments via API</p>
+          </CardContent>
+        </Card>
+      ) : (
+        apps.map((app) => (
+          <Card key={app.id} className="border-white/10 bg-white/5">
+            <CardContent className="p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white">{app.name}</p>
+                  <p className="text-[10px] text-white/40">Branch: {branchName(app.branch_id)}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={app.is_active ? "default" : "secondary"} className="text-[10px]">
+                    {app.is_active ? "Active" : "Inactive"}
+                  </Badge>
+                  <Switch checked={app.is_active} onCheckedChange={(v) => toggleApp(app.id, v)} />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="text-[10px] text-white/50 bg-white/5 px-2 py-1 rounded flex-1 truncate">{app.api_key}</code>
+                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-white/40 hover:text-white" onClick={() => copyToClipboard(app.api_key, "API Key")}>
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+              {app.description && <p className="text-[10px] text-white/30">{app.description}</p>}
+            </CardContent>
+          </Card>
+        ))
+      )}
+
+      {/* Create App Dialog */}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent className="bg-card border-white/10 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-white">Register API App</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-white/70 text-xs">App Name *</Label>
+              <Input value={appName} onChange={(e) => setAppName(e.target.value)} placeholder="My Third-Party App" className="bg-white/5 border-white/10 text-white" maxLength={100} />
+            </div>
+            <div>
+              <Label className="text-white/70 text-xs">Description</Label>
+              <Input value={appDesc} onChange={(e) => setAppDesc(e.target.value)} placeholder="Optional description" className="bg-white/5 border-white/10 text-white" maxLength={255} />
+            </div>
+            <div>
+              <Label className="text-white/70 text-xs">Branch *</Label>
+              <Select value={branchId} onValueChange={setBranchId}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectValue placeholder="Select branch" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.branch_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-white/70 text-xs">Webhook URL (optional)</Label>
+              <Input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://..." className="bg-white/5 border-white/10 text-white" />
+            </div>
+            <Button onClick={createApp} disabled={creating || !appName.trim() || !branchId} className="w-full bg-secondary text-primary hover:bg-secondary/90">
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create & Get Credentials"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credentials Dialog (shown once) */}
+      <Dialog open={!!credentials} onOpenChange={() => setCredentials(null)}>
+        <DialogContent className="bg-card border-white/10 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Key className="h-4 w-4 text-secondary" /> API Credentials
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-destructive font-semibold">⚠️ Save the API Secret now — it won't be shown again!</p>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-white/70 text-xs">API Key</Label>
+              <div className="flex items-center gap-2">
+                <code className="text-xs text-white/70 bg-white/5 px-2 py-1.5 rounded flex-1 break-all">{credentials?.api_key}</code>
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/40" onClick={() => copyToClipboard(credentials?.api_key || "", "API Key")}>
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label className="text-white/70 text-xs">API Secret</Label>
+              <div className="flex items-center gap-2">
+                <code className="text-xs text-white/70 bg-white/5 px-2 py-1.5 rounded flex-1 break-all">
+                  {showSecret ? credentials?.api_secret : "••••••••••••••••"}
+                </code>
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/40" onClick={() => setShowSecret(!showSecret)}>
+                  {showSecret ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/40" onClick={() => copyToClipboard(credentials?.api_secret || "", "API Secret")}>
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          </div>
+          <Button onClick={() => setCredentials(null)} className="w-full bg-secondary text-primary hover:bg-secondary/90 mt-2">
+            I've saved my credentials
+          </Button>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default MerchantApiApps;

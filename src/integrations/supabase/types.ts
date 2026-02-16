@@ -14,6 +14,154 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_access_tokens: {
+        Row: {
+          access_token_hash: string
+          app_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          scopes: Json
+          user_id: string
+        }
+        Insert: {
+          access_token_hash: string
+          app_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          scopes?: Json
+          user_id: string
+        }
+        Update: {
+          access_token_hash?: string
+          app_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          scopes?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_access_tokens_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "api_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_applications: {
+        Row: {
+          api_key: string
+          api_secret_hash: string
+          branch_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          merchant_user_id: string
+          name: string
+          updated_at: string
+          webhook_url: string | null
+        }
+        Insert: {
+          api_key?: string
+          api_secret_hash: string
+          branch_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          merchant_user_id: string
+          name: string
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Update: {
+          api_key?: string
+          api_secret_hash?: string
+          branch_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          merchant_user_id?: string
+          name?: string
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_applications_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_charges: {
+        Row: {
+          amount: number
+          app_id: string
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          reference: string | null
+          status: string
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          app_id: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference?: string | null
+          status?: string
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          app_id?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference?: string | null
+          status?: string
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_charges_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "api_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_charges_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_applications: {
         Row: {
           bank_account_holder: string | null
