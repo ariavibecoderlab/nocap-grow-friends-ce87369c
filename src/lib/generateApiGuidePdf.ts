@@ -7,6 +7,43 @@ export function generateApiGuidePdf() {
   const maxWidth = pageWidth - margin * 2;
   let y = 20;
 
+  // === BRANDED HEADER ===
+  // Black banner
+  doc.setFillColor(15, 15, 15);
+  doc.rect(0, 0, pageWidth, 44, "F");
+
+  // Yellow accent bar
+  doc.setFillColor(250, 204, 21); // secondary yellow
+  doc.rect(0, 44, pageWidth, 2, "F");
+
+  // Zap icon (⚡ drawn as polygon)
+  const zx = margin + 1, zy = 12;
+  doc.setFillColor(250, 204, 21);
+  doc.triangle(zx + 4, zy, zx, zy + 8, zx + 5, zy + 7, "F");
+  doc.triangle(zx + 2, zy + 7, zx + 6, zy + 15, zx + 3, zy + 8, "F");
+
+  // "NOcap" text
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.setTextColor(255, 255, 255);
+  doc.text("NO", margin + 12, 24);
+  const noWidth = doc.getTextWidth("NO");
+  doc.setTextColor(250, 204, 21);
+  doc.text("cap", margin + 12 + noWidth, 24);
+
+  // Subtitle
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(180, 180, 180);
+  doc.text("API Integration Guide", margin + 12, 32);
+
+  // Version info right-aligned
+  doc.setFontSize(8);
+  doc.setTextColor(120, 120, 120);
+  doc.text("Version 1.0 — February 2026", pageWidth - margin, 32, { align: "right" });
+
+  y = 54;
+
   const BASE_URL = "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1";
 
   function checkPage(needed = 12) {
@@ -95,13 +132,9 @@ export function generateApiGuidePdf() {
 
   // ===== CONTENT =====
 
-  title("NoCap API", 26);
-  title("Integration Guide", 18);
-  y += 2;
   paragraph(`Base URL: ${BASE_URL}`);
   paragraph("Authorization URL: https://nocap.life/authorize");
-  paragraph("Version 1.0 — February 2026");
-  y += 6;
+  y += 4;
 
   // --- Overview ---
   heading("1. Overview");
