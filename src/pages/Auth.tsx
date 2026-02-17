@@ -41,14 +41,17 @@ const Auth = () => {
     }
   }, [user, authLoading, navigate]);
 
-  const sendOtpViaEdgeFunction = async (targetEmail: string) => {
+  const sendOtpViaEdgeFunction = async (targetEmail: string): Promise<{ data: any; error: any; errorMessage?: string }> => {
     try {
       const response = await supabase.functions.invoke('send-otp', {
         body: { email: targetEmail },
       });
-      return response;
+      // For non-2xx responses, supabase client may put error details in response.error
+      // Extract the message for easier checking
+      const errorMessage = response.data?.error || (response.error ? (response.error.message || String(response.error)) : null);
+      return { ...response, errorMessage };
     } catch (err) {
-      return { data: null, error: err };
+      return { data: null, error: err, errorMessage: err instanceof Error ? err.message : String(err) };
     }
   };
 
@@ -113,18 +116,25 @@ const Auth = () => {
       return;
     }
 
-    // Existing user path: try to send OTP
+    // Existing user path: send OTP via edge function which checks auth.users
     setLoading(true);
     try {
-      const { data, error } = await sendOtpViaEdgeFunction(email);
+      const { data, error, errorMessage } = await sendOtpViaEdgeFunction(email);
+
       if (error || data?.error) {
-        setIsNewEmail(true);
+        // Only mark as new email if the error is specifically "User not found"
+        if (errorMessage === 'User not found') {
+          setIsNewEmail(true);
+        } else {
+          // Transient error (network, SendGrid, etc.) — don't mark as new email
+          toast({ title: "Error", description: "Could not send OTP. Please try again.", variant: "destructive" });
+        }
       } else {
         toast({ title: "OTP Sent", description: "Check your email for the 6-digit code." });
         setStep("otp");
       }
     } catch {
-      setIsNewEmail(true);
+      toast({ title: "Error", description: "Something went wrong. Please try again.", variant: "destructive" });
     }
     setLoading(false);
   };
