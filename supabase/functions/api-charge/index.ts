@@ -365,9 +365,10 @@ serve(async (req) => {
       .eq('user_id', payerId)
       .eq('wallet_type', 'member');
 
-    // Credit branch wallet
+    // Credit branch wallet (create if missing)
     const branchCredit = netAmount - commissionPool;
-    const { data: branchWallet } = await supabase
+    const branchIncomeUserId = branch.owner_user_id || branch.merchant_user_id;
+    const { data: branchWallet, error: branchWalletErr } = await supabase
       .from('wallets')
       .select('balance')
       .eq('wallet_type', 'branch')
@@ -379,6 +380,18 @@ serve(async (req) => {
         balance: Number(branchWallet.balance) + branchCredit,
         updated_at: new Date().toISOString(),
       }).eq('wallet_type', 'branch').eq('branch_id', branch_id);
+    } else {
+      // Wallet doesn't exist — create it with the credited amount
+      console.log(`Creating missing branch wallet for branch_id=${branch_id}, user_id=${branchIncomeUserId}`);
+      const { error: createErr } = await supabase.from('wallets').insert({
+        user_id: branchIncomeUserId,
+        wallet_type: 'branch',
+        branch_id: branch_id,
+        balance: branchCredit,
+      });
+      if (createErr) {
+        console.error('Failed to create branch wallet:', createErr);
+      }
     }
 
     // Update merchant_branches.balance
@@ -416,7 +429,6 @@ serve(async (req) => {
       .single();
 
     // Create income transaction for branch
-    const branchIncomeUserId = branch.owner_user_id || branch.merchant_user_id;
     await supabase.from('transactions').insert({
       user_id: branchIncomeUserId,
       type: 'top_up',
