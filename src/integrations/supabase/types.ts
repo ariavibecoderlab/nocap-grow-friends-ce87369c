@@ -111,6 +111,53 @@ export type Database = {
           },
         ]
       }
+      api_authorization_codes: {
+        Row: {
+          app_id: string
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          is_used: boolean
+          redirect_uri: string
+          scopes: Json
+          state: string | null
+          user_id: string
+        }
+        Insert: {
+          app_id: string
+          code: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_used?: boolean
+          redirect_uri: string
+          scopes?: Json
+          state?: string | null
+          user_id: string
+        }
+        Update: {
+          app_id?: string
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_used?: boolean
+          redirect_uri?: string
+          scopes?: Json
+          state?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_authorization_codes_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "api_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_charges: {
         Row: {
           amount: number

@@ -17,26 +17,33 @@ Full documentation: https://nocap.life/api-docs
 Merchants can register third-party applications through the Merchant Dashboard under the "API" tab.
 You will receive an **API Key** and an **API Secret**. Store the secret securely; it will only be shown once.
 
-### 2. User Authorization
-To access a user's wallet, you must obtain an authorization token. Redirect users to our authorization flow where they can grant permission to your application.
+### 2. User Authorization (OAuth 2.0 Authorization Code Flow)
+To access a user's wallet, redirect the user to our hosted authorization page. The user will log in (if not already), review the requested permissions, and approve or deny your app. Upon approval, we redirect the user back to your \`redirect_uri\` with a temporary authorization \`code\`. You then exchange this code for an access token via a server-to-server call.
+
+**Flow:**
+1. Redirect user → \`https://nocap.life/authorize?app_id=YOUR_APP_ID&redirect_uri=YOUR_CALLBACK&scope=balance,charge&state=RANDOM_STATE\`
+2. User logs in & approves → Redirected to \`YOUR_CALLBACK?code=AUTH_CODE&state=RANDOM_STATE\`
+3. Your server exchanges code → \`POST /api-token-exchange\` with \`{ code, app_id, app_secret }\`
+4. Receive \`access_token\` → Use in \`Authorization: Bearer\` header for API calls
 
 ### 3. Sandbox Mode
 Enable **Sandbox Mode** when creating an API app to test integrations without using real money.
 Sandbox transactions are immediately marked as completed and do not deduct from wallets.
 
-When you create a sandbox app, a **Test Access Token** is automatically generated. This token lets you skip the user authorization flow entirely — use it as the \`Authorization: Bearer\` header in place of a real user token.
+When you create a sandbox app, a **Test Access Token** is automatically generated. This token lets you skip the OAuth flow entirely — use it as the \`Authorization: Bearer\` header in place of a real user token.
 
 ### 4. Base URL
 All API requests should be made to:
 \`\`\`
-${BASE_URL}/
+\${BASE_URL}/
 \`\`\`
 
 ### 5. Rate Limits
 
 | Endpoint | Limit |
 |---|---|
-| /api-authorize | 10 req/min |
+| /authorize (page) | N/A (user-facing) |
+| /api-token-exchange | 10 req/min |
 | /api-charge | 30 req/min |
 | /api-refund | 20 req/min |
 | /api-balance | 60 req/min |
@@ -47,35 +54,59 @@ Exceeding the limit returns a \`429 Too Many Requests\` response with a \`Retry-
 
 ---
 
-## Authentication
+## Authentication (OAuth 2.0 Authorization Code Grant)
 
-API requests require different headers depending on the endpoint. Most endpoints need all three:
+### Step 1: Redirect User to Authorization Page
 
-| Header | Description |
-|---|---|
-| \`X-Api-Key\` | Your application's unique public key |
-| \`X-Api-Secret\` | Your application's private secret key |
-| \`Authorization\` | \`Bearer <user_access_token>\` (for user-scoped endpoints) |
+Redirect the user's browser to:
 
-**Security Note:** Never expose your API Secret in client-side code. All calls using the secret should be made from your server.
+\`\`\`
+https://nocap.life/authorize?app_id=YOUR_APP_ID&redirect_uri=YOUR_CALLBACK_URL&scope=balance,charge&state=RANDOM_STRING
+\`\`\`
 
-### POST /api-authorize
-Obtain a user access token. The user must be logged in and call this endpoint directly to grant your app permission.
+**Query Parameters:**
+| Parameter | Required | Description |
+|---|---|---|
+| \`app_id\` | Yes | Your application's UUID |
+| \`redirect_uri\` | Yes | URL to redirect after authorization |
+| \`scope\` | No | Comma-separated: \`balance\`, \`charge\`. Default: \`balance,charge\` |
+| \`state\` | Recommended | Random string to prevent CSRF. Returned unchanged in callback |
 
-**Headers:** Only the user's \`Authorization\` (session token) is required. No API Key/Secret needed.
+The user will see a login screen (if not already logged in) and a consent screen showing the requested permissions.
+
+### Step 2: Receive Authorization Code
+
+After the user approves, they are redirected to your \`redirect_uri\` with:
+\`\`\`
+YOUR_CALLBACK_URL?code=AUTH_CODE_64_HEX_CHARS&state=YOUR_STATE
+\`\`\`
+
+If the user denies:
+\`\`\`
+YOUR_CALLBACK_URL?error=access_denied&error_description=User+denied+the+request&state=YOUR_STATE
+\`\`\`
+
+> ⚠️ Authorization codes expire in **10 minutes** and can only be used once.
+
+### Step 3: Exchange Code for Access Token
+
+**POST /api-token-exchange**
+
+Your **server** (not client-side!) exchanges the authorization code for an access token.
 
 **Body Parameters:**
+- \`code\` (string, required): The authorization code from Step 2.
 - \`app_id\` (string, required): Your application ID.
-- \`scopes\` (string[], optional): Permissions to request. Default: \`["balance", "charge"]\`.
+- \`app_secret\` (string, required): Your API secret.
 
 **Request:**
 \`\`\`bash
-curl -X POST "${BASE_URL}/api-authorize" \\
-  -H "Authorization: Bearer user_session_token" \\
+curl -X POST "\${BASE_URL}/api-token-exchange" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "app_id": "uuid-of-your-app",
-    "scopes": ["balance", "charge"]
+    "code": "auth_code_from_redirect",
+    "app_id": "your-app-uuid",
+    "app_secret": "your-api-secret"
   }'
 \`\`\`
 
@@ -84,14 +115,15 @@ curl -X POST "${BASE_URL}/api-authorize" \\
 {
   "success": true,
   "access_token": "a1b2c3d4e5f6...64_hex_chars",
-  "app_name": "My POS App",
-  "scopes": ["balance", "charge"]
+  "token_type": "Bearer",
+  "scopes": ["balance", "charge"],
+  "expires_in": 7776000
 }
 \`\`\`
 
-> ⚠️ The \`access_token\` is shown only once. Store it securely on your server.
+> ⚠️ Store the \`access_token\` securely on your server. It is shown only once.
 
-> 🧪 **Sandbox Shortcut:** If your app is in Sandbox Mode, you don't need to call /api-authorize. A test access token is auto-generated when you create the app.
+> 🧪 **Sandbox Shortcut:** If your app is in Sandbox Mode, skip the OAuth flow entirely. A test access token is auto-generated when you create the app.
 
 ### POST /api-revoke
 Revoke a user's access token, disconnecting your app from their wallet.
@@ -103,7 +135,7 @@ Revoke a user's access token, disconnecting your app from their wallet.
 
 **Request:**
 \`\`\`bash
-curl -X POST "${BASE_URL}/api-revoke" \\
+curl -X POST "\${BASE_URL}/api-revoke" \\
   -H "Authorization: Bearer user_session_token" \\
   -H "Content-Type: application/json" \\
   -d '{ "token_id": "uuid-of-the-token" }'
@@ -317,7 +349,7 @@ Sandbox mode lets you build and test your entire payment integration in a safe e
 ### Going Live
 1. Create a new API app with Sandbox Mode **off**
 2. Replace sandbox credentials with production API Key and API Secret
-3. Implement the OAuth authorization flow (\`/api-authorize\`) for real user tokens
+3. Implement the OAuth authorization flow (redirect to \`/authorize\` → exchange code via \`/api-token-exchange\`) for real user tokens
 4. Set up your webhook endpoint
 5. Test with a small real charge, then scale up
 
