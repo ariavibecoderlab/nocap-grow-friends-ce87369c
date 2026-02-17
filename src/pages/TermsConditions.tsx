@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import NocapLogo from "@/components/NocapLogo";
 
 const sections = [
   {
@@ -58,6 +59,7 @@ const TermsConditions = () => {
             <Button variant="ghost" size="icon" className="text-white/50 hover:text-white hover:bg-white/10" onClick={() => navigate("/profile")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
+            <NocapLogo size="sm" />
             <h1 className="font-display text-xl font-bold text-white">Terms & Conditions</h1>
           </div>
         </div>
