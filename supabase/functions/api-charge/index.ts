@@ -53,11 +53,35 @@ async function sendWebhook(webhookUrl: string | null, secretHash: string, payloa
     );
     const sigBuf = await crypto.subtle.sign('HMAC', hmacKey, encoder.encode(payloadStr));
     const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
-    fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Webhook-Signature': signature },
-      body: payloadStr,
-    }).catch(err => console.error('Webhook delivery failed:', err));
+
+    // Retry with exponential backoff: 1s, 2s, 4s (3 attempts max)
+    const maxRetries = 3;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const res = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-Signature': signature,
+            'X-Webhook-Attempt': String(attempt + 1),
+          },
+          body: payloadStr,
+        });
+        await res.text(); // consume body
+        if (res.ok) {
+          console.log(`Webhook delivered (attempt ${attempt + 1}): ${payload.event}`);
+          return;
+        }
+        console.warn(`Webhook attempt ${attempt + 1} failed with status ${res.status}`);
+      } catch (err) {
+        console.warn(`Webhook attempt ${attempt + 1} network error:`, err);
+      }
+      if (attempt < maxRetries - 1) {
+        const delayMs = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+    }
+    console.error(`Webhook delivery failed after ${maxRetries} attempts: ${webhookUrl}`);
   } catch (e) { console.error('Webhook send error:', e); }
 }
 
