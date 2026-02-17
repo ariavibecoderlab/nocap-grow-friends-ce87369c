@@ -6,6 +6,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+// Generate a random 6-digit OTP
+function generateOtp(): string {
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  return String(array[0] % 1000000).padStart(6, '0');
+}
+
+// SHA-256 hash
+async function hashOtp(otp: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(otp);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -31,8 +47,7 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Check if user is properly registered (not auto-created by generateLink)
-    // We check auth.users for email_confirmed_at — only properly registered users have confirmed emails
+    // Check if user exists and is properly registered
     const { data: { users }, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
     const authUser = users?.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
     
@@ -42,21 +57,19 @@ serve(async (req) => {
       });
     }
 
-    // Generate a magic link — this returns the OTP token we can send via email
-    const { data, error } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
-      email,
-    });
+    // Generate a custom OTP (not using Supabase auth to avoid session side-effects)
+    const otp = generateOtp();
+    const otpHash = await hashOtp(otp);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
 
-    if (error) {
-      console.error('Generate link error:', error.message);
-      return new Response(JSON.stringify({ error: 'Failed to generate OTP' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Store the hashed OTP in the user's profile
+    const { error: updateErr } = await supabase
+      .from('profiles')
+      .update({ reset_otp_hash: otpHash, reset_otp_expires_at: expiresAt })
+      .eq('user_id', authUser.id);
 
-    const otp = data?.properties?.email_otp;
-    if (!otp) {
+    if (updateErr) {
+      console.error('Failed to store OTP:', updateErr.message);
       return new Response(JSON.stringify({ error: 'Failed to generate OTP' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

@@ -461,6 +461,8 @@ export type Database = {
           pin_locked_until: string | null
           referral_code: string
           referred_by: string | null
+          reset_otp_expires_at: string | null
+          reset_otp_hash: string | null
           updated_at: string
           user_id: string
         }
@@ -477,6 +479,8 @@ export type Database = {
           pin_locked_until?: string | null
           referral_code: string
           referred_by?: string | null
+          reset_otp_expires_at?: string | null
+          reset_otp_hash?: string | null
           updated_at?: string
           user_id: string
         }
@@ -493,6 +497,8 @@ export type Database = {
           pin_locked_until?: string | null
           referral_code?: string
           referred_by?: string | null
+          reset_otp_expires_at?: string | null
+          reset_otp_hash?: string | null
           updated_at?: string
           user_id?: string
         }

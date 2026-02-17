@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
@@ -23,8 +22,8 @@ const ResetPin = () => {
   const [confirmPin, setConfirmPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [verificationToken, setVerificationToken] = useState("");
 
-  // Pre-fill email from current user
   const userEmail = user?.email || "";
 
   const handleSendOtp = async () => {
@@ -82,16 +81,31 @@ const ResetPin = () => {
     setError("");
 
     try {
-      // Verify OTP via Supabase auth
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email,
-        token: otp,
-        type: "email",
+      // Verify OTP via custom edge function (no Supabase auth involvement)
+      const { data, error: fnError } = await supabase.functions.invoke("verify-reset-otp", {
+        body: { email, otp },
       });
 
-      if (verifyError) {
-        setError("Invalid or expired code");
+      let errorMessage: string | null = null;
+      if (fnError) {
+        if (fnError instanceof FunctionsHttpError) {
+          try {
+            const errorBody = await fnError.context.json();
+            errorMessage = errorBody?.error || fnError.message;
+          } catch {
+            errorMessage = fnError.message;
+          }
+        } else {
+          errorMessage = fnError.message || "Verification failed";
+        }
+      } else if (data?.error) {
+        errorMessage = data.error;
+      }
+
+      if (errorMessage) {
+        setError(errorMessage);
       } else {
+        setVerificationToken(data?.verification_token || "");
         setStep("new_pin");
       }
     } catch {
@@ -120,7 +134,6 @@ const ResetPin = () => {
     setError("");
 
     try {
-      const { data: session } = await supabase.auth.getSession();
       const { data, error: fnError } = await supabase.functions.invoke("manage-pin", {
         body: { action: "reset", new_pin: newPin },
       });
@@ -178,12 +191,12 @@ const ResetPin = () => {
 
             {step === "email" && (
               <>
-                <Input
+                <input
                   value={email || userEmail}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Your email address"
                   type="email"
-                  className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                  className="flex h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   disabled={!!userEmail}
                 />
                 {error && <p className="text-xs text-destructive text-center">{error}</p>}
