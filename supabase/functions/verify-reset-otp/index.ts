@@ -70,7 +70,6 @@ serve(async (req) => {
     // Verify OTP
     const trimmedOtp = otp.toString().trim();
     const inputHash = await hashOtp(trimmedOtp);
-    console.log(`OTP verify: input="${trimmedOtp}", inputHash=${inputHash.substring(0,12)}..., storedHash=${profile.reset_otp_hash.substring(0,12)}...`);
     if (inputHash !== profile.reset_otp_hash) {
       return new Response(JSON.stringify({ error: 'Invalid code' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
