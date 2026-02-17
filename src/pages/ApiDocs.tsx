@@ -47,10 +47,10 @@ const ApiDocs = () => {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">2. User Authorization</h3>
+                  <h3 className="font-semibold text-lg">2. User Authorization (OAuth 2.0)</h3>
                   <p className="text-sm text-muted-foreground">
-                    To access a user's wallet, you must obtain an authorization token. Redirect users to our authorization flow 
-                    where they can grant permission to your application.
+                    To access a user's wallet, redirect them to our hosted authorization page. The user logs in, reviews permissions, 
+                    and approves your app. You then exchange the authorization code for an access token. See the <strong>Auth Flow</strong> tab for full details.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -91,7 +91,11 @@ const ApiDocs = () => {
                       </thead>
                       <tbody className="text-muted-foreground">
                         <tr className="border-b border-border/50">
-                          <td className="py-2 pr-4 font-mono text-xs">/api-authorize</td>
+                          <td className="py-2 pr-4 font-mono text-xs">/authorize</td>
+                          <td className="py-2">N/A (user-facing page)</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-token-exchange</td>
                           <td className="py-2">10 req/min</td>
                         </tr>
                         <tr className="border-b border-border/50">
@@ -124,92 +128,258 @@ const ApiDocs = () => {
 
           <TabsContent value="authentication" forceMount className="data-[state=inactive]:hidden">
             <div className="space-y-6">
+              {/* Overview */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Authentication Overview</CardTitle>
-                  <CardDescription>How to authenticate your requests and obtain user access tokens.</CardDescription>
+                  <CardTitle>OAuth 2.0 Authorization Code Flow</CardTitle>
+                  <CardDescription>How to authenticate users and obtain access tokens for your application.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    API requests require different headers depending on the endpoint. Most endpoints need all three:
+                    NoCap uses the industry-standard <strong>OAuth 2.0 Authorization Code Grant</strong> to let users securely grant 
+                    your application access to their wallet. The flow works in three steps:
                   </p>
-                  <div className="p-4 bg-muted rounded-md space-y-2">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      <div><span className="font-mono font-bold text-primary">X-Api-Key</span></div>
-                      <div className="text-muted-foreground">Your application's unique public key.</div>
-                      <div><span className="font-mono font-bold text-primary">X-Api-Secret</span></div>
-                      <div className="text-muted-foreground">Your application's private secret key.</div>
-                      <div><span className="font-mono font-bold text-primary">Authorization</span></div>
-                      <div className="text-muted-foreground">Bearer &lt;user_access_token&gt; (for user-scoped endpoints)</div>
+                  <div className="bg-muted rounded-lg p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
+                      <div>
+                        <p className="text-sm font-semibold">Redirect user to NoCap</p>
+                        <p className="text-xs text-muted-foreground">User logs in and approves your app on our hosted page</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
+                      <div>
+                        <p className="text-sm font-semibold">Receive authorization code</p>
+                        <p className="text-xs text-muted-foreground">User is redirected back to your app with a temporary code</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
+                      <div>
+                        <p className="text-sm font-semibold">Exchange code for access token</p>
+                        <p className="text-xs text-muted-foreground">Your server exchanges the code for a long-lived access token</p>
+                      </div>
                     </div>
                   </div>
                   <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-900 p-4 rounded-md">
                     <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                      <strong>Security Note:</strong> Never expose your API Secret in client-side code. All calls using the secret should be made from your server.
+                      <strong>Security Note:</strong> Never expose your API Secret in client-side code. The token exchange (Step 3) must always happen on your server.
                     </p>
                   </div>
                 </CardContent>
               </Card>
 
+              {/* Step 1: Redirect */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
+                    <CardTitle className="text-lg">Redirect User to Authorization Page</CardTitle>
+                  </div>
+                  <CardDescription>Redirect the user's browser to our hosted consent page.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <CodeBlock>{`https://nocap.life/authorize?app_id=YOUR_APP_ID&redirect_uri=YOUR_CALLBACK_URL&scope=balance,charge&state=RANDOM_STRING`}</CodeBlock>
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Query Parameters:</h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left py-2 pr-4 font-semibold">Parameter</th>
+                            <th className="text-left py-2 pr-4 font-semibold">Required</th>
+                            <th className="text-left py-2 font-semibold">Description</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-muted-foreground">
+                          <tr className="border-b border-border/50">
+                            <td className="py-2 pr-4 font-mono text-xs text-primary">app_id</td>
+                            <td className="py-2 pr-4">Yes</td>
+                            <td className="py-2">Your application's UUID</td>
+                          </tr>
+                          <tr className="border-b border-border/50">
+                            <td className="py-2 pr-4 font-mono text-xs text-primary">redirect_uri</td>
+                            <td className="py-2 pr-4">Yes</td>
+                            <td className="py-2">URL to redirect after authorization</td>
+                          </tr>
+                          <tr className="border-b border-border/50">
+                            <td className="py-2 pr-4 font-mono text-xs text-primary">scope</td>
+                            <td className="py-2 pr-4">No</td>
+                            <td className="py-2">Comma-separated: <code className="font-mono">balance</code>, <code className="font-mono">charge</code>. Default: both</td>
+                          </tr>
+                          <tr className="border-b border-border/50">
+                            <td className="py-2 pr-4 font-mono text-xs text-primary">state</td>
+                            <td className="py-2 pr-4">Recommended</td>
+                            <td className="py-2">Random string to prevent CSRF. Returned unchanged in callback</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    The user will see a login screen (if not already signed in) followed by a consent screen showing the requested permissions. 
+                    They can approve or deny your request.
+                  </p>
+                  <h4 className="text-sm font-semibold">Example (Node.js / Express):</h4>
+                  <CodeBlock>{`app.get("/connect-nocap", (req, res) => {
+  const state = crypto.randomBytes(16).toString("hex");
+  req.session.oauthState = state; // Store for verification
+
+  const params = new URLSearchParams({
+    app_id: process.env.NOCAP_APP_ID,
+    redirect_uri: "https://your-app.com/callback",
+    scope: "balance,charge",
+    state: state,
+  });
+
+  res.redirect(\`https://nocap.life/authorize?\${params}\`);
+});`}</CodeBlock>
+                </CardContent>
+              </Card>
+
+              {/* Step 2: Receive Code */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
+                    <CardTitle className="text-lg">Receive Authorization Code</CardTitle>
+                  </div>
+                  <CardDescription>After the user approves, they are redirected back to your app.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">On approval:</h4>
+                    <CodeBlock>{`GET https://your-app.com/callback?code=AUTH_CODE_64_HEX_CHARS&state=YOUR_STATE`}</CodeBlock>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">On denial:</h4>
+                    <CodeBlock>{`GET https://your-app.com/callback?error=access_denied&error_description=User+denied+the+request&state=YOUR_STATE`}</CodeBlock>
+                  </div>
+                  <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-md">
+                    <p className="text-xs text-destructive">
+                      <strong>⚠️ Important:</strong> Authorization codes expire in <strong>10 minutes</strong> and can only be used <strong>once</strong>. 
+                      Always verify the <code className="font-mono">state</code> parameter matches what you sent in Step 1.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Step 3: Exchange Code */}
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs font-bold rounded">POST</span>
-                    <CardTitle className="text-lg">/api-authorize</CardTitle>
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
+                    <CardTitle className="text-lg">/api-token-exchange</CardTitle>
                   </div>
-                  <CardDescription>Obtain a user access token. The user must be logged in and call this endpoint directly to grant your app permission.</CardDescription>
+                  <CardDescription>Exchange the authorization code for a long-lived access token. This must be done server-side.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <h4 className="text-sm font-semibold">Headers:</h4>
-                    <p className="text-sm text-muted-foreground">Only the user's <code className="text-primary font-bold">Authorization</code> (Supabase session token) is required. No API Key/Secret needed.</p>
-                  </div>
-                  <div className="space-y-2">
                     <h4 className="text-sm font-semibold">Body Parameters:</h4>
                     <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                      <li><code className="text-primary font-bold">code</code> (string, required): The authorization code from Step 2.</li>
                       <li><code className="text-primary font-bold">app_id</code> (string, required): Your application ID.</li>
-                      <li><code className="text-primary font-bold">scopes</code> (string[], optional): Permissions to request. Default: <code>["balance", "charge"]</code>.</li>
+                      <li><code className="text-primary font-bold">app_secret</code> (string, required): Your API secret.</li>
                     </ul>
                   </div>
                   <h4 className="text-sm font-semibold">Request Example:</h4>
-                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-authorize" \\
-  -H "Authorization: Bearer user_supabase_session_token" \\
+                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-token-exchange" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "app_id": "uuid-of-your-app",
-    "scopes": ["balance", "charge"]
+    "code": "auth_code_from_redirect",
+    "app_id": "your-app-uuid",
+    "app_secret": "your-api-secret"
   }'`}</CodeBlock>
                   <h4 className="text-sm font-semibold">Response Example:</h4>
                   <CodeBlock>{`{
   "success": true,
   "access_token": "a1b2c3d4e5f6...64_hex_chars",
-  "app_name": "My POS App",
-  "scopes": ["balance", "charge"]
+  "token_type": "Bearer",
+  "scopes": ["balance", "charge"],
+  "expires_in": 7776000
 }`}</CodeBlock>
                   <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-md">
                     <p className="text-xs text-destructive">
-                      <strong>⚠️ Important:</strong> The <code>access_token</code> is shown only once. Store it securely on your server. This token is used as the <code>Authorization: Bearer</code> header for all subsequent API calls.
+                      <strong>⚠️ Important:</strong> The <code className="font-mono">access_token</code> is shown only once. Store it securely on your server. 
+                      Use it as the <code className="font-mono">Authorization: Bearer</code> header for all subsequent API calls.
                     </p>
                   </div>
-                  <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 p-4 rounded-md space-y-2">
-                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">🧪 Sandbox Shortcut: Skip This Step</p>
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                      If your app is in <strong>Sandbox Mode</strong>, you don't need to call <code className="font-mono">/api-authorize</code>. 
-                      A test access token is auto-generated when you create the app. Use it directly:
-                    </p>
-                    <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charge" \\
+                  <h4 className="text-sm font-semibold">Complete Callback Handler (Node.js):</h4>
+                  <CodeBlock>{`app.get("/callback", async (req, res) => {
+  const { code, state, error } = req.query;
+
+  // Check for denial
+  if (error) return res.status(400).send("Authorization denied");
+
+  // Verify state to prevent CSRF
+  if (state !== req.session.oauthState) {
+    return res.status(403).send("Invalid state parameter");
+  }
+
+  // Exchange code for access token
+  const response = await fetch(
+    "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-token-exchange",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code,
+        app_id: process.env.NOCAP_APP_ID,
+        app_secret: process.env.NOCAP_APP_SECRET,
+      }),
+    }
+  );
+
+  const data = await response.json();
+  if (data.success) {
+    // Store access_token securely (e.g., database)
+    await db.saveToken(req.user.id, data.access_token);
+    res.redirect("/dashboard?connected=true");
+  } else {
+    res.status(400).send(data.error);
+  }
+});`}</CodeBlock>
+                </CardContent>
+              </Card>
+
+              {/* Using the Access Token */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Using the Access Token</CardTitle>
+                  <CardDescription>How to make API calls after obtaining a token.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Once you have an access token, include it alongside your API credentials in every request:
+                  </p>
+                  <div className="p-4 bg-muted rounded-md space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div><span className="font-mono font-bold text-primary">X-Api-Key</span></div>
+                      <div className="text-muted-foreground">Your application's public key</div>
+                      <div><span className="font-mono font-bold text-primary">X-Api-Secret</span></div>
+                      <div className="text-muted-foreground">Your application's private secret</div>
+                      <div><span className="font-mono font-bold text-primary">Authorization</span></div>
+                      <div className="text-muted-foreground">Bearer &lt;access_token&gt; from token exchange</div>
+                    </div>
+                  </div>
+                  <h4 className="text-sm font-semibold">Example — Check User Balance:</h4>
+                  <CodeBlock>{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-balance" \\
   -H "X-Api-Key: your_api_key" \\
   -H "X-Api-Secret: your_api_secret" \\
-  -H "Authorization: Bearer your_test_access_token" \\
-  -H "Content-Type: application/json" \\
-  -d '{ "amount": 1.00, "description": "Test charge" }'`}</CodeBlock>
+  -H "Authorization: Bearer access_token_from_exchange"`}</CodeBlock>
+                  <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 p-4 rounded-md space-y-2">
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">🧪 Sandbox Shortcut: Skip the OAuth Flow</p>
                     <p className="text-xs text-amber-700 dark:text-amber-300">
-                      You can generate additional test tokens anytime from the Merchant Dashboard → API tab → <strong>"Generate Test Token"</strong>.
+                      If your app is in <strong>Sandbox Mode</strong>, use the auto-generated <strong>Test Access Token</strong> instead. 
+                      No need to implement the redirect flow during development.
                     </p>
                   </div>
                 </CardContent>
               </Card>
 
+              {/* Revoke */}
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
@@ -221,7 +391,7 @@ const ApiDocs = () => {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <h4 className="text-sm font-semibold">Headers:</h4>
-                    <p className="text-sm text-muted-foreground">The user's <code className="text-primary font-bold">Authorization</code> (Supabase session token). No API Key/Secret needed.</p>
+                    <p className="text-sm text-muted-foreground">The user's <code className="text-primary font-bold">Authorization</code> (session token). No API Key/Secret needed.</p>
                   </div>
                   <div className="space-y-2">
                     <h4 className="text-sm font-semibold">Body Parameters:</h4>
@@ -516,7 +686,7 @@ app.post("/webhook/nocap", (req, res) => {
                   <ol className="text-sm text-muted-foreground list-decimal pl-5 space-y-2">
                     <li>Create a <strong>new API app</strong> with Sandbox Mode <strong>off</strong>.</li>
                     <li>Replace your sandbox credentials with the new production <strong>API Key</strong> and <strong>API Secret</strong>.</li>
-                    <li>Implement the <strong>OAuth authorization flow</strong> (<code className="font-mono text-primary">/api-authorize</code>) to obtain real user tokens — test tokens won't work in production.</li>
+                    <li>Implement the <strong>OAuth 2.0 Authorization Code flow</strong> — redirect users to <code className="font-mono text-primary">/authorize</code>, then exchange the code via <code className="font-mono text-primary">/api-token-exchange</code>. See the <strong>Auth Flow</strong> tab for details.</li>
                     <li>Set up your <strong>webhook endpoint</strong> to receive payment notifications.</li>
                     <li>Test with a small real charge, then scale up.</li>
                   </ol>
