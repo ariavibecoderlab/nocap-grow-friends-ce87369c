@@ -12,8 +12,15 @@ async function hashSecret(secret: string): Promise<string> {
   return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function sendWebhook(webhookUrl: string | null, secretHash: string, payload: Record<string, unknown>) {
+async function sendWebhook(
+  webhookUrl: string | null, secretHash: string, payload: Record<string, unknown>,
+  supabase?: any, appId?: string
+) {
   if (!webhookUrl) return;
+  const startTime = Date.now();
+  let lastStatus = 0;
+  let delivered = false;
+  let totalAttempts = 0;
   try {
     const payloadStr = JSON.stringify(payload);
     const encoder = new TextEncoder();
@@ -26,6 +33,7 @@ async function sendWebhook(webhookUrl: string | null, secretHash: string, payloa
 
     const maxRetries = 3;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
+      totalAttempts = attempt + 1;
       try {
         const res = await fetch(webhookUrl, {
           method: 'POST',
@@ -37,21 +45,41 @@ async function sendWebhook(webhookUrl: string | null, secretHash: string, payloa
           body: payloadStr,
         });
         await res.text();
+        lastStatus = res.status;
         if (res.ok) {
           console.log(`Webhook delivered (attempt ${attempt + 1}): ${payload.event}`);
-          return;
+          delivered = true;
+          break;
         }
         console.warn(`Webhook attempt ${attempt + 1} failed with status ${res.status}`);
       } catch (err) {
         console.warn(`Webhook attempt ${attempt + 1} network error:`, err);
+        lastStatus = 0;
       }
       if (attempt < maxRetries - 1) {
         const delayMs = Math.pow(2, attempt) * 1000;
         await new Promise(r => setTimeout(r, delayMs));
       }
     }
-    console.error(`Webhook delivery failed after ${maxRetries} attempts: ${webhookUrl}`);
+    if (!delivered) {
+      console.error(`Webhook delivery failed after ${maxRetries} attempts: ${webhookUrl}`);
+    }
   } catch (e) { console.error('Webhook send error:', e); }
+
+  // Log webhook delivery to api_request_logs
+  if (supabase && appId) {
+    try {
+      await supabase.from('api_request_logs').insert({
+        app_id: appId,
+        endpoint: `webhook:${payload.event || 'unknown'}`,
+        method: 'WEBHOOK',
+        status_code: delivered ? (lastStatus || 200) : (lastStatus || 0),
+        request_body: { url: webhookUrl, event: payload.event, charge_id: payload.charge_id },
+        response_body: { delivered, attempts: totalAttempts, final_status: lastStatus },
+        duration_ms: Date.now() - startTime,
+      });
+    } catch (e) { console.error('Webhook log insert failed:', e); }
+  }
 }
 
 serve(async (req) => {
@@ -171,7 +199,7 @@ serve(async (req) => {
         status: newStatus,
         is_sandbox: true,
         timestamp: new Date().toISOString(),
-      });
+      }, supabase, app.id);
 
       return new Response(JSON.stringify({
         success: true,
@@ -297,7 +325,7 @@ serve(async (req) => {
       reason: reason || null,
       status: newStatus,
       timestamp: new Date().toISOString(),
-    });
+    }, supabase, app.id);
 
     return new Response(JSON.stringify({
       success: true,

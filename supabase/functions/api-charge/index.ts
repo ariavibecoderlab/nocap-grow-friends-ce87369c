@@ -42,8 +42,15 @@ async function logRequest(supabase: any, appId: string, endpoint: string, method
 } catch (e) { console.error('Log insert failed:', e); }
 }
 
-async function sendWebhook(webhookUrl: string | null, secretHash: string, payload: Record<string, unknown>) {
+async function sendWebhook(
+  webhookUrl: string | null, secretHash: string, payload: Record<string, unknown>,
+  supabase?: any, appId?: string
+) {
   if (!webhookUrl) return;
+  const startTime = Date.now();
+  let lastStatus = 0;
+  let delivered = false;
+  let totalAttempts = 0;
   try {
     const payloadStr = JSON.stringify(payload);
     const encoder = new TextEncoder();
@@ -57,6 +64,7 @@ async function sendWebhook(webhookUrl: string | null, secretHash: string, payloa
     // Retry with exponential backoff: 1s, 2s, 4s (3 attempts max)
     const maxRetries = 3;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
+      totalAttempts = attempt + 1;
       try {
         const res = await fetch(webhookUrl, {
           method: 'POST',
@@ -68,21 +76,41 @@ async function sendWebhook(webhookUrl: string | null, secretHash: string, payloa
           body: payloadStr,
         });
         await res.text(); // consume body
+        lastStatus = res.status;
         if (res.ok) {
           console.log(`Webhook delivered (attempt ${attempt + 1}): ${payload.event}`);
-          return;
+          delivered = true;
+          break;
         }
         console.warn(`Webhook attempt ${attempt + 1} failed with status ${res.status}`);
       } catch (err) {
         console.warn(`Webhook attempt ${attempt + 1} network error:`, err);
+        lastStatus = 0;
       }
       if (attempt < maxRetries - 1) {
         const delayMs = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
         await new Promise(r => setTimeout(r, delayMs));
       }
     }
-    console.error(`Webhook delivery failed after ${maxRetries} attempts: ${webhookUrl}`);
+    if (!delivered) {
+      console.error(`Webhook delivery failed after ${maxRetries} attempts: ${webhookUrl}`);
+    }
   } catch (e) { console.error('Webhook send error:', e); }
+
+  // Log webhook delivery to api_request_logs
+  if (supabase && appId) {
+    try {
+      await supabase.from('api_request_logs').insert({
+        app_id: appId,
+        endpoint: `webhook:${payload.event || 'unknown'}`,
+        method: 'WEBHOOK',
+        status_code: delivered ? (lastStatus || 200) : (lastStatus || 0),
+        request_body: { url: webhookUrl, event: payload.event, charge_id: payload.charge_id },
+        response_body: { delivered, attempts: totalAttempts, final_status: lastStatus },
+        duration_ms: Date.now() - startTime,
+      });
+    } catch (e) { console.error('Webhook log insert failed:', e); }
+  }
 }
 
 serve(async (req) => {
@@ -258,7 +286,7 @@ serve(async (req) => {
         description: description || null, reference: reference || null,
         status: 'completed', is_sandbox: true, metadata: customMetadata || {},
         timestamp: new Date().toISOString(),
-      });
+      }, supabase, app.id);
 
       const sandboxRes = { success: true, charge_id: charge.id, amount, is_sandbox: true, message: 'Sandbox transaction completed (no real money movement)' };
       await logRequest(supabase, app.id, '/api-charge', 'POST', 200, { amount, description, reference, is_sandbox: true }, sandboxRes, payerId, startTime);
@@ -283,7 +311,7 @@ serve(async (req) => {
           event: 'charge.failed', charge_id: charge.id, amount, description: description || null,
           reference: reference || null, status: 'failed', reason: 'PIN_REQUIRED',
           metadata: customMetadata || {}, timestamp: new Date().toISOString(),
-        });
+        }, supabase, app.id);
         return new Response(JSON.stringify({ error: `PIN required for amounts >= RM${minPinAmount}`, code: 'PIN_REQUIRED', charge_id: charge.id }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -301,7 +329,7 @@ serve(async (req) => {
           event: 'charge.failed', charge_id: charge.id, amount, description: description || null,
           reference: reference || null, status: 'failed', reason: 'PIN_NOT_SET',
           metadata: customMetadata || {}, timestamp: new Date().toISOString(),
-        });
+        }, supabase, app.id);
         return new Response(JSON.stringify({ error: 'PIN not set', code: 'PIN_NOT_SET', charge_id: charge.id }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -314,7 +342,7 @@ serve(async (req) => {
           event: 'charge.failed', charge_id: charge.id, amount, description: description || null,
           reference: reference || null, status: 'failed', reason: 'INVALID_PIN',
           metadata: customMetadata || {}, timestamp: new Date().toISOString(),
-        });
+        }, supabase, app.id);
         return new Response(JSON.stringify({ error: 'Invalid PIN', charge_id: charge.id }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -335,7 +363,7 @@ serve(async (req) => {
         event: 'charge.failed', charge_id: charge.id, amount, description: description || null,
         reference: reference || null, status: 'failed', reason: 'INSUFFICIENT_BALANCE',
         metadata: customMetadata || {}, timestamp: new Date().toISOString(),
-      });
+      }, supabase, app.id);
       return new Response(JSON.stringify({ error: 'Insufficient balance', charge_id: charge.id }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -532,7 +560,7 @@ serve(async (req) => {
       amount, description: description || null, reference: reference || null,
       status: 'completed', metadata: customMetadata || {},
       timestamp: new Date().toISOString(),
-    });
+    }, supabase, app.id);
 
     const successRes = { success: true, charge_id: charge.id, transaction_id: paymentTx?.id, amount, new_balance: newPayerBalance + cashbackShare, cashback: cashbackShare, branch_name: branch.branch_name };
     await logRequest(supabase, app.id, '/api-charge', 'POST', 200, { amount, description, reference }, successRes, payerId, startTime);

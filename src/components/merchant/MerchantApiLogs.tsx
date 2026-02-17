@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, RefreshCw, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, RefreshCw, FileText, ChevronDown, ChevronUp, Webhook } from "lucide-react";
 import { format } from "date-fns";
 
 interface ApiApp {
@@ -81,9 +81,12 @@ const MerchantApiLogs = () => {
       case "POST": return "text-emerald-400";
       case "PUT": return "text-amber-400";
       case "DELETE": return "text-red-400";
+      case "WEBHOOK": return "text-purple-400";
       default: return "text-white/60";
     }
   };
+
+  const isWebhookLog = (log: LogEntry) => log.method === "WEBHOOK";
 
   const appName = (id: string) => apps.find((a) => a.id === id)?.name || "Unknown";
 
@@ -148,6 +151,9 @@ const MerchantApiLogs = () => {
                 <CardContent className="p-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {isWebhookLog(log) ? (
+                        <Webhook className="h-3 w-3 text-purple-400 shrink-0" />
+                      ) : null}
                       <span className={`text-[10px] font-mono font-bold ${getMethodColor(log.method)}`}>
                         {log.method}
                       </span>
@@ -155,8 +161,15 @@ const MerchantApiLogs = () => {
                         {log.endpoint}
                       </span>
                       <Badge variant="outline" className={`text-[9px] h-4 px-1 py-0 ${getStatusColor(log.status_code)}`}>
-                        {log.status_code}
+                        {isWebhookLog(log)
+                          ? ((log.response_body as any)?.delivered ? "delivered" : "failed")
+                          : log.status_code}
                       </Badge>
+                      {isWebhookLog(log) && (log.response_body as any)?.attempts > 1 && (
+                        <span className="text-[9px] text-amber-400/70">
+                          {(log.response_body as any).attempts} attempts
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {log.duration_ms !== null && (
