@@ -44,18 +44,17 @@ const Authorize = () => {
       setAppError("Missing required parameters: app_id and redirect_uri are required.");
       return;
     }
-    // Fetch app info
+    // Fetch app info via edge function (bypasses RLS)
     const fetchApp = async () => {
-      const { data } = await supabase
-        .from("api_applications")
-        .select("name, is_active")
-        .eq("id", appId)
-        .eq("is_active", true)
-        .maybeSingle();
-      if (!data) {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-app-info?app_id=${encodeURIComponent(appId)}`,
+        { headers: { "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
+      );
+      const result = await res.json();
+      if (!res.ok || result.error) {
         setAppError("Application not found or inactive.");
       } else {
-        setAppName(data.name);
+        setAppName(result.name);
       }
     };
     fetchApp();
