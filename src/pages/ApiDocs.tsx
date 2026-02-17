@@ -1,24 +1,40 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Code } from "lucide-react";
+import { Code, Download, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
 import CodeBlock from "@/components/CodeBlock";
 import ApiTryIt from "@/components/ApiTryIt";
 import { ApiCredentialsProvider } from "@/contexts/ApiCredentialsContext";
+import { generateApiGuidePdf } from "@/lib/generateApiGuidePdf";
 
 const ApiDocs = () => {
   return (
     <ApiCredentialsProvider>
     <div className="min-h-screen bg-background pb-20">
       <div className="container max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="p-2 bg-primary/10 rounded-lg text-primary">
-            <Code className="h-6 w-6" />
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg text-primary">
+              <Code className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Developer Documentation</h1>
+              <p className="text-muted-foreground">Integrate NoCap Wallet into your third-party application.</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">Developer Documentation</h1>
-            <p className="text-muted-foreground">Integrate NoCap Wallet into your third-party application.</p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <a href="/nocap-api-integration-guide.md" download>
+                <FileText className="h-4 w-4 mr-1.5" />
+                Markdown
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" onClick={generateApiGuidePdf}>
+              <Download className="h-4 w-4 mr-1.5" />
+              PDF
+            </Button>
           </div>
         </div>
 
