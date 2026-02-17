@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
 import MerchantApprovals from "@/components/admin/MerchantApprovals";
 import FeeSettings from "@/components/admin/FeeSettings";
@@ -10,8 +11,9 @@ import UserManagement from "@/components/admin/UserManagement";
 import TransactionsList from "@/components/admin/TransactionsList";
 import WithdrawalApprovals from "@/components/admin/WithdrawalApprovals";
 import ApiAppsManagement from "@/components/admin/ApiAppsManagement";
-import { Shield } from "lucide-react";
+import { Shield, ClipboardCheck } from "lucide-react";
 import NocapLogo from "@/components/NocapLogo";
+import { generateUatPdf } from "@/lib/generateUatPdf";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -38,6 +40,10 @@ const Admin = () => {
             <Shield className="h-5 w-5 text-secondary" />
             <h1 className="text-xl font-bold text-secondary">Admin Panel</h1>
           </div>
+          <Button variant="outline" size="sm" onClick={generateUatPdf} className="border-white/20 text-white/70 hover:text-white hover:bg-white/10 text-xs">
+            <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
+            UAT PDF
+          </Button>
         </div>
       </div>
 
