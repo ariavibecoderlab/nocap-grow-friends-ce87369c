@@ -12,6 +12,48 @@ async function hashSecret(secret: string): Promise<string> {
   return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+async function sendWebhook(webhookUrl: string | null, secretHash: string, payload: Record<string, unknown>) {
+  if (!webhookUrl) return;
+  try {
+    const payloadStr = JSON.stringify(payload);
+    const encoder = new TextEncoder();
+    const hmacKey = await crypto.subtle.importKey(
+      'raw', encoder.encode(secretHash),
+      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    );
+    const sigBuf = await crypto.subtle.sign('HMAC', hmacKey, encoder.encode(payloadStr));
+    const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+    const maxRetries = 3;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const res = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-Signature': signature,
+            'X-Webhook-Attempt': String(attempt + 1),
+          },
+          body: payloadStr,
+        });
+        await res.text();
+        if (res.ok) {
+          console.log(`Webhook delivered (attempt ${attempt + 1}): ${payload.event}`);
+          return;
+        }
+        console.warn(`Webhook attempt ${attempt + 1} failed with status ${res.status}`);
+      } catch (err) {
+        console.warn(`Webhook attempt ${attempt + 1} network error:`, err);
+      }
+      if (attempt < maxRetries - 1) {
+        const delayMs = Math.pow(2, attempt) * 1000;
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+    }
+    console.error(`Webhook delivery failed after ${maxRetries} attempts: ${webhookUrl}`);
+  } catch (e) { console.error('Webhook send error:', e); }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -120,33 +162,16 @@ serve(async (req) => {
       console.log(`[SANDBOX] API Refund: RM${actualRefund}, charge: ${charge_id}, app: ${app.name}`);
 
       // Webhook for sandbox
-      if (app.webhook_url) {
-        const payload = {
-          event: newStatus === 'refunded' ? 'charge.refunded' : 'charge.partial_refund',
-          charge_id,
-          refund_amount: actualRefund,
-          total_refunded: newTotalRefunded,
-          charge_amount: Number(charge.amount),
-          status: newStatus,
-          is_sandbox: true,
-          timestamp: new Date().toISOString(),
-        };
-        const payloadStr = JSON.stringify(payload);
-
-        const encoder = new TextEncoder();
-        const hmacKey = await crypto.subtle.importKey(
-          'raw', encoder.encode(app.api_secret_hash),
-          { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-        );
-        const sigBuf = await crypto.subtle.sign('HMAC', hmacKey, encoder.encode(payloadStr));
-        const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-        fetch(app.webhook_url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Webhook-Signature': signature },
-          body: payloadStr
-        }).catch(() => {});
-      }
+      sendWebhook(app.webhook_url, app.api_secret_hash, {
+        event: newStatus === 'refunded' ? 'charge.refunded' : 'charge.partial_refund',
+        charge_id,
+        refund_amount: actualRefund,
+        total_refunded: newTotalRefunded,
+        charge_amount: Number(charge.amount),
+        status: newStatus,
+        is_sandbox: true,
+        timestamp: new Date().toISOString(),
+      });
 
       return new Response(JSON.stringify({
         success: true,
@@ -261,39 +286,18 @@ serve(async (req) => {
 
     console.log(`API Refund: RM${actualRefund} back to ${charge.user_id}, charge: ${charge_id}, app: ${app.name}`);
 
-    // Send webhook notification (fire-and-forget)
-    if (app.webhook_url) {
-      const webhookPayload = {
-        event: newStatus === 'refunded' ? 'charge.refunded' : 'charge.partial_refund',
-        charge_id,
-        transaction_id: refundTx?.id,
-        refund_amount: actualRefund,
-        total_refunded: newTotalRefunded,
-        charge_amount: Number(charge.amount),
-        reason: reason || null,
-        status: newStatus,
-        timestamp: new Date().toISOString(),
-      };
-      const payloadStr = JSON.stringify(webhookPayload);
-
-      // HMAC-SHA256 signature using the app's api_secret_hash as key
-      const encoder = new TextEncoder();
-      const hmacKey = await crypto.subtle.importKey(
-        'raw', encoder.encode(app.api_secret_hash),
-        { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-      );
-      const sigBuf = await crypto.subtle.sign('HMAC', hmacKey, encoder.encode(payloadStr));
-      const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-      fetch(app.webhook_url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Webhook-Signature': signature,
-        },
-        body: payloadStr,
-      }).catch(err => console.error('Webhook delivery failed:', err));
-    }
+    // Send webhook notification with retries
+    sendWebhook(app.webhook_url, app.api_secret_hash, {
+      event: newStatus === 'refunded' ? 'charge.refunded' : 'charge.partial_refund',
+      charge_id,
+      transaction_id: refundTx?.id,
+      refund_amount: actualRefund,
+      total_refunded: newTotalRefunded,
+      charge_amount: Number(charge.amount),
+      reason: reason || null,
+      status: newStatus,
+      timestamp: new Date().toISOString(),
+    });
 
     return new Response(JSON.stringify({
       success: true,
