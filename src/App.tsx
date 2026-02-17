@@ -27,6 +27,7 @@ import SetPin from "./pages/SetPin";
 import ResetPin from "./pages/ResetPin";
 import Analytics from "./pages/Analytics";
 import ApiDocs from "./pages/ApiDocs";
+import Authorize from "./pages/Authorize";
 import NotFound from "./pages/NotFound";
 import SessionManager from "./components/SessionManager";
 
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/api-docs" element={<ApiDocs />} />
+            <Route path="/authorize" element={<Authorize />} />
             <Route path="/help-support" element={<HelpSupport />} />
             <Route path="/terms" element={<TermsConditions />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />

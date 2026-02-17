@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.api-charges-list]
 verify_jwt = false
+
+[functions.api-token-exchange]
+verify_jwt = false
