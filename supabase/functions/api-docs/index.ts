@@ -366,6 +366,7 @@ Set a **Webhook URL** when registering your API application. We send a POST requ
 | Event | Description |
 |---|---|
 | \`charge.completed\` | Sent when a charge is successfully processed |
+| \`charge.failed\` | Sent when a charge fails (insufficient balance, PIN error, etc.) |
 | \`charge.partial_refund\` | Sent when a partial refund is issued |
 | \`charge.refunded\` | Sent when a charge is fully refunded |
 
@@ -383,6 +384,30 @@ Set a **Webhook URL** when registering your API application. We send a POST requ
   "timestamp": "2026-02-16T12:00:00.000Z"
 }
 \`\`\`
+
+### Payload: charge.failed
+\`\`\`json
+{
+  "event": "charge.failed",
+  "charge_id": "uuid",
+  "amount": 10.50,
+  "description": "Order #12345",
+  "reference": "txn_88291",
+  "status": "failed",
+  "reason": "INSUFFICIENT_BALANCE",
+  "metadata": {},
+  "timestamp": "2026-02-16T12:00:00.000Z"
+}
+\`\`\`
+
+**Failure Reason Codes:**
+
+| Reason | Description |
+|---|---|
+| \`INSUFFICIENT_BALANCE\` | User's wallet balance is too low |
+| \`PIN_REQUIRED\` | Transaction requires PIN but none was provided |
+| \`PIN_NOT_SET\` | User hasn't configured a PIN yet |
+| \`INVALID_PIN\` | The PIN provided was incorrect |
 
 ### Payload: charge.partial_refund / charge.refunded
 \`\`\`json
@@ -429,7 +454,30 @@ def verify_webhook(body: str, signature: str, api_secret: str) -> bool:
     return hmac.compare_digest(computed, signature)
 \`\`\`
 
-> Webhook delivery is best-effort. Your endpoint should respond with 2xx within 5 seconds. Failed deliveries are not retried. Use \`/api-charge-status\` as source of truth.
+### Retry Policy & Delivery
+
+Webhooks are delivered with up to **3 attempts** using exponential backoff:
+
+| Attempt | Delay |
+|---|---|
+| 1 | Immediate |
+| 2 | 1 second after attempt 1 |
+| 3 | 2 seconds after attempt 2 |
+
+Each request includes an \`X-Webhook-Attempt\` header (1, 2, or 3) so you can track retries.
+
+Your endpoint should respond with a **2xx** status code within **5 seconds**. After 3 failed attempts, the webhook is dropped. Always use \`/api-charge-status\` as the source of truth.
+
+### Best Practices
+
+- **Respond quickly** — return 200 immediately, then process asynchronously.
+- **Verify signatures** — always validate \`X-Webhook-Signature\` before trusting the payload.
+- **Handle duplicates** — use \`charge_id\` for idempotency; you may receive the same event more than once.
+- **Use charge-status as fallback** — poll \`/api-charge-status\` if you suspect a missed webhook.
+
+### Sandbox Mode
+
+In sandbox mode, webhooks are still sent with realistic payloads. The payload includes \`"is_sandbox": true\` so your handler can distinguish test events from production.
 
 ---
 
