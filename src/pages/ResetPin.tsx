@@ -38,7 +38,7 @@ const ResetPin = () => {
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("send-otp", {
-        body: { email: targetEmail },
+        body: { email: targetEmail, purpose: "pin_reset" },
       });
 
       let errorMessage: string | null = null;
