@@ -201,8 +201,9 @@ serve(async (req) => {
       .eq('user_id', payerId)
       .eq('wallet_type', 'member');
 
-    // Credit BRANCH wallet (payment goes directly to branch wallet)
+    // Credit BRANCH wallet (payment goes directly to branch wallet, create if missing)
     const branchCredit = netAmount - commissionPool;
+    const branchIncomeUserId = branch.owner_user_id || branch.merchant_user_id;
     const { data: branchWallet } = await supabase
       .from('wallets')
       .select('balance')
@@ -219,6 +220,18 @@ serve(async (req) => {
         })
         .eq('wallet_type', 'branch')
         .eq('branch_id', branch_id);
+    } else {
+      // Wallet doesn't exist — create it with the credited amount
+      console.log(`Creating missing branch wallet for branch_id=${branch_id}, user_id=${branchIncomeUserId}`);
+      const { error: createErr } = await supabase.from('wallets').insert({
+        user_id: branchIncomeUserId,
+        wallet_type: 'branch',
+        branch_id: branch_id,
+        balance: branchCredit,
+      });
+      if (createErr) {
+        console.error('Failed to create branch wallet:', createErr);
+      }
     }
 
     // Also update merchant_branches.balance for backward compatibility
@@ -259,7 +272,7 @@ serve(async (req) => {
       .single();
 
     // Create income transaction for branch owner (or merchant if no owner)
-    const branchIncomeUserId = branch.owner_user_id || branch.merchant_user_id;
+    
     await supabase.from('transactions').insert({
       user_id: branchIncomeUserId,
       type: 'top_up',
@@ -336,7 +349,7 @@ serve(async (req) => {
     }
 
     // Return unclaimed commissions to branch wallet
-    if (unclaimedCommission > 0 && branchWallet) {
+    if (unclaimedCommission > 0) {
       const { data: updatedBranchWallet } = await supabase
         .from('wallets')
         .select('balance')
