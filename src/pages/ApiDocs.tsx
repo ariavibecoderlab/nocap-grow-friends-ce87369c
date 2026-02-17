@@ -170,6 +170,144 @@ const ApiDocs = () => {
                 </CardContent>
               </Card>
 
+              {/* Visual Sequence Diagram */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Authorization Flow Diagram</CardTitle>
+                  <CardDescription>Visual overview of the OAuth 2.0 authorization code exchange.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <div className="min-w-[600px] p-4">
+                      {/* Actors */}
+                      <div className="grid grid-cols-4 gap-2 text-center mb-4">
+                        <div className="rounded-lg bg-primary/10 border border-primary/20 py-2 px-1">
+                          <p className="text-xs font-bold text-primary">User</p>
+                          <p className="text-[10px] text-muted-foreground">Browser</p>
+                        </div>
+                        <div className="rounded-lg bg-blue-100 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 py-2 px-1">
+                          <p className="text-xs font-bold text-blue-700 dark:text-blue-300">Your App</p>
+                          <p className="text-[10px] text-muted-foreground">Frontend</p>
+                        </div>
+                        <div className="rounded-lg bg-blue-100 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 py-2 px-1">
+                          <p className="text-xs font-bold text-blue-700 dark:text-blue-300">Your Server</p>
+                          <p className="text-[10px] text-muted-foreground">Backend</p>
+                        </div>
+                        <div className="rounded-lg bg-amber-100 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 py-2 px-1">
+                          <p className="text-xs font-bold text-amber-700 dark:text-amber-300">NoCap</p>
+                          <p className="text-[10px] text-muted-foreground">Auth Server</p>
+                        </div>
+                      </div>
+
+                      {/* Vertical lines */}
+                      <div className="relative grid grid-cols-4 gap-2">
+                        {/* Dotted vertical lines behind steps */}
+                        <div className="absolute inset-0 grid grid-cols-4 gap-2 pointer-events-none">
+                          {[0,1,2,3].map(i => (
+                            <div key={i} className="flex justify-center">
+                              <div className="w-px h-full border-l border-dashed border-border" />
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Steps */}
+                        <div className="relative col-span-4 space-y-3">
+                          {/* Step 1: User clicks "Pay with NoCap" */}
+                          <div className="flex items-center gap-1 px-2">
+                            <div className="w-1/4 flex justify-center">
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold">1</span>
+                            </div>
+                            <div className="w-2/4 relative">
+                              <div className="h-px bg-primary w-full" />
+                              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-4 border-l-primary border-y-[3px] border-y-transparent" />
+                              <p className="text-[10px] text-center text-muted-foreground mt-1">Clicks "Pay with NoCap"</p>
+                            </div>
+                            <div className="w-1/4" />
+                          </div>
+
+                          {/* Step 2: Redirect to /authorize */}
+                          <div className="flex items-center gap-1 px-2">
+                            <div className="w-1/4" />
+                            <div className="w-3/4 relative">
+                              <div className="h-px bg-primary w-full" />
+                              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-4 border-l-primary border-y-[3px] border-y-transparent" />
+                              <p className="text-[10px] text-center text-muted-foreground mt-1">
+                                <span className="font-mono text-primary font-semibold">302</span> Redirect → <span className="font-mono">/authorize?app_id=...&redirect_uri=...&scope=...&state=...</span>
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Step 3: User logs in & approves */}
+                          <div className="flex items-center gap-1 px-2">
+                            <div className="w-1/4 flex justify-center">
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold">3</span>
+                            </div>
+                            <div className="w-1/2" />
+                            <div className="w-1/4 flex justify-center">
+                              <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded px-2 py-1">
+                                <p className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold text-center">User logs in<br/>& approves</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Step 4: Redirect back with code */}
+                          <div className="flex items-center gap-1 px-2">
+                            <div className="w-1/4" />
+                            <div className="w-2/4 relative">
+                              <div className="h-px bg-green-500 w-full" />
+                              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0 h-0 border-r-4 border-r-green-500 border-y-[3px] border-y-transparent" />
+                              <p className="text-[10px] text-center text-muted-foreground mt-1">
+                                <span className="font-mono text-green-600 dark:text-green-400 font-semibold">302</span> Redirect → <span className="font-mono">callback?code=AUTH_CODE&state=...</span>
+                              </p>
+                            </div>
+                            <div className="w-1/4" />
+                          </div>
+
+                          {/* Step 5: Server exchanges code */}
+                          <div className="flex items-center gap-1 px-2">
+                            <div className="w-1/4" />
+                            <div className="w-1/4" />
+                            <div className="w-2/4 relative">
+                              <div className="h-px bg-blue-500 w-full" />
+                              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-4 border-l-blue-500 border-y-[3px] border-y-transparent" />
+                              <p className="text-[10px] text-center text-muted-foreground mt-1">
+                                <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold">POST</span> <span className="font-mono">/api-token-exchange</span> {`{ code, app_id, app_secret }`}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Step 6: Returns access token */}
+                          <div className="flex items-center gap-1 px-2">
+                            <div className="w-1/4" />
+                            <div className="w-1/4" />
+                            <div className="w-2/4 relative">
+                              <div className="h-px bg-green-500 w-full" />
+                              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0 h-0 border-r-4 border-r-green-500 border-y-[3px] border-y-transparent" />
+                              <p className="text-[10px] text-center text-muted-foreground mt-1">
+                                <span className="font-mono text-green-600 dark:text-green-400 font-semibold">200</span> {`{ access_token, token_type, expires_in }`}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Step 7: Use token for API calls */}
+                          <div className="flex items-center gap-1 px-2 pt-2 border-t border-dashed border-border mt-2">
+                            <div className="w-1/4" />
+                            <div className="w-1/4" />
+                            <div className="w-2/4 relative">
+                              <div className="h-px bg-primary w-full" style={{ strokeDasharray: '4 4' }} />
+                              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-4 border-l-primary border-y-[3px] border-y-transparent" />
+                              <p className="text-[10px] text-center text-muted-foreground mt-1">
+                                <span className="font-mono text-primary font-semibold">API calls</span> with <span className="font-mono">Authorization: Bearer &lt;token&gt;</span>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Step 1: Redirect */}
               <Card>
                 <CardHeader>
