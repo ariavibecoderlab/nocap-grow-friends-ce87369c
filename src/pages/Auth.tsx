@@ -9,7 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { signUp, verifyOtp, signInWithPassword, updatePassword } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
-import { Zap, Users, Coins, TrendingUp, Gift, Percent } from "lucide-react";
+import { Users, Coins, TrendingUp, Gift, Percent, Zap } from "lucide-react";
+import NocapLogo from "@/components/NocapLogo";
 
 type AuthStep = "email" | "otp" | "password" | "set-password";
 const REGISTERING_FLAG = "nocap_registering";
@@ -231,13 +232,8 @@ const Auth = () => {
       </div>
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/10 backdrop-blur">
-            <Zap className="h-7 w-7 text-secondary" />
-          </div>
-          <h1 className="font-display text-4xl font-bold tracking-tight text-white">
-            NO<span className="text-secondary">cap</span>
-          </h1>
+        <div className="mb-8 flex flex-col items-center">
+          <NocapLogo size="lg" />
           <p className="mt-2 text-sm text-white/60">Affiliate Cashback Platform</p>
         </div>
 
