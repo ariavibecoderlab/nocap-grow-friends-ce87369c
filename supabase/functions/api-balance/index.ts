@@ -15,7 +15,7 @@ async function hashSecret(secret: string): Promise<string> {
 async function validateApiApp(supabase: any, apiKey: string, apiSecret: string) {
   const { data: app } = await supabase
     .from('api_applications')
-    .select('id, merchant_user_id, branch_id, is_active, name')
+    .select('id, merchant_user_id, branch_id, is_active, name, api_secret_hash')
     .eq('api_key', apiKey)
     .single();
 
@@ -23,15 +23,6 @@ async function validateApiApp(supabase: any, apiKey: string, apiSecret: string) 
 
   const secretHash = await hashSecret(apiSecret);
   if (secretHash !== app.api_secret_hash) return null;
-
-  // Verify with stored hash — need to fetch it
-  const { data: fullApp } = await supabase
-    .from('api_applications')
-    .select('api_secret_hash')
-    .eq('id', app.id)
-    .single();
-
-  if (!fullApp || fullApp.api_secret_hash !== secretHash) return null;
 
   return app;
 }
