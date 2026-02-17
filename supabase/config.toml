@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.api-token-exchange]
 verify_jwt = false
+
+[functions.api-app-info]
+verify_jwt = false
