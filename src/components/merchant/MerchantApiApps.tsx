@@ -246,9 +246,9 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
                 <SelectTrigger className="bg-white/5 border-white/10 text-white">
                   <SelectValue placeholder="Select branch" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-card border-white/10 text-white">
                   {branches.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>{b.branch_name}</SelectItem>
+                    <SelectItem key={b.id} value={b.id} className="text-white focus:bg-white/10 focus:text-white">{b.branch_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
