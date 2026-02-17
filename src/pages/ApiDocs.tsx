@@ -14,7 +14,7 @@ const ApiDocs = () => {
     <ApiCredentialsProvider>
     <div className="min-h-screen bg-background pb-20">
       <div className="container max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg text-primary">
               <Code className="h-6 w-6" />
@@ -24,7 +24,7 @@ const ApiDocs = () => {
               <p className="text-muted-foreground">Integrate NoCap Wallet into your third-party application.</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             <Button variant="outline" size="sm" asChild>
               <a href="/nocap-api-integration-guide.md" download>
                 <FileText className="h-4 w-4 mr-1.5" />
