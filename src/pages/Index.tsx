@@ -10,8 +10,8 @@ import {
   QrCode,
   ShieldCheck,
   Rocket,
-  Zap } from
-"lucide-react";
+} from "lucide-react";
+import NocapLogo from "@/components/NocapLogo";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -25,12 +25,7 @@ const Index = () => {
     <div className="flex min-h-screen flex-col bg-primary text-primary-foreground">
       {/* Nav */}
       <header className="flex items-center justify-between px-6 py-5 md:px-12">
-        <h2 className="font-display text-2xl font-bold text-white">
-          <span className="inline-flex items-center gap-1">
-            <Zap className="h-6 w-6 text-secondary fill-secondary" />
-            NO<span className="text-secondary">cap</span>
-          </span>
-        </h2>
+        <NocapLogo size="sm" />
         <Button
           variant="outline"
           className="border-secondary bg-transparent text-secondary hover:bg-secondary hover:text-primary"
