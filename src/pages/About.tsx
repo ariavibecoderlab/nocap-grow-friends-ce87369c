@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Zap } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import NocapLogo from "@/components/NocapLogo";
 
 const About = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const About = () => {
             <Button variant="ghost" size="icon" className="text-white/50 hover:text-white hover:bg-white/10" onClick={() => navigate("/profile")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
+            <NocapLogo size="sm" />
             <h1 className="font-display text-xl font-bold text-white">About NOcap</h1>
           </div>
         </div>
@@ -24,10 +26,7 @@ const About = () => {
         <Card className="border-white/10 bg-white/5">
           <CardContent className="p-5 space-y-4">
             <div className="flex items-center justify-center py-4">
-              <div className="font-display text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-                <Zap className="h-8 w-8 text-secondary fill-secondary" />
-                NO<span className="text-secondary">cap</span>
-              </div>
+              <NocapLogo size="lg" />
             </div>
             <p className="text-center text-xs text-white/40">Version 1.0.0</p>
           </CardContent>
