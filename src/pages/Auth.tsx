@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { signUp, verifyOtp, signInWithPassword, updatePassword } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Zap, Users, Coins, TrendingUp, Gift, Percent } from "lucide-react";
 
 type AuthStep = "email" | "otp" | "password" | "set-password";
@@ -46,9 +47,25 @@ const Auth = () => {
       const response = await supabase.functions.invoke('send-otp', {
         body: { email: targetEmail },
       });
-      // For non-2xx responses, supabase client may put error details in response.error
-      // Extract the message for easier checking
-      const errorMessage = response.data?.error || (response.error ? (response.error.message || String(response.error)) : null);
+
+      let errorMessage: string | null = null;
+
+      if (response.error) {
+        // For FunctionsHttpError (non-2xx), extract the actual response body
+        if (response.error instanceof FunctionsHttpError) {
+          try {
+            const errorBody = await response.error.context.json();
+            errorMessage = errorBody?.error || response.error.message;
+          } catch {
+            errorMessage = response.error.message;
+          }
+        } else {
+          errorMessage = response.error.message || String(response.error);
+        }
+      } else if (response.data?.error) {
+        errorMessage = response.data.error;
+      }
+
       return { ...response, errorMessage };
     } catch (err) {
       return { data: null, error: err, errorMessage: err instanceof Error ? err.message : String(err) };
