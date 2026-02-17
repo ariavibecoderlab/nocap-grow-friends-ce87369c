@@ -1084,40 +1084,53 @@ app.post("/webhook/nocap", (req, res) => {
           </TabsContent>
 
           <TabsContent value="webhooks" forceMount className="data-[state=inactive]:hidden">
-            <Card>
-              <CardHeader>
-                <CardTitle>Webhooks</CardTitle>
-                <CardDescription>Receive real-time notifications for payment events at your configured webhook URL.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Setup</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Set a <strong>Webhook URL</strong> when registering your API application in the Merchant Dashboard.
-                    We will send a <code className="text-primary font-bold">POST</code> request with a JSON payload to this URL whenever a payment event occurs.
-                  </p>
-                </div>
+            <div className="space-y-6">
+              {/* Overview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Webhooks</CardTitle>
+                  <CardDescription>Receive real-time notifications for payment events at your configured webhook URL.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-lg">Setup</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Set a <strong>Webhook URL</strong> when registering your API application in the Merchant Dashboard.
+                      We will send a <code className="text-primary font-bold">POST</code> request with a JSON payload to this URL whenever a payment event occurs.
+                    </p>
+                  </div>
 
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Events</h3>
-                  <div className="p-4 bg-muted rounded-md space-y-3 text-sm">
-                    <div className="flex items-start gap-3">
-                      <code className="text-primary font-bold whitespace-nowrap">charge.completed</code>
-                      <span className="text-muted-foreground">Sent when a charge is successfully processed.</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <code className="text-primary font-bold whitespace-nowrap">charge.partial_refund</code>
-                      <span className="text-muted-foreground">Sent when a partial refund is issued for a charge.</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <code className="text-primary font-bold whitespace-nowrap">charge.refunded</code>
-                      <span className="text-muted-foreground">Sent when a charge is fully refunded.</span>
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-lg">Events</h3>
+                    <div className="p-4 bg-muted rounded-md space-y-3 text-sm">
+                      <div className="flex items-start gap-3">
+                        <code className="text-primary font-bold whitespace-nowrap">charge.completed</code>
+                        <span className="text-muted-foreground">Sent when a charge is successfully processed.</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <code className="text-destructive font-bold whitespace-nowrap">charge.failed</code>
+                        <span className="text-muted-foreground">Sent when a charge fails (insufficient balance, PIN errors, etc.).</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <code className="text-primary font-bold whitespace-nowrap">charge.partial_refund</code>
+                        <span className="text-muted-foreground">Sent when a partial refund is issued for a charge.</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <code className="text-primary font-bold whitespace-nowrap">charge.refunded</code>
+                        <span className="text-muted-foreground">Sent when a charge is fully refunded.</span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Payload Format</h3>
+              {/* Payload Formats */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Payload Formats</CardTitle>
+                  <CardDescription>JSON payloads sent to your webhook URL for each event type.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <h4 className="text-sm font-semibold">charge.completed</h4>
                   <CodeBlock>{`{
   "event": "charge.completed",
@@ -1127,10 +1140,53 @@ app.post("/webhook/nocap", (req, res) => {
   "description": "Order #12345",
   "reference": "txn_88291",
   "status": "completed",
-  "metadata": { "order_id": "ORD-123", "customer_email": "user@example.com" },
+  "metadata": { "order_id": "ORD-123" },
   "timestamp": "2026-02-16T12:00:00.000Z"
 }`}</CodeBlock>
-                  <h4 className="text-sm font-semibold mt-3">charge.partial_refund / charge.refunded</h4>
+
+                  <h4 className="text-sm font-semibold mt-4">charge.failed</h4>
+                  <p className="text-xs text-muted-foreground">Includes a <code className="text-destructive font-bold">reason</code> field indicating why the charge failed.</p>
+                  <CodeBlock>{`{
+  "event": "charge.failed",
+  "charge_id": "uuid",
+  "amount": 10.50,
+  "description": "Order #12345",
+  "reference": "txn_88291",
+  "status": "failed",
+  "reason": "INSUFFICIENT_BALANCE",
+  "metadata": { "order_id": "ORD-123" },
+  "timestamp": "2026-02-16T12:00:05.000Z"
+}`}</CodeBlock>
+                  <div className="overflow-x-auto mt-2">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-2 pr-4 font-semibold">Reason Code</th>
+                          <th className="text-left py-2 font-semibold">Description</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs text-destructive">INSUFFICIENT_BALANCE</td>
+                          <td className="py-2">User's wallet balance is too low for this charge.</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs text-destructive">PIN_REQUIRED</td>
+                          <td className="py-2">Amount exceeds the PIN threshold but no PIN was provided.</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs text-destructive">PIN_NOT_SET</td>
+                          <td className="py-2">User hasn't set up a PIN yet.</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs text-destructive">INVALID_PIN</td>
+                          <td className="py-2">The PIN provided was incorrect.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <h4 className="text-sm font-semibold mt-4">charge.partial_refund / charge.refunded</h4>
                   <CodeBlock>{`{
   "event": "charge.partial_refund",
   "charge_id": "uuid",
@@ -1142,45 +1198,44 @@ app.post("/webhook/nocap", (req, res) => {
   "status": "partial_refund",
   "timestamp": "2026-02-16T12:30:00.000Z"
 }`}</CodeBlock>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Sandbox Mode Testing</h3>
+              {/* Signature Verification */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Signature Verification</CardTitle>
+                  <CardDescription>Verify webhook authenticity using the HMAC-SHA256 signature.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    When an API app is in <strong>Sandbox Mode</strong>, all charges are immediately completed without requiring:
+                    Every webhook includes an <code className="text-primary font-bold">X-Webhook-Signature</code> header and an <code className="text-primary font-bold">X-Webhook-Attempt</code> header (attempt number, starting at 1).
                   </p>
-                  <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                    <li>Sufficient user wallet balance</li>
-                    <li>PIN verification</li>
-                    <li>Any balance deductions or transfers</li>
-                  </ul>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    This allows you to test your integration flow end-to-end without creating test accounts with funds. 
-                    Webhooks are still sent, so you can verify your webhook endpoint integration.
-                  </p>
-                  <div className="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 rounded-md mt-2">
-                    <p className="text-xs text-amber-800 dark:text-amber-200">
-                      <strong>Note:</strong> Sandbox responses include an <code className="text-amber-900">is_sandbox: true</code> field. 
-                      Enable sandbox mode during development, then toggle it off before going to production.
-                    </p>
+                  <div className="bg-muted rounded-lg p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
+                      <div>
+                        <p className="text-sm font-semibold">Hash your API Secret</p>
+                        <p className="text-xs text-muted-foreground">Compute <code className="text-primary">SHA-256(api_secret)</code> to get the signing key.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
+                      <div>
+                        <p className="text-sm font-semibold">Compute HMAC</p>
+                        <p className="text-xs text-muted-foreground">Compute <code className="text-primary">HMAC-SHA256(raw_body, signing_key)</code>.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
+                      <div>
+                        <p className="text-sm font-semibold">Compare signatures</p>
+                        <p className="text-xs text-muted-foreground">Use constant-time comparison with the <code className="text-primary">X-Webhook-Signature</code> header.</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Signature Verification</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Every webhook request includes an <code className="text-primary font-bold">X-Webhook-Signature</code> header containing an HMAC-SHA256 signature of the request body.
-                    You should verify this signature to ensure the webhook is authentic and hasn't been tampered with.
-                  </p>
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-semibold">How it works:</h4>
-                    <ol className="text-sm text-muted-foreground list-decimal pl-5 space-y-1">
-                      <li>Compute <code className="text-primary">SHA-256</code> of your <strong>API Secret</strong> to get the signing key.</li>
-                      <li>Compute <code className="text-primary">HMAC-SHA256(request_body, signing_key)</code>.</li>
-                      <li>Compare the result (hex) with the <code className="text-primary">X-Webhook-Signature</code> header.</li>
-                    </ol>
-                  </div>
-                  <h4 className="text-sm font-semibold mt-3">Node.js Example:</h4>
+                  <h4 className="text-sm font-semibold">Node.js Example:</h4>
                   <CodeBlock>{`const crypto = require('crypto');
 
 function verifyWebhook(body, signature, apiSecret) {
@@ -1201,21 +1256,8 @@ function verifyWebhook(body, signature, apiSecret) {
     Buffer.from(computed, 'hex'),
     Buffer.from(signature, 'hex')
   );
-}
+}`}</CodeBlock>
 
-// Express middleware example
-app.post('/webhook', (req, res) => {
-  const signature = req.headers['x-webhook-signature'];
-  const rawBody = JSON.stringify(req.body);
-
-  if (!verifyWebhook(rawBody, signature, YOUR_API_SECRET)) {
-    return res.status(403).json({ error: 'Invalid signature' });
-  }
-
-  // Process the webhook event
-  console.log('Verified event:', req.body.event);
-  res.status(200).json({ received: true });
-});`}</CodeBlock>
                   <h4 className="text-sm font-semibold mt-3">Python Example:</h4>
                   <CodeBlock>{`import hashlib, hmac
 
@@ -1225,16 +1267,161 @@ def verify_webhook(body: str, signature: str, api_secret: str) -> bool:
         signing_key.encode(), body.encode(), hashlib.sha256
     ).hexdigest()
     return hmac.compare_digest(computed, signature)`}</CodeBlock>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-900 p-4 rounded-md">
-                  <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                    <strong>Note:</strong> Webhook delivery is best-effort. Your endpoint should respond with a 2xx status code within 5 seconds. 
-                    Failed deliveries are not retried. Always use the <code>/api-charge-status</code> endpoint as the source of truth for charge status.
+              {/* Complete Handler Example */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Complete Webhook Handler</CardTitle>
+                  <CardDescription>Production-ready Express.js handler with signature verification and event routing.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <CodeBlock>{`const crypto = require("crypto");
+const express = require("express");
+const app = express();
+
+// Use raw body for signature verification
+app.use("/webhook", express.json({
+  verify: (req, _res, buf) => { req.rawBody = buf.toString(); }
+}));
+
+function verifySignature(rawBody, signature, apiSecret) {
+  const signingKey = crypto.createHash("sha256").update(apiSecret).digest("hex");
+  const computed = crypto.createHmac("sha256", signingKey).update(rawBody).digest("hex");
+  return crypto.timingSafeEqual(Buffer.from(computed, "hex"), Buffer.from(signature, "hex"));
+}
+
+app.post("/webhook/nocap", (req, res) => {
+  const signature = req.headers["x-webhook-signature"];
+  const attempt = req.headers["x-webhook-attempt"]; // "1", "2", or "3"
+
+  // 1. Verify signature
+  if (!signature || !verifySignature(req.rawBody, signature, process.env.NOCAP_API_SECRET)) {
+    console.error("Invalid webhook signature");
+    return res.status(403).json({ error: "Invalid signature" });
+  }
+
+  const event = req.body;
+  console.log(\`Webhook received (attempt \${attempt}): \${event.event}\`);
+
+  // 2. Route by event type
+  switch (event.event) {
+    case "charge.completed":
+      // Mark order as paid
+      await db.orders.update(
+        { where: { reference: event.reference } },
+        { status: "paid", transactionId: event.transaction_id }
+      );
+      break;
+
+    case "charge.failed":
+      // Handle failure — notify customer
+      console.warn(\`Charge \${event.charge_id} failed: \${event.reason}\`);
+      await notifyCustomer(event.reference, event.reason);
+      break;
+
+    case "charge.partial_refund":
+    case "charge.refunded":
+      // Update refund status
+      await db.orders.update(
+        { where: { reference: event.charge_id } },
+        { refundStatus: event.status, refundedAmount: event.total_refunded }
+      );
+      break;
+
+    default:
+      console.log("Unknown event:", event.event);
+  }
+
+  // 3. Always respond 200 quickly
+  res.status(200).json({ received: true });
+});
+
+app.listen(3000);`}</CodeBlock>
+                </CardContent>
+              </Card>
+
+              {/* Retry & Best Practices */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Retry Policy & Best Practices</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Automatic Retries</h4>
+                    <p className="text-sm text-muted-foreground">
+                      If your endpoint returns a non-2xx status or is unreachable, we retry up to <strong>3 times</strong> with exponential backoff:
+                    </p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left py-2 pr-4 font-semibold">Attempt</th>
+                            <th className="text-left py-2 pr-4 font-semibold">Delay</th>
+                            <th className="text-left py-2 font-semibold">Header</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-muted-foreground">
+                          <tr className="border-b border-border/50">
+                            <td className="py-2 pr-4">1st</td>
+                            <td className="py-2 pr-4">Immediate</td>
+                            <td className="py-2 font-mono text-xs">X-Webhook-Attempt: 1</td>
+                          </tr>
+                          <tr className="border-b border-border/50">
+                            <td className="py-2 pr-4">2nd</td>
+                            <td className="py-2 pr-4">~1 second</td>
+                            <td className="py-2 font-mono text-xs">X-Webhook-Attempt: 2</td>
+                          </tr>
+                          <tr className="border-b border-border/50">
+                            <td className="py-2 pr-4">3rd</td>
+                            <td className="py-2 pr-4">~3 seconds</td>
+                            <td className="py-2 font-mono text-xs">X-Webhook-Attempt: 3</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Best Practices</h4>
+                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                      <li><strong>Respond quickly:</strong> Return a <code className="text-primary">200</code> within 5 seconds. Process heavy logic asynchronously.</li>
+                      <li><strong>Be idempotent:</strong> Use <code className="text-primary">charge_id</code> to deduplicate — you may receive the same event more than once on retries.</li>
+                      <li><strong>Verify signatures:</strong> Always validate <code className="text-primary">X-Webhook-Signature</code> before processing.</li>
+                      <li><strong>Use charge-status as source of truth:</strong> If unsure, poll <code className="text-primary">/api-charge-status</code> to confirm the actual charge state.</li>
+                      <li><strong>Log attempts:</strong> Check the <code className="text-primary">X-Webhook-Attempt</code> header to monitor delivery reliability.</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-900 p-4 rounded-md">
+                    <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                      <strong>⚠️ Important:</strong> After 3 failed attempts, the webhook is abandoned for that event. 
+                      Always use <code className="font-mono">/api-charge-status</code> as the definitive source of truth for charge status.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Sandbox Testing */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Sandbox Mode Testing</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    When an API app is in <strong>Sandbox Mode</strong>, all charges complete instantly without requiring balance, PIN, or real money movement. 
+                    Webhooks are still sent for both <code className="text-primary">charge.completed</code> and <code className="text-destructive">charge.failed</code> events, so you can verify your integration end-to-end.
                   </p>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 rounded-md">
+                    <p className="text-xs text-amber-800 dark:text-amber-200">
+                      <strong>Note:</strong> Sandbox responses include <code className="text-amber-900 dark:text-amber-200">is_sandbox: true</code>. 
+                      Use this flag to skip real order processing during development.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="errors" forceMount className="data-[state=inactive]:hidden">
