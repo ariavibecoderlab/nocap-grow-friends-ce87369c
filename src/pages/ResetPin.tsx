@@ -6,6 +6,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { ArrowLeft, KeyRound, Mail, ShieldCheck } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
@@ -41,8 +42,24 @@ const ResetPin = () => {
         body: { email: targetEmail },
       });
 
-      if (fnError || data?.error) {
-        setError(data?.error || "Failed to send OTP");
+      let errorMessage: string | null = null;
+      if (fnError) {
+        if (fnError instanceof FunctionsHttpError) {
+          try {
+            const errorBody = await fnError.context.json();
+            errorMessage = errorBody?.error || fnError.message;
+          } catch {
+            errorMessage = fnError.message;
+          }
+        } else {
+          errorMessage = fnError.message || "Failed to send OTP";
+        }
+      } else if (data?.error) {
+        errorMessage = data.error;
+      }
+
+      if (errorMessage) {
+        setError(errorMessage);
       } else {
         setEmail(targetEmail);
         setStep("otp");
