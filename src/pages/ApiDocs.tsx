@@ -32,7 +32,7 @@ const ApiDocs = () => {
             <TabsTrigger value="errors">Error Codes</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="getting-started">
+          <TabsContent value="getting-started" forceMount className="data-[state=inactive]:hidden">
             <Card>
               <CardHeader>
                 <CardTitle>Getting Started</CardTitle>
@@ -122,7 +122,7 @@ const ApiDocs = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="authentication">
+          <TabsContent value="authentication" forceMount className="data-[state=inactive]:hidden">
             <div className="space-y-6">
               <Card>
                 <CardHeader>
@@ -241,7 +241,7 @@ const ApiDocs = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="sandbox">
+          <TabsContent value="sandbox" forceMount className="data-[state=inactive]:hidden">
             <div className="space-y-6">
               {/* Overview */}
               <Card>
@@ -530,7 +530,7 @@ app.post("/webhook/nocap", (req, res) => {
             </div>
           </TabsContent>
 
-          <TabsContent value="endpoints">
+          <TabsContent value="endpoints" forceMount className="data-[state=inactive]:hidden">
             <div className="space-y-6">
               <Card>
                 <CardHeader>
@@ -775,7 +775,7 @@ app.post("/webhook/nocap", (req, res) => {
             </div>
           </TabsContent>
 
-          <TabsContent value="webhooks">
+          <TabsContent value="webhooks" forceMount className="data-[state=inactive]:hidden">
             <Card>
               <CardHeader>
                 <CardTitle>Webhooks</CardTitle>
@@ -929,7 +929,7 @@ def verify_webhook(body: str, signature: str, api_secret: str) -> bool:
             </Card>
           </TabsContent>
 
-          <TabsContent value="errors">
+          <TabsContent value="errors" forceMount className="data-[state=inactive]:hidden">
             <Card>
               <CardHeader>
                 <CardTitle>Error Codes Reference</CardTitle>
