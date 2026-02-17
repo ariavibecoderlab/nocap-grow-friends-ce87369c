@@ -23,9 +23,16 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { code, app_id, app_secret } = await req.json();
+    const body = await req.json();
+    console.log('Token exchange request body keys:', Object.keys(body));
+    const { code, app_id, app_secret } = body;
 
-    if (!code || !app_id || !app_secret) {
+    // Also support client_id/client_secret naming
+    const finalAppId = app_id || body.client_id;
+    const finalAppSecret = app_secret || body.client_secret;
+
+    if (!code || !finalAppId || !finalAppSecret) {
+      console.log('Missing fields - code:', !!code, 'app_id:', !!finalAppId, 'app_secret:', !!finalAppSecret);
       return new Response(JSON.stringify({ error: 'code, app_id, and app_secret are required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -33,7 +40,7 @@ serve(async (req) => {
 
     // Rate limit: 10 requests per minute per app
     const { data: allowed } = await supabase.rpc('check_rate_limit', {
-      p_identifier: app_id, p_endpoint: 'api-token-exchange', p_max_requests: 10, p_window_seconds: 60,
+      p_identifier: finalAppId, p_endpoint: 'api-token-exchange', p_max_requests: 10, p_window_seconds: 60,
     });
     if (!allowed) {
       return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 10 requests per minute.' }), {
@@ -42,12 +49,14 @@ serve(async (req) => {
     }
 
     // Verify app credentials
-    const { data: app } = await supabase
+    const { data: app, error: appError } = await supabase
       .from('api_applications')
       .select('id, name, is_active, api_secret_hash')
-      .eq('id', app_id)
+      .eq('id', finalAppId)
       .eq('is_active', true)
       .single();
+
+    console.log('App lookup result:', app ? app.name : 'NOT FOUND', 'error:', appError?.message);
 
     if (!app) {
       return new Response(JSON.stringify({ error: 'App not found or inactive' }), {
@@ -56,7 +65,8 @@ serve(async (req) => {
     }
 
     // Verify app secret
-    const secretHash = await hashToken(app_secret);
+    const secretHash = await hashToken(finalAppSecret);
+    console.log('Secret hash match:', secretHash === app.api_secret_hash);
     if (secretHash !== app.api_secret_hash) {
       return new Response(JSON.stringify({ error: 'Invalid app credentials' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -68,7 +78,7 @@ serve(async (req) => {
       .from('api_authorization_codes')
       .select('*')
       .eq('code', code)
-      .eq('app_id', app_id)
+      .eq('app_id', finalAppId)
       .eq('is_used', false)
       .single();
 
@@ -95,7 +105,7 @@ serve(async (req) => {
     const { data: existing } = await supabase
       .from('api_access_tokens')
       .select('id')
-      .eq('app_id', app_id)
+      .eq('app_id', finalAppId)
       .eq('user_id', authCode.user_id)
       .eq('is_active', true)
       .maybeSingle();
@@ -119,7 +129,7 @@ serve(async (req) => {
     const { error: insertError } = await supabase
       .from('api_access_tokens')
       .insert({
-        app_id,
+        app_id: finalAppId,
         user_id: authCode.user_id,
         access_token_hash: tokenHash,
         scopes,
@@ -135,8 +145,8 @@ serve(async (req) => {
     const resBody = { success: true, access_token: '[redacted]', scopes, token_type: 'Bearer' };
     try {
       await supabase.from('api_request_logs').insert({
-        app_id, endpoint: '/api-token-exchange', method: 'POST', status_code: 200,
-        request_body: { app_id, code: '[redacted]' }, response_body: resBody,
+        app_id: finalAppId, endpoint: '/api-token-exchange', method: 'POST', status_code: 200,
+        request_body: { app_id: finalAppId, code: '[redacted]' }, response_body: resBody,
         user_id: authCode.user_id, duration_ms: Date.now() - startTime,
       });
     } catch (_) { /* ignore */ }
