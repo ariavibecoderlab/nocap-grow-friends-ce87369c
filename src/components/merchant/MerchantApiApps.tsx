@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Key, Copy, Eye, EyeOff, Loader2, Globe, FlaskConical } from "lucide-react";
+import { Plus, Key, Copy, Eye, EyeOff, Loader2, Globe, FlaskConical, Webhook, Pencil, Check, X } from "lucide-react";
 
 interface Branch {
   id: string;
@@ -53,7 +53,8 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
   const [showSecret, setShowSecret] = useState(false);
   const [showTestToken, setShowTestToken] = useState(false);
   const [generatingToken, setGeneratingToken] = useState<string | null>(null);
-
+  const [editingWebhook, setEditingWebhook] = useState<string | null>(null);
+  const [webhookEdit, setWebhookEdit] = useState("");
   useEffect(() => {
     if (!user) return;
     fetchApps();
@@ -139,6 +140,25 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
 
   const branchName = (id: string) => branches.find((b) => b.id === id)?.branch_name || "Unknown";
 
+  const startEditWebhook = (app: ApiApp) => {
+    setEditingWebhook(app.id);
+    setWebhookEdit(app.webhook_url || "");
+  };
+
+  const saveWebhook = async (appId: string) => {
+    const url = webhookEdit.trim() || null;
+    const { error } = await supabase
+      .from("api_applications")
+      .update({ webhook_url: url })
+      .eq("id", appId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setApps((prev) => prev.map((a) => (a.id === appId ? { ...a, webhook_url: url } : a)));
+      toast({ title: "Webhook URL updated" });
+    }
+    setEditingWebhook(null);
+  };
   if (loading) {
     return (
       <div className="flex justify-center py-8">
@@ -220,6 +240,41 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
                 </Button>
               )}
               {app.description && <p className="text-[10px] text-white/30">{app.description}</p>}
+              
+              {/* Webhook URL */}
+              <div className="border-t border-white/5 pt-2 mt-1">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1 text-white/40">
+                    <Webhook className="h-3 w-3" />
+                    <span className="text-[10px] font-medium">Webhook URL</span>
+                  </div>
+                  {editingWebhook !== app.id && (
+                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-white/30 hover:text-white" onClick={() => startEditWebhook(app)}>
+                      <Pencil className="h-2.5 w-2.5" />
+                    </Button>
+                  )}
+                </div>
+                {editingWebhook === app.id ? (
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      value={webhookEdit}
+                      onChange={(e) => setWebhookEdit(e.target.value)}
+                      placeholder="https://your-app.com/webhook"
+                      className="h-7 text-[10px] bg-white/5 border-white/10 text-white flex-1"
+                    />
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-400 hover:text-emerald-300" onClick={() => saveWebhook(app.id)}>
+                      <Check className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/30 hover:text-white" onClick={() => setEditingWebhook(null)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-white/50 truncate">
+                    {app.webhook_url || <span className="italic text-white/20">Not set — click edit to add</span>}
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))
