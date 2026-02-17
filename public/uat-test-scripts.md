@@ -928,6 +928,278 @@ Each test case includes:
 
 ---
 
+## 29. Session Management & Security
+
+### TC-SESSION-001: Inactivity Timeout Warning
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | User is logged in |
+| **Steps** | 1. Log in and remain idle for 8 minutes <br> 2. Observe the screen at the 8-minute mark |
+| **Expected** | Warning dialog appears with a 2-minute countdown timer. Dialog offers "Stay Logged In" and "Log Out" options. |
+| **Status** | |
+
+### TC-SESSION-002: Inactivity Auto-Logout
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | User is logged in, warning dialog is showing |
+| **Steps** | 1. Do not interact with the warning dialog <br> 2. Wait for the 2-minute countdown to reach zero |
+| **Expected** | User is automatically logged out. Redirected to landing page. Session is destroyed. |
+| **Status** | |
+
+### TC-SESSION-003: Extend Session from Warning
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Inactivity warning dialog is visible |
+| **Steps** | 1. Click "Stay Logged In" |
+| **Expected** | Dialog closes. Inactivity timer resets. User remains logged in. |
+| **Status** | |
+
+### TC-SESSION-004: Single Session Enforcement
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | User is logged in on Device A |
+| **Steps** | 1. Open a new browser/device (Device B) <br> 2. Log in with the same credentials on Device B |
+| **Expected** | Login succeeds on Device B. Device A's session is invalidated — next action on Device A forces logout with a message. |
+| **Status** | |
+
+### TC-SESSION-005: Expired Session API Call
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | User's session token has expired |
+| **Steps** | 1. Attempt to load `/dashboard` or make any authenticated request |
+| **Expected** | User is redirected to `/auth`. No partial data is shown. Error toast or redirect is clean. |
+| **Status** | |
+
+---
+
+## 30. Concurrent Transactions & Race Conditions
+
+### TC-CONCUR-001: Simultaneous Payments from Same Wallet
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | User has RM 100 balance |
+| **Steps** | 1. Open two browser tabs, both on QR Pay <br> 2. Initiate RM 80 payment in Tab 1 <br> 3. Immediately initiate RM 80 payment in Tab 2 (before Tab 1 completes) |
+| **Expected** | First payment succeeds. Second payment fails with "Insufficient balance". Total deduction is exactly RM 80, not RM 160. |
+| **Status** | |
+
+### TC-CONCUR-002: Double-Click Payment Button
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | User is on payment confirmation screen |
+| **Steps** | 1. Rapidly double-click the "Confirm Payment" button |
+| **Expected** | Only one transaction is created. Button is disabled after first click. No duplicate charges. |
+| **Status** | |
+
+### TC-CONCUR-003: Simultaneous Top-Up Callbacks
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | User initiated a top-up |
+| **Steps** | 1. Simulate duplicate webhook callbacks from payment gateway for the same bill |
+| **Expected** | Balance is credited only once. Second callback is idempotent — no duplicate credit. |
+| **Status** | |
+
+### TC-CONCUR-004: Concurrent API Charges on Same User
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Third-party app has valid token. User has RM 50. |
+| **Steps** | 1. Send two simultaneous POST `/api-charge` requests for RM 40 each |
+| **Expected** | One charge succeeds, one fails with INSUFFICIENT_BALANCE. User balance is RM 10, not negative. |
+| **Status** | |
+
+### TC-CONCUR-005: Transfer to Self
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | User is logged in |
+| **Steps** | 1. Navigate to `/transfer` <br> 2. Enter own phone/email as recipient <br> 3. Attempt transfer |
+| **Expected** | Transfer rejected with error: "Cannot transfer to yourself." |
+| **Status** | |
+
+### TC-CONCUR-006: Refund Already Refunded Charge
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | A charge has already been fully refunded |
+| **Steps** | 1. POST `/api-refund` with the same charge_id |
+| **Expected** | Error 409: "Charge already refunded." No duplicate refund processed. |
+| **Status** | |
+
+---
+
+## 31. Network & Error Handling
+
+### TC-NET-001: Slow Network — Dashboard Load
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | User is logged in. Simulate slow 3G (DevTools throttling). |
+| **Steps** | 1. Navigate to `/dashboard` |
+| **Expected** | Loading skeleton/spinner shown while data loads. No blank screen. Data eventually renders correctly. |
+| **Status** | |
+
+### TC-NET-002: Network Disconnection During Payment
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | User is on payment confirmation |
+| **Steps** | 1. Disable network (airplane mode / DevTools offline) <br> 2. Click "Confirm Payment" |
+| **Expected** | Error message shown (e.g., "Network error, please try again"). No partial transaction created. Balance unchanged. |
+| **Status** | |
+
+### TC-NET-003: Network Reconnection After Disconnection
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | User experienced network error |
+| **Steps** | 1. Restore network connection <br> 2. Retry the failed action |
+| **Expected** | Action succeeds on retry. No stale data displayed. |
+| **Status** | |
+
+### TC-NET-004: API Timeout Handling
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Third-party app calling API |
+| **Steps** | 1. Simulate a request that exceeds edge function timeout (>60s) |
+| **Expected** | 504 or timeout error returned. No partial charge created. Client can safely retry. |
+| **Status** | |
+
+### TC-NET-005: Webhook Delivery Failure & Retry
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Merchant webhook URL is unreachable |
+| **Steps** | 1. Create a charge that triggers a webhook <br> 2. Webhook endpoint returns 500 |
+| **Expected** | System retries up to 3 times with exponential backoff (immediate, 1s, 2s). Retry attempts logged in API logs with attempt count. |
+| **Status** | |
+
+### TC-NET-006: Large Payload Handling
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Valid API credentials |
+| **Steps** | 1. POST `/api-charge` with metadata exceeding 4KB |
+| **Expected** | Error 400: "Metadata exceeds maximum size (4KB)." Charge not created. |
+| **Status** | |
+
+---
+
+## 32. Token & Credential Edge Cases
+
+### TC-TOKEN-001: Expired Access Token
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Access token past its 90-day expiry |
+| **Steps** | 1. Call `/api-balance` with expired token |
+| **Expected** | Error 401: "Access token expired." Clear error message guiding re-authorization. |
+| **Status** | |
+
+### TC-TOKEN-002: Revoked Token API Call
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | User has revoked a third-party app's access |
+| **Steps** | 1. Third-party app calls `/api-balance` with the revoked token |
+| **Expected** | Error 401: "Token revoked" or "Invalid token." |
+| **Status** | |
+
+### TC-TOKEN-003: Deactivated App API Call
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Admin or merchant has deactivated the API app |
+| **Steps** | 1. Call any endpoint with the deactivated app's API key |
+| **Expected** | Error 401: "Application is deactivated." |
+| **Status** | |
+
+### TC-TOKEN-004: Missing Required Headers
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Valid credentials available |
+| **Steps** | 1. Call `/api-charge` without `x-api-secret` header |
+| **Expected** | Error 401 with clear message indicating which header is missing. |
+| **Status** | |
+
+### TC-TOKEN-005: Scope Violation
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Token has only `balance` scope |
+| **Steps** | 1. POST `/api-charge` (requires `charge` scope) |
+| **Expected** | Error 403: "Insufficient scope. Required: charge." |
+| **Status** | |
+
+---
+
+## 33. Data Boundary & Validation
+
+### TC-VALID-001: Charge Amount Boundaries
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Valid API credentials |
+| **Steps** | 1. POST `/api-charge` with amount = 0 <br> 2. POST with amount = -5 <br> 3. POST with amount = 50001 <br> 4. POST with amount = 0.01 <br> 5. POST with amount = 50000 |
+| **Expected** | Cases 1-3 rejected (400). Cases 4-5 accepted (within 0.01–50,000 range). |
+| **Status** | |
+
+### TC-VALID-002: Special Characters in Description
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Valid API credentials |
+| **Steps** | 1. POST `/api-charge` with description containing `<script>alert('xss')</script>` |
+| **Expected** | Charge created but description is sanitized/escaped. No XSS vulnerability. |
+| **Status** | |
+
+### TC-VALID-003: SQL Injection in Search/Filter
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | User on transaction history page |
+| **Steps** | 1. Enter `'; DROP TABLE transactions; --` in search field |
+| **Expected** | No error. Query treated as literal text. No data loss. |
+| **Status** | |
+
+### TC-VALID-004: Partial Refund Exceeding Original
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Completed charge for RM 100 |
+| **Steps** | 1. POST `/api-refund` with `{ charge_id: UUID, amount: 150.00 }` |
+| **Expected** | Error 400: "Refund amount exceeds original charge." |
+| **Status** | |
+
+### TC-VALID-005: Multiple Partial Refunds Exceeding Total
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Completed charge for RM 100, already partially refunded RM 60 |
+| **Steps** | 1. POST `/api-refund` with `{ charge_id: UUID, amount: 50.00 }` |
+| **Expected** | Error 400: "Total refunds would exceed original charge amount." |
+| **Status** | |
+
+### TC-VALID-006: Profile Update with Excessively Long Input
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | User on profile page |
+| **Steps** | 1. Enter a name with 10,000 characters <br> 2. Attempt to save |
+| **Expected** | Validation error or input truncated. No database error. |
+| **Status** | |
+
+---
+
 ## Sign-Off
 
 | Role | Name | Signature | Date |
