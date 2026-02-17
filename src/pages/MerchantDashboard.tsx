@@ -20,6 +20,7 @@ import MerchantSettlement from "@/components/merchant/MerchantSettlement";
 import MerchantApiApps from "@/components/merchant/MerchantApiApps";
 import MerchantApiLogs from "@/components/merchant/MerchantApiLogs";
 import NotificationBell from "@/components/NotificationBell";
+import NocapLogo from "@/components/NocapLogo";
 import {
   ArrowLeft,
   Plus,
@@ -415,6 +416,7 @@ const MerchantDashboard = () => {
             <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors text-white">
               <ArrowLeft className="h-5 w-5" />
             </button>
+            <NocapLogo size="sm" />
             <h1 className="font-display text-xl font-bold flex-1 text-white">Merchant Dashboard</h1>
             <NotificationBell className="text-white" />
           </div>

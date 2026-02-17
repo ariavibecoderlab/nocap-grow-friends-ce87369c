@@ -11,6 +11,7 @@ import TransactionsList from "@/components/admin/TransactionsList";
 import WithdrawalApprovals from "@/components/admin/WithdrawalApprovals";
 import ApiAppsManagement from "@/components/admin/ApiAppsManagement";
 import { Shield } from "lucide-react";
+import NocapLogo from "@/components/NocapLogo";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -31,11 +32,12 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-primary pb-20">
       <div className="px-4 pt-12 pb-6">
-        <div className="mx-auto max-w-md flex items-center gap-2">
-          <Shield className="h-6 w-6 text-secondary" />
-          <h1 className="text-xl font-bold text-secondary">
-            Admin Panel
-          </h1>
+        <div className="mx-auto max-w-md flex items-center gap-3">
+          <NocapLogo size="sm" />
+          <div className="flex items-center gap-2 flex-1">
+            <Shield className="h-5 w-5 text-secondary" />
+            <h1 className="text-xl font-bold text-secondary">Admin Panel</h1>
+          </div>
         </div>
       </div>
 
