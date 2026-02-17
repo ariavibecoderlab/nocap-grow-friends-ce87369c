@@ -39,7 +39,26 @@ async function logRequest(supabase: any, appId: string, endpoint: string, method
       user_id: userId || null,
       duration_ms: startTime ? Date.now() - startTime : null,
     });
-  } catch (e) { console.error('Log insert failed:', e); }
+} catch (e) { console.error('Log insert failed:', e); }
+}
+
+async function sendWebhook(webhookUrl: string | null, secretHash: string, payload: Record<string, unknown>) {
+  if (!webhookUrl) return;
+  try {
+    const payloadStr = JSON.stringify(payload);
+    const encoder = new TextEncoder();
+    const hmacKey = await crypto.subtle.importKey(
+      'raw', encoder.encode(secretHash),
+      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    );
+    const sigBuf = await crypto.subtle.sign('HMAC', hmacKey, encoder.encode(payloadStr));
+    const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Webhook-Signature': signature },
+      body: payloadStr,
+    }).catch(err => console.error('Webhook delivery failed:', err));
+  } catch (e) { console.error('Webhook send error:', e); }
 }
 
 serve(async (req) => {
@@ -210,37 +229,12 @@ serve(async (req) => {
       console.log(`[SANDBOX] API Charge: ${payerId} -> ${branch.branch_name}, RM${amount}, app: ${app.name}`);
 
       // Send webhook for sandbox
-      if (app.webhook_url) {
-        const webhookPayload = {
-          event: 'charge.completed',
-          charge_id: charge.id,
-          amount,
-          description: description || null,
-          reference: reference || null,
-          status: 'completed',
-          is_sandbox: true,
-          metadata: customMetadata || {},
-          timestamp: new Date().toISOString(),
-        };
-        const payloadStr = JSON.stringify(webhookPayload);
-
-        const encoder = new TextEncoder();
-        const hmacKey = await crypto.subtle.importKey(
-          'raw', encoder.encode(app.api_secret_hash),
-          { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-        );
-        const sigBuf = await crypto.subtle.sign('HMAC', hmacKey, encoder.encode(payloadStr));
-        const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-        fetch(app.webhook_url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Webhook-Signature': signature,
-          },
-          body: payloadStr,
-        }).catch(err => console.error('Webhook delivery failed:', err));
-      }
+      sendWebhook(app.webhook_url, app.api_secret_hash, {
+        event: 'charge.completed', charge_id: charge.id, amount,
+        description: description || null, reference: reference || null,
+        status: 'completed', is_sandbox: true, metadata: customMetadata || {},
+        timestamp: new Date().toISOString(),
+      });
 
       const sandboxRes = { success: true, charge_id: charge.id, amount, is_sandbox: true, message: 'Sandbox transaction completed (no real money movement)' };
       await logRequest(supabase, app.id, '/api-charge', 'POST', 200, { amount, description, reference, is_sandbox: true }, sandboxRes, payerId, startTime);
@@ -261,6 +255,11 @@ serve(async (req) => {
       if (!pin) {
         // Update charge to failed
         await supabase.from('api_charges').update({ status: 'failed' }).eq('id', charge.id);
+        sendWebhook(app.webhook_url, app.api_secret_hash, {
+          event: 'charge.failed', charge_id: charge.id, amount, description: description || null,
+          reference: reference || null, status: 'failed', reason: 'PIN_REQUIRED',
+          metadata: customMetadata || {}, timestamp: new Date().toISOString(),
+        });
         return new Response(JSON.stringify({ error: `PIN required for amounts >= RM${minPinAmount}`, code: 'PIN_REQUIRED', charge_id: charge.id }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -274,6 +273,11 @@ serve(async (req) => {
 
       if (!pinProfile?.has_pin || !pinProfile.pin_hash) {
         await supabase.from('api_charges').update({ status: 'failed' }).eq('id', charge.id);
+        sendWebhook(app.webhook_url, app.api_secret_hash, {
+          event: 'charge.failed', charge_id: charge.id, amount, description: description || null,
+          reference: reference || null, status: 'failed', reason: 'PIN_NOT_SET',
+          metadata: customMetadata || {}, timestamp: new Date().toISOString(),
+        });
         return new Response(JSON.stringify({ error: 'PIN not set', code: 'PIN_NOT_SET', charge_id: charge.id }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -282,6 +286,11 @@ serve(async (req) => {
       const pinValid = await verifyPin(pin, pinProfile.pin_hash);
       if (!pinValid) {
         await supabase.from('api_charges').update({ status: 'failed' }).eq('id', charge.id);
+        sendWebhook(app.webhook_url, app.api_secret_hash, {
+          event: 'charge.failed', charge_id: charge.id, amount, description: description || null,
+          reference: reference || null, status: 'failed', reason: 'INVALID_PIN',
+          metadata: customMetadata || {}, timestamp: new Date().toISOString(),
+        });
         return new Response(JSON.stringify({ error: 'Invalid PIN', charge_id: charge.id }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -298,6 +307,11 @@ serve(async (req) => {
 
     if (!payerWallet || Number(payerWallet.balance) < amount) {
       await supabase.from('api_charges').update({ status: 'failed' }).eq('id', charge.id);
+      sendWebhook(app.webhook_url, app.api_secret_hash, {
+        event: 'charge.failed', charge_id: charge.id, amount, description: description || null,
+        reference: reference || null, status: 'failed', reason: 'INSUFFICIENT_BALANCE',
+        metadata: customMetadata || {}, timestamp: new Date().toISOString(),
+      });
       return new Response(JSON.stringify({ error: 'Insufficient balance', charge_id: charge.id }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -477,38 +491,12 @@ serve(async (req) => {
     console.log(`API Charge completed: ${payerId} -> ${branch.branch_name}, RM${amount}, app: ${app.name}`);
 
     // Send webhook notification (fire-and-forget)
-    if (app.webhook_url) {
-      const webhookPayload = {
-        event: 'charge.completed',
-        charge_id: charge.id,
-        transaction_id: paymentTx?.id,
-        amount,
-        description: description || null,
-        reference: reference || null,
-        status: 'completed',
-        metadata: customMetadata || {},
-        timestamp: new Date().toISOString(),
-      };
-      const payloadStr = JSON.stringify(webhookPayload);
-
-      // HMAC-SHA256 signature using the app's api_secret_hash as key
-      const encoder = new TextEncoder();
-      const hmacKey = await crypto.subtle.importKey(
-        'raw', encoder.encode(app.api_secret_hash),
-        { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-      );
-      const sigBuf = await crypto.subtle.sign('HMAC', hmacKey, encoder.encode(payloadStr));
-      const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-      fetch(app.webhook_url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Webhook-Signature': signature,
-        },
-        body: payloadStr,
-      }).catch(err => console.error('Webhook delivery failed:', err));
-    }
+    sendWebhook(app.webhook_url, app.api_secret_hash, {
+      event: 'charge.completed', charge_id: charge.id, transaction_id: paymentTx?.id,
+      amount, description: description || null, reference: reference || null,
+      status: 'completed', metadata: customMetadata || {},
+      timestamp: new Date().toISOString(),
+    });
 
     const successRes = { success: true, charge_id: charge.id, transaction_id: paymentTx?.id, amount, new_balance: newPayerBalance + cashbackShare, cashback: cashbackShare, branch_name: branch.branch_name };
     await logRequest(supabase, app.id, '/api-charge', 'POST', 200, { amount, description, reference }, successRes, payerId, startTime);
