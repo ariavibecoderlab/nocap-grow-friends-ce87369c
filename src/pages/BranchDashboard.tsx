@@ -13,6 +13,7 @@ import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 import NotificationBell from "@/components/NotificationBell";
+import NocapLogo from "@/components/NocapLogo";
 import BranchSalesSummary from "@/components/branch/BranchSalesSummary";
 import BranchTransactionSearch from "@/components/branch/BranchTransactionSearch";
 import {
@@ -385,6 +386,7 @@ const BranchDashboard = () => {
           <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors text-white">
             <ArrowLeft className="h-5 w-5" />
           </button>
+          <NocapLogo size="sm" />
           <h1 className="font-display text-xl font-bold flex-1 text-white">Branch Dashboard</h1>
           <NotificationBell className="text-white" branchId={selectedBranch?.id} />
         </div>

@@ -10,6 +10,7 @@ import BottomNav from "@/components/BottomNav";
 import { LogOut, HelpCircle, FileText, Lock, Info, ChevronRight, KeyRound, Settings, User, ShieldCheck } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import ConnectedApps from "@/components/member/ConnectedApps";
+import NocapLogo from "@/components/NocapLogo";
 
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
@@ -41,7 +42,10 @@ const Profile = () => {
     <div className="min-h-screen bg-primary pb-20">
       <div className="px-4 pb-6 pt-8">
         <div className="mx-auto max-w-md">
-          <h1 className="font-display text-xl font-bold text-white">Settings</h1>
+          <div className="flex items-center gap-3">
+            <NocapLogo size="sm" />
+            <h1 className="font-display text-xl font-bold text-white">Settings</h1>
+          </div>
         </div>
       </div>
 

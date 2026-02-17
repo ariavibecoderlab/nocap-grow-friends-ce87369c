@@ -192,7 +192,10 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="bg-primary px-6 py-10 text-center text-white/40 text-sm">
-        <p>© 2026 NOcap. All rights reserved.</p>
+        <div className="flex flex-col items-center gap-3">
+          <NocapLogo size="sm" />
+          <p>© 2026 NOcap. All rights reserved.</p>
+        </div>
       </footer>
     </div>);
 
