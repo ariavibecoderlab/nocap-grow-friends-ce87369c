@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -233,8 +234,29 @@ const QrPay = () => {
     setLoading(false);
 
     if (error || data?.error) {
-      toast({ title: "Payment Failed", description: data?.error || error?.message || "Something went wrong.", variant: "destructive" });
-      setStep("confirm");
+      let errorMessage = data?.error || "Something went wrong.";
+      
+      // Extract actual error from FunctionsHttpError (non-2xx responses)
+      if (error && error instanceof FunctionsHttpError) {
+        try {
+          const errorBody = await error.context.json();
+          errorMessage = errorBody?.error || error.message;
+        } catch {
+          errorMessage = error.message;
+        }
+      } else if (error && !data?.error) {
+        errorMessage = error.message || "Something went wrong.";
+      }
+
+      toast({ title: "Payment Failed", description: errorMessage, variant: "destructive" });
+      
+      // Go back to PIN step if PIN was invalid, otherwise confirm step
+      if (errorMessage === "Invalid PIN" || errorMessage?.includes("PIN")) {
+        setPin("");
+        setStep("pin");
+      } else {
+        setStep("confirm");
+      }
       return;
     }
 
