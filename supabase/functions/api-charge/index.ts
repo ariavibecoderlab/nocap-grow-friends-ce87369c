@@ -124,12 +124,18 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const apiKey = req.headers.get('x-api-key');
-    const apiSecret = req.headers.get('x-api-secret');
+    // Parse body first so we can extract credentials from it if not in headers
+    const rawBody = await req.text();
+    let bodyData: Record<string, unknown> = {};
+    try { if (rawBody) bodyData = JSON.parse(rawBody); } catch { /* not JSON */ }
+
+    // Accept credentials from headers OR request body (for 3rd party compatibility)
+    const apiKey = req.headers.get('x-api-key') || (bodyData.api_key as string);
+    const apiSecret = req.headers.get('x-api-secret') || (bodyData.api_secret as string) || (bodyData.app_secret as string);
     const authHeader = req.headers.get('Authorization');
 
     if (!apiKey || !apiSecret) {
-      return new Response(JSON.stringify({ error: 'Missing API credentials' }), {
+      return new Response(JSON.stringify({ error: 'Missing API credentials. Provide x-api-key and x-api-secret headers, or api_key and api_secret in the request body.' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -202,7 +208,7 @@ serve(async (req) => {
     // Update last_used_at
     await supabase.from('api_access_tokens').update({ last_used_at: new Date().toISOString() }).eq('id', token.id);
 
-    const { amount, description, reference, pin, metadata: customMetadata } = await req.json();
+    const { amount, description, reference, pin, metadata: customMetadata } = bodyData as { amount: number; description?: string; reference?: string; pin?: string; metadata?: Record<string, unknown> };
 
     // Validate custom metadata
     if (customMetadata !== undefined && customMetadata !== null) {
