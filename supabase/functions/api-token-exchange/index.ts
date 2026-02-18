@@ -48,18 +48,32 @@ serve(async (req) => {
       });
     }
 
-    // Verify app credentials
-    const { data: app, error: appError } = await supabase
+    // Verify app credentials — try lookup by UUID id first, then by api_key
+    let { data: app } = await supabase
       .from('api_applications')
       .select('id, name, is_active, api_secret_hash')
       .eq('id', finalAppId)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
-    console.log('App lookup result:', app ? app.name : 'NOT FOUND', 'error:', appError?.message);
+    // Fallback: caller may have passed the api_key hex string instead of UUID
+    if (!app) {
+      const { data: appByKey } = await supabase
+        .from('api_applications')
+        .select('id, name, is_active, api_secret_hash')
+        .eq('api_key', finalAppId)
+        .eq('is_active', true)
+        .maybeSingle();
+      app = appByKey;
+    }
+
+    console.log('App lookup result:', app ? app.name : 'NOT FOUND (checked id + api_key)');
 
     if (!app) {
-      return new Response(JSON.stringify({ error: 'App not found or inactive' }), {
+      return new Response(JSON.stringify({
+        error: 'App not found or inactive',
+        hint: 'Ensure app_id is the UUID from your developer portal, not the API key',
+      }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -73,14 +87,19 @@ serve(async (req) => {
       });
     }
 
+    // Use resolved app UUID (in case caller passed api_key instead of id)
+    const resolvedAppId = app.id;
+
     // Look up the authorization code
     const { data: authCode } = await supabase
       .from('api_authorization_codes')
       .select('*')
       .eq('code', code)
-      .eq('app_id', finalAppId)
+      .eq('app_id', resolvedAppId)
       .eq('is_used', false)
-      .single();
+      .maybeSingle();
+
+    console.log('Auth code lookup:', authCode ? 'FOUND' : 'NOT FOUND', 'for app:', resolvedAppId);
 
     if (!authCode) {
       return new Response(JSON.stringify({ error: 'Invalid or expired authorization code' }), {
@@ -105,7 +124,7 @@ serve(async (req) => {
     const { data: existing } = await supabase
       .from('api_access_tokens')
       .select('id')
-      .eq('app_id', finalAppId)
+      .eq('app_id', resolvedAppId)
       .eq('user_id', authCode.user_id)
       .eq('is_active', true)
       .maybeSingle();
@@ -129,7 +148,7 @@ serve(async (req) => {
     const { error: insertError } = await supabase
       .from('api_access_tokens')
       .insert({
-        app_id: finalAppId,
+        app_id: resolvedAppId,
         user_id: authCode.user_id,
         access_token_hash: tokenHash,
         scopes,
@@ -145,8 +164,8 @@ serve(async (req) => {
     const resBody = { success: true, access_token: '[redacted]', scopes, token_type: 'Bearer' };
     try {
       await supabase.from('api_request_logs').insert({
-        app_id: finalAppId, endpoint: '/api-token-exchange', method: 'POST', status_code: 200,
-        request_body: { app_id: finalAppId, code: '[redacted]' }, response_body: resBody,
+        app_id: resolvedAppId, endpoint: '/api-token-exchange', method: 'POST', status_code: 200,
+        request_body: { app_id: resolvedAppId, code: '[redacted]' }, response_body: resBody,
         user_id: authCode.user_id, duration_ms: Date.now() - startTime,
       });
     } catch (_) { /* ignore */ }
