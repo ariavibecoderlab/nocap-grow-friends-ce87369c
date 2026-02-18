@@ -57,12 +57,21 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const apiKey = req.headers.get('x-api-key');
-    const apiSecret = req.headers.get('x-api-secret');
+    // Parse body (may be empty for GET, safe to try)
+    let bodyData: Record<string, string> = {};
+    try {
+      const cloned = req.clone();
+      const text = await cloned.text();
+      if (text) bodyData = JSON.parse(text);
+    } catch { /* no body or not JSON */ }
+
+    // Accept credentials from headers OR request body (for 3rd party compatibility)
+    const apiKey = req.headers.get('x-api-key') || bodyData.api_key;
+    const apiSecret = req.headers.get('x-api-secret') || bodyData.api_secret || bodyData.app_secret;
     const authHeader = req.headers.get('Authorization');
 
     if (!apiKey || !apiSecret) {
-      return new Response(JSON.stringify({ error: 'Missing API credentials' }), {
+      return new Response(JSON.stringify({ error: 'Missing API credentials. Provide x-api-key and x-api-secret headers, or api_key and api_secret in the request body.' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
