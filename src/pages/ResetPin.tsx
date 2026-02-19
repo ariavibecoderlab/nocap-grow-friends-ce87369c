@@ -73,7 +73,7 @@ const ResetPin = () => {
 
   const handleVerifyOtp = async () => {
     if (otp.length < 6) {
-      setError("Enter the 6-digit code");
+      setError("Enter the complete verification code");
       return;
     }
 
@@ -183,7 +183,7 @@ const ResetPin = () => {
               </h2>
               <p className="text-xs text-white/50 max-w-[260px]">
                 {step === "email" ? "We'll send a verification code to your email." :
-                 step === "otp" ? `Enter the 6-digit code sent to ${email}` :
+                 step === "otp" ? `Enter the verification code sent to ${email}` :
                  step === "new_pin" ? "Choose a new 6-digit PIN." :
                  "Re-enter your new PIN to confirm."}
               </p>
@@ -209,11 +209,16 @@ const ResetPin = () => {
             {step === "otp" && (
               <>
                 <div className="flex justify-center">
-                  <InputOTP maxLength={6} value={otp} onChange={(val) => { setOtp(val); setError(""); }}>
-                    <InputOTPGroup>
-                      {[0, 1, 2, 3, 4, 5].map((i) => <InputOTPSlot key={i} index={i} />)}
-                    </InputOTPGroup>
-                  </InputOTP>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={8}
+                    value={otp}
+                    onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '')); setError(""); }}
+                    placeholder="Enter code from email"
+                    className="w-full text-center text-2xl font-bold tracking-widest rounded-md border border-white/10 bg-white/5 px-3 py-4 text-white placeholder:text-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    autoFocus
+                  />
                 </div>
                 {error && <p className="text-xs text-destructive text-center">{error}</p>}
                 <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleVerifyOtp} disabled={loading || otp.length < 6}>
