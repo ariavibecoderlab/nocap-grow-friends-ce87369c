@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 15;
+
 async function hashPin(pin: string, salt: string): Promise<string> {
   const data = new TextEncoder().encode(pin + salt);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -19,6 +22,7 @@ async function verifyPin(pin: string, storedHash: string): Promise<boolean> {
   const computed = await hashPin(pin, salt);
   return computed === hash;
 }
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -139,7 +143,7 @@ serve(async (req) => {
 
       const { data: pinProfile, error: pinProfileError } = await supabase
         .from('profiles')
-        .select('has_pin, pin_hash')
+        .select('has_pin, pin_hash, pin_attempts, pin_locked_until')
         .eq('user_id', payerId)
         .single();
 
@@ -151,13 +155,47 @@ serve(async (req) => {
         });
       }
 
+      // Check PIN lockout
+      if (pinProfile.pin_locked_until) {
+        const lockedUntil = new Date(pinProfile.pin_locked_until);
+        if (lockedUntil > new Date()) {
+          const minutesLeft = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000);
+          return new Response(JSON.stringify({
+            error: `PIN locked. Try again in ${minutesLeft} minute(s).`,
+            code: 'PIN_LOCKED',
+          }), {
+            status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        // Lockout expired — reset
+        await supabase.from('profiles').update({ pin_attempts: 0, pin_locked_until: null }).eq('user_id', payerId);
+      }
+
       const pinValid = await verifyPin(pin, pinProfile.pin_hash);
       console.log(`PIN verification result: ${pinValid}`);
       if (!pinValid) {
-        return new Response(JSON.stringify({ error: 'Invalid PIN' }), {
+        const newAttempts = (pinProfile.pin_attempts || 0) + 1;
+        const updates: Record<string, unknown> = { pin_attempts: newAttempts };
+        if (newAttempts >= MAX_ATTEMPTS) {
+          updates.pin_locked_until = new Date(Date.now() + LOCKOUT_MINUTES * 60000).toISOString();
+        }
+        await supabase.from('profiles').update(updates).eq('user_id', payerId);
+
+        const remaining = MAX_ATTEMPTS - newAttempts;
+        return new Response(JSON.stringify({
+          error: remaining > 0
+            ? `Incorrect PIN. ${remaining} attempt(s) remaining.`
+            : `Too many failed attempts. PIN locked for ${LOCKOUT_MINUTES} minutes.`,
+          code: 'INVALID_PIN',
+          locked: newAttempts >= MAX_ATTEMPTS,
+          attempts_remaining: Math.max(0, remaining),
+        }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+
+      // Reset attempts on success
+      await supabase.from('profiles').update({ pin_attempts: 0, pin_locked_until: null }).eq('user_id', payerId);
     }
 
     // Check payer's MEMBER wallet

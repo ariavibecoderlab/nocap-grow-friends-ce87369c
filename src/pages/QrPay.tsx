@@ -211,8 +211,8 @@ const QrPay = () => {
   };
 
   const handlePinSubmit = () => {
-    if (pin.length < 4) {
-      toast({ title: "Invalid PIN", description: "Please enter your PIN.", variant: "destructive" });
+    if (pin.length < 6) {
+      toast({ title: "Invalid PIN", description: "Please enter your 6-digit PIN.", variant: "destructive" });
       return;
     }
     processPayment(Number(amount), pin);
@@ -235,12 +235,14 @@ const QrPay = () => {
 
     if (error || data?.error) {
       let errorMessage = data?.error || "Something went wrong.";
-      
+      let errorCode = data?.code || null;
+
       // Extract actual error from FunctionsHttpError (non-2xx responses)
       if (error && error instanceof FunctionsHttpError) {
         try {
           const errorBody = await error.context.json();
           errorMessage = errorBody?.error || error.message;
+          errorCode = errorBody?.code || null;
         } catch {
           errorMessage = error.message;
         }
@@ -248,13 +250,23 @@ const QrPay = () => {
         errorMessage = error.message || "Something went wrong.";
       }
 
-      toast({ title: "Payment Failed", description: errorMessage, variant: "destructive" });
-      
-      // Go back to PIN step if PIN was invalid, otherwise confirm step
-      if (errorMessage === "Invalid PIN" || errorMessage?.includes("PIN")) {
+      if (errorCode === 'PIN_NOT_SET') {
+        toast({ title: "PIN Not Set", description: `Please set up your 6-digit PIN before making payments of RM${minPinAmount} and above.`, variant: "destructive" });
+        navigate("/set-pin");
+      } else if (errorCode === 'PIN_LOCKED') {
+        toast({ title: "PIN Locked", description: errorMessage, variant: "destructive" });
+        setPin("");
+        setStep("pin");
+      } else if (errorCode === 'INVALID_PIN') {
+        toast({ title: "Incorrect PIN", description: errorMessage, variant: "destructive" });
+        setPin("");
+        setStep("pin");
+      } else if (errorMessage?.includes("PIN")) {
+        toast({ title: "Payment Failed", description: errorMessage, variant: "destructive" });
         setPin("");
         setStep("pin");
       } else {
+        toast({ title: "Payment Failed", description: errorMessage, variant: "destructive" });
         setStep("confirm");
       }
       return;
