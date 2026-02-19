@@ -193,8 +193,16 @@ const Transfer = () => {
       }
 
       if (data?.error) {
-        toast({ title: "Transfer failed", description: data.error, variant: "destructive" });
-        if (data.code === "PIN_NOT_SET") navigate("/profile");
+        if (data.code === "PIN_NOT_SET") {
+          toast({
+            title: "PIN Not Set",
+            description: "Please set up your 6-digit PIN before making transfers above RM" + minPinAmount + ".",
+            variant: "destructive",
+          });
+          navigate("/set-pin");
+        } else {
+          toast({ title: "Transfer failed", description: data.error, variant: "destructive" });
+        }
         if (step === "pin") setPin("");
         setLoading(false);
         return;
@@ -382,7 +390,7 @@ const Transfer = () => {
               </div>
               <p className="mt-1 text-xs text-white/40">
                 Balance: RM {balance.toFixed(2)}
-                {parseFloat(amount) >= 50 && " · PIN required"}
+                {parseFloat(amount) >= minPinAmount && " · PIN required"}
               </p>
             </div>
 
@@ -435,7 +443,7 @@ const Transfer = () => {
         {step === "pin" && (
           <div className="mt-8 flex flex-col items-center">
             <p className="font-display text-lg font-semibold text-white">Enter PIN</p>
-            <p className="text-sm text-white/50 mt-1">Required for transfers RM50 and above</p>
+            <p className="text-sm text-white/50 mt-1">Required for transfers RM{minPinAmount} and above</p>
             <div className="mt-6">
               <InputOTP maxLength={6} value={pin} onChange={(val) => {
                 setPin(val);
