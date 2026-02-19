@@ -465,7 +465,7 @@ const QrPay = () => {
                   </div>
                 </div>
 
-                <Button className="w-full h-12 bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handlePinSubmit} disabled={pin.length < 4}>
+                <Button className="w-full h-12 bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handlePinSubmit} disabled={pin.length < 6}>
                   Confirm Payment
                 </Button>
                 <Button variant="ghost" className="w-full text-sm text-white/50 hover:text-white hover:bg-white/10" onClick={() => setStep("confirm")}>
