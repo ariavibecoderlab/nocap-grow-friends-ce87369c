@@ -201,7 +201,7 @@ export default function ManageProducts() {
       sku: sku.trim() || null,
       status,
       is_featured: isFeatured,
-      category_id: categoryId || null,
+      category_id: (categoryId && categoryId !== "__none__") ? categoryId : null,
       images,
     };
     let error;
@@ -509,10 +509,13 @@ export default function ManageProducts() {
             {categories.length > 0 && (
               <div className="space-y-1">
                 <Label className="text-xs">Category</Label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
+                <Select
+                  value={categoryId || "__none__"}
+                  onValueChange={(v) => setCategoryId(v === "__none__" ? "" : v)}
+                >
                   <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select category" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No category</SelectItem>
+                    <SelectItem value="__none__">No category</SelectItem>
                     {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
