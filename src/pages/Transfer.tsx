@@ -196,14 +196,24 @@ const Transfer = () => {
         if (data.code === "PIN_NOT_SET") {
           toast({
             title: "PIN Not Set",
-            description: "Please set up your 6-digit PIN before making transfers above RM" + minPinAmount + ".",
+            description: `Please set up your 6-digit PIN before making transfers above RM${minPinAmount}.`,
             variant: "destructive",
           });
           navigate("/set-pin");
+        } else if (data.code === "PIN_LOCKED") {
+          toast({ title: "PIN Locked", description: data.error, variant: "destructive" });
+          if (step === "pin") setPin("");
+        } else if (data.code === "INVALID_PIN") {
+          toast({
+            title: "Incorrect PIN",
+            description: data.error,
+            variant: "destructive",
+          });
+          if (step === "pin") setPin("");
         } else {
           toast({ title: "Transfer failed", description: data.error, variant: "destructive" });
+          if (step === "pin") setPin("");
         }
-        if (step === "pin") setPin("");
         setLoading(false);
         return;
       }

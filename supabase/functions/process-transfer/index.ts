@@ -1,10 +1,30 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+// SHA-256 + salt hash — must match manage-pin hashing logic
+async function hashPin(pin: string, salt: string): Promise<string> {
+  const data = new TextEncoder().encode(pin + salt);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = new Uint8Array(hashBuffer);
+  return encodeBase64(hashArray);
+}
+
+// Verify PIN against stored "salt:hash" format
+async function verifyPin(pin: string, storedHash: string): Promise<boolean> {
+  const [salt, hash] = storedHash.split(':');
+  if (!salt || !hash) return false;
+  const computed = await hashPin(pin, salt);
+  return computed === hash;
+}
+
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 15;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -75,7 +95,7 @@ serve(async (req) => {
 
       const { data: senderProfile } = await supabase
         .from('profiles')
-        .select('has_pin, pin_hash')
+        .select('has_pin, pin_hash, pin_attempts, pin_locked_until')
         .eq('user_id', senderId)
         .single();
 
@@ -85,11 +105,47 @@ serve(async (req) => {
         });
       }
 
-      if (senderProfile.pin_hash !== pin) {
-        return new Response(JSON.stringify({ error: 'Invalid PIN' }), {
+      // Check PIN lockout
+      if (senderProfile.pin_locked_until) {
+        const lockedUntil = new Date(senderProfile.pin_locked_until);
+        if (lockedUntil > new Date()) {
+          const minutesLeft = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000);
+          return new Response(JSON.stringify({
+            error: `PIN locked. Try again in ${minutesLeft} minute(s).`,
+            code: 'PIN_LOCKED',
+          }), {
+            status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        // Lockout expired — reset
+        await supabase.from('profiles').update({ pin_attempts: 0, pin_locked_until: null }).eq('user_id', senderId);
+      }
+
+      // Verify PIN using the same salt:hash scheme as manage-pin
+      const isValid = await verifyPin(String(pin), senderProfile.pin_hash);
+      if (!isValid) {
+        const newAttempts = (senderProfile.pin_attempts || 0) + 1;
+        const updates: Record<string, unknown> = { pin_attempts: newAttempts };
+        if (newAttempts >= MAX_ATTEMPTS) {
+          updates.pin_locked_until = new Date(Date.now() + LOCKOUT_MINUTES * 60000).toISOString();
+        }
+        await supabase.from('profiles').update(updates).eq('user_id', senderId);
+
+        const remaining = MAX_ATTEMPTS - newAttempts;
+        return new Response(JSON.stringify({
+          error: remaining > 0
+            ? `Incorrect PIN. ${remaining} attempt(s) remaining.`
+            : `Too many failed attempts. PIN locked for ${LOCKOUT_MINUTES} minutes.`,
+          code: 'INVALID_PIN',
+          locked: newAttempts >= MAX_ATTEMPTS,
+          attempts_remaining: Math.max(0, remaining),
+        }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+
+      // Reset attempts on success
+      await supabase.from('profiles').update({ pin_attempts: 0, pin_locked_until: null }).eq('user_id', senderId);
     }
 
     // Check sender's MEMBER wallet balance
@@ -120,18 +176,11 @@ serve(async (req) => {
       });
     }
 
-    // Get recipient name for description
-    const { data: recipientProfile } = await supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('user_id', recipient_user_id)
-      .single();
-
-    const { data: senderProfileName } = await supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('user_id', senderId)
-      .single();
+    // Get recipient and sender names for description
+    const [{ data: recipientProfile }, { data: senderProfileName }] = await Promise.all([
+      supabase.from('profiles').select('full_name').eq('user_id', recipient_user_id).single(),
+      supabase.from('profiles').select('full_name').eq('user_id', senderId).single(),
+    ]);
 
     const recipientName = recipientProfile?.full_name || 'Member';
     const senderName = senderProfileName?.full_name || 'Member';
