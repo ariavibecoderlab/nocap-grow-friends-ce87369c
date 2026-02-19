@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { OrderStatusBadge } from "@/components/marketplace/OrderStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Package, Truck, Home, Clock, ArrowLeft, ShoppingBag } from "lucide-react";
+import { CheckCircle2, Package, Truck, Home, Clock, ArrowLeft, ShoppingBag, Wifi } from "lucide-react";
 
 interface Order {
   id: string;
@@ -40,25 +40,29 @@ const STEP_ICONS = [Clock, CheckCircle2, Package, Truck, Home, CheckCircle2];
 export default function OrderConfirmation() {
   const { slug, orderId } = useParams<{ slug: string; orderId: string }>();
   const navigate = useNavigate();
+
   const [order, setOrder] = useState<Order | null>(null);
   const [items, setItems] = useState<OrderItem[]>([]);
-  const [storeColor, setStoreColor] = useState("#FFD700");
+  const [storeColor, setStoreColor] = useState("hsl(var(--primary))");
   const [loading, setLoading] = useState(true);
+  const [liveConnected, setLiveConnected] = useState(false);
+  const prevStatusRef = useRef<string | null>(null);
+  const [statusJustChanged, setStatusJustChanged] = useState(false);
 
+  // ── Initial data fetch ──────────────────────────────────────────────────
   useEffect(() => {
     if (!orderId || !slug) return;
+
     const fetchOrder = async () => {
-      const { data: storeData } = await supabase.from("marketplace_stores").select("primary_color").eq("slug", slug).single();
-      if (storeData) setStoreColor(storeData.primary_color);
+      const [{ data: storeData }, { data: orderData }] = await Promise.all([
+        supabase.from("marketplace_stores").select("primary_color").eq("slug", slug).single(),
+        supabase.from("marketplace_orders").select("*").eq("id", orderId).single(),
+      ]);
 
-      const { data: orderData } = await supabase
-        .from("marketplace_orders")
-        .select("*")
-        .eq("id", orderId)
-        .single();
-
+      if (storeData?.primary_color) setStoreColor(storeData.primary_color);
       if (!orderData) { navigate("/marketplace"); return; }
       setOrder(orderData as Order);
+      prevStatusRef.current = (orderData as Order).status;
 
       const { data: itemData } = await supabase
         .from("marketplace_order_items")
@@ -67,30 +71,61 @@ export default function OrderConfirmation() {
       setItems((itemData as OrderItem[]) || []);
       setLoading(false);
     };
+
     fetchOrder();
-
-    // Realtime status updates
-    const channel = supabase
-      .channel(`order-${orderId}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "marketplace_orders", filter: `id=eq.${orderId}` },
-        (payload) => setOrder(payload.new as Order))
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
   }, [orderId, slug, navigate]);
 
+  // ── Realtime subscription (separate effect for clean lifecycle) ─────────
+  useEffect(() => {
+    if (!orderId) return;
+
+    const channel = supabase
+      .channel(`order-status-${orderId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "marketplace_orders",
+          filter: `id=eq.${orderId}`,
+        },
+        (payload) => {
+          const updated = payload.new as Order;
+          setOrder(updated);
+          // Flash animation if status changed
+          if (prevStatusRef.current && prevStatusRef.current !== updated.status) {
+            setStatusJustChanged(true);
+            setTimeout(() => setStatusJustChanged(false), 2000);
+          }
+          prevStatusRef.current = updated.status;
+        }
+      )
+      .subscribe((status) => {
+        setLiveConnected(status === "SUBSCRIBED");
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+      setLiveConnected(false);
+    };
+  }, [orderId]);
+
+  // ── Loading skeleton ────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen bg-background max-w-xl mx-auto px-4 py-8 space-y-4">
         <Skeleton className="h-24 w-full rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-xl" />
         <Skeleton className="h-40 w-full rounded-xl" />
       </div>
     );
   }
 
   if (!order) return null;
-  const pc = storeColor;
-  const currentStep = STATUS_STEPS.indexOf(order.status);
+
+  const activeSteps = STATUS_STEPS.filter((s) => !["cancelled", "refunded"].includes(s));
+  const currentStep = activeSteps.indexOf(order.status);
+  const isCancelled = ["cancelled", "refunded"].includes(order.status);
 
   return (
     <div className="min-h-screen bg-background pb-8">
@@ -100,19 +135,32 @@ export default function OrderConfirmation() {
           <button onClick={() => navigate(`/marketplace/${slug}`)} className="text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <span className="font-bold text-foreground font-display">Order Confirmation</span>
+          <span className="font-bold text-foreground font-display flex-1">Order Confirmation</span>
+
+          {/* Live indicator */}
+          <div className={`flex items-center gap-1.5 text-xs transition-colors ${liveConnected ? "text-primary" : "text-muted-foreground"}`}>
+            <Wifi className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{liveConnected ? "Live" : "Connecting…"}</span>
+            {liveConnected && (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="max-w-xl mx-auto px-4 py-4 space-y-4">
-        {/* Success banner */}
+
+        {/* Payment status banner */}
         {order.payment_status === "paid" && (
           <Card className="border-green-500/30 bg-green-500/10">
             <CardContent className="flex items-center gap-3 p-4">
-              <CheckCircle2 className="h-8 w-8 text-green-500 shrink-0" />
+              <CheckCircle2 className="h-8 w-8 text-green-600 shrink-0" />
               <div>
                 <p className="font-bold text-foreground">Payment Successful!</p>
-                <p className="text-xs text-muted-foreground">Your order has been placed. Order #{order.order_number}</p>
+                <p className="text-xs text-muted-foreground">Order #{order.order_number}</p>
               </div>
             </CardContent>
           </Card>
@@ -120,7 +168,7 @@ export default function OrderConfirmation() {
         {order.payment_status === "pending" && (
           <Card className="border-yellow-500/30 bg-yellow-500/10">
             <CardContent className="flex items-center gap-3 p-4">
-              <Clock className="h-8 w-8 text-yellow-500 shrink-0" />
+              <Clock className="h-8 w-8 text-yellow-600 shrink-0" />
               <div>
                 <p className="font-bold text-foreground">Payment Pending</p>
                 <p className="text-xs text-muted-foreground">Please complete your payment. Order #{order.order_number}</p>
@@ -130,42 +178,81 @@ export default function OrderConfirmation() {
         )}
 
         {/* Status tracker */}
-        {order.payment_status === "paid" && !["cancelled", "refunded"].includes(order.status) && (
-          <Card>
+        {order.payment_status === "paid" && !isCancelled && (
+          <Card className={`transition-all duration-500 ${statusJustChanged ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}>
             <CardContent className="p-4">
-              <p className="font-semibold text-sm text-foreground mb-4">Order Status</p>
-              <div className="flex items-center justify-between">
-                {STATUS_STEPS.filter((s) => !["cancelled", "refunded"].includes(s)).map((step, i) => {
-                  const Icon = STEP_ICONS[i];
-                  const done = i <= currentStep;
-                  const active = i === currentStep;
-                  return (
-                    <div key={step} className="flex flex-col items-center gap-1 flex-1">
-                      <div
-                        className={`h-7 w-7 rounded-full flex items-center justify-center transition-all ${done ? "text-black" : "bg-muted text-muted-foreground"}`}
-                        style={done ? { backgroundColor: pc } : {}}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                      </div>
-                      <p className={`text-[9px] text-center capitalize ${active ? "font-bold text-foreground" : "text-muted-foreground"}`}>
-                        {step}
-                      </p>
-                      {i < STATUS_STEPS.length - 2 && (
-                        <div className="absolute" />
-                      )}
-                    </div>
-                  );
-                })}
+              <div className="flex items-center justify-between mb-4">
+                <p className="font-semibold text-sm text-foreground">Order Status</p>
+                <OrderStatusBadge status={order.status} />
               </div>
+
+              {/* Step tracker */}
+              <div className="relative">
+                {/* Connector line */}
+                <div className="absolute top-3.5 left-0 right-0 h-0.5 bg-muted mx-6" />
+                {/* Filled connector */}
+                <div
+                  className="absolute top-3.5 left-0 h-0.5 bg-primary transition-all duration-700 mx-6"
+                  style={{
+                    width: currentStep <= 0
+                      ? "0%"
+                      : `calc(${(currentStep / (activeSteps.length - 1)) * 100}% - 0px)`,
+                  }}
+                />
+
+                <div className="relative flex items-start justify-between">
+                  {activeSteps.map((step, i) => {
+                    const Icon = STEP_ICONS[i];
+                    const done = i <= currentStep;
+                    const active = i === currentStep;
+                    return (
+                      <div key={step} className="flex flex-col items-center gap-1.5 flex-1">
+                        <div
+                          className={`h-7 w-7 rounded-full flex items-center justify-center transition-all duration-500 z-10 ${
+                            done
+                              ? "text-primary-foreground shadow-sm"
+                              : "bg-muted text-muted-foreground"
+                          } ${active ? "ring-2 ring-primary ring-offset-2 ring-offset-card scale-110" : ""}`}
+                          style={done ? { backgroundColor: storeColor } : {}}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                        </div>
+                        <p className={`text-[9px] text-center capitalize leading-tight ${
+                          active ? "font-bold text-foreground" : "text-muted-foreground"
+                        }`}>
+                          {step}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Status changed flash */}
+              {statusJustChanged && (
+                <p className="text-xs text-primary font-medium text-center mt-3 animate-pulse">
+                  ✓ Order status updated!
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Cancelled / Refunded */}
+        {isCancelled && (
+          <Card className="border-destructive/30 bg-destructive/10">
+            <CardContent className="p-4">
+              <p className="font-bold text-foreground capitalize">{order.status}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">This order has been {order.status}.</p>
             </CardContent>
           </Card>
         )}
 
         {/* Tracking number */}
         {order.tracking_number && (
-          <Card className="border-blue-500/30 bg-blue-500/10">
+          <Card className="border-primary/20 bg-primary/5">
             <CardContent className="flex items-center gap-3 p-4">
-              <Truck className="h-5 w-5 text-blue-500" />
+              <Truck className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-xs text-muted-foreground">Tracking Number</p>
                 <p className="font-mono font-bold text-foreground">{order.tracking_number}</p>
@@ -174,7 +261,7 @@ export default function OrderConfirmation() {
           </Card>
         )}
 
-        {/* Order details */}
+        {/* Order items */}
         <Card>
           <CardContent className="p-4">
             <p className="font-semibold text-sm text-foreground mb-3">Order Details</p>
@@ -199,9 +286,10 @@ export default function OrderConfirmation() {
                 <span>Subtotal</span><span>RM {order.subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
-                <span>Shipping</span><span>{order.shipping_fee === 0 ? "Free" : `RM ${order.shipping_fee.toFixed(2)}`}</span>
+                <span>Shipping</span>
+                <span>{order.shipping_fee === 0 ? "Free" : `RM ${order.shipping_fee.toFixed(2)}`}</span>
               </div>
-              <div className="flex justify-between font-bold text-foreground">
+              <div className="flex justify-between font-bold text-foreground border-t border-border pt-1 mt-1">
                 <span>Total</span><span>RM {order.total_amount.toFixed(2)}</span>
               </div>
             </div>
@@ -210,13 +298,15 @@ export default function OrderConfirmation() {
 
         {/* Delivery info */}
         <Card>
-          <CardContent className="p-4 space-y-2 text-sm">
-            <p className="font-semibold text-foreground">Delivery To</p>
+          <CardContent className="p-4 space-y-1 text-sm">
+            <p className="font-semibold text-foreground mb-2">Delivery To</p>
             <p className="text-foreground">{order.buyer_name}</p>
             <p className="text-muted-foreground">{order.buyer_phone}</p>
             <p className="text-muted-foreground">{order.buyer_email}</p>
-            <p className="text-muted-foreground text-xs">{order.shipping_address}</p>
-            {order.notes && <p className="text-muted-foreground text-xs italic">Note: {order.notes}</p>}
+            <p className="text-muted-foreground text-xs mt-1">{order.shipping_address}</p>
+            {order.notes && (
+              <p className="text-muted-foreground text-xs italic pt-1">Note: {order.notes}</p>
+            )}
           </CardContent>
         </Card>
 
