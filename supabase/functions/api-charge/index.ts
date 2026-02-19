@@ -325,7 +325,7 @@ serve(async (req) => {
 
       const { data: pinProfile } = await supabase
         .from('profiles')
-        .select('has_pin, pin_hash')
+        .select('has_pin, pin_hash, pin_attempts, pin_locked_until')
         .eq('user_id', payerId)
         .single();
 
@@ -341,18 +341,58 @@ serve(async (req) => {
         });
       }
 
+      // Check PIN lockout
+      if (pinProfile.pin_locked_until) {
+        const lockedUntil = new Date(pinProfile.pin_locked_until);
+        if (lockedUntil > new Date()) {
+          const minutesLeft = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000);
+          await supabase.from('api_charges').update({ status: 'failed' }).eq('id', charge.id);
+          sendWebhook(app.webhook_url, app.api_secret_hash, {
+            event: 'charge.failed', charge_id: charge.id, amount, description: description || null,
+            reference: reference || null, status: 'failed', reason: 'PIN_LOCKED',
+            metadata: customMetadata || {}, timestamp: new Date().toISOString(),
+          }, supabase, app.id);
+          return new Response(JSON.stringify({
+            error: `PIN locked. Try again in ${minutesLeft} minute(s).`,
+            code: 'PIN_LOCKED', charge_id: charge.id,
+          }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        // Lockout expired — reset
+        await supabase.from('profiles').update({ pin_attempts: 0, pin_locked_until: null }).eq('user_id', payerId);
+      }
+
       const pinValid = await verifyPin(pin, pinProfile.pin_hash);
       if (!pinValid) {
+        const MAX_ATTEMPTS = 5;
+        const LOCKOUT_MINUTES = 15;
+        const newAttempts = (pinProfile.pin_attempts || 0) + 1;
+        const updates: Record<string, unknown> = { pin_attempts: newAttempts };
+        if (newAttempts >= MAX_ATTEMPTS) {
+          updates.pin_locked_until = new Date(Date.now() + LOCKOUT_MINUTES * 60000).toISOString();
+        }
+        await supabase.from('profiles').update(updates).eq('user_id', payerId);
+
         await supabase.from('api_charges').update({ status: 'failed' }).eq('id', charge.id);
         sendWebhook(app.webhook_url, app.api_secret_hash, {
           event: 'charge.failed', charge_id: charge.id, amount, description: description || null,
           reference: reference || null, status: 'failed', reason: 'INVALID_PIN',
           metadata: customMetadata || {}, timestamp: new Date().toISOString(),
         }, supabase, app.id);
-        return new Response(JSON.stringify({ error: 'Invalid PIN', charge_id: charge.id }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+
+        const remaining = MAX_ATTEMPTS - newAttempts;
+        return new Response(JSON.stringify({
+          error: remaining > 0
+            ? `Invalid PIN. ${remaining} attempt(s) remaining.`
+            : `Too many failed attempts. PIN locked for ${LOCKOUT_MINUTES} minutes.`,
+          code: 'INVALID_PIN',
+          locked: newAttempts >= MAX_ATTEMPTS,
+          attempts_remaining: Math.max(0, remaining),
+          charge_id: charge.id,
+        }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
+
+      // Reset attempts on successful PIN
+      await supabase.from('profiles').update({ pin_attempts: 0, pin_locked_until: null }).eq('user_id', payerId);
     }
 
     // Check balance
