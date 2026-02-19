@@ -15,8 +15,13 @@ async function hashPin(pin: string, salt: string): Promise<string> {
   return encodeBase64(hashArray);
 }
 
-// Verify PIN against stored "salt:hash" format
+// Verify PIN against stored value — supports both "salt:hash" and legacy plaintext formats
 async function verifyPin(pin: string, storedHash: string): Promise<boolean> {
+  // Legacy plaintext PINs (set before hashing was introduced)
+  if (!storedHash.includes(':')) {
+    return pin === storedHash;
+  }
+  // Properly hashed PINs (salt:hash format)
   const [salt, hash] = storedHash.split(':');
   if (!salt || !hash) return false;
   const computed = await hashPin(pin, salt);
