@@ -53,6 +53,7 @@ const QrPay = () => {
   const [loading, setLoading] = useState(false);
   const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
   const [minPinAmount, setMinPinAmount] = useState(100);
+  const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
   const [result, setResult] = useState<{ transaction_id: string; cashback: number; new_balance: number; branch_name: string } | null>(null);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -204,6 +205,12 @@ const QrPay = () => {
       return;
     }
     if (amt >= minPinAmount) {
+      // Fetch current attempts so counter is accurate on entry
+      if (user) {
+        supabase.from("profiles").select("pin_attempts").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+          setAttemptsRemaining(data ? Math.max(0, 5 - (data.pin_attempts || 0)) : 5);
+        });
+      }
       setStep("pin");
     } else {
       processPayment(amt, "");
@@ -238,26 +245,32 @@ const QrPay = () => {
       let errorCode = data?.code || null;
 
       // Extract actual error from FunctionsHttpError (non-2xx responses)
+      let attemptsLeft: number | null = null;
       if (error && error instanceof FunctionsHttpError) {
         try {
           const errorBody = await error.context.json();
           errorMessage = errorBody?.error || error.message;
           errorCode = errorBody?.code || null;
+          if (typeof errorBody?.attempts_remaining === 'number') attemptsLeft = errorBody.attempts_remaining;
         } catch {
           errorMessage = error.message;
         }
       } else if (error && !data?.error) {
         errorMessage = error.message || "Something went wrong.";
+      } else if (data?.attempts_remaining !== undefined) {
+        attemptsLeft = data.attempts_remaining;
       }
 
       if (errorCode === 'PIN_NOT_SET') {
         toast({ title: "PIN Not Set", description: `Please set up your 6-digit PIN before making payments of RM${minPinAmount} and above.`, variant: "destructive" });
         navigate("/set-pin");
       } else if (errorCode === 'PIN_LOCKED') {
+        setAttemptsRemaining(0);
         toast({ title: "PIN Locked", description: errorMessage, variant: "destructive" });
         setPin("");
         setStep("pin");
       } else if (errorCode === 'INVALID_PIN') {
+        if (attemptsLeft !== null) setAttemptsRemaining(attemptsLeft);
         toast({ title: "Incorrect PIN", description: errorMessage, variant: "destructive" });
         setPin("");
         setStep("pin");
@@ -283,6 +296,7 @@ const QrPay = () => {
     setAmount("");
     setPin("");
     setResult(null);
+    setAttemptsRemaining(null);
   };
 
   if (authLoading) {
@@ -454,6 +468,43 @@ const QrPay = () => {
                   />
                 </div>
 
+                {/* Attempts remaining counter */}
+                {attemptsRemaining !== null && (
+                  <div className={`flex items-center justify-center gap-2 rounded-lg border p-2.5 text-sm ${
+                    attemptsRemaining === 0
+                      ? 'border-red-500/40 bg-red-500/10'
+                      : attemptsRemaining <= 2
+                      ? 'border-orange-400/40 bg-orange-400/10'
+                      : 'border-white/10 bg-white/5'
+                  }`}>
+                    <div className="flex gap-1">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`h-2 w-2 rounded-full transition-colors ${
+                            i < attemptsRemaining
+                              ? attemptsRemaining <= 2
+                                ? 'bg-orange-400'
+                                : 'bg-secondary'
+                              : 'bg-white/20'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className={`text-xs font-medium ${
+                      attemptsRemaining === 0
+                        ? 'text-red-400'
+                        : attemptsRemaining <= 2
+                        ? 'text-orange-400'
+                        : 'text-white/60'
+                    }`}>
+                      {attemptsRemaining === 0
+                        ? 'PIN locked — too many attempts'
+                        : `${attemptsRemaining} attempt${attemptsRemaining === 1 ? '' : 's'} remaining`}
+                    </span>
+                  </div>
+                )}
+
                 <div className="rounded-lg bg-white/5 border border-white/10 p-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-white/50">Paying to</span>
@@ -465,7 +516,7 @@ const QrPay = () => {
                   </div>
                 </div>
 
-                <Button className="w-full h-12 bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handlePinSubmit} disabled={pin.length < 6}>
+                <Button className="w-full h-12 bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handlePinSubmit} disabled={pin.length < 6 || attemptsRemaining === 0}>
                   Confirm Payment
                 </Button>
                 <Button variant="ghost" className="w-full text-sm text-white/50 hover:text-white hover:bg-white/10" onClick={() => setStep("confirm")}>
