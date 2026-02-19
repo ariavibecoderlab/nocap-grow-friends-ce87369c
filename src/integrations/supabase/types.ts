@@ -260,6 +260,389 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          store_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          store_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_categories_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          product_id: string
+          product_image: string
+          product_name: string
+          quantity: number
+          subtotal: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          product_id: string
+          product_image?: string
+          product_name: string
+          quantity?: number
+          subtotal?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          product_id?: string
+          product_image?: string
+          product_name?: string
+          quantity?: number
+          subtotal?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_orders: {
+        Row: {
+          bill_id: string | null
+          buyer_email: string
+          buyer_name: string
+          buyer_phone: string
+          buyer_user_id: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          order_number: string
+          payment_method: string
+          payment_status: string
+          platform_fee: number
+          shipping_address: string
+          shipping_fee: number
+          status: string
+          store_id: string
+          subtotal: number
+          total_amount: number
+          tracking_number: string | null
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          bill_id?: string | null
+          buyer_email: string
+          buyer_name: string
+          buyer_phone: string
+          buyer_user_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_number: string
+          payment_method?: string
+          payment_status?: string
+          platform_fee?: number
+          shipping_address: string
+          shipping_fee?: number
+          status?: string
+          store_id: string
+          subtotal?: number
+          total_amount?: number
+          tracking_number?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bill_id?: string | null
+          buyer_email?: string
+          buyer_name?: string
+          buyer_phone?: string
+          buyer_user_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_number?: string
+          payment_method?: string
+          payment_status?: string
+          platform_fee?: number
+          shipping_address?: string
+          shipping_fee?: number
+          status?: string
+          store_id?: string
+          subtotal?: number
+          total_amount?: number
+          tracking_number?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_products: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          images: Json
+          is_featured: boolean
+          name: string
+          price: number
+          sku: string | null
+          status: string
+          stock_quantity: number
+          store_id: string
+          updated_at: string
+          weight_kg: number | null
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          images?: Json
+          is_featured?: boolean
+          name: string
+          price?: number
+          sku?: string | null
+          status?: string
+          stock_quantity?: number
+          store_id: string
+          updated_at?: string
+          weight_kg?: number | null
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          images?: Json
+          is_featured?: boolean
+          name?: string
+          price?: number
+          sku?: string | null
+          status?: string
+          stock_quantity?: number
+          store_id?: string
+          updated_at?: string
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_reviews: {
+        Row: {
+          buyer_user_id: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          order_id: string
+          product_id: string
+          rating: number
+        }
+        Insert: {
+          buyer_user_id?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          product_id: string
+          rating: number
+        }
+        Update: {
+          buyer_user_id?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          product_id?: string
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_store_managers: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string
+          status: string
+          store_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by: string
+          status?: string
+          store_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string
+          status?: string
+          store_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_store_managers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_stores: {
+        Row: {
+          banner_url: string | null
+          branch_id: string
+          created_at: string
+          description: string | null
+          email: string | null
+          free_shipping_min: number | null
+          id: string
+          logo_url: string | null
+          merchant_user_id: string
+          primary_color: string
+          settings: Json
+          shipping_flat_rate: number
+          slug: string
+          status: string
+          store_name: string
+          tagline: string | null
+          theme: string
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          banner_url?: string | null
+          branch_id: string
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          free_shipping_min?: number | null
+          id?: string
+          logo_url?: string | null
+          merchant_user_id: string
+          primary_color?: string
+          settings?: Json
+          shipping_flat_rate?: number
+          slug: string
+          status?: string
+          store_name: string
+          tagline?: string | null
+          theme?: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          banner_url?: string | null
+          branch_id?: string
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          free_shipping_min?: number | null
+          id?: string
+          logo_url?: string | null
+          merchant_user_id?: string
+          primary_color?: string
+          settings?: Json
+          shipping_flat_rate?: number
+          slug?: string
+          status?: string
+          store_name?: string
+          tagline?: string | null
+          theme?: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_stores_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_applications: {
         Row: {
           bank_account_holder: string | null
@@ -793,6 +1176,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_store_manager: {
+        Args: { _store_id: string; _user_id: string }
         Returns: boolean
       }
     }
