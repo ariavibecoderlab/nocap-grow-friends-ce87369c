@@ -5,6 +5,156 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface ValidatedItem {
+  product_id: string;
+  quantity: number;
+  product: { name: string; price: number; stock_quantity: number; images: string[] | null };
+  itemSubtotal: number;
+}
+
+async function sendOrderConfirmationEmail({
+  buyerEmail,
+  buyerName,
+  orderNumber,
+  storeName,
+  items,
+  subtotal,
+  shippingFee,
+  totalAmount,
+  paymentMethod,
+}: {
+  buyerEmail: string;
+  buyerName: string;
+  orderNumber: string;
+  storeName: string;
+  items: ValidatedItem[];
+  subtotal: number;
+  shippingFee: number;
+  totalAmount: number;
+  paymentMethod: string;
+}) {
+  const sendgridKey = Deno.env.get('SENDGRID_API_KEY');
+  const fromEmail = Deno.env.get('SENDGRID_FROM_EMAIL');
+  if (!sendgridKey || !fromEmail) return;
+
+  const itemRows = items.map((item) => `
+    <tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#374151;">${item.product.name}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#374151;text-align:center;">×${item.quantity}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#374151;text-align:right;">RM ${item.product.price.toFixed(2)}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:14px;font-weight:600;color:#111827;text-align:right;">RM ${item.itemSubtotal.toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  const paymentLabel = paymentMethod === 'nocap_wallet' ? 'NoCap Wallet' : 'Online Payment';
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Order Confirmation</title></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+
+        <!-- Header -->
+        <tr><td style="background:#16a34a;padding:28px 32px;text-align:center;">
+          <div style="font-size:28px;margin-bottom:6px;">✅</div>
+          <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">Order Confirmed!</h1>
+          <p style="margin:6px 0 0;color:#bbf7d0;font-size:14px;">Thank you for your purchase from <strong>${storeName}</strong></p>
+        </td></tr>
+
+        <!-- Greeting -->
+        <tr><td style="padding:24px 32px 8px;">
+          <p style="margin:0;font-size:15px;color:#374151;">Hi <strong>${buyerName}</strong>,</p>
+          <p style="margin:8px 0 0;font-size:14px;color:#6b7280;">We've received your order and it's being processed. Here's a summary:</p>
+        </td></tr>
+
+        <!-- Order number -->
+        <tr><td style="padding:12px 32px;">
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;display:inline-block;width:100%;box-sizing:border-box;">
+            <span style="font-size:12px;color:#166534;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Order Number</span>
+            <div style="font-size:20px;font-weight:700;color:#15803d;margin-top:2px;">#${orderNumber}</div>
+          </div>
+        </td></tr>
+
+        <!-- Items table -->
+        <tr><td style="padding:8px 32px 0;">
+          <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Items Ordered</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+            <thead>
+              <tr style="background:#f9fafb;">
+                <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;">Product</th>
+                <th style="padding:8px 12px;text-align:center;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;">Qty</th>
+                <th style="padding:8px 12px;text-align:right;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;">Price</th>
+                <th style="padding:8px 12px;text-align:right;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemRows}
+            </tbody>
+          </table>
+        </td></tr>
+
+        <!-- Totals -->
+        <tr><td style="padding:12px 32px 0;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="font-size:13px;color:#6b7280;padding:3px 0;">Subtotal</td>
+              <td style="font-size:13px;color:#374151;text-align:right;padding:3px 0;">RM ${subtotal.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td style="font-size:13px;color:#6b7280;padding:3px 0;">Shipping</td>
+              <td style="font-size:13px;color:#374151;text-align:right;padding:3px 0;">${shippingFee === 0 ? '<span style="color:#16a34a;">FREE</span>' : `RM ${shippingFee.toFixed(2)}`}</td>
+            </tr>
+            <tr>
+              <td colspan="2"><hr style="border:none;border-top:1px solid #e5e7eb;margin:8px 0;"></td>
+            </tr>
+            <tr>
+              <td style="font-size:16px;font-weight:700;color:#111827;padding:3px 0;">Total</td>
+              <td style="font-size:16px;font-weight:700;color:#15803d;text-align:right;padding:3px 0;">RM ${totalAmount.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td style="font-size:12px;color:#9ca3af;padding:4px 0 0;">Payment method</td>
+              <td style="font-size:12px;color:#9ca3af;text-align:right;padding:4px 0 0;">${paymentLabel}</td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- Track order note -->
+        <tr><td style="padding:20px 32px;">
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;font-size:13px;color:#1d4ed8;">
+            📦 You can track your order status at <strong>My Orders</strong> on our marketplace.
+          </div>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="background:#f9fafb;border-top:1px solid #f0f0f0;padding:16px 32px;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#9ca3af;">This is an automated confirmation email from <strong>${storeName}</strong>.</p>
+          <p style="margin:4px 0 0;font-size:12px;color:#9ca3af;">Please do not reply to this email.</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  await fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${sendgridKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: buyerEmail, name: buyerName }] }],
+      from: { email: fromEmail, name: storeName },
+      subject: `Order Confirmed – #${orderNumber}`,
+      content: [{ type: 'text/html', value: html }],
+    }),
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -39,7 +189,7 @@ Deno.serve(async (req) => {
 
     // Validate + calculate items
     let subtotal = 0;
-    const validatedItems = [];
+    const validatedItems: ValidatedItem[] = [];
     for (const item of items) {
       const { data: product } = await adminClient.from('marketplace_products').select('id, name, price, stock_quantity, images, status').eq('id', item.product_id).eq('store_id', store_id).single();
       if (!product || product.status !== 'active') return new Response(JSON.stringify({ error: `Product ${item.product_id} not available` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -104,12 +254,25 @@ Deno.serve(async (req) => {
 
       // Create order items + decrement stock
       for (const item of validatedItems) {
-        await adminClient.from('marketplace_order_items').insert({ order_id: order.id, product_id: item.product_id, product_name: item.product.name, product_image: item.product.images?.[0] ?? '', unit_price: item.product.price, quantity: item.quantity, subtotal: item.itemSubtotal });
+        await adminClient.from('marketplace_order_items').insert({ order_id: order.id, product_id: item.product_id, product_name: item.product.name, product_image: (item.product.images as string[])?.[0] ?? '', unit_price: item.product.price, quantity: item.quantity, subtotal: item.itemSubtotal });
         await adminClient.from('marketplace_products').update({ stock_quantity: item.product.stock_quantity - item.quantity }).eq('id', item.product_id);
       }
 
       // Notify merchant
       await adminClient.from('notifications').insert({ user_id: store.merchant_user_id, title: 'New Order!', message: `New order #${orderNum} for RM ${totalAmount.toFixed(2)}`, type: 'order', link: '/marketplace/manage/orders' });
+
+      // Send confirmation email to buyer (non-blocking)
+      sendOrderConfirmationEmail({
+        buyerEmail: buyer_email,
+        buyerName: buyer_name,
+        orderNumber: orderNum,
+        storeName: store.store_name,
+        items: validatedItems,
+        subtotal,
+        shippingFee,
+        totalAmount,
+        paymentMethod: 'nocap_wallet',
+      }).catch(() => {/* swallow email errors so order still succeeds */});
 
       return new Response(JSON.stringify({ success: true, order_id: order.id, order_number: orderNum }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -122,7 +285,7 @@ Deno.serve(async (req) => {
     }).select().single();
 
     for (const item of validatedItems) {
-      await adminClient.from('marketplace_order_items').insert({ order_id: order.id, product_id: item.product_id, product_name: item.product.name, product_image: item.product.images?.[0] ?? '', unit_price: item.product.price, quantity: item.quantity, subtotal: item.itemSubtotal });
+      await adminClient.from('marketplace_order_items').insert({ order_id: order.id, product_id: item.product_id, product_name: item.product.name, product_image: (item.product.images as string[])?.[0] ?? '', unit_price: item.product.price, quantity: item.quantity, subtotal: item.itemSubtotal });
     }
 
     return new Response(JSON.stringify({ success: true, order_id: order.id, order_number: orderNum, requires_online_payment: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
