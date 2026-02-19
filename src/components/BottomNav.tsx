@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, QrCode, ArrowUpDown, Users, Settings, Shield, Store } from "lucide-react";
+import { Home, QrCode, ArrowUpDown, ShoppingBag, Settings, Shield, Store } from "lucide-react";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -9,7 +9,7 @@ const baseNavItems = [
   { label: "Home", icon: Home, path: "/dashboard" },
   { label: "Pay", icon: QrCode, path: "/qr-pay" },
   { label: "Transfer", icon: ArrowUpDown, path: "/transfer" },
-  { label: "Referral", icon: Users, path: "/referral" },
+  { label: "Shop", icon: ShoppingBag, path: "/marketplace" },
   { label: "Settings", icon: Settings, path: "/profile" },
 ];
 
@@ -38,7 +38,7 @@ const BottomNav = () => {
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-primary/95 backdrop-blur-sm">
       <div className="mx-auto flex max-w-md items-center justify-around py-2">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
           return (
             <button
               key={item.path}
