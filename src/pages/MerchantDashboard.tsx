@@ -492,7 +492,7 @@ const MerchantDashboard = () => {
         {/* Selected Branch Details */}
         {selectedBranch && (
           <Tabs defaultValue="qr" className="mt-4">
-            <TabsList className="w-full grid grid-cols-8 bg-white/5 border border-white/10">
+            <TabsList className="w-full grid grid-cols-9 bg-white/5 border border-white/10">
               <TabsTrigger value="qr" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 <QrCode className="h-3 w-3" /> QR
               </TabsTrigger>
@@ -507,6 +507,9 @@ const MerchantDashboard = () => {
               </TabsTrigger>
               <TabsTrigger value="withdraw" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 Withdraw
+              </TabsTrigger>
+              <TabsTrigger value="marketplace" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                Shop
               </TabsTrigger>
               <TabsTrigger value="api" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 API
@@ -618,6 +621,24 @@ const MerchantDashboard = () => {
 
             <TabsContent value="withdraw" className="mt-4">
               <MerchantWithdrawals userId={user!.id} />
+            </TabsContent>
+
+            <TabsContent value="marketplace" className="mt-4">
+              <Card className="border-white/10 bg-white/5">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Store className="h-5 w-5 text-secondary" />
+                    <p className="font-semibold text-white">Marketplace Store</p>
+                  </div>
+                  <p className="text-xs text-white/50">Sell products online. Customers worldwide can browse your store and pay with NoCap Wallet or online payment.</p>
+                  <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => navigate("/marketplace/manage")}>
+                    Open Marketplace Manager
+                  </Button>
+                  <Button variant="ghost" size="sm" className="w-full text-white/50 hover:text-white hover:bg-white/10" onClick={() => navigate("/marketplace")}>
+                    Browse All Stores
+                  </Button>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="api" className="mt-4">
