@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   ArrowLeft, Plus, Pencil, Trash2, Package, Loader2, Upload,
   ChevronDown, ChevronUp, Tag, Check, X, ArrowUp, ArrowDown,
+  Search, SlidersHorizontal,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -58,6 +59,11 @@ export default function ManageProducts() {
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editingCatName, setEditingCatName] = useState("");
   const [reorderingCat, setReorderingCat] = useState(false);
+
+  // Filter / search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterCategory, setFilterCategory] = useState("all");
 
   // Product form state
   const [name, setName] = useState("");
@@ -234,6 +240,19 @@ export default function ManageProducts() {
   const getCategoryName = (id: string | null) =>
     id ? (categories.find((c) => c.id === id)?.name ?? null) : null;
 
+  const filteredProducts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return products.filter((p) => {
+      if (q && !p.name.toLowerCase().includes(q) && !(p.sku ?? "").toLowerCase().includes(q)) return false;
+      if (filterStatus !== "all" && p.status !== filterStatus) return false;
+      if (filterCategory === "__none__") { if (p.category_id !== null) return false; }
+      else if (filterCategory !== "all" && p.category_id !== filterCategory) return false;
+      return true;
+    });
+  }, [products, searchQuery, filterStatus, filterCategory]);
+
+  const hasActiveFilters = searchQuery.trim() !== "" || filterStatus !== "all" || filterCategory !== "all";
+
   return (
     <div className="min-h-screen bg-background pb-8">
       {/* Header */}
@@ -242,7 +261,14 @@ export default function ManageProducts() {
           <button onClick={() => navigate("/marketplace/manage")} className="text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <span className="font-bold text-foreground font-display flex-1">Products</span>
+          <span className="font-bold text-foreground font-display flex-1">
+            Products
+            {products.length > 0 && (
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                {hasActiveFilters ? `${filteredProducts.length} of ${products.length}` : products.length}
+              </span>
+            )}
+          </span>
           <Button size="sm" onClick={openNew} className="gap-1.5">
             <Plus className="h-4 w-4" /> Add
           </Button>
@@ -371,6 +397,68 @@ export default function ManageProducts() {
           </Card>
         )}
 
+        {/* ── Search & filter bar ── */}
+        {storeId && !loading && products.length > 0 && (
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name or SKU…"
+                className="pl-9 h-9 text-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="h-8 text-xs flex-1">
+                  <SlidersHorizontal className="h-3 w-3 mr-1.5 shrink-0 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                </SelectContent>
+              </Select>
+              {categories.length > 0 && (
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="h-8 text-xs flex-1">
+                    <Tag className="h-3 w-3 mr-1.5 shrink-0 text-muted-foreground" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="__none__">Uncategorised</SelectItem>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs text-muted-foreground shrink-0"
+                  onClick={() => { setSearchQuery(""); setFilterStatus("all"); setFilterCategory("all"); }}
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── Product list ── */}
         {loading ? (
           <div className="space-y-3">
@@ -388,9 +476,17 @@ export default function ManageProducts() {
             <p className="font-medium">No products yet</p>
             <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add First Product</Button>
           </div>
+        ) : filteredProducts.length === 0 && products.length > 0 ? (
+          <div className="flex flex-col items-center py-12 gap-3 text-muted-foreground">
+            <Search className="h-10 w-10 opacity-30" />
+            <p className="font-medium text-sm">No products match your filters</p>
+            <Button variant="outline" size="sm" onClick={() => { setSearchQuery(""); setFilterStatus("all"); setFilterCategory("all"); }}>
+              Clear filters
+            </Button>
+          </div>
         ) : (
           <div className="space-y-2">
-            {products.map((p) => (
+            {filteredProducts.map((p) => (
               <Card key={p.id} className="overflow-hidden">
                 <CardContent className="flex items-center gap-3 p-3">
                   <div className="h-14 w-14 rounded-lg bg-muted overflow-hidden shrink-0">
