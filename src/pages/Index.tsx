@@ -97,8 +97,8 @@ const Index = () => {
             animate="visible"
             custom={0}
             variants={fadeUp}
-            className="inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-1.5 text-sm font-medium text-secondary">
-            Malaysia's #1 Affiliate Marketplace
+            className="inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-1.5 text-sm font-medium text-secondary">Malaysia's #1 Affiliate Marketplace
+
 
             <Rocket className="h-4 w-4" /> Malaysia's #1 Cashback Wallet
         </motion.div>
