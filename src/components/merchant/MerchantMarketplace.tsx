@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
 import MerchantOrderDetail from "@/components/merchant/MerchantOrderDetail";
-import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck } from "lucide-react";
+import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star } from "lucide-react";
+import MerchantReviews from "@/components/merchant/MerchantReviews";
 import { Json } from "@/integrations/supabase/types";
 
 interface StoreData {
@@ -604,6 +605,7 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
         <TabsList className="w-full bg-white/5 border border-white/10">
           <TabsTrigger value="products" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">Products</TabsTrigger>
           <TabsTrigger value="orders" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">Orders</TabsTrigger>
+          <TabsTrigger value="reviews" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">Reviews</TabsTrigger>
           <TabsTrigger value="discounts" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">Discounts</TabsTrigger>
           <TabsTrigger value="settings" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">Settings</TabsTrigger>
         </TabsList>
@@ -685,6 +687,11 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
               </Card>
             ))
           )}
+        </TabsContent>
+
+        {/* REVIEWS TAB */}
+        <TabsContent value="reviews" className="mt-3">
+          <MerchantReviews storeId={store.id} />
         </TabsContent>
 
         {/* DISCOUNTS TAB */}

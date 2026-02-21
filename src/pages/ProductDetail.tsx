@@ -25,6 +25,8 @@ interface Review {
   id: string;
   rating: number;
   comment: string | null;
+  merchant_reply: string | null;
+  replied_at: string | null;
   created_at: string;
 }
 
@@ -50,7 +52,7 @@ const ProductDetail = () => {
           .eq("id", productId)
           .maybeSingle(),
         supabase.from("marketplace_reviews")
-          .select("id, rating, comment, created_at")
+          .select("id, rating, comment, merchant_reply, replied_at, created_at")
           .eq("product_id", productId)
           .order("created_at", { ascending: false })
           .limit(10),
@@ -167,13 +169,19 @@ const ProductDetail = () => {
             <h3 className="font-display text-sm font-semibold text-white mb-3">Reviews</h3>
             <div className="space-y-2">
               {reviews.map(r => (
-                <div key={r.id} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div key={r.id} className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
                   <div className="flex items-center gap-1">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Star key={i} className={`h-3 w-3 ${i < r.rating ? "fill-secondary text-secondary" : "text-white/20"}`} />
                     ))}
                   </div>
-                  {r.comment && <p className="text-xs text-white/60 mt-1">{r.comment}</p>}
+                  {r.comment && <p className="text-xs text-white/60">{r.comment}</p>}
+                  {r.merchant_reply && (
+                    <div className="ml-3 pl-3 border-l-2 border-secondary/30">
+                      <p className="text-[10px] text-secondary font-medium mb-0.5">Merchant Reply</p>
+                      <p className="text-xs text-white/60">{r.merchant_reply}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
