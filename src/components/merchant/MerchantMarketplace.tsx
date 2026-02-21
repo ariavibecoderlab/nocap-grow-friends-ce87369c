@@ -66,9 +66,10 @@ interface DiscountRow {
 
 interface MerchantMarketplaceProps {
   branches: { id: string; branch_name: string }[];
+  selectedBranchId: string | null;
 }
 
-export default function MerchantMarketplace({ branches }: MerchantMarketplaceProps) {
+export default function MerchantMarketplace({ branches, selectedBranchId }: MerchantMarketplaceProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [store, setStore] = useState<StoreData | null>(null);
@@ -134,16 +135,21 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !selectedBranchId) return;
     fetchStore();
-  }, [user]);
+  }, [user, selectedBranchId]);
 
   const fetchStore = async () => {
     setLoading(true);
+    setStore(null);
+    setProducts([]);
+    setOrders([]);
+    setDiscounts([]);
     const { data } = await supabase
       .from("marketplace_stores")
       .select("*")
       .eq("merchant_user_id", user!.id)
+      .eq("branch_id", selectedBranchId!)
       .maybeSingle();
 
     if (data) {
@@ -456,7 +462,7 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
           <Store className="h-10 w-10 text-white/30 mb-3" />
           <p className="font-display text-base font-semibold text-white">No Store Yet</p>
           <p className="text-xs text-white/40 mt-1 text-center">Create your marketplace store to start selling</p>
-          <Button className="mt-4 bg-secondary text-primary hover:bg-secondary/90" onClick={() => setShowCreate(true)}>
+          <Button className="mt-4 bg-secondary text-primary hover:bg-secondary/90" onClick={() => { if (selectedBranchId) setCreateBranch(selectedBranchId); setShowCreate(true); }}>
             <Plus className="h-4 w-4 mr-1" /> Create Store
           </Button>
 

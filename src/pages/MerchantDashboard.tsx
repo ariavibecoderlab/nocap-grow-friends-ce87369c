@@ -609,7 +609,7 @@ const MerchantDashboard = () => {
             </TabsContent>
 
             <TabsContent value="shop" className="mt-4">
-              <MerchantMarketplace branches={branches.map(b => ({ id: b.id, branch_name: b.branch_name }))} />
+              <MerchantMarketplace branches={branches.map(b => ({ id: b.id, branch_name: b.branch_name }))} selectedBranchId={selectedBranch?.id || null} />
             </TabsContent>
 
             <TabsContent value="txns" className="mt-4">
