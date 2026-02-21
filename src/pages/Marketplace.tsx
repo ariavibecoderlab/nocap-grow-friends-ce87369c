@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import { ArrowLeft, Search, ShoppingBag, SlidersHorizontal, X } from "lucide-rea
 import { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 
 interface ProductRow {
   id: string;
@@ -55,6 +57,7 @@ const Marketplace = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
   const [priceInited, setPriceInited] = useState(false);
+  const [inStockOnly, setInStockOnly] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -152,6 +155,7 @@ const Marketplace = () => {
     selectedCategory !== "all",
     sortBy !== "featured",
     priceFilterActive,
+    inStockOnly,
   ].filter(Boolean).length;
 
   // Filtered & sorted products
@@ -161,7 +165,8 @@ const Marketplace = () => {
       const matchCat = selectedCategory === "all" || p.category_id === selectedCategory;
       const matchSearch = search === "" || p.name.toLowerCase().includes(search.toLowerCase());
       const matchPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
-      return matchStore && matchCat && matchSearch && matchPrice;
+      const matchStock = !inStockOnly || p.stock_quantity > 0;
+      return matchStore && matchCat && matchSearch && matchPrice && matchStock;
     });
 
     // Sort
@@ -185,7 +190,7 @@ const Marketplace = () => {
     }
 
     return result;
-  }, [products, selectedStore, selectedCategory, search, sortBy, ratings]);
+  }, [products, selectedStore, selectedCategory, search, sortBy, ratings, inStockOnly, priceRange]);
 
   const clearFilters = () => {
     setSelectedStore("all");
@@ -193,6 +198,7 @@ const Marketplace = () => {
     setSortBy("featured");
     setPriceRange(priceBounds);
     setSearch("");
+    setInStockOnly(false);
   };
 
   return (
@@ -317,6 +323,16 @@ const Marketplace = () => {
                 />
               </div>
             )}
+
+            {/* In Stock Only */}
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] text-white/40">In Stock Only</label>
+              <Switch
+                checked={inStockOnly}
+                onCheckedChange={setInStockOnly}
+                className="scale-75 origin-right"
+              />
+            </div>
           </div>
         )}
 
@@ -341,6 +357,11 @@ const Marketplace = () => {
             {priceFilterActive && (
               <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer" onClick={() => setPriceRange(priceBounds)}>
                 RM {priceRange[0]}–{priceRange[1]} <X className="h-2.5 w-2.5" />
+              </Badge>
+            )}
+            {inStockOnly && (
+              <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer" onClick={() => setInStockOnly(false)}>
+                In Stock <X className="h-2.5 w-2.5" />
               </Badge>
             )}
           </div>
