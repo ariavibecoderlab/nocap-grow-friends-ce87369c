@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import BottomNav from "@/components/BottomNav";
 import CartDrawer from "@/components/marketplace/CartDrawer";
 import ProductCard from "@/components/marketplace/ProductCard";
@@ -52,6 +53,8 @@ const Marketplace = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("featured");
   const [showFilters, setShowFilters] = useState(false);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
+  const [priceInited, setPriceInited] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -106,6 +109,21 @@ const Marketplace = () => {
     load();
   }, []);
 
+  // Compute global price bounds
+  const priceBounds = useMemo<[number, number]>(() => {
+    if (products.length === 0) return [0, 100];
+    const prices = products.map(p => p.price);
+    return [Math.floor(Math.min(...prices)), Math.ceil(Math.max(...prices))];
+  }, [products]);
+
+  // Init price range once products load
+  useEffect(() => {
+    if (!priceInited && products.length > 0) {
+      setPriceRange(priceBounds);
+      setPriceInited(true);
+    }
+  }, [products, priceInited, priceBounds]);
+
   // Build a store lookup map
   const storeMap = useMemo(() => {
     const map: Record<string, StoreInfo> = {};
@@ -126,11 +144,14 @@ const Marketplace = () => {
     }
   }, [visibleCategories, selectedCategory]);
 
+  const priceFilterActive = priceInited && (priceRange[0] > priceBounds[0] || priceRange[1] < priceBounds[1]);
+
   // Active filter count
   const activeFilterCount = [
     selectedStore !== "all",
     selectedCategory !== "all",
     sortBy !== "featured",
+    priceFilterActive,
   ].filter(Boolean).length;
 
   // Filtered & sorted products
@@ -139,7 +160,8 @@ const Marketplace = () => {
       const matchStore = selectedStore === "all" || p.store_id === selectedStore;
       const matchCat = selectedCategory === "all" || p.category_id === selectedCategory;
       const matchSearch = search === "" || p.name.toLowerCase().includes(search.toLowerCase());
-      return matchStore && matchCat && matchSearch;
+      const matchPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
+      return matchStore && matchCat && matchSearch && matchPrice;
     });
 
     // Sort
@@ -169,6 +191,7 @@ const Marketplace = () => {
     setSelectedStore("all");
     setSelectedCategory("all");
     setSortBy("featured");
+    setPriceRange(priceBounds);
     setSearch("");
   };
 
@@ -277,6 +300,23 @@ const Marketplace = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Price Range */}
+            {priceBounds[1] > priceBounds[0] && (
+              <div>
+                <label className="text-[10px] text-white/40 mb-1 block">
+                  Price Range: RM {priceRange[0]} – RM {priceRange[1]}
+                </label>
+                <Slider
+                  min={priceBounds[0]}
+                  max={priceBounds[1]}
+                  step={1}
+                  value={priceRange}
+                  onValueChange={(v) => setPriceRange(v as [number, number])}
+                  className="mt-2"
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -296,6 +336,11 @@ const Marketplace = () => {
             {sortBy !== "featured" && (
               <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer" onClick={() => setSortBy("featured")}>
                 {sortBy === "price_low" ? "Price ↑" : sortBy === "price_high" ? "Price ↓" : sortBy === "rating" ? "Top Rated" : "Newest"} <X className="h-2.5 w-2.5" />
+              </Badge>
+            )}
+            {priceFilterActive && (
+              <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer" onClick={() => setPriceRange(priceBounds)}>
+                RM {priceRange[0]}–{priceRange[1]} <X className="h-2.5 w-2.5" />
               </Badge>
             )}
           </div>
