@@ -246,7 +246,7 @@ const Auth = () => {
             <Users className="h-3 w-3 text-secondary" /> Refer & Earn
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60 backdrop-blur">
-            <TrendingUp className="h-3 w-3 text-secondary" /> 3-Tier Rewards
+            <TrendingUp className="h-3 w-3 text-secondary" /> 6-Tier Rewards
           </span>
         </div>
 
