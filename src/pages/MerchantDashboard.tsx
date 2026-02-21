@@ -21,6 +21,7 @@ import MerchantApiApps from "@/components/merchant/MerchantApiApps";
 import MerchantApiLogs from "@/components/merchant/MerchantApiLogs";
 import NotificationBell from "@/components/NotificationBell";
 import NocapLogo from "@/components/NocapLogo";
+import MerchantMarketplace from "@/components/merchant/MerchantMarketplace";
 import {
   ArrowLeft,
   Plus,
@@ -492,9 +493,12 @@ const MerchantDashboard = () => {
         {/* Selected Branch Details */}
         {selectedBranch && (
           <Tabs defaultValue="qr" className="mt-4">
-            <TabsList className="w-full grid grid-cols-8 bg-white/5 border border-white/10">
+            <TabsList className="w-full grid grid-cols-9 bg-white/5 border border-white/10">
               <TabsTrigger value="qr" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 <QrCode className="h-3 w-3" /> QR
+              </TabsTrigger>
+              <TabsTrigger value="shop" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                Shop
               </TabsTrigger>
               <TabsTrigger value="txns" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 Txns
@@ -602,6 +606,10 @@ const MerchantDashboard = () => {
                   );
                 })
               )}
+            </TabsContent>
+
+            <TabsContent value="shop" className="mt-4">
+              <MerchantMarketplace branches={branches.map(b => ({ id: b.id, branch_name: b.branch_name }))} />
             </TabsContent>
 
             <TabsContent value="txns" className="mt-4">
