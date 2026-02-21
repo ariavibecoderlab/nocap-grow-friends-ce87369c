@@ -45,6 +45,7 @@ const StorePage = () => {
   const [store, setStore] = useState<StoreData | null>(null);
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
+  const [ratings, setRatings] = useState<Record<string, number>>({});
   const [selectedCat, setSelectedCat] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -74,8 +75,32 @@ const StorePage = () => {
           .order("sort_order"),
       ]);
 
-      setProducts((prodRes.data as ProductRow[]) || []);
+      const prods = (prodRes.data as ProductRow[]) || [];
+      setProducts(prods);
       setCategories((catRes.data as CategoryRow[]) || []);
+
+      // Fetch average ratings for all products
+      if (prods.length > 0) {
+        const productIds = prods.map(p => p.id);
+        const { data: reviewData } = await supabase
+          .from("marketplace_reviews")
+          .select("product_id, rating")
+          .in("product_id", productIds);
+        if (reviewData && reviewData.length > 0) {
+          const ratingMap: Record<string, { sum: number; count: number }> = {};
+          reviewData.forEach((r: any) => {
+            if (!ratingMap[r.product_id]) ratingMap[r.product_id] = { sum: 0, count: 0 };
+            ratingMap[r.product_id].sum += r.rating;
+            ratingMap[r.product_id].count += 1;
+          });
+          const avgMap: Record<string, number> = {};
+          Object.entries(ratingMap).forEach(([id, { sum, count }]) => {
+            avgMap[id] = sum / count;
+          });
+          setRatings(avgMap);
+        }
+      }
+
       setLoading(false);
     };
     fetch();
@@ -209,6 +234,7 @@ const StorePage = () => {
               images={(p.images as string[]) || []}
               stockQuantity={p.stock_quantity}
               storeSlug={store.slug}
+              rating={ratings[p.id]}
             />
           ))}
         </div>
