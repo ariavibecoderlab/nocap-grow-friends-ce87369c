@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Star } from "lucide-react";
+import { ShoppingCart, Star, Store } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -13,10 +13,11 @@ interface ProductCardProps {
   images: string[];
   stockQuantity: number;
   storeSlug: string;
+  storeName?: string;
   rating?: number;
 }
 
-export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, rating }: ProductCardProps) {
+export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, rating }: ProductCardProps) {
   const { addItem } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -50,7 +51,12 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
       </div>
       <CardContent className="p-3">
         <p className="text-sm font-medium text-white truncate">{name}</p>
-        <div className="flex items-center justify-between mt-2">
+        {storeName && (
+          <p className="text-[10px] text-white/40 truncate mt-0.5 flex items-center gap-1">
+            <Store className="h-2.5 w-2.5 shrink-0" /> {storeName}
+          </p>
+        )}
+        <div className="flex items-center justify-between mt-1.5">
           <p className="font-display text-base font-bold text-secondary">RM {price.toFixed(2)}</p>
           {rating !== undefined && rating > 0 && (
             <div className="flex items-center gap-0.5 text-secondary">
