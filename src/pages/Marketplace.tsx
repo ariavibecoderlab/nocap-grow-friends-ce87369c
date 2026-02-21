@@ -198,7 +198,7 @@ const Marketplace = () => {
   return (
     <div className="min-h-screen bg-primary pb-20">
       {/* Header */}
-      <div className="px-4 pt-8 pb-4">
+      <div className="px-4 pt-6 pb-3">
         <div className="mx-auto max-w-md">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors text-white">
@@ -368,7 +368,7 @@ const Marketplace = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             {filtered.map(p => (
               <ProductCard
                 key={p.id}
@@ -381,6 +381,7 @@ const Marketplace = () => {
                 storeSlug={storeMap[p.store_id]?.slug || ""}
                 storeName={storeMap[p.store_id]?.store_name}
                 rating={ratings[p.id]}
+                compact
               />
             ))}
           </div>

@@ -1,5 +1,4 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { ShoppingCart, Star, Store } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
@@ -15,9 +14,10 @@ interface ProductCardProps {
   storeSlug: string;
   storeName?: string;
   rating?: number;
+  compact?: boolean;
 }
 
-export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, rating }: ProductCardProps) {
+export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, rating, compact }: ProductCardProps) {
   const { addItem } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -35,32 +35,41 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
       className="border-white/10 bg-white/5 overflow-hidden cursor-pointer hover:bg-white/10 transition-all active:scale-[0.98]"
       onClick={() => navigate(`/store/${storeSlug}/product/${id}`)}
     >
-      <div className="aspect-square bg-white/5 relative overflow-hidden">
+      <div className={`${compact ? "aspect-[4/3]" : "aspect-square"} bg-white/5 relative overflow-hidden`}>
         {mainImage ? (
           <img src={mainImage} alt={name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white/20">
-            <ShoppingCart className="h-8 w-8" />
+            <ShoppingCart className={compact ? "h-5 w-5" : "h-8 w-8"} />
           </div>
         )}
         {stockQuantity <= 0 && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-            <span className="text-xs font-semibold text-white/80 bg-black/50 px-3 py-1 rounded-full">Out of Stock</span>
+            <span className="text-[10px] font-semibold text-white/80 bg-black/50 px-2 py-0.5 rounded-full">Out of Stock</span>
           </div>
         )}
+        {/* Quick add button overlay */}
+        {compact && stockQuantity > 0 && (
+          <button
+            onClick={handleAdd}
+            className="absolute bottom-1 right-1 rounded-full bg-secondary/90 p-1.5 text-primary hover:bg-secondary transition-colors shadow-md"
+          >
+            <ShoppingCart className="h-3 w-3" />
+          </button>
+        )}
       </div>
-      <CardContent className="p-3">
-        <p className="text-sm font-medium text-white truncate">{name}</p>
+      <CardContent className={compact ? "p-2" : "p-3"}>
+        <p className={`font-medium text-white truncate ${compact ? "text-xs" : "text-sm"}`}>{name}</p>
         {storeName && (
           <button
             onClick={(e) => { e.stopPropagation(); navigate(`/store/${storeSlug}`); }}
-            className="text-[10px] text-white/40 truncate mt-0.5 flex items-center gap-1 hover:text-secondary transition-colors"
+            className="text-[10px] text-white/40 truncate mt-0.5 flex items-center gap-0.5 hover:text-secondary transition-colors"
           >
             <Store className="h-2.5 w-2.5 shrink-0" /> {storeName}
           </button>
         )}
-        <div className="flex items-center justify-between mt-1.5">
-          <p className="font-display text-base font-bold text-secondary">RM {price.toFixed(2)}</p>
+        <div className={`flex items-center justify-between ${compact ? "mt-1" : "mt-1.5"}`}>
+          <p className={`font-display font-bold text-secondary ${compact ? "text-sm" : "text-base"}`}>RM {price.toFixed(2)}</p>
           {rating !== undefined && rating > 0 && (
             <div className="flex items-center gap-0.5 text-secondary">
               <Star className="h-3 w-3 fill-secondary" />
@@ -68,14 +77,15 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
             </div>
           )}
         </div>
-        <Button
-          size="sm"
-          className="w-full mt-2 bg-secondary/20 text-secondary hover:bg-secondary/30 text-xs h-8"
-          onClick={handleAdd}
-          disabled={stockQuantity <= 0}
-        >
-          <ShoppingCart className="h-3 w-3 mr-1" /> Add to Cart
-        </Button>
+        {!compact && (
+          <button
+            onClick={handleAdd}
+            disabled={stockQuantity <= 0}
+            className="w-full mt-2 bg-secondary/20 text-secondary hover:bg-secondary/30 text-xs h-8 rounded-md flex items-center justify-center gap-1 font-medium disabled:opacity-50 transition-colors"
+          >
+            <ShoppingCart className="h-3 w-3" /> Add to Cart
+          </button>
+        )}
       </CardContent>
     </Card>
   );
