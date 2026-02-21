@@ -384,19 +384,19 @@ const UatScripts = () => {
                               {/* Action buttons */}
                               <div className="flex flex-wrap gap-1.5 pt-2 border-t border-white/5">
                                 <Button size="sm" variant="outline" onClick={() => setStatus(tc.id, "pass")}
-                                  className={`text-[10px] h-7 ${status === "pass" ? "border-green-500/30 bg-green-500/10 text-green-400" : "border-white/10 text-white/40"}`}>
+                                  className={`text-[10px] h-7 ${status === "pass" ? "border-green-500/30 bg-green-500/20 text-green-400 font-semibold" : "border-white/20 bg-white/10 text-white/80 hover:bg-white/15 hover:text-white"}`}>
                                   <CheckCircle className="mr-1 h-3 w-3" /> Pass
                                 </Button>
                                 <Button size="sm" variant="outline" onClick={() => setStatus(tc.id, "fail")}
-                                  className={`text-[10px] h-7 ${status === "fail" ? "border-red-500/30 bg-red-500/10 text-red-400" : "border-white/10 text-white/40"}`}>
+                                  className={`text-[10px] h-7 ${status === "fail" ? "border-red-500/30 bg-red-500/20 text-red-400 font-semibold" : "border-white/20 bg-white/10 text-white/80 hover:bg-white/15 hover:text-white"}`}>
                                   <XCircle className="mr-1 h-3 w-3" /> Fail
                                 </Button>
                                 <Button size="sm" variant="outline" onClick={() => setStatus(tc.id, "blocked")}
-                                  className={`text-[10px] h-7 ${status === "blocked" ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-400" : "border-white/10 text-white/40"}`}>
+                                  className={`text-[10px] h-7 ${status === "blocked" ? "border-yellow-500/30 bg-yellow-500/20 text-yellow-400 font-semibold" : "border-white/20 bg-white/10 text-white/80 hover:bg-white/15 hover:text-white"}`}>
                                   <AlertTriangle className="mr-1 h-3 w-3" /> Blocked
                                 </Button>
                                 <Button size="sm" variant="outline" onClick={() => setStatus(tc.id, "untested")}
-                                  className="text-[10px] h-7 border-white/10 text-white/40">
+                                  className="text-[10px] h-7 border-white/20 bg-white/10 text-white/80 hover:bg-white/15 hover:text-white">
                                   <RotateCcw className="mr-1 h-3 w-3" /> Reset
                                 </Button>
                               </div>
