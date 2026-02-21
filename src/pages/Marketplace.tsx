@@ -9,7 +9,7 @@ import BottomNav from "@/components/BottomNav";
 import CartDrawer from "@/components/marketplace/CartDrawer";
 import ProductCard from "@/components/marketplace/ProductCard";
 import NocapLogo from "@/components/NocapLogo";
-import { ArrowLeft, Search, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
+import { ArrowLeft, ArrowUp, Search, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +62,14 @@ const Marketplace = () => {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  // Back to top scroll listener
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 400);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -446,6 +454,15 @@ const Marketplace = () => {
           </>
         )}
       </div>
+      {showBackToTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-24 right-4 z-50 rounded-full bg-secondary p-2.5 text-primary shadow-lg hover:bg-secondary/90 transition-all animate-in fade-in zoom-in duration-200"
+          aria-label="Back to top"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </button>
+      )}
       <BottomNav />
     </div>
   );
