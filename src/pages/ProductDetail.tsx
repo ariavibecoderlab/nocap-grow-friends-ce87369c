@@ -117,9 +117,9 @@ const ProductDetail = () => {
       </div>
 
       {/* Image Gallery */}
-      <div className="aspect-square bg-white/5 relative overflow-hidden">
+      <div className="aspect-[4/3] bg-white/5 relative overflow-hidden">
         {images.length > 0 ? (
-          <img src={getOptimizedImageUrl(images[selectedImage], 800, 800)} alt={product.name} className="w-full h-full object-cover" />
+          <img src={getOptimizedImageUrl(images[selectedImage], 800, 600)} alt={product.name} className="w-full h-full object-contain bg-white/5" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white/20">
             <ShoppingCart className="h-16 w-16" />
