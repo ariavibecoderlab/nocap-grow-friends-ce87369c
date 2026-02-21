@@ -11,6 +11,7 @@ import ProductCard from "@/components/marketplace/ProductCard";
 import NocapLogo from "@/components/NocapLogo";
 import { ArrowLeft, ArrowUp, Clock, Heart, Search, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -311,7 +312,7 @@ const Marketplace = () => {
                       onMouseDown={() => navigate(`/store/${storeMap[p.store_id]?.slug || ""}/product/${p.id}`)}
                     >
                       <div className="h-8 w-8 shrink-0 rounded bg-white/5 overflow-hidden">
-                        {img ? <img src={img} alt="" className="h-full w-full object-cover" /> : <ShoppingBag className="h-4 w-4 m-2 text-white/20" />}
+                        {img ? <img src={getOptimizedImageUrl(img, 64, 64)} alt="" className="h-full w-full object-cover" /> : <ShoppingBag className="h-4 w-4 m-2 text-white/20" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs text-white truncate">{p.name}</p>

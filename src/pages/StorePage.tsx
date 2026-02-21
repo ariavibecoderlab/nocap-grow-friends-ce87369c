@@ -7,6 +7,7 @@ import ProductCard from "@/components/marketplace/ProductCard";
 import { ArrowLeft, Store, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Json } from "@/integrations/supabase/types";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 interface StoreData {
   id: string;
@@ -144,7 +145,7 @@ const StorePage = () => {
       {/* Banner */}
       <div className="relative h-40 bg-white/5 overflow-hidden">
         {store.banner_url ? (
-          <img src={store.banner_url} alt="" className="w-full h-full object-cover" />
+          <img src={getOptimizedImageUrl(store.banner_url, 800, 320)} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-secondary/20 to-secondary/5" />
         )}
@@ -161,7 +162,7 @@ const StorePage = () => {
         <div className="flex items-end gap-3 -mt-8 relative z-10">
           <div className="h-16 w-16 rounded-xl border-2 border-primary bg-white/10 overflow-hidden shadow-lg shrink-0">
             {store.logo_url ? (
-              <img src={store.logo_url} alt={store.store_name} className="w-full h-full object-cover" />
+              <img src={getOptimizedImageUrl(store.logo_url, 128, 128)} alt={store.store_name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-secondary/20">
                 <Store className="h-6 w-6 text-secondary" />
