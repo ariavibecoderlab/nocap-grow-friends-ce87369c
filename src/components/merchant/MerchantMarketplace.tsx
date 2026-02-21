@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, ChangeEvent } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
-import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Image as ImageIcon } from "lucide-react";
+import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Image as ImageIcon, Upload, X } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 
 interface StoreData {
@@ -93,6 +93,9 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
   const [prodDesc, setProdDesc] = useState("");
   const [prodStatus, setProdStatus] = useState("active");
   const [savingProd, setSavingProd] = useState(false);
+  const [prodImages, setProdImages] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Order update
   const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
@@ -192,6 +195,36 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
     }
   };
 
+  const uploadImage = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !store) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Please select an image file", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image must be under 5MB", variant: "destructive" });
+      return;
+    }
+    setUploadingImage(true);
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `${user.id}/products/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('marketplace-assets').upload(path, file);
+    if (error) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } else {
+      const { data: urlData } = supabase.storage.from('marketplace-assets').getPublicUrl(path);
+      setProdImages(prev => [...prev, urlData.publicUrl]);
+      toast({ title: "Image uploaded" });
+    }
+    setUploadingImage(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeImage = (idx: number) => {
+    setProdImages(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const saveProduct = async () => {
     if (!store || !prodName.trim() || !prodPrice) return;
     setSavingProd(true);
@@ -203,6 +236,7 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
       stock_quantity: Number(prodStock) || 0,
       description: prodDesc.trim() || null,
       status: prodStatus,
+      images: prodImages as unknown as Json,
     };
 
     if (editProduct) {
@@ -228,6 +262,7 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
     setProdStock("");
     setProdDesc("");
     setProdStatus("active");
+    setProdImages([]);
   };
 
   const openEditProduct = (p: ProductRow) => {
@@ -236,6 +271,7 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
     setProdPrice(String(p.price));
     setProdStock(String(p.stock_quantity));
     setProdStatus(p.status);
+    setProdImages(Array.isArray(p.images) ? (p.images as string[]) : []);
     setShowProduct(true);
   };
 
@@ -514,7 +550,38 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
       <Dialog open={showProduct} onOpenChange={setShowProduct}>
         <DialogContent className="bg-primary border-white/10 text-white">
           <DialogHeader><DialogTitle className="font-display">{editProduct ? "Edit Product" : "Add Product"}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+            {/* Image Upload */}
+            <div>
+              <Label className="text-white/60 text-xs">Product Images</Label>
+              <div className="flex flex-wrap gap-2 mt-1.5">
+                {prodImages.map((url, idx) => (
+                  <div key={idx} className="relative h-16 w-16 rounded-lg overflow-hidden border border-white/10">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <button onClick={() => removeImage(idx)}
+                      className="absolute top-0 right-0 bg-black/70 rounded-bl-lg p-0.5">
+                      <X className="h-3 w-3 text-white" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingImage}
+                  className="h-16 w-16 rounded-lg border border-dashed border-white/20 flex flex-col items-center justify-center text-white/40 hover:text-white/60 hover:border-white/40 transition-colors"
+                >
+                  {uploadingImage ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      <span className="text-[8px] mt-0.5">Add</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={uploadImage} />
+              <p className="text-[10px] text-white/30 mt-1">Max 5MB per image. First image is the cover.</p>
+            </div>
             <div>
               <Label className="text-white/60 text-xs">Product Name</Label>
               <Input value={prodName} onChange={e => setProdName(e.target.value)}
