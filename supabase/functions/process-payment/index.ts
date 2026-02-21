@@ -403,6 +403,47 @@ serve(async (req) => {
       }
     }
 
+    // ── Credit platform fee to admin wallet ──
+    if (feeAmount > 0) {
+      const { data: adminRole } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin')
+        .limit(1)
+        .single();
+
+      if (adminRole) {
+        const { data: adminWallet } = await supabase
+          .from('wallets')
+          .select('balance')
+          .eq('user_id', adminRole.user_id)
+          .eq('wallet_type', 'admin')
+          .single();
+
+        if (adminWallet) {
+          await supabase.from('wallets')
+            .update({ balance: Number(adminWallet.balance) + feeAmount, updated_at: new Date().toISOString() })
+            .eq('user_id', adminRole.user_id).eq('wallet_type', 'admin');
+        } else {
+          await supabase.from('wallets').insert({
+            user_id: adminRole.user_id,
+            wallet_type: 'admin',
+            balance: feeAmount,
+          });
+        }
+
+        await supabase.from('transactions').insert({
+          user_id: adminRole.user_id,
+          type: 'commission',
+          amount: feeAmount,
+          status: 'completed',
+          description: `Platform fee from ${branch.branch_name}`,
+          reference_id: paymentTx?.id || null,
+          metadata: { source: 'platform_fee', branch_id, branch_name: branch.branch_name },
+        });
+      }
+    }
+
     console.log(`Payment completed: ${payerId} -> ${branch.branch_name}, RM${amount}, fee: RM${feeAmount}, commission pool: RM${commissionPool}`);
 
     return new Response(JSON.stringify({

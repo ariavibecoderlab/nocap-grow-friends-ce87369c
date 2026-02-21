@@ -14,6 +14,7 @@ import ApiAppsManagement from "@/components/admin/ApiAppsManagement";
 import { Shield, ClipboardCheck } from "lucide-react";
 import NocapLogo from "@/components/NocapLogo";
 import { generateUatPdf } from "@/lib/generateUatPdf";
+import AdminWalletCard from "@/components/admin/AdminWalletCard";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -48,6 +49,7 @@ const Admin = () => {
       </div>
 
       <div className="mx-auto max-w-md px-4">
+        <AdminWalletCard />
         <Tabs defaultValue="merchants" className="w-full">
           <TabsList className="grid w-full grid-cols-6 bg-white/5 border border-white/10">
             <TabsTrigger value="merchants" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Merchants</TabsTrigger>
