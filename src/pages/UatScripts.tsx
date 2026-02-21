@@ -303,7 +303,7 @@ const UatScripts = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setFilter(f)}
-                className={`text-xs capitalize ${filter === f ? "border-secondary bg-secondary/10 text-secondary" : "border-white/10 text-white/50"}`}
+                className={`text-xs capitalize ${filter === f ? "border-secondary bg-secondary/20 text-secondary font-semibold" : "border-white/20 bg-white/10 text-white/80 hover:bg-white/15 hover:text-white"}`}
               >
                 {f}
               </Button>
