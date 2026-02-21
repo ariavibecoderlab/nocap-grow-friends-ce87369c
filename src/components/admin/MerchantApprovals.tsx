@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { CheckCircle, XCircle } from "lucide-react";
 
 const MerchantApprovals = () => {
@@ -106,9 +107,27 @@ const MerchantApprovals = () => {
               )}
               {app.status === "pending" && (
                 <div className="flex gap-2 pt-2">
-                  <Button size="sm" className="bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => approveMutation.mutate({ id: app.id, userId: app.user_id })} disabled={approveMutation.isPending}>
-                    <CheckCircle className="mr-1 h-4 w-4" /> Approve
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" className="bg-secondary text-primary hover:bg-secondary/90 font-semibold" disabled={approveMutation.isPending}>
+                        <CheckCircle className="mr-1 h-4 w-4" /> Approve
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-primary border-white/10 max-w-sm">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="text-white">Confirm Approval</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to approve <span className="font-semibold text-white">{app.business_name}</span>? This will grant them merchant access.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="border-white/10 text-white/70 hover:text-white hover:bg-white/10">Cancel</AlertDialogCancel>
+                        <AlertDialogAction className="bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => approveMutation.mutate({ id: app.id, userId: app.user_id })}>
+                          Approve
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                   <Button size="sm" variant="destructive" onClick={() => setRejectDialog({ open: true, id: app.id })} disabled={rejectMutation.isPending}>
                     <XCircle className="mr-1 h-4 w-4" /> Reject
                   </Button>
