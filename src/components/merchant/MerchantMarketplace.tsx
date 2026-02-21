@@ -82,7 +82,14 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
   const [createName, setCreateName] = useState("");
   const [createSlug, setCreateSlug] = useState("");
   const [createBranch, setCreateBranch] = useState("");
+  const [createTagline, setCreateTagline] = useState("");
+  const [createLogoUrl, setCreateLogoUrl] = useState("");
+  const [createBannerUrl, setCreateBannerUrl] = useState("");
+  const [uploadingCreateLogo, setUploadingCreateLogo] = useState(false);
+  const [uploadingCreateBanner, setUploadingCreateBanner] = useState(false);
   const [creating, setCreating] = useState(false);
+  const createLogoRef = useRef<HTMLInputElement>(null);
+  const createBannerRef = useRef<HTMLInputElement>(null);
 
   // Product dialog
   const [showProduct, setShowProduct] = useState(false);
@@ -192,6 +199,9 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
         slug: createSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-"),
         branch_id: createBranch,
         status: "draft",
+        tagline: createTagline.trim() || null,
+        logo_url: createLogoUrl || null,
+        banner_url: createBannerUrl || null,
       })
       .select()
       .single();
@@ -199,11 +209,39 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      setStore(data as unknown as StoreData);
+      const s = data as unknown as StoreData;
+      setStore(s);
+      setSettingsStoreName(s.store_name);
+      setSettingsTagline(s.tagline || "");
       setShowCreate(false);
       toast({ title: "Store created!" });
     }
     setCreating(false);
+  };
+
+  const uploadCreateImage = async (file: File, type: 'logo' | 'banner') => {
+    if (!user) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Please select an image file", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image must be under 5MB", variant: "destructive" });
+      return;
+    }
+    type === 'logo' ? setUploadingCreateLogo(true) : setUploadingCreateBanner(true);
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `${user.id}/store/${type}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('marketplace-assets').upload(path, file);
+    if (error) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } else {
+      const { data: urlData } = supabase.storage.from('marketplace-assets').getPublicUrl(path);
+      if (type === 'logo') setCreateLogoUrl(urlData.publicUrl);
+      else setCreateBannerUrl(urlData.publicUrl);
+      toast({ title: `${type === 'logo' ? 'Logo' : 'Banner'} uploaded` });
+    }
+    type === 'logo' ? setUploadingCreateLogo(false) : setUploadingCreateBanner(false);
   };
 
   const toggleStoreLive = async () => {
@@ -423,10 +461,16 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
           <Dialog open={showCreate} onOpenChange={setShowCreate}>
             <DialogContent className="bg-primary border-white/10 text-white">
               <DialogHeader><DialogTitle className="font-display">Create Store</DialogTitle></DialogHeader>
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
                 <div>
                   <Label className="text-white/60 text-xs">Store Name</Label>
                   <Input value={createName} onChange={e => setCreateName(e.target.value)}
+                    className="bg-white/5 border-white/10 text-white mt-1" />
+                </div>
+                <div>
+                  <Label className="text-white/60 text-xs">Tagline</Label>
+                  <Input value={createTagline} onChange={e => setCreateTagline(e.target.value)}
+                    placeholder="Your store's catchy tagline"
                     className="bg-white/5 border-white/10 text-white mt-1" />
                 </div>
                 <div>
@@ -447,6 +491,67 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Logo Upload */}
+                <div>
+                  <Label className="text-white/60 text-xs">Store Logo</Label>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <div className="h-14 w-14 rounded-lg border border-white/10 overflow-hidden shrink-0">
+                      {createLogoUrl ? (
+                        <img src={createLogoUrl} alt="Logo" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-white/5">
+                          <Store className="h-5 w-5 text-white/20" />
+                        </div>
+                      )}
+                    </div>
+                    <Button type="button" size="sm" variant="outline" className="border-white/10 text-white/60 text-xs"
+                      disabled={uploadingCreateLogo}
+                      onClick={() => createLogoRef.current?.click()}>
+                      {uploadingCreateLogo ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Upload className="h-3.5 w-3.5 mr-1" />}
+                      {createLogoUrl ? "Change" : "Upload"}
+                    </Button>
+                    {createLogoUrl && (
+                      <Button type="button" size="sm" variant="ghost" className="text-white/40 h-8 w-8 p-0" onClick={() => setCreateLogoUrl("")}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    <input ref={createLogoRef} type="file" accept="image/*" className="hidden"
+                      onChange={e => { if (e.target.files?.[0]) uploadCreateImage(e.target.files[0], 'logo'); e.target.value = ''; }} />
+                  </div>
+                </div>
+
+                {/* Banner Upload */}
+                <div>
+                  <Label className="text-white/60 text-xs">Store Banner</Label>
+                  <div className="mt-1.5">
+                    <div className="h-20 w-full rounded-lg border border-white/10 overflow-hidden">
+                      {createBannerUrl ? (
+                        <img src={createBannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-white/5">
+                          <p className="text-[10px] text-white/20">No banner</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <Button type="button" size="sm" variant="outline" className="border-white/10 text-white/60 text-xs"
+                        disabled={uploadingCreateBanner}
+                        onClick={() => createBannerRef.current?.click()}>
+                        {uploadingCreateBanner ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Upload className="h-3.5 w-3.5 mr-1" />}
+                        {createBannerUrl ? "Change" : "Upload"}
+                      </Button>
+                      {createBannerUrl && (
+                        <Button type="button" size="sm" variant="ghost" className="text-white/40 h-8 w-8 p-0" onClick={() => setCreateBannerUrl("")}>
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                    <input ref={createBannerRef} type="file" accept="image/*" className="hidden"
+                      onChange={e => { if (e.target.files?.[0]) uploadCreateImage(e.target.files[0], 'banner'); e.target.value = ''; }} />
+                  </div>
+                </div>
+
                 <Button className="w-full bg-secondary text-primary" onClick={createStore} disabled={creating}>
                   {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Store"}
                 </Button>
