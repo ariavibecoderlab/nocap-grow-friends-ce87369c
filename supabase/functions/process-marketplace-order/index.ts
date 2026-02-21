@@ -304,7 +304,7 @@ serve(async (req) => {
       shipping_fee: shippingFee,
       total_amount: totalAmount,
       platform_fee: feeAmount,
-      payment_method: 'wallet',
+      payment_method: 'nocap_wallet',
       payment_status: 'paid',
       status: 'pending',
       transaction_id: paymentTx?.id || null,
