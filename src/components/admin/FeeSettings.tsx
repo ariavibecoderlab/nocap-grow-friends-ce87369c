@@ -9,13 +9,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Plus, Store, Loader2, ShieldCheck, Percent } from "lucide-react";
+import { Save, Plus, Store, Loader2, ShieldCheck, Percent, GitBranch } from "lucide-react";
 
 interface MerchantApp {
   id: string;
   user_id: string;
   business_name: string;
   min_withdrawal_amount: number | null;
+}
+
+interface Branch {
+  id: string;
+  branch_name: string;
+  commission_percent: number;
+  merchant_user_id: string;
 }
 
 const FeeSettings = () => {
@@ -25,6 +32,7 @@ const FeeSettings = () => {
   const [addDialog, setAddDialog] = useState(false);
   const [newSetting, setNewSetting] = useState({ key: "", value: "", description: "" });
   const [merchantEdits, setMerchantEdits] = useState<Record<string, string>>({});
+  const [branchCommissionEdits, setBranchCommissionEdits] = useState<Record<string, number>>({});
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["system_settings"],
@@ -45,6 +53,19 @@ const FeeSettings = () => {
         .order("business_name");
       if (error) throw error;
       return data as MerchantApp[];
+    },
+  });
+
+  const { data: branches, isLoading: branchesLoading } = useQuery({
+    queryKey: ["admin_branches_commission"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("merchant_branches")
+        .select("id, branch_name, commission_percent, merchant_user_id")
+        .eq("is_active", true)
+        .order("branch_name");
+      if (error) throw error;
+      return data as Branch[];
     },
   });
 
@@ -112,6 +133,20 @@ const FeeSettings = () => {
     onSuccess: () => {
       toast({ title: "Merchant minimum updated" });
       queryClient.invalidateQueries({ queryKey: ["approved_merchants_min_wd"] });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const branchCommissionMutation = useMutation({
+    mutationFn: async ({ branchId, commissionPercent }: { branchId: string; commissionPercent: number }) => {
+      const { error } = await supabase.functions.invoke("admin-actions", {
+        body: { action: "update_branch_commission", branchId, commissionPercent },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Commission updated" });
+      queryClient.invalidateQueries({ queryKey: ["admin_branches_commission"] });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -186,6 +221,84 @@ const FeeSettings = () => {
           >
             <Plus className="mr-1 h-4 w-4" /> Initialize Platform Fee (1%)
           </Button>
+        )}
+      </div>
+
+      <Separator className="my-4 bg-white/10" />
+
+      {/* Branch Commission Rate Section */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold flex items-center gap-1.5 text-white">
+          <GitBranch className="h-4 w-4 text-secondary" /> Branch Commission Rate
+        </h3>
+        <p className="text-xs text-white/40">
+          Commission percentage deducted from payments and distributed across the 6-tier referral network. Default is 5%.
+        </p>
+
+        {branchesLoading ? (
+          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-white/40" /></div>
+        ) : !branches?.length ? (
+          <p className="text-xs text-white/40 text-center py-4">No active branches yet.</p>
+        ) : (
+          branches.map((b) => {
+            const editVal = branchCommissionEdits[b.id];
+            const currentVal = Number(b.commission_percent);
+            const displayVal = editVal !== undefined ? editVal : currentVal;
+            const hasChange = editVal !== undefined && editVal !== currentVal;
+
+            return (
+              <Card key={b.id} className="border-white/10 bg-white/5">
+                <CardContent className="py-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate text-white">{b.branch_name}</p>
+                    </div>
+                    <span className="text-lg font-bold text-secondary tabular-nums ml-2">
+                      {displayVal}%
+                    </span>
+                  </div>
+                  <Slider
+                    value={[displayVal]}
+                    onValueChange={([v]) => setBranchCommissionEdits((p) => ({ ...p, [b.id]: v }))}
+                    min={0}
+                    max={20}
+                    step={0.5}
+                    className="w-full"
+                  />
+                  <div className="flex items-center justify-between text-[10px] text-white/30">
+                    <span>0%</span>
+                    <span>10%</span>
+                    <span>20%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-white/40 shrink-0">Custom %</Label>
+                    <Input
+                      className="w-20 border-white/10 bg-white/5 text-white text-center"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.5"
+                      value={String(displayVal)}
+                      onChange={(e) => {
+                        const num = Number(e.target.value);
+                        if (!isNaN(num) && num >= 0) {
+                          setBranchCommissionEdits((p) => ({ ...p, [b.id]: num }));
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      className="bg-secondary text-primary hover:bg-secondary/90 font-semibold ml-auto"
+                      disabled={!hasChange || branchCommissionMutation.isPending}
+                      onClick={() => branchCommissionMutation.mutate({ branchId: b.id, commissionPercent: editVal! })}
+                    >
+                      <Save className="h-4 w-4 mr-1" /> Save
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
 
