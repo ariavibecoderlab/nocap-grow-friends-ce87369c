@@ -5,8 +5,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
+import ReviewForm from "@/components/marketplace/ReviewForm";
 import BottomNav from "@/components/BottomNav";
-import { ArrowLeft, Store, Package, Truck } from "lucide-react";
+import { ArrowLeft, Store, Package, Truck, Star } from "lucide-react";
 
 interface OrderData {
   id: string;
@@ -27,6 +28,7 @@ interface OrderData {
 
 interface OrderItem {
   id: string;
+  product_id: string;
   product_name: string;
   product_image: string;
   quantity: number;
@@ -46,6 +48,7 @@ const OrderConfirmation = () => {
   const [order, setOrder] = useState<OrderData | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
+  const [reviewedProductIds, setReviewedProductIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -60,17 +63,24 @@ const OrderConfirmation = () => {
       if (!orderData) { setLoading(false); return; }
       setOrder(orderData as unknown as OrderData);
 
-      const [itemsRes, storeRes] = await Promise.all([
+      const [itemsRes, storeRes, reviewsRes] = await Promise.all([
         supabase.from("marketplace_order_items")
-          .select("id, product_name, product_image, quantity, unit_price, subtotal")
+          .select("id, product_id, product_name, product_image, quantity, unit_price, subtotal")
           .eq("order_id", orderId),
         supabase.from("marketplace_stores")
           .select("store_name, logo_url")
           .eq("id", orderData.store_id)
           .maybeSingle(),
+        supabase.from("marketplace_reviews")
+          .select("product_id")
+          .eq("order_id", orderId)
+          .eq("buyer_user_id", user.id),
       ]);
       setOrderItems((itemsRes.data as OrderItem[]) || []);
       setStoreInfo(storeRes.data as StoreInfo | null);
+      if (reviewsRes.data) {
+        setReviewedProductIds(new Set(reviewsRes.data.map((r: any) => r.product_id)));
+      }
       setLoading(false);
     };
     fetch();
@@ -192,6 +202,34 @@ const OrderConfirmation = () => {
             <p className="text-xs text-white/40 mt-1">{order.shipping_address}</p>
           </CardContent>
         </Card>
+
+        {/* Reviews Section - only for delivered orders */}
+        {order.status === "delivered" && orderItems.length > 0 && (
+          <Card className="border-white/10 bg-white/5">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Star className="h-4 w-4 text-secondary" />
+                <h3 className="font-display text-sm font-semibold text-white">Rate Your Purchase</h3>
+              </div>
+              {orderItems.map(item => (
+                reviewedProductIds.has(item.product_id) ? (
+                  <div key={item.id} className="flex items-center gap-2 py-1">
+                    <Star className="h-3.5 w-3.5 fill-secondary text-secondary" />
+                    <p className="text-xs text-white/40">Reviewed: {item.product_name}</p>
+                  </div>
+                ) : (
+                  <ReviewForm
+                    key={item.id}
+                    orderId={order.id}
+                    productId={item.product_id}
+                    productName={item.product_name}
+                    onReviewSubmitted={() => setReviewedProductIds(prev => new Set([...prev, item.product_id]))}
+                  />
+                )
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         <p className="text-center text-[10px] text-white/30 pb-4">
           {new Date(order.created_at).toLocaleDateString("en-MY", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
