@@ -107,7 +107,7 @@ const ProductDetail = () => {
   };
 
   return (
-    <div className="min-h-screen bg-primary pb-24">
+    <div className="min-h-screen bg-primary pb-40">
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 pt-8">
         <button onClick={() => navigate(-1)} className="rounded-full bg-black/40 p-2 text-white hover:bg-black/60 backdrop-blur-sm">
@@ -193,7 +193,7 @@ const ProductDetail = () => {
       </div>
 
       {/* Fixed bottom add-to-cart */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-primary border-t border-white/10 px-4 py-3 safe-area-bottom">
+      <div className="fixed bottom-16 left-0 right-0 z-30 bg-primary border-t border-white/10 px-4 py-3">
         <div className="mx-auto max-w-md flex items-center gap-3">
           <div className="flex items-center gap-2 border border-white/10 rounded-full px-2">
             <button onClick={() => setQty(Math.max(1, qty - 1))} className="p-1.5 text-white/60 hover:text-white">
