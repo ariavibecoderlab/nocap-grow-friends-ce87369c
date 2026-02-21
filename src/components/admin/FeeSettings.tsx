@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Plus, Store, Loader2, ShieldCheck } from "lucide-react";
+import { Save, Plus, Store, Loader2, ShieldCheck, Percent } from "lucide-react";
 
 interface MerchantApp {
   id: string;
@@ -49,7 +50,23 @@ const FeeSettings = () => {
 
   const globalMinSetting = settings?.find((s) => s.key === "min_withdrawal_amount");
   const minPinSetting = settings?.find((s) => s.key === "min_pin_amount");
+  const platformFeeSetting = settings?.find((s) => s.key === "platform_fee_percent");
   const [pinEditValue, setPinEditValue] = useState<string | null>(null);
+  const [feeSliderValue, setFeeSliderValue] = useState<number>(1);
+  const [feeInputValue, setFeeInputValue] = useState<string>("1");
+
+  useEffect(() => {
+    if (platformFeeSetting) {
+      const val = Number(platformFeeSetting.value);
+      setFeeSliderValue(val);
+      setFeeInputValue(platformFeeSetting.value);
+    }
+  }, [platformFeeSetting]);
+
+  const feeHasChanged = platformFeeSetting && feeInputValue !== platformFeeSetting.value;
+
+  // Settings to hide from the raw list (shown in dedicated sections)
+  const hiddenKeys = new Set(["platform_fee_percent", "min_pin_amount"]);
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, value }: { id: string; value: string }) => {
@@ -101,38 +118,115 @@ const FeeSettings = () => {
 
   return (
     <div className="space-y-4 mt-4">
-      <div className="flex justify-end">
-        <Button size="sm" onClick={() => setAddDialog(true)} className="bg-secondary text-primary hover:bg-secondary/90 font-semibold"><Plus className="mr-1 h-4 w-4" /> Add Setting</Button>
-      </div>
-
-      {isLoading ? (
-        <p className="text-white/40 text-sm">Loading...</p>
-      ) : (
-        settings?.map((s) => (
-          <Card key={s.id} className="border-white/10 bg-white/5">
-            <CardContent className="flex items-center gap-3 py-3">
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm text-white">{s.key}</p>
-                {s.description && <p className="text-xs text-white/40">{s.description}</p>}
+      {/* Platform Fee Section */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold flex items-center gap-1.5 text-white">
+          <Percent className="h-4 w-4 text-secondary" /> Platform Fee
+        </h3>
+        <p className="text-xs text-white/40">
+          Percentage deducted from every transaction as platform revenue. Credited to the admin wallet.
+        </p>
+        {platformFeeSetting ? (
+          <Card className="border-secondary/20 bg-secondary/5">
+            <CardContent className="py-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/70">Fee Rate</span>
+                <span className="text-2xl font-bold text-secondary tabular-nums">
+                  {feeInputValue}%
+                </span>
               </div>
-              <Input
-                className="w-32 border-white/10 bg-white/5 text-white"
-                defaultValue={s.value}
-                onChange={(e) => setEditValues((p) => ({ ...p, [s.id]: e.target.value }))}
+              <Slider
+                value={[feeSliderValue]}
+                onValueChange={([v]) => {
+                  setFeeSliderValue(v);
+                  setFeeInputValue(String(v));
+                }}
+                min={0}
+                max={10}
+                step={0.5}
+                className="w-full"
               />
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
-                disabled={!editValues[s.id] || editValues[s.id] === s.value}
-                onClick={() => updateMutation.mutate({ id: s.id, value: editValues[s.id] })}
-              >
-                <Save className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center justify-between text-[10px] text-white/30">
+                <span>0%</span>
+                <span>5%</span>
+                <span>10%</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-white/40 shrink-0">Custom %</Label>
+                <Input
+                  className="w-20 border-white/10 bg-white/5 text-white text-center"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={feeInputValue}
+                  onChange={(e) => {
+                    setFeeInputValue(e.target.value);
+                    const num = Number(e.target.value);
+                    if (!isNaN(num) && num >= 0 && num <= 10) setFeeSliderValue(num);
+                  }}
+                />
+                <Button
+                  size="sm"
+                  className="bg-secondary text-primary hover:bg-secondary/90 font-semibold ml-auto"
+                  disabled={!feeHasChanged || updateMutation.isPending}
+                  onClick={() => updateMutation.mutate({ id: platformFeeSetting.id, value: feeInputValue })}
+                >
+                  <Save className="h-4 w-4 mr-1" /> Save
+                </Button>
+              </div>
             </CardContent>
           </Card>
-        ))
-      )}
+        ) : (
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+            onClick={() => createMutation.mutate({ key: "platform_fee_percent", value: "1", description: "Platform fee percentage deducted from transactions" })}
+          >
+            <Plus className="mr-1 h-4 w-4" /> Initialize Platform Fee (1%)
+          </Button>
+        )}
+      </div>
+
+      <Separator className="my-4 bg-white/10" />
+
+      {/* Other System Settings */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-white">Other Settings</h3>
+          <Button size="sm" onClick={() => setAddDialog(true)} className="bg-secondary text-primary hover:bg-secondary/90 font-semibold"><Plus className="mr-1 h-4 w-4" /> Add Setting</Button>
+        </div>
+
+        {isLoading ? (
+          <p className="text-white/40 text-sm">Loading...</p>
+        ) : (
+          settings?.filter((s) => !hiddenKeys.has(s.key)).map((s) => (
+            <Card key={s.id} className="border-white/10 bg-white/5">
+              <CardContent className="flex items-center gap-3 py-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm text-white">{s.key}</p>
+                  {s.description && <p className="text-xs text-white/40">{s.description}</p>}
+                </div>
+                <Input
+                  className="w-32 border-white/10 bg-white/5 text-white"
+                  defaultValue={s.value}
+                  onChange={(e) => setEditValues((p) => ({ ...p, [s.id]: e.target.value }))}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                  disabled={!editValues[s.id] || editValues[s.id] === s.value}
+                  onClick={() => updateMutation.mutate({ id: s.id, value: editValues[s.id] })}
+                >
+                  <Save className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
 
       {/* PIN Enforcement Limit */}
       <Separator className="my-4 bg-white/10" />
