@@ -11,7 +11,7 @@ import {
   ChevronDown, ChevronRight, Search, ArrowLeft, BookOpen, LogIn, LayoutDashboard,
   Wallet, QrCode, ArrowUpDown, Users, Shield, Bell, Settings, Store, BarChart3,
   Code, Globe, Smartphone, Key, CreditCard, UserPlus, FileText, Send, Eye, EyeOff,
-  Lock, RefreshCw, AlertCircle, CheckCircle, Info, Banknote
+  Lock, RefreshCw, AlertCircle, CheckCircle, Info, Banknote, ShoppingBag, Package, Heart, Tag
 } from "lucide-react";
 
 const sections = [
@@ -31,6 +31,7 @@ const sections = [
 - 🔐 **PIN-Protected Wallet** — Secure transactions with 7-digit PIN verification
 - 📱 **Mobile-First Design** — Optimized for smartphone use with bottom navigation
 - 🏪 **Merchant Dashboard** — Full merchant management with branches, analytics, and API integration
+- 🛍️ **Marketplace** — Browse and buy products from merchant stores using your wallet
 - 🔌 **REST API** — OAuth 2.0 secured API for third-party integrations`
       },
       {
@@ -187,6 +188,192 @@ Your balance and transactions update in real-time — no need to refresh!`,
 | Commission | 💰 | Referral network earnings |
 | Withdrawal | ↗️ | Merchant payout |
 | Refund | ↙️ | Returned payment |`
+      },
+      {
+        id: "connected-apps",
+        title: "Connected Apps",
+        content: `**Managing Third-Party App Access:**
+
+When you authorize a third-party app via OAuth, it gains access to specific scopes of your wallet (e.g. balance, charge). You can view and manage these connections from your Profile page.
+
+**Viewing Connected Apps:**
+1. Go to **Profile** from the bottom navigation
+2. Scroll to the **Connected Apps** section
+3. See a list of all apps you've authorized
+
+**Each App Shows:**
+- App name and connection status (Active / Expired)
+- Granted scopes (e.g. Balance, Charge)
+- When you connected it
+- When the token was last used
+- Expiry date
+
+**Revoking Access:**
+1. Find the app you want to disconnect
+2. Tap the **Revoke** button
+3. Confirm — the app can no longer access your wallet
+4. The app would need to re-request authorization to regain access
+
+**Important Notes:**
+- Revoking access is immediate and irreversible
+- The app will receive 401 errors on any further API calls
+- You can always re-authorize the same app later`
+      }
+    ]
+  },
+  {
+    id: "marketplace",
+    title: "Marketplace",
+    icon: ShoppingBag,
+    subsections: [
+      {
+        id: "marketplace-overview",
+        title: "Marketplace Overview",
+        content: `The NOcap Marketplace lets you browse and buy products from merchant stores, paying directly from your wallet balance.
+
+**Key Features:**
+- 🛍️ **Product-First Discovery** — Browse all products across all stores in one place
+- 🔍 **Advanced Search & Filters** — Filter by store, category, price range, and stock
+- 🛒 **Cart & Checkout** — Add items, apply discount codes, and pay with your wallet
+- ❤️ **Wishlists** — Save products you love for later
+- 📦 **Order Tracking** — Track your orders from placement to delivery
+- ⭐ **Reviews & Ratings** — Rate products and read other buyers' feedback
+
+**Accessing the Marketplace:**
+- Tap the **Marketplace** icon from the bottom navigation bar
+- Or navigate to any store page directly`
+      },
+      {
+        id: "marketplace-browsing",
+        title: "Browsing & Search",
+        content: `**Search & Discovery:**
+
+1. Open the **Marketplace** from the bottom navigation
+2. Use the search bar at the top to find products by name
+3. Real-time search suggestions appear as you type
+
+**Filtering Products:**
+- **Store Filter** — Show products from a specific merchant store
+- **Category Filter** — Browse by product category
+- **Price Range** — Use the dual-thumb slider to set min/max price in RM
+- **In Stock Only** — Toggle to hide out-of-stock items
+
+**Sorting Options:**
+| Sort | Description |
+|------|-------------|
+| Featured | Merchant-highlighted products first |
+| Price: Low to High | Cheapest first |
+| Price: High to Low | Most expensive first |
+| Rating | Highest rated first |
+| Newest | Most recently added first |
+
+**Product Cards Show:**
+- Product image, name, and price
+- Store name and logo
+- Stock availability
+- Add to Wishlist button (heart icon)`
+      },
+      {
+        id: "marketplace-wishlist",
+        title: "Wishlists & Recently Viewed",
+        content: `**Wishlist:**
+
+1. Tap the **heart icon** on any product card to add it to your wishlist
+2. Access your wishlist by tapping the heart icon in the marketplace header
+3. Remove items by tapping the heart icon again
+4. Wishlists are saved to your account — accessible on any device
+
+**Recently Viewed:**
+- Products you've viewed are tracked automatically
+- Access recently viewed items from the clock icon in the marketplace header
+- Helps you find products you browsed earlier`
+      },
+      {
+        id: "marketplace-cart",
+        title: "Cart & Checkout",
+        content: `**Adding to Cart:**
+
+1. Tap any product to view its detail page
+2. Select quantity (up to available stock)
+3. Tap **Add to Cart**
+4. The cart icon shows your item count
+
+**Cart Drawer:**
+- Tap the shopping bag icon to open your cart
+- Adjust quantities or remove items
+- See subtotal for all items
+- Tap **Checkout** to proceed
+
+**Checkout Process:**
+1. Review your order summary
+2. Enter shipping details (name, email, phone, address)
+3. Enter a discount code if you have one
+4. Review the total (subtotal + shipping − discounts)
+5. Choose payment method (NOcap Wallet)
+6. Enter your 7-digit PIN if the total is ≥ RM 100
+7. Confirm the order
+
+**After Checkout:**
+- Payment is deducted from your wallet immediately
+- The merchant is notified of the new order
+- You receive an order confirmation with order number
+- Commission is distributed through your referral chain
+- A 1% platform fee is applied automatically
+
+**Important Notes:**
+- All items in a single cart must be from the same store
+- Discount codes are store-specific
+- Insufficient wallet balance will prevent checkout`
+      },
+      {
+        id: "marketplace-orders",
+        title: "My Orders",
+        content: `**Tracking Your Orders:**
+
+1. Navigate to **My Orders** from the profile menu or marketplace
+2. View all your orders sorted by most recent
+3. Each order shows: order number, store name, total amount, and status
+4. Tap any order to see full details
+
+**Order Statuses:**
+| Status | Description |
+|--------|-------------|
+| Pending | Order placed, awaiting merchant confirmation |
+| Confirmed | Merchant has confirmed your order |
+| Processing | Order is being prepared |
+| Shipped | Order has been dispatched (tracking number available) |
+| Delivered | Order received by buyer |
+| Cancelled | Order was cancelled |
+
+**Order Details Include:**
+- Order number and date
+- Store name and logo
+- List of items with quantities and prices
+- Shipping address
+- Tracking number (when shipped)
+- Payment breakdown (subtotal, shipping, discounts, total)`
+      },
+      {
+        id: "marketplace-reviews",
+        title: "Reviews & Ratings",
+        content: `**Leaving a Review:**
+
+1. After your order is delivered, go to the product detail page
+2. Scroll to the reviews section
+3. Select a rating (1–5 stars)
+4. Write an optional comment
+5. Submit your review
+
+**Review Rules:**
+- You can only review products from orders you've received
+- One review per product per order (duplicates are prevented)
+- Merchants can reply to your review
+- Reviews are visible on the public product page
+
+**Reading Reviews:**
+- Product detail pages show all reviews with ratings
+- See the merchant's reply (if any) below each review
+- Reviews help other buyers make informed decisions`
       }
     ]
   },
@@ -209,6 +396,7 @@ Your balance and transactions update in real-time — no need to refresh!`,
 **When is PIN Required?**
 - QR Pay amounts ≥ RM 100 (configurable by admin)
 - Peer-to-peer transfers above the threshold
+- Marketplace checkout totals ≥ RM 100
 - API charges above the threshold
 
 **Resetting Your PIN:**
@@ -264,6 +452,10 @@ When anyone in your network makes a purchase at a NOcap merchant, you earn commi
 | Tier 4 | 4th generation | Lower % |
 | Tier 5 | 5th generation | Lowest % |
 
+**Commission Sources:**
+- QR Pay transactions at merchants
+- Marketplace purchases from merchant stores
+
 **How to Share Your Code:**
 1. Go to the **Referral** page from the dashboard
 2. Your unique code is displayed prominently
@@ -317,6 +509,8 @@ When anyone in your network makes a purchase at a NOcap merchant, you earn commi
 | **Analytics** | Revenue charts, transaction volume, branch comparisons |
 | **Settlement** | Available balance, pending settlements, withdrawal history |
 | **Withdrawals** | Request payouts to your bank account |
+| **Shop** | Manage your marketplace store, products, and orders |
+| **Reviews** | View and reply to customer product reviews |
 | **API Apps** | Register and manage API applications |
 | **Logs** | View API request and webhook delivery logs |
 
@@ -324,8 +518,94 @@ When anyone in your network makes a purchase at a NOcap merchant, you earn commi
 - Real-time transaction monitoring
 - Multi-branch management
 - Branch owner assignment (delegate to staff)
-- QR code generation for each branch
+- QR code generation for each branch (static and dynamic)
 - Commission tracking and analytics`
+      },
+      {
+        id: "merchant-branches",
+        title: "Branch Management",
+        content: `**Branch Features:**
+Each merchant can have multiple branches, each with its own wallet, QR codes, and optional branch owner.
+
+**QR Codes:**
+- **Static QR** — Permanent QR code for each branch (customers enter amount)
+- **Dynamic QR** — Time-limited QR with a pre-set amount and description
+  - Expiry options: 15 minutes, 30 minutes, 1 hour, 2 hours, 6 hours, 24 hours
+  - Shows real-time payment status (Pending → Paid)
+  - Can be deleted if unused
+
+**QR Actions:**
+- Download as PNG image with branch label
+- Share via Web Share API (WhatsApp, Telegram, etc.)
+- Display on screen for customers to scan
+
+**Branch Owner Assignment:**
+- Assign a staff member as branch owner using their email
+- Branch owners can access the Branch Dashboard for their assigned branch
+- Useful for delegating day-to-day operations`
+      },
+      {
+        id: "merchant-marketplace",
+        title: "Marketplace Store Management",
+        content: `**Setting Up Your Store:**
+
+From the Merchant Dashboard, go to the **Shop** tab to manage your marketplace presence.
+
+**Store Branding:**
+- Upload a store **logo** (max 15MB, compressed automatically)
+- Upload a **banner** image (max 15MB, compressed automatically)
+- Set a store **tagline**
+- Choose a theme: Classic, Bold, or Minimal
+- Set a primary accent color
+
+**Managing Products:**
+1. Click **Add Product** in the Shop tab
+2. Fill in product details: name, description, price, stock quantity, SKU
+3. Upload product images (up to 15MB each — automatically compressed to 1200px)
+4. Assign a category (create categories as needed)
+5. Mark as Featured to highlight on your store page
+6. Save the product
+
+**Delivery Settings:**
+- Set a **flat-rate shipping fee** for all orders
+- Optionally set a **free shipping minimum** order amount
+
+**Discount Codes:**
+- Create promotional codes with percentage or fixed discounts
+- Set minimum order amounts and maximum usage limits
+- Set expiry dates for time-limited promotions
+- Activate or deactivate codes as needed
+
+**Order Management:**
+- View incoming orders in the Shop tab
+- Update order status through the fulfillment pipeline:
+  - Pending → Confirmed → Processing → Shipped → Delivered
+- Add tracking numbers when shipping
+- Both merchant and buyer receive notifications on status changes
+
+**Product Images:**
+- Images are automatically compressed on upload (max 1200×1200px, 80% JPEG quality)
+- Logos compressed to 512×512px, banners to 1600×1600px
+- This reduces storage usage and speeds up page loads`
+      },
+      {
+        id: "merchant-reviews",
+        title: "Customer Reviews",
+        content: `**Managing Reviews:**
+
+1. Go to the **Reviews** tab in the Merchant Dashboard
+2. View all reviews across your products
+3. See ratings, comments, and which product/order they relate to
+
+**Replying to Reviews:**
+- Click on a review to reply
+- Your reply is visible on the public product page
+- Replies show a timestamp so buyers see when you responded
+
+**Tips:**
+- Respond promptly to negative reviews
+- Thank customers for positive feedback
+- Use reviews to identify product quality issues`
       },
       {
         id: "merchant-withdrawals",
@@ -351,6 +631,79 @@ When anyone in your network makes a purchase at a NOcap merchant, you earn commi
     ]
   },
   {
+    id: "branch-dashboard",
+    title: "Branch Dashboard",
+    icon: BarChart3,
+    subsections: [
+      {
+        id: "branch-overview",
+        title: "Branch Owner Dashboard",
+        content: `The Branch Dashboard is available to users assigned as a **branch owner** by a merchant. It provides day-to-day operational tools for managing a specific branch.
+
+**Accessing the Branch Dashboard:**
+- If you're assigned as a branch owner, you'll see **Branch Dashboard** in your navigation
+- You can only manage the branch(es) assigned to you
+
+**Dashboard Features:**
+
+| Feature | Description |
+|---------|-------------|
+| **Branch Selector** | Switch between branches if you own multiple |
+| **Wallet Balance** | View the branch's current balance |
+| **Sales Summary** | Daily, weekly, and monthly sales totals |
+| **Transaction Search** | Search and filter branch transactions |
+| **QR Code Management** | View static QR, create/manage dynamic QRs |
+| **Withdrawal Requests** | Request payouts from branch balance |`
+      },
+      {
+        id: "branch-qr",
+        title: "QR Code Management",
+        content: `**Static QR Code:**
+- Every branch has a permanent QR code
+- Customers scan it and enter the payment amount
+- Download or share the QR code
+
+**Dynamic QR Codes:**
+1. Tap **Create Dynamic QR**
+2. Enter the payment amount and description
+3. Select expiry duration (15 min – 24 hours)
+4. The QR code is generated with a unique ID
+5. Share with the customer
+
+**Dynamic QR Status:**
+- 🟡 **Pending** — Waiting for payment
+- 🟢 **Paid** — Payment received
+- 🔴 **Expired** — QR has expired without payment
+- Dynamic QRs can be deleted if unused
+
+**Actions:**
+- Download QR as PNG with branch label
+- Share via device share menu
+- Track payment status in real-time`
+      },
+      {
+        id: "branch-sales",
+        title: "Sales & Transactions",
+        content: `**Sales Summary:**
+- View total sales for today, this week, and this month
+- Quick overview of branch performance
+
+**Transaction Search:**
+- Search transactions by description or reference
+- Filter by date range
+- View transaction details including amount, type, and status
+- All transactions are specific to the selected branch
+
+**Withdrawal Requests:**
+1. Tap **Request Withdrawal** from the Branch Dashboard
+2. Enter the amount to withdraw
+3. Confirm bank details (pre-filled from merchant profile)
+4. Submit — the request goes to admin for approval
+5. Track withdrawal status: Pending → Approved / Rejected`
+      }
+    ]
+  },
+  {
     id: "api-integration",
     title: "API Integration",
     icon: Code,
@@ -366,13 +719,11 @@ When anyone in your network makes a purchase at a NOcap merchant, you earn commi
 
 **Authentication:** OAuth 2.0 Authorization Code Flow
 
-**Base URL:** \`https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1\`
-
 **Required Headers for all API calls:**
 | Header | Value |
 |--------|-------|
-| x-api-key | Your app's API key |
-| x-api-secret | Your app's API secret |
+| X-Api-Key | Your app's API key |
+| X-Api-Secret | Your app's API secret |
 | Authorization | Bearer ACCESS_TOKEN |`
       },
       {
@@ -384,7 +735,8 @@ When anyone in your network makes a purchase at a NOcap merchant, you earn commi
 2. Click **Register App**
 3. Enter app name, description, and select a branch
 4. Optionally enter a webhook URL
-5. Submit
+5. Toggle **Sandbox Mode** on for testing
+6. Submit
 
 **⚠️ Important:** Your API Key and Secret are shown **only once** after creation. Save them securely!
 
@@ -398,6 +750,7 @@ When anyone in your network makes a purchase at a NOcap merchant, you earn commi
 - Skips balance checks and PIN verification
 - No real money movement
 - Webhooks fire with \`is_sandbox: true\`
+- A Test Access Token is auto-generated — use it directly
 - Perfect for development and testing`
       },
       {
@@ -436,27 +789,39 @@ Response includes access_token valid for 90 days.
 | GET | /api-balance | balance | Check user's wallet balance |
 | POST | /api-charge | charge | Create a charge from user's wallet |
 | GET | /api-charge-status | — | Check charge status by charge_id |
-| GET | /api-charges-list | charge | List charges with pagination |
-| POST | /api-refund | charge | Refund a completed charge |
+| GET | /api-charges-list | charge | List charges with pagination & filters |
+| POST | /api-refund | charge | Refund a completed charge (full or partial) |
 | POST | /api-revoke | — | Revoke access token |
+| GET | /api-docs | — | Retrieve full API documentation |
 
 **Rate Limits:**
 | Endpoint | Limit |
 |----------|-------|
-| /authorize | 10/min per user |
 | /api-token-exchange | 10/min per app |
 | /api-balance | 60/min per key |
 | /api-charge | 30/min per key |
-| /api-refund | 20/min per key |`
+| /api-charge-status | 60/min per key |
+| /api-charges-list | 60/min per key |
+| /api-refund | 20/min per key |
+
+**Exceeding Limits:** Returns \`429 Too Many Requests\` with a \`Retry-After\` header.`
       },
       {
         id: "webhooks",
         title: "Webhooks",
         content: `**Webhook Events:**
 - \`charge.completed\` — Charge successfully processed
-- \`charge.failed\` — Charge failed (includes reason)
+- \`charge.failed\` — Charge failed (includes reason code)
 - \`charge.refunded\` — Full refund processed
 - \`charge.partial_refund\` — Partial refund processed
+
+**Failure Reason Codes:**
+| Code | Description |
+|------|-------------|
+| INSUFFICIENT_BALANCE | User's wallet balance is too low |
+| PIN_REQUIRED | Transaction requires PIN but none provided |
+| PIN_NOT_SET | User hasn't configured a PIN yet |
+| INVALID_PIN | The PIN provided was incorrect |
 
 **Webhook Headers:**
 | Header | Description |
@@ -464,9 +829,15 @@ Response includes access_token valid for 90 days.
 | X-Webhook-Signature | HMAC-SHA256 hex signature |
 | X-Webhook-Attempt | Retry attempt number (1–3) |
 
-**Retry Policy:** 3 attempts with exponential backoff (immediate, 1s, 2s)
+**Retry Policy:** 3 attempts — immediate, then 1s delay, then 2s delay.
 
-**Signature Verification:** Use HMAC-SHA256 with your app secret to verify webhook authenticity.`
+**Signature Verification:** Compute SHA-256 of your API Secret to get the signing key, then HMAC-SHA256 the request body. Compare to the X-Webhook-Signature header.
+
+**Best Practices:**
+- Respond with 200 immediately, then process asynchronously
+- Always verify signatures before trusting payloads
+- Use charge_id for idempotency (you may receive duplicates)
+- Poll /api-charge-status as fallback for missed webhooks`
       }
     ]
   },
@@ -483,11 +854,11 @@ Response includes access_token valid for 90 days.
 **Admin Tabs:**
 | Tab | Description |
 |-----|-------------|
-| **Users** | View all users, assign/remove roles |
+| **Users** | View all users, assign/remove roles (member, merchant, admin, branch) |
 | **Fee Settings** | Configure platform fees, cashback rates, referral tiers, PIN threshold |
 | **Merchant Approvals** | Review and approve/reject merchant applications |
 | **Withdrawal Approvals** | Approve/reject merchant withdrawal requests |
-| **Transactions** | View all platform transactions |
+| **Transactions** | View all platform transactions with search and filters |
 | **API Apps** | Monitor and manage all registered API applications |`
       },
       {
@@ -520,6 +891,7 @@ Response includes access_token valid for 90 days.
 |------|------|-------------|
 | 🏠 Dashboard | /dashboard | Main hub with balance and actions |
 | 📋 Transactions | /transactions | Full transaction history |
+| 🛍️ Marketplace | /marketplace | Browse and buy products |
 | 📷 QR Pay | /qr-pay | Scan and pay merchants |
 | 👤 Profile | /profile | Account settings and management |
 
@@ -528,7 +900,8 @@ Response includes access_token valid for 90 days.
 - Buttons are touch-friendly (minimum 44px tap targets)
 - QR scanner uses device camera
 - Share button uses native OS sharing (WhatsApp, SMS, etc.)
-- Swipe-friendly card interactions`
+- Swipe-friendly card interactions
+- Cart drawer slides in from the right`
       }
     ]
   },
@@ -541,7 +914,7 @@ Response includes access_token valid for 90 days.
         id: "faq",
         title: "Frequently Asked Questions",
         content: `**Q: How do I earn cashback?**
-A: Every time you pay at a NOcap merchant via QR Pay, you automatically receive cashback in your wallet.
+A: Every time you pay at a NOcap merchant via QR Pay or buy from the Marketplace, you automatically receive cashback in your wallet.
 
 **Q: How does the referral system work?**
 A: Share your unique referral code. When people sign up and make purchases, you earn commission from their transactions — up to 5 tiers deep.
@@ -559,7 +932,16 @@ A: Withdrawal requests go through admin approval. Once approved, bank transfer t
 A: Yes! NOcap is a responsive web app that works on both mobile and desktop browsers.
 
 **Q: What happens if my session expires?**
-A: You'll be redirected to the login page. Simply log in again with your email.`
+A: You'll be redirected to the login page. Simply log in again with your email.
+
+**Q: How do I buy from the Marketplace?**
+A: Browse products, add to cart, enter shipping details at checkout, and pay with your wallet balance. You'll receive cashback on marketplace purchases too!
+
+**Q: Can I return a marketplace purchase?**
+A: Contact the merchant directly. If they issue a refund, the amount is returned to your wallet.
+
+**Q: How do I manage apps connected to my wallet?**
+A: Go to Profile → Connected Apps to view and revoke third-party app access.`
       }
     ]
   }
