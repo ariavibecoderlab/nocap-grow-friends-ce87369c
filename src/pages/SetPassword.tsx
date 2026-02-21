@@ -45,8 +45,8 @@ const SetPassword = () => {
 
   const validate = () => {
     const newErrors: typeof errors = {};
-    if (!otp || otp.length < 6) {
-      newErrors.otp = "Please enter the full verification code";
+    if (!otp || otp.length < 8) {
+      newErrors.otp = "Please enter the full 8-digit verification code";
     }
     if (!newPassword) {
       newErrors.newPassword = "Password is required";
@@ -132,18 +132,13 @@ const SetPassword = () => {
               {/* OTP Input */}
               <div className="space-y-1.5">
                 <Label className="text-white/70">Verification Code</Label>
-                <div className="flex justify-center">
-                  <InputOTP maxLength={6} value={otp} onChange={(val) => { setOtp(val); setErrors((p) => ({ ...p, otp: undefined })); }}>
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
+                 <div className="flex justify-center">
+                   <InputOTP maxLength={8} value={otp} onChange={(val) => { setOtp(val); setErrors((p) => ({ ...p, otp: undefined })); }}>
+                     <InputOTPGroup>
+                       {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => <InputOTPSlot key={i} index={i} />)}
+                     </InputOTPGroup>
+                   </InputOTP>
+                 </div>
                 {errors.otp && <p className="text-xs text-destructive text-center">{errors.otp}</p>}
               </div>
 
