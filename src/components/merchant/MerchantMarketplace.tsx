@@ -15,6 +15,7 @@ import MerchantOrderDetail from "@/components/merchant/MerchantOrderDetail";
 import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star } from "lucide-react";
 import MerchantReviews from "@/components/merchant/MerchantReviews";
 import { Json } from "@/integrations/supabase/types";
+import { compressImage } from "@/lib/compressImage";
 
 interface StoreData {
   id: string;
@@ -239,9 +240,11 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
       return;
     }
     type === 'logo' ? setUploadingCreateLogo(true) : setUploadingCreateBanner(true);
-    const ext = file.name.split('.').pop() || 'jpg';
+    const maxDim = type === 'logo' ? 512 : 1600;
+    const compressed = await compressImage(file, maxDim, maxDim);
+    const ext = compressed.name.split('.').pop() || 'jpg';
     const path = `${user.id}/store/${type}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from('marketplace-assets').upload(path, file);
+    const { error } = await supabase.storage.from('marketplace-assets').upload(path, compressed);
     if (error) {
       toast({ title: "Upload failed", description: error.message, variant: "destructive" });
     } else {
@@ -278,9 +281,10 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
       return;
     }
     setUploadingImage(true);
-    const ext = file.name.split('.').pop() || 'jpg';
+    const compressed = await compressImage(file, 1200, 1200);
+    const ext = compressed.name.split('.').pop() || 'jpg';
     const path = `${user.id}/products/${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from('marketplace-assets').upload(path, file);
+    const { error } = await supabase.storage.from('marketplace-assets').upload(path, compressed);
     if (error) {
       toast({ title: "Upload failed", description: error.message, variant: "destructive" });
     } else {
@@ -400,9 +404,11 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
       return;
     }
     type === 'logo' ? setUploadingLogo(true) : setUploadingBanner(true);
-    const ext = file.name.split('.').pop() || 'jpg';
+    const maxDim = type === 'logo' ? 512 : 1600;
+    const compressed = await compressImage(file, maxDim, maxDim);
+    const ext = compressed.name.split('.').pop() || 'jpg';
     const path = `${user.id}/store/${type}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from('marketplace-assets').upload(path, file);
+    const { error } = await supabase.storage.from('marketplace-assets').upload(path, compressed);
     if (error) {
       toast({ title: "Upload failed", description: error.message, variant: "destructive" });
     } else {
