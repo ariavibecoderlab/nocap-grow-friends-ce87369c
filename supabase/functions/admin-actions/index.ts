@@ -112,13 +112,19 @@ Deno.serve(async (req) => {
             { onConflict: "user_id,role" }
           );
 
-        // Create merchant wallet for the user
-        await adminClient
+        // Create merchant wallet if not exists
+        const { data: existingWallet } = await adminClient
           .from("wallets")
-          .upsert(
-            { user_id: applicationUserId, wallet_type: "merchant", balance: 0 },
-            { onConflict: "user_id,wallet_type,branch_id" }
-          );
+          .select("id")
+          .eq("user_id", applicationUserId)
+          .eq("wallet_type", "merchant")
+          .is("branch_id", null)
+          .maybeSingle();
+        if (!existingWallet) {
+          await adminClient
+            .from("wallets")
+            .insert({ user_id: applicationUserId, wallet_type: "merchant", balance: 0 });
+        }
 
         // Send approval email
         const { data: appUser } = await adminClient.auth.admin.getUserById(applicationUserId);
