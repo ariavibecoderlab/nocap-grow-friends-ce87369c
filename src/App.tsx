@@ -30,6 +30,8 @@ import ApiDocs from "./pages/ApiDocs";
 import Authorize from "./pages/Authorize";
 import NotFound from "./pages/NotFound";
 import SessionManager from "./components/SessionManager";
+import UserManual from "./pages/UserManual";
+import UatScripts from "./pages/UatScripts";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +68,8 @@ const App = () => (
             <Route path="/my-profile" element={<MyProfile />} />
             <Route path="/set-pin" element={<SetPin />} />
             <Route path="/reset-pin" element={<ResetPin />} />
+            <Route path="/user-manual" element={<UserManual />} />
+            <Route path="/uat-scripts" element={<UatScripts />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
