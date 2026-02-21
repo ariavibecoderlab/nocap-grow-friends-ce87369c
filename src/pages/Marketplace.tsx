@@ -9,12 +9,13 @@ import BottomNav from "@/components/BottomNav";
 import CartDrawer from "@/components/marketplace/CartDrawer";
 import ProductCard from "@/components/marketplace/ProductCard";
 import NocapLogo from "@/components/NocapLogo";
-import { ArrowLeft, ArrowUp, Heart, Search, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
+import { ArrowLeft, ArrowUp, Clock, Heart, Search, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useWishlist } from "@/contexts/WishlistContext";
+import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 
 interface ProductRow {
   id: string;
@@ -47,6 +48,7 @@ const PAGE_SIZE = 12;
 const Marketplace = () => {
   const navigate = useNavigate();
   const { wishlist } = useWishlist();
+  const recentlyViewedIds = useRecentlyViewed();
   const [activeTab, setActiveTab] = useState<"all" | "wishlist">("all");
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [stores, setStores] = useState<StoreInfo[]>([]);
@@ -428,6 +430,39 @@ const Marketplace = () => {
           {filtered.length} product{filtered.length !== 1 ? "s" : ""}
           {selectedStore !== "all" ? ` from ${storeMap[selectedStore]?.store_name}` : " from all stores"}
         </p>
+
+        {/* Recently Viewed */}
+        {activeTab === "all" && !loading && recentlyViewedIds.length > 0 && (() => {
+          const recentProducts = recentlyViewedIds
+            .map(id => products.find(p => p.id === id))
+            .filter(Boolean) as ProductRow[];
+          if (recentProducts.length === 0) return null;
+          return (
+            <div className="mb-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Clock className="h-3 w-3 text-white/40" />
+                <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">Recently Viewed</p>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                {recentProducts.slice(0, 6).map(p => (
+                  <div key={p.id} className="shrink-0 w-28">
+                    <ProductCard
+                      id={p.id}
+                      storeId={p.store_id}
+                      name={p.name}
+                      price={p.price}
+                      images={(p.images as string[]) || []}
+                      stockQuantity={p.stock_quantity}
+                      storeSlug={storeMap[p.store_id]?.slug || ""}
+                      rating={ratings[p.id]}
+                      compact
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
