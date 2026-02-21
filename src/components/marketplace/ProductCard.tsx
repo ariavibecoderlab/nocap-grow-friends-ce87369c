@@ -4,6 +4,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 interface ProductCardProps {
   id: string;
@@ -24,6 +25,7 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
   const { toast } = useToast();
   const navigate = useNavigate();
   const mainImage = images?.[0] || "";
+  const optimizedImage = mainImage ? getOptimizedImageUrl(mainImage, compact ? 300 : 400, compact ? 225 : 400) : "";
   const wishlisted = isWishlisted(id);
 
   const handleWishlist = (e: React.MouseEvent) => {
@@ -45,7 +47,7 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
     >
       <div className={`${compact ? "aspect-[4/3]" : "aspect-square"} bg-white/5 relative overflow-hidden`}>
         {mainImage ? (
-          <img src={mainImage} alt={name} className="w-full h-full object-cover" />
+          <img src={optimizedImage} alt={name} className="w-full h-full object-cover" loading="lazy" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white/20">
             <ShoppingCart className={compact ? "h-5 w-5" : "h-8 w-8"} />
