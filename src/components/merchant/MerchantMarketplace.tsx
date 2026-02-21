@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
-import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Image as ImageIcon, Upload, X } from "lucide-react";
+import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 
 interface StoreData {
@@ -109,6 +109,21 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
   const [discMaxUses, setDiscMaxUses] = useState("");
   const [savingDisc, setSavingDisc] = useState(false);
 
+  // Store settings
+  const [settingsTagline, setSettingsTagline] = useState("");
+  const [settingsDesc, setSettingsDesc] = useState("");
+  const [settingsEmail, setSettingsEmail] = useState("");
+  const [settingsWhatsapp, setSettingsWhatsapp] = useState("");
+  const [settingsShipping, setSettingsShipping] = useState("");
+  const [settingsFreeMin, setSettingsFreeMin] = useState("");
+  const [settingsTheme, setSettingsTheme] = useState("classic");
+  const [settingsStoreName, setSettingsStoreName] = useState("");
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (!user) return;
     fetchStore();
@@ -123,7 +138,16 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
       .maybeSingle();
 
     if (data) {
-      setStore(data as unknown as StoreData);
+      const s = data as unknown as StoreData;
+      setStore(s);
+      setSettingsStoreName(s.store_name);
+      setSettingsTagline(s.tagline || "");
+      setSettingsDesc(s.description || "");
+      setSettingsEmail(s.email || "");
+      setSettingsWhatsapp(s.whatsapp || "");
+      setSettingsShipping(String(s.shipping_flat_rate || 0));
+      setSettingsFreeMin(s.free_shipping_min ? String(s.free_shipping_min) : "");
+      setSettingsTheme(s.theme || "classic");
       await Promise.all([fetchProducts(data.id), fetchOrders(data.id), fetchDiscounts(data.id)]);
     }
     setLoading(false);
@@ -318,6 +342,65 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
     if (store) await fetchDiscounts(store.id);
   };
 
+  const uploadStoreImage = async (file: File, type: 'logo' | 'banner') => {
+    if (!user || !store) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Please select an image file", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image must be under 5MB", variant: "destructive" });
+      return;
+    }
+    type === 'logo' ? setUploadingLogo(true) : setUploadingBanner(true);
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `${user.id}/store/${type}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('marketplace-assets').upload(path, file);
+    if (error) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } else {
+      const { data: urlData } = supabase.storage.from('marketplace-assets').getPublicUrl(path);
+      const url = urlData.publicUrl;
+      const field = type === 'logo' ? 'logo_url' : 'banner_url';
+      await supabase.from('marketplace_stores').update({ [field]: url }).eq('id', store.id);
+      setStore({ ...store, [field]: url });
+      toast({ title: `${type === 'logo' ? 'Logo' : 'Banner'} updated` });
+    }
+    type === 'logo' ? setUploadingLogo(false) : setUploadingBanner(false);
+  };
+
+  const saveSettings = async () => {
+    if (!store) return;
+    setSavingSettings(true);
+    const { error } = await supabase.from('marketplace_stores').update({
+      store_name: settingsStoreName.trim(),
+      tagline: settingsTagline.trim() || null,
+      description: settingsDesc.trim() || null,
+      email: settingsEmail.trim() || null,
+      whatsapp: settingsWhatsapp.trim() || null,
+      shipping_flat_rate: Number(settingsShipping) || 0,
+      free_shipping_min: settingsFreeMin ? Number(settingsFreeMin) : null,
+      theme: settingsTheme,
+    }).eq('id', store.id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setStore({
+        ...store,
+        store_name: settingsStoreName.trim(),
+        tagline: settingsTagline.trim() || null,
+        description: settingsDesc.trim() || null,
+        email: settingsEmail.trim() || null,
+        whatsapp: settingsWhatsapp.trim() || null,
+        shipping_flat_rate: Number(settingsShipping) || 0,
+        free_shipping_min: settingsFreeMin ? Number(settingsFreeMin) : null,
+        theme: settingsTheme,
+      });
+      toast({ title: "Settings saved!" });
+    }
+    setSavingSettings(false);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -409,6 +492,7 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
           <TabsTrigger value="products" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">Products</TabsTrigger>
           <TabsTrigger value="orders" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">Orders</TabsTrigger>
           <TabsTrigger value="discounts" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">Discounts</TabsTrigger>
+          <TabsTrigger value="settings" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">Settings</TabsTrigger>
         </TabsList>
 
         {/* PRODUCTS TAB */}
@@ -543,6 +627,150 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
               </Card>
             ))
           )}
+        </TabsContent>
+
+        {/* SETTINGS TAB */}
+        <TabsContent value="settings" className="space-y-4 mt-3">
+          {/* Logo & Banner */}
+          <Card className="border-white/10 bg-white/5">
+            <CardContent className="p-4 space-y-4">
+              <h3 className="font-display text-sm font-semibold text-white">Store Branding</h3>
+              
+              {/* Logo */}
+              <div>
+                <Label className="text-white/60 text-xs">Store Logo</Label>
+                <div className="flex items-center gap-3 mt-1.5">
+                  <div className="h-16 w-16 rounded-lg border border-white/10 overflow-hidden shrink-0">
+                    {store.logo_url ? (
+                      <img src={store.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-white/5">
+                        <Store className="h-6 w-6 text-white/20" />
+                      </div>
+                    )}
+                  </div>
+                  <Button size="sm" variant="outline" className="border-white/10 text-white/60 text-xs"
+                    disabled={uploadingLogo}
+                    onClick={() => logoInputRef.current?.click()}>
+                    {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Upload className="h-3.5 w-3.5 mr-1" />}
+                    Upload Logo
+                  </Button>
+                  <input ref={logoInputRef} type="file" accept="image/*" className="hidden"
+                    onChange={e => { if (e.target.files?.[0]) uploadStoreImage(e.target.files[0], 'logo'); e.target.value = ''; }} />
+                </div>
+              </div>
+
+              {/* Banner */}
+              <div>
+                <Label className="text-white/60 text-xs">Store Banner</Label>
+                <div className="mt-1.5">
+                  <div className="h-24 w-full rounded-lg border border-white/10 overflow-hidden">
+                    {store.banner_url ? (
+                      <img src={store.banner_url} alt="Banner" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-white/5">
+                        <p className="text-xs text-white/20">No banner uploaded</p>
+                      </div>
+                    )}
+                  </div>
+                  <Button size="sm" variant="outline" className="border-white/10 text-white/60 text-xs mt-2"
+                    disabled={uploadingBanner}
+                    onClick={() => bannerInputRef.current?.click()}>
+                    {uploadingBanner ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Upload className="h-3.5 w-3.5 mr-1" />}
+                    Upload Banner
+                  </Button>
+                  <input ref={bannerInputRef} type="file" accept="image/*" className="hidden"
+                    onChange={e => { if (e.target.files?.[0]) uploadStoreImage(e.target.files[0], 'banner'); e.target.value = ''; }} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Store Info */}
+          <Card className="border-white/10 bg-white/5">
+            <CardContent className="p-4 space-y-3">
+              <h3 className="font-display text-sm font-semibold text-white">Store Information</h3>
+              <div>
+                <Label className="text-white/60 text-xs">Store Name</Label>
+                <Input value={settingsStoreName} onChange={e => setSettingsStoreName(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white mt-1" />
+              </div>
+              <div>
+                <Label className="text-white/60 text-xs">Tagline</Label>
+                <Input value={settingsTagline} onChange={e => setSettingsTagline(e.target.value)}
+                  placeholder="Your store's catchy tagline"
+                  className="bg-white/5 border-white/10 text-white mt-1" />
+              </div>
+              <div>
+                <Label className="text-white/60 text-xs">Description</Label>
+                <Textarea value={settingsDesc} onChange={e => setSettingsDesc(e.target.value)}
+                  placeholder="Tell customers about your store"
+                  className="bg-white/5 border-white/10 text-white mt-1 min-h-[60px]" />
+              </div>
+              <div>
+                <Label className="text-white/60 text-xs">Store Theme</Label>
+                <Select value={settingsTheme} onValueChange={setSettingsTheme}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="classic">Classic</SelectItem>
+                    <SelectItem value="bold">Bold</SelectItem>
+                    <SelectItem value="minimal">Minimal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Delivery Settings */}
+          <Card className="border-white/10 bg-white/5">
+            <CardContent className="p-4 space-y-3">
+              <h3 className="font-display text-sm font-semibold text-white flex items-center gap-2">
+                <Truck className="h-4 w-4 text-secondary" /> Delivery Settings
+              </h3>
+              <div>
+                <Label className="text-white/60 text-xs">Flat Shipping Rate (RM)</Label>
+                <Input type="number" step="0.01" value={settingsShipping}
+                  onChange={e => setSettingsShipping(e.target.value)}
+                  placeholder="0.00"
+                  className="bg-white/5 border-white/10 text-white mt-1" />
+              </div>
+              <div>
+                <Label className="text-white/60 text-xs">Free Shipping Minimum (RM)</Label>
+                <Input type="number" step="0.01" value={settingsFreeMin}
+                  onChange={e => setSettingsFreeMin(e.target.value)}
+                  placeholder="Leave empty for no free shipping"
+                  className="bg-white/5 border-white/10 text-white mt-1" />
+                <p className="text-[10px] text-white/30 mt-1">Orders above this amount get free shipping</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Contact Info */}
+          <Card className="border-white/10 bg-white/5">
+            <CardContent className="p-4 space-y-3">
+              <h3 className="font-display text-sm font-semibold text-white">Contact Info</h3>
+              <div>
+                <Label className="text-white/60 text-xs">Email</Label>
+                <Input type="email" value={settingsEmail} onChange={e => setSettingsEmail(e.target.value)}
+                  placeholder="store@example.com"
+                  className="bg-white/5 border-white/10 text-white mt-1" />
+              </div>
+              <div>
+                <Label className="text-white/60 text-xs">WhatsApp</Label>
+                <Input value={settingsWhatsapp} onChange={e => setSettingsWhatsapp(e.target.value)}
+                  placeholder="60123456789"
+                  className="bg-white/5 border-white/10 text-white mt-1" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold h-11"
+            onClick={saveSettings} disabled={savingSettings}>
+            {savingSettings ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Settings className="h-4 w-4 mr-2" />}
+            Save Settings
+          </Button>
         </TabsContent>
       </Tabs>
 
