@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import TransactionDetail from "@/components/TransactionDetail";
-import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store, AlertCircle, Banknote, Send, UserPlus, Share2 } from "lucide-react";
+import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store, AlertCircle, Banknote, Send, UserPlus, Share2, ShoppingBag } from "lucide-react";
 import NocapLogo from "@/components/NocapLogo";
 import NotificationBell from "@/components/NotificationBell";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
@@ -166,7 +166,7 @@ const Dashboard = () => {
     { label: "Pay", icon: QrCode, path: "/qr-pay" },
     { label: "Top Up", icon: Banknote, path: "/top-up" },
     { label: "Transfer", icon: Send, path: "/transfer" },
-    { label: "Referral", icon: UserPlus, path: "/referral" },
+    { label: "Shop", icon: ShoppingBag, path: "/marketplace" },
   ];
 
   return (
