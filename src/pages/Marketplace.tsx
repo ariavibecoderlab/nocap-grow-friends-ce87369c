@@ -1,46 +1,176 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import BottomNav from "@/components/BottomNav";
 import CartDrawer from "@/components/marketplace/CartDrawer";
-import StoreCard from "@/components/marketplace/StoreCard";
+import ProductCard from "@/components/marketplace/ProductCard";
 import NocapLogo from "@/components/NocapLogo";
-import { ArrowLeft, Search, Store } from "lucide-react";
+import { ArrowLeft, Search, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
+import { Json } from "@/integrations/supabase/types";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
-interface StoreRow {
+interface ProductRow {
+  id: string;
+  store_id: string;
+  name: string;
+  price: number;
+  images: Json;
+  stock_quantity: number;
+  is_featured: boolean;
+  category_id: string | null;
+}
+
+interface StoreInfo {
   id: string;
   slug: string;
   store_name: string;
-  tagline: string | null;
   logo_url: string | null;
-  banner_url: string | null;
-  primary_color: string;
 }
+
+interface CategoryInfo {
+  id: string;
+  name: string;
+  store_id: string;
+}
+
+type SortOption = "featured" | "price_low" | "price_high" | "rating" | "newest";
 
 const Marketplace = () => {
   const navigate = useNavigate();
-  const [stores, setStores] = useState<StoreRow[]>([]);
-  const [search, setSearch] = useState("");
+  const [products, setProducts] = useState<ProductRow[]>([]);
+  const [stores, setStores] = useState<StoreInfo[]>([]);
+  const [categories, setCategories] = useState<CategoryInfo[]>([]);
+  const [ratings, setRatings] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
+  // Filters
+  const [search, setSearch] = useState("");
+  const [selectedStore, setSelectedStore] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<SortOption>("featured");
+  const [showFilters, setShowFilters] = useState(false);
+
   useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase
-        .from("marketplace_stores")
-        .select("id, slug, store_name, tagline, logo_url, banner_url, primary_color")
-        .eq("status", "live")
-        .order("store_name");
-      setStores((data as StoreRow[]) || []);
+    const load = async () => {
+      // Fetch all live stores, active products, and categories in parallel
+      const [storesRes, productsRes, categoriesRes] = await Promise.all([
+        supabase
+          .from("marketplace_stores")
+          .select("id, slug, store_name, logo_url")
+          .eq("status", "live")
+          .order("store_name"),
+        supabase
+          .from("marketplace_products")
+          .select("id, store_id, name, price, images, stock_quantity, is_featured, category_id")
+          .eq("status", "active")
+          .order("is_featured", { ascending: false }),
+        supabase
+          .from("marketplace_categories")
+          .select("id, name, store_id")
+          .order("sort_order"),
+      ]);
+
+      const storeList = (storesRes.data as StoreInfo[]) || [];
+      const productList = (productsRes.data as ProductRow[]) || [];
+      const categoryList = (categoriesRes.data as CategoryInfo[]) || [];
+
+      setStores(storeList);
+      setProducts(productList);
+      setCategories(categoryList);
+
+      // Fetch average ratings for all products
+      if (productList.length > 0) {
+        const { data: reviewData } = await supabase
+          .from("marketplace_reviews")
+          .select("product_id, rating");
+        if (reviewData && reviewData.length > 0) {
+          const ratingMap: Record<string, { sum: number; count: number }> = {};
+          reviewData.forEach((r: any) => {
+            if (!ratingMap[r.product_id]) ratingMap[r.product_id] = { sum: 0, count: 0 };
+            ratingMap[r.product_id].sum += r.rating;
+            ratingMap[r.product_id].count += 1;
+          });
+          const avgMap: Record<string, number> = {};
+          Object.entries(ratingMap).forEach(([id, { sum, count }]) => {
+            avgMap[id] = sum / count;
+          });
+          setRatings(avgMap);
+        }
+      }
+
       setLoading(false);
     };
-    fetch();
+    load();
   }, []);
 
-  const filtered = stores.filter(s =>
-    s.store_name.toLowerCase().includes(search.toLowerCase()) ||
-    (s.tagline || "").toLowerCase().includes(search.toLowerCase())
-  );
+  // Build a store lookup map
+  const storeMap = useMemo(() => {
+    const map: Record<string, StoreInfo> = {};
+    stores.forEach(s => { map[s.id] = s; });
+    return map;
+  }, [stores]);
+
+  // Categories filtered by selected store
+  const visibleCategories = useMemo(() => {
+    if (selectedStore === "all") return categories;
+    return categories.filter(c => c.store_id === selectedStore);
+  }, [categories, selectedStore]);
+
+  // Reset category when store changes and category no longer valid
+  useEffect(() => {
+    if (selectedCategory !== "all" && !visibleCategories.find(c => c.id === selectedCategory)) {
+      setSelectedCategory("all");
+    }
+  }, [visibleCategories, selectedCategory]);
+
+  // Active filter count
+  const activeFilterCount = [
+    selectedStore !== "all",
+    selectedCategory !== "all",
+    sortBy !== "featured",
+  ].filter(Boolean).length;
+
+  // Filtered & sorted products
+  const filtered = useMemo(() => {
+    let result = products.filter(p => {
+      const matchStore = selectedStore === "all" || p.store_id === selectedStore;
+      const matchCat = selectedCategory === "all" || p.category_id === selectedCategory;
+      const matchSearch = search === "" || p.name.toLowerCase().includes(search.toLowerCase());
+      return matchStore && matchCat && matchSearch;
+    });
+
+    // Sort
+    switch (sortBy) {
+      case "price_low":
+        result = [...result].sort((a, b) => a.price - b.price);
+        break;
+      case "price_high":
+        result = [...result].sort((a, b) => b.price - a.price);
+        break;
+      case "rating":
+        result = [...result].sort((a, b) => (ratings[b.id] || 0) - (ratings[a.id] || 0));
+        break;
+      case "newest":
+        result = [...result].reverse();
+        break;
+      case "featured":
+      default:
+        // already sorted by is_featured desc from query
+        break;
+    }
+
+    return result;
+  }, [products, selectedStore, selectedCategory, search, sortBy, ratings]);
+
+  const clearFilters = () => {
+    setSelectedStore("all");
+    setSelectedCategory("all");
+    setSortBy("featured");
+    setSearch("");
+  };
 
   return (
     <div className="min-h-screen bg-primary pb-20">
@@ -52,23 +182,130 @@ const Marketplace = () => {
               <ArrowLeft className="h-5 w-5" />
             </button>
             <NocapLogo size="sm" />
-            <h1 className="font-display text-xl font-bold flex-1 text-white">Marketplace</h1>
+            <h1 className="font-display text-xl font-bold flex-1 text-white">Shop</h1>
             <CartDrawer />
           </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-md px-4">
-        {/* Search */}
-        <div className="relative mb-5">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
-          <Input
-            placeholder="Search stores..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30"
-          />
+        {/* Search + Filter Toggle */}
+        <div className="flex gap-2 mb-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+            <Input
+              placeholder="Search products..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-9 text-sm"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="relative h-9 border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white px-2.5"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            {activeFilterCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold text-primary">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
         </div>
+
+        {/* Filters Panel */}
+        {showFilters && (
+          <div className="mb-4 space-y-3 rounded-xl border border-white/10 bg-white/5 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">Filters</p>
+              {activeFilterCount > 0 && (
+                <button onClick={clearFilters} className="text-[10px] text-secondary hover:underline">
+                  Clear all
+                </button>
+              )}
+            </div>
+
+            {/* Store filter */}
+            <div>
+              <label className="text-[10px] text-white/40 mb-1 block">Store</label>
+              <Select value={selectedStore} onValueChange={setSelectedStore}>
+                <SelectTrigger className="h-8 bg-white/5 border-white/10 text-white text-xs">
+                  <SelectValue placeholder="All Stores" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Stores</SelectItem>
+                  {stores.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.store_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Category filter */}
+            {visibleCategories.length > 0 && (
+              <div>
+                <label className="text-[10px] text-white/40 mb-1 block">Category</label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="h-8 bg-white/5 border-white/10 text-white text-xs">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {visibleCategories.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Sort */}
+            <div>
+              <label className="text-[10px] text-white/40 mb-1 block">Sort by</label>
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                <SelectTrigger className="h-8 bg-white/5 border-white/10 text-white text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="featured">Featured</SelectItem>
+                  <SelectItem value="price_low">Price: Low to High</SelectItem>
+                  <SelectItem value="price_high">Price: High to Low</SelectItem>
+                  <SelectItem value="rating">Highest Rated</SelectItem>
+                  <SelectItem value="newest">Newest</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+
+        {/* Active filter chips */}
+        {activeFilterCount > 0 && !showFilters && (
+          <div className="flex gap-1.5 flex-wrap mb-3">
+            {selectedStore !== "all" && (
+              <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer" onClick={() => setSelectedStore("all")}>
+                {storeMap[selectedStore]?.store_name} <X className="h-2.5 w-2.5" />
+              </Badge>
+            )}
+            {selectedCategory !== "all" && (
+              <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer" onClick={() => setSelectedCategory("all")}>
+                {visibleCategories.find(c => c.id === selectedCategory)?.name} <X className="h-2.5 w-2.5" />
+              </Badge>
+            )}
+            {sortBy !== "featured" && (
+              <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer" onClick={() => setSortBy("featured")}>
+                {sortBy === "price_low" ? "Price ↑" : sortBy === "price_high" ? "Price ↓" : sortBy === "rating" ? "Top Rated" : "Newest"} <X className="h-2.5 w-2.5" />
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {/* Results count */}
+        <p className="text-[10px] text-white/30 mb-3">
+          {filtered.length} product{filtered.length !== 1 ? "s" : ""}
+          {selectedStore !== "all" ? ` from ${storeMap[selectedStore]?.store_name}` : " from all stores"}
+        </p>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -76,22 +313,29 @@ const Marketplace = () => {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-white/40">
-            <Store className="h-12 w-12 mb-3 opacity-40" />
-            <p className="font-medium">No stores found</p>
-            <p className="text-xs mt-1">Check back later for new shops</p>
+            <ShoppingBag className="h-12 w-12 mb-3 opacity-40" />
+            <p className="font-medium">No products found</p>
+            <p className="text-xs mt-1">Try adjusting your filters</p>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" className="mt-3 text-secondary text-xs" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {filtered.map(store => (
-              <StoreCard
-                key={store.id}
-                id={store.id}
-                slug={store.slug}
-                storeName={store.store_name}
-                tagline={store.tagline}
-                logoUrl={store.logo_url}
-                bannerUrl={store.banner_url}
-                primaryColor={store.primary_color}
+            {filtered.map(p => (
+              <ProductCard
+                key={p.id}
+                id={p.id}
+                storeId={p.store_id}
+                name={p.name}
+                price={p.price}
+                images={(p.images as string[]) || []}
+                stockQuantity={p.stock_quantity}
+                storeSlug={storeMap[p.store_id]?.slug || ""}
+                storeName={storeMap[p.store_id]?.store_name}
+                rating={ratings[p.id]}
               />
             ))}
           </div>
