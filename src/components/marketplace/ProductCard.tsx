@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, Star, Store } from "lucide-react";
+import { Heart, ShoppingCart, Star, Store } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { useWishlist } from "@/contexts/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -19,9 +20,16 @@ interface ProductCardProps {
 
 export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, rating, compact }: ProductCardProps) {
   const { addItem } = useCart();
+  const { toggle, isWishlisted } = useWishlist();
   const { toast } = useToast();
   const navigate = useNavigate();
   const mainImage = images?.[0] || "";
+  const wishlisted = isWishlisted(id);
+
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggle(id);
+  };
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -48,6 +56,13 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
             <span className="text-[10px] font-semibold text-white/80 bg-black/50 px-2 py-0.5 rounded-full">Out of Stock</span>
           </div>
         )}
+        {/* Wishlist heart */}
+        <button
+          onClick={handleWishlist}
+          className="absolute top-1 right-1 rounded-full bg-black/30 p-1.5 hover:bg-black/50 transition-colors"
+        >
+          <Heart className={`h-3.5 w-3.5 ${wishlisted ? "fill-red-500 text-red-500" : "text-white/70"}`} />
+        </button>
         {/* Quick add button overlay */}
         {compact && stockQuantity > 0 && (
           <button

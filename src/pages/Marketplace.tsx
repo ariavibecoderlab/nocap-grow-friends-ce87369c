@@ -9,11 +9,12 @@ import BottomNav from "@/components/BottomNav";
 import CartDrawer from "@/components/marketplace/CartDrawer";
 import ProductCard from "@/components/marketplace/ProductCard";
 import NocapLogo from "@/components/NocapLogo";
-import { ArrowLeft, ArrowUp, Search, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
+import { ArrowLeft, ArrowUp, Heart, Search, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { useWishlist } from "@/contexts/WishlistContext";
 
 interface ProductRow {
   id: string;
@@ -45,6 +46,8 @@ const PAGE_SIZE = 12;
 
 const Marketplace = () => {
   const navigate = useNavigate();
+  const { wishlist } = useWishlist();
+  const [activeTab, setActiveTab] = useState<"all" | "wishlist">("all");
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [stores, setStores] = useState<StoreInfo[]>([]);
   const [categories, setCategories] = useState<CategoryInfo[]>([]);
@@ -178,7 +181,8 @@ const Marketplace = () => {
       const matchSearch = search === "" || p.name.toLowerCase().includes(search.toLowerCase());
       const matchPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
       const matchStock = !inStockOnly || p.stock_quantity > 0;
-      return matchStore && matchCat && matchSearch && matchPrice && matchStock;
+      const matchWishlist = activeTab === "all" || wishlist.has(p.id);
+      return matchStore && matchCat && matchSearch && matchPrice && matchStock && matchWishlist;
     });
 
     // Sort
@@ -202,12 +206,12 @@ const Marketplace = () => {
     }
 
     return result;
-  }, [products, selectedStore, selectedCategory, search, sortBy, ratings, inStockOnly, priceRange]);
+  }, [products, selectedStore, selectedCategory, search, sortBy, ratings, inStockOnly, priceRange, activeTab, wishlist]);
 
   // Reset visible count when filters change
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [selectedStore, selectedCategory, search, sortBy, inStockOnly, priceRange]);
+  }, [selectedStore, selectedCategory, search, sortBy, inStockOnly, priceRange, activeTab]);
 
   const hasMore = visibleCount < filtered.length;
   const visibleProducts = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
@@ -254,6 +258,22 @@ const Marketplace = () => {
       </div>
 
       <div className="mx-auto max-w-md px-4">
+        {/* Tabs */}
+        <div className="flex gap-1 mb-3 bg-white/5 rounded-lg p-0.5">
+          <button
+            onClick={() => setActiveTab("all")}
+            className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors ${activeTab === "all" ? "bg-secondary text-primary" : "text-white/50 hover:text-white/70"}`}
+          >
+            All Products
+          </button>
+          <button
+            onClick={() => setActiveTab("wishlist")}
+            className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors flex items-center justify-center gap-1 ${activeTab === "wishlist" ? "bg-secondary text-primary" : "text-white/50 hover:text-white/70"}`}
+          >
+            <Heart className="h-3 w-3" /> Wishlist {wishlist.size > 0 && `(${wishlist.size})`}
+          </button>
+        </div>
+
         {/* Search + Filter Toggle */}
         <div className="flex gap-2 mb-3">
           <div className="relative flex-1">
