@@ -9,6 +9,7 @@ import CartDrawer from "@/components/marketplace/CartDrawer";
 import BottomNav from "@/components/BottomNav";
 import { ArrowLeft, ShoppingCart, Star, Minus, Plus } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 interface Product {
   id: string;
@@ -118,7 +119,7 @@ const ProductDetail = () => {
       {/* Image Gallery */}
       <div className="aspect-square bg-white/5 relative overflow-hidden">
         {images.length > 0 ? (
-          <img src={images[selectedImage]} alt={product.name} className="w-full h-full object-cover" />
+          <img src={getOptimizedImageUrl(images[selectedImage], 800, 800)} alt={product.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white/20">
             <ShoppingCart className="h-16 w-16" />
@@ -137,7 +138,7 @@ const ProductDetail = () => {
                 i === selectedImage ? "border-secondary" : "border-white/10"
               }`}
             >
-              <img src={img} alt="" className="w-full h-full object-cover" />
+              <img src={getOptimizedImageUrl(img, 120, 120)} alt="" className="w-full h-full object-cover" loading="lazy" />
             </button>
           ))}
         </div>
