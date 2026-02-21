@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
+import MerchantOrderDetail from "@/components/merchant/MerchantOrderDetail";
 import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 
@@ -106,6 +107,7 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
 
   // Order update
   const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   // Discount dialog
   const [showDiscount, setShowDiscount] = useState(false);
@@ -645,7 +647,13 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
 
         {/* ORDERS TAB */}
         <TabsContent value="orders" className="space-y-3 mt-3">
-          {orders.length === 0 ? (
+          {selectedOrderId ? (
+            <MerchantOrderDetail
+              orderId={selectedOrderId}
+              onBack={() => setSelectedOrderId(null)}
+              onStatusChange={() => { if (store) fetchOrders(store.id); }}
+            />
+          ) : orders.length === 0 ? (
             <Card className="border-white/10 bg-white/5">
               <CardContent className="flex flex-col items-center py-8 text-white/40">
                 <ShoppingCart className="h-8 w-8 mb-2 opacity-40" />
@@ -654,7 +662,8 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
             </Card>
           ) : (
             orders.map(o => (
-              <Card key={o.id} className="border-white/10 bg-white/5">
+              <Card key={o.id} className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/[0.07] transition-colors"
+                onClick={() => setSelectedOrderId(o.id)}>
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -665,33 +674,6 @@ export default function MerchantMarketplace({ branches }: MerchantMarketplacePro
                       <p className="text-sm font-semibold text-white">RM {o.total_amount.toFixed(2)}</p>
                       <OrderStatusBadge status={o.status} />
                     </div>
-                  </div>
-                  {/* Status Actions */}
-                  <div className="flex gap-1.5 mt-2 flex-wrap">
-                    {o.status === "pending" && (
-                      <Button size="sm" className="text-[10px] h-7 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-                        disabled={updatingOrder === o.id} onClick={() => updateOrderStatus(o.id, "confirmed")}>Confirm</Button>
-                    )}
-                    {o.status === "confirmed" && (
-                      <Button size="sm" className="text-[10px] h-7 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30"
-                        disabled={updatingOrder === o.id} onClick={() => updateOrderStatus(o.id, "processing")}>Process</Button>
-                    )}
-                    {o.status === "processing" && (
-                      <Button size="sm" className="text-[10px] h-7 bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30"
-                        disabled={updatingOrder === o.id}
-                        onClick={() => {
-                          const tn = prompt("Enter tracking number (optional):");
-                          updateOrderStatus(o.id, "shipped", tn || undefined);
-                        }}>Ship</Button>
-                    )}
-                    {o.status === "shipped" && (
-                      <Button size="sm" className="text-[10px] h-7 bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                        disabled={updatingOrder === o.id} onClick={() => updateOrderStatus(o.id, "delivered")}>Delivered</Button>
-                    )}
-                    {!["delivered", "cancelled"].includes(o.status) && (
-                      <Button size="sm" className="text-[10px] h-7 bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                        disabled={updatingOrder === o.id} onClick={() => updateOrderStatus(o.id, "cancelled")}>Cancel</Button>
-                    )}
                   </div>
                 </CardContent>
               </Card>
