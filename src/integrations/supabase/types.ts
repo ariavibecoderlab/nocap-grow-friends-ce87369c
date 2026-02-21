@@ -545,27 +545,33 @@ export type Database = {
           comment: string | null
           created_at: string
           id: string
+          merchant_reply: string | null
           order_id: string
           product_id: string
           rating: number
+          replied_at: string | null
         }
         Insert: {
           buyer_user_id?: string | null
           comment?: string | null
           created_at?: string
           id?: string
+          merchant_reply?: string | null
           order_id: string
           product_id: string
           rating: number
+          replied_at?: string | null
         }
         Update: {
           buyer_user_id?: string | null
           comment?: string | null
           created_at?: string
           id?: string
+          merchant_reply?: string | null
           order_id?: string
           product_id?: string
           rating?: number
+          replied_at?: string | null
         }
         Relationships: [
           {
