@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { addRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ const ProductDetail = () => {
 
   useEffect(() => {
     if (!productId) return;
+    addRecentlyViewed(productId);
     const fetch = async () => {
       const [prodRes, revRes] = await Promise.all([
         supabase.from("marketplace_products")
