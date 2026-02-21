@@ -4,16 +4,23 @@ const STORAGE_KEY = "nocap_recently_viewed";
 const MAX_ITEMS = 10;
 
 let listeners: (() => void)[] = [];
+let cachedSnapshot: string[] = [];
+let cachedRaw: string | null = null;
+
 function emitChange() {
+  cachedRaw = null; // invalidate cache
   listeners.forEach((l) => l());
 }
 
 function getSnapshot(): string[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (raw === cachedRaw) return cachedSnapshot;
+    cachedRaw = raw;
+    cachedSnapshot = raw ? JSON.parse(raw) : [];
+    return cachedSnapshot;
   } catch {
-    return [];
+    return cachedSnapshot;
   }
 }
 
