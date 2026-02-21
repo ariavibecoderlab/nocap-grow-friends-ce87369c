@@ -52,9 +52,12 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
       <CardContent className="p-3">
         <p className="text-sm font-medium text-white truncate">{name}</p>
         {storeName && (
-          <p className="text-[10px] text-white/40 truncate mt-0.5 flex items-center gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); navigate(`/store/${storeSlug}`); }}
+            className="text-[10px] text-white/40 truncate mt-0.5 flex items-center gap-1 hover:text-secondary transition-colors"
+          >
             <Store className="h-2.5 w-2.5 shrink-0" /> {storeName}
-          </p>
+          </button>
         )}
         <div className="flex items-center justify-between mt-1.5">
           <p className="font-display text-base font-bold text-secondary">RM {price.toFixed(2)}</p>
