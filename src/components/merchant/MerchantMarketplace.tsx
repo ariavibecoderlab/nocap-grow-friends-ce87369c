@@ -235,8 +235,8 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
       toast({ title: "Please select an image file", variant: "destructive" });
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Image must be under 5MB", variant: "destructive" });
+    if (file.size > 15 * 1024 * 1024) {
+      toast({ title: "Image must be under 15MB", variant: "destructive" });
       return;
     }
     type === 'logo' ? setUploadingCreateLogo(true) : setUploadingCreateBanner(true);
@@ -276,8 +276,8 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
       toast({ title: "Please select an image file", variant: "destructive" });
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Image must be under 5MB", variant: "destructive" });
+    if (file.size > 15 * 1024 * 1024) {
+      toast({ title: "Image must be under 15MB", variant: "destructive" });
       return;
     }
     setUploadingImage(true);
@@ -399,8 +399,8 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
       toast({ title: "Please select an image file", variant: "destructive" });
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Image must be under 5MB", variant: "destructive" });
+    if (file.size > 15 * 1024 * 1024) {
+      toast({ title: "Image must be under 15MB", variant: "destructive" });
       return;
     }
     type === 'logo' ? setUploadingLogo(true) : setUploadingBanner(true);
