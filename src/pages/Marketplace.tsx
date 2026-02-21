@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +41,8 @@ interface CategoryInfo {
 
 type SortOption = "featured" | "price_low" | "price_high" | "rating" | "newest";
 
+const PAGE_SIZE = 12;
+
 const Marketplace = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState<ProductRow[]>([]);
@@ -58,6 +60,8 @@ const Marketplace = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
   const [priceInited, setPriceInited] = useState(false);
   const [inStockOnly, setInStockOnly] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -191,6 +195,30 @@ const Marketplace = () => {
 
     return result;
   }, [products, selectedStore, selectedCategory, search, sortBy, ratings, inStockOnly, priceRange]);
+
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [selectedStore, selectedCategory, search, sortBy, inStockOnly, priceRange]);
+
+  const hasMore = visibleCount < filtered.length;
+  const visibleProducts = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setVisibleCount(prev => Math.min(prev + PAGE_SIZE, filtered.length));
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, filtered.length]);
 
   const clearFilters = () => {
     setSelectedStore("all");
@@ -389,23 +417,33 @@ const Marketplace = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2">
-            {filtered.map(p => (
-              <ProductCard
-                key={p.id}
-                id={p.id}
-                storeId={p.store_id}
-                name={p.name}
-                price={p.price}
-                images={(p.images as string[]) || []}
-                stockQuantity={p.stock_quantity}
-                storeSlug={storeMap[p.store_id]?.slug || ""}
-                storeName={storeMap[p.store_id]?.store_name}
-                rating={ratings[p.id]}
-                compact
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              {visibleProducts.map(p => (
+                <ProductCard
+                  key={p.id}
+                  id={p.id}
+                  storeId={p.store_id}
+                  name={p.name}
+                  price={p.price}
+                  images={(p.images as string[]) || []}
+                  stockQuantity={p.stock_quantity}
+                  storeSlug={storeMap[p.store_id]?.slug || ""}
+                  storeName={storeMap[p.store_id]?.store_name}
+                  rating={ratings[p.id]}
+                  compact
+                />
+              ))}
+            </div>
+            {hasMore && (
+              <div ref={sentinelRef} className="flex justify-center py-6">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
+              </div>
+            )}
+            {!hasMore && filtered.length > PAGE_SIZE && (
+              <p className="text-center text-[10px] text-white/20 py-4">All {filtered.length} products shown</p>
+            )}
+          </>
         )}
       </div>
       <BottomNav />
