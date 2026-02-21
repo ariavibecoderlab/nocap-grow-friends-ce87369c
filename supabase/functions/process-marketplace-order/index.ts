@@ -422,7 +422,48 @@ serve(async (req) => {
       }
     }
 
-    // ── 17. Notification to merchant ──
+    // ── 17. Credit platform fee to admin wallet ──
+    if (feeAmount > 0) {
+      const { data: adminRole } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin')
+        .limit(1)
+        .single();
+
+      if (adminRole) {
+        const { data: adminWallet } = await supabase
+          .from('wallets')
+          .select('balance')
+          .eq('user_id', adminRole.user_id)
+          .eq('wallet_type', 'admin')
+          .single();
+
+        if (adminWallet) {
+          await supabase.from('wallets')
+            .update({ balance: Number(adminWallet.balance) + feeAmount, updated_at: new Date().toISOString() })
+            .eq('user_id', adminRole.user_id).eq('wallet_type', 'admin');
+        } else {
+          await supabase.from('wallets').insert({
+            user_id: adminRole.user_id,
+            wallet_type: 'admin',
+            balance: feeAmount,
+          });
+        }
+
+        await supabase.from('transactions').insert({
+          user_id: adminRole.user_id,
+          type: 'commission',
+          amount: feeAmount,
+          status: 'completed',
+          description: `Platform fee from ${store.store_name}`,
+          reference_id: paymentTx?.id || null,
+          metadata: { source: 'platform_fee', store_id: storeId, order_number: orderNumber },
+        });
+      }
+    }
+
+    // ── 18. Notification to merchant ──
     await supabase.from('notifications').insert({
       user_id: store.merchant_user_id,
       title: 'New Marketplace Order',

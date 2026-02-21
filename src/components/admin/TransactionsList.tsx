@@ -1,18 +1,28 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Constants } from "@/integrations/supabase/types";
 import type { Database } from "@/integrations/supabase/types";
+import { Search, X, ArrowDownLeft, ArrowUpRight, Gift, ArrowUpDown } from "lucide-react";
 
 type TxType = Database["public"]["Enums"]["transaction_type"];
 type TxStatus = Database["public"]["Enums"]["transaction_status"];
 
+const txIcon = (type: string) => {
+  if (["top_up", "transfer_in", "refund"].includes(type)) return <ArrowDownLeft className="h-4 w-4 text-secondary" />;
+  if (["cashback", "commission"].includes(type)) return <Gift className="h-4 w-4 text-secondary" />;
+  if (["transfer_out", "payment", "withdrawal"].includes(type)) return <ArrowUpRight className="h-4 w-4 text-red-400" />;
+  return <ArrowUpDown className="h-4 w-4 text-white/50" />;
+};
+
 const TransactionsList = () => {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
   const { data: transactions, isLoading } = useQuery({
     queryKey: ["admin_transactions", typeFilter, statusFilter],
@@ -26,8 +36,23 @@ const TransactionsList = () => {
     },
   });
 
-  const totalVolume = transactions?.reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
-  const totalFees = transactions?.reduce((sum, t) => sum + Number(t.fee_amount ?? 0), 0) ?? 0;
+  const filtered = useMemo(() => {
+    if (!transactions) return [];
+    if (!search.trim()) return transactions;
+    const q = search.toLowerCase();
+    return transactions.filter(
+      (t) =>
+        (t.description && t.description.toLowerCase().includes(q)) ||
+        t.type.toLowerCase().includes(q) ||
+        Number(t.amount).toFixed(2).includes(q) ||
+        t.user_id.toLowerCase().includes(q)
+    );
+  }, [transactions, search]);
+
+  const totalVolume = filtered.reduce((sum, t) => sum + Number(t.amount), 0);
+  const totalFees = filtered.reduce((sum, t) => sum + Number(t.fee_amount ?? 0), 0);
+  const completedCount = filtered.filter((t) => t.status === "completed").length;
+  const pendingCount = filtered.filter((t) => t.status === "pending").length;
 
   const statusColor = (s: string) => {
     if (s === "completed") return "default";
@@ -36,10 +61,27 @@ const TransactionsList = () => {
   };
 
   return (
-    <div className="space-y-4 mt-4">
+    <div className="space-y-3 mt-4">
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+        <Input
+          placeholder="Search description, type, amount..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border-white/10 bg-white/5 pl-9 pr-9 text-white placeholder:text-white/30 text-sm"
+        />
+        {search && (
+          <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white">
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Filters */}
       <div className="flex gap-2 flex-wrap">
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-36 border-white/10 bg-white/5 text-white"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectTrigger className="w-36 border-white/10 bg-white/5 text-white text-xs"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
             {Constants.public.Enums.transaction_type.map((t) => (
@@ -48,7 +90,7 @@ const TransactionsList = () => {
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-36 border-white/10 bg-white/5 text-white"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-36 border-white/10 bg-white/5 text-white text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
             {Constants.public.Enums.transaction_status.map((s) => (
@@ -58,27 +100,39 @@ const TransactionsList = () => {
         </Select>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="border-white/10 bg-white/5"><CardContent className="py-3 text-center"><p className="text-xs text-white/40">Volume</p><p className="font-bold text-lg text-white">RM {totalVolume.toFixed(2)}</p></CardContent></Card>
-        <Card className="border-white/10 bg-white/5"><CardContent className="py-3 text-center"><p className="text-xs text-white/40">Fees</p><p className="font-bold text-lg text-white">RM {totalFees.toFixed(2)}</p></CardContent></Card>
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-2">
+        <Card className="border-white/10 bg-white/5"><CardContent className="py-2 text-center"><p className="text-[10px] text-white/40">Volume</p><p className="font-bold text-sm text-white">RM {totalVolume.toFixed(2)}</p></CardContent></Card>
+        <Card className="border-white/10 bg-white/5"><CardContent className="py-2 text-center"><p className="text-[10px] text-white/40">Fees</p><p className="font-bold text-sm text-secondary">RM {totalFees.toFixed(2)}</p></CardContent></Card>
+        <Card className="border-white/10 bg-white/5"><CardContent className="py-2 text-center"><p className="text-[10px] text-white/40">Completed</p><p className="font-bold text-sm text-white">{completedCount}</p></CardContent></Card>
+        <Card className="border-white/10 bg-white/5"><CardContent className="py-2 text-center"><p className="text-[10px] text-white/40">Pending</p><p className="font-bold text-sm text-yellow-400">{pendingCount}</p></CardContent></Card>
       </div>
 
+      {/* Count */}
+      <p className="text-xs text-white/40">{filtered.length} transaction{filtered.length !== 1 ? "s" : ""}</p>
+
+      {/* List */}
       {isLoading ? (
         <p className="text-white/40 text-sm">Loading...</p>
-      ) : !transactions?.length ? (
+      ) : !filtered.length ? (
         <p className="text-white/40 text-sm">No transactions found.</p>
       ) : (
-        transactions.map((t) => (
+        filtered.map((t) => (
           <Card key={t.id} className="border-white/10 bg-white/5">
-            <CardContent className="py-3 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white">{t.type.replace(/_/g, " ")}</p>
-                <p className="text-xs text-white/40">{new Date(t.created_at).toLocaleString()}</p>
-                {t.description && <p className="text-xs text-white/40">{t.description}</p>}
+            <CardContent className="py-3 flex items-center gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10">
+                {txIcon(t.type)}
               </div>
-              <div className="text-right">
-                <p className="font-semibold text-sm text-white">RM {Number(t.amount).toFixed(2)}</p>
-                <Badge variant={statusColor(t.status)} className="text-xs">{t.status}</Badge>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">{t.description || t.type.replace(/_/g, " ")}</p>
+                <p className="text-[10px] text-white/40">
+                  {new Date(t.created_at).toLocaleString("en-MY", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: true })}
+                  {t.fee_amount ? ` · Fee: RM ${Number(t.fee_amount).toFixed(2)}` : ""}
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="font-semibold text-sm text-white tabular-nums">RM {Number(t.amount).toFixed(2)}</p>
+                <Badge variant={statusColor(t.status)} className="text-[10px]">{t.status}</Badge>
               </div>
             </CardContent>
           </Card>
