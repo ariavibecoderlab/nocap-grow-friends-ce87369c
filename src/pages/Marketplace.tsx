@@ -58,6 +58,7 @@ const Marketplace = () => {
 
   // Filters
   const [search, setSearch] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
   const [selectedStore, setSelectedStore] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("featured");
@@ -234,6 +235,17 @@ const Marketplace = () => {
     return () => observer.disconnect();
   }, [hasMore, filtered.length]);
 
+  // Search suggestions
+  const suggestions = useMemo(() => {
+    if (search.length < 2) return [];
+    const q = search.toLowerCase();
+    return products
+      .filter(p => p.name.toLowerCase().includes(q))
+      .slice(0, 5);
+  }, [search, products]);
+
+  const showSuggestions = searchFocused && suggestions.length > 0;
+
   const clearFilters = () => {
     setSelectedStore("all");
     setSelectedCategory("all");
@@ -284,8 +296,33 @@ const Marketplace = () => {
               placeholder="Search products..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
               className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-9 text-sm"
             />
+            {showSuggestions && (
+              <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border border-white/10 bg-primary shadow-xl overflow-hidden">
+                {suggestions.map(p => {
+                  const img = (p.images as string[])?.[0];
+                  return (
+                    <button
+                      key={p.id}
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-white/10 transition-colors"
+                      onMouseDown={() => navigate(`/store/${storeMap[p.store_id]?.slug || ""}/product/${p.id}`)}
+                    >
+                      <div className="h-8 w-8 shrink-0 rounded bg-white/5 overflow-hidden">
+                        {img ? <img src={img} alt="" className="h-full w-full object-cover" /> : <ShoppingBag className="h-4 w-4 m-2 text-white/20" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-white truncate">{p.name}</p>
+                        <p className="text-[10px] text-white/40">{storeMap[p.store_id]?.store_name}</p>
+                      </div>
+                      <p className="text-xs font-bold text-secondary shrink-0">RM {p.price.toFixed(2)}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <Button
             variant="outline"
