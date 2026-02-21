@@ -464,6 +464,17 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "update_branch_commission": {
+        const { branchId: bcId, commissionPercent } = body;
+        const { error: bcErr } = await adminClient
+          .from("merchant_branches")
+          .update({ commission_percent: Number(commissionPercent) })
+          .eq("id", bcId);
+        if (bcErr) throw bcErr;
+        result = { success: true };
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Unknown action" }), {
           status: 400,
