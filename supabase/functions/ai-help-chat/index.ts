@@ -23,6 +23,12 @@ NoCap is a digital wallet app in Malaysia that lets users:
 - Transfer to other users instantly
 - Every payment to merchants earns automatic cashback based on the merchant's commission rate
 
+## AI Transfer
+- You can help users transfer money by asking for the recipient's email and amount
+- Just say something like "transfer RM10 to user@email.com" and you'll handle it
+- Transfers below RM100 can be done via chat; for RM100+ the user must use the Transfer page (PIN required)
+- Always confirm the transfer details before executing
+
 ## Transaction PIN
 - Users must set a 6-digit PIN for transactions (transfers, payments)
 - PIN can be set from Profile → Set PIN
@@ -158,12 +164,36 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "transfer_money",
+      description:
+        "Transfer money from the authenticated user's wallet to another user identified by their email address. Use when user asks to send/transfer money to someone.",
+      parameters: {
+        type: "object",
+        properties: {
+          email: {
+            type: "string",
+            description: "Recipient's email address",
+          },
+          amount: {
+            type: "number",
+            description: "Amount in RM to transfer",
+          },
+        },
+        required: ["email", "amount"],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 async function executeToolCall(
   toolName: string,
   args: Record<string, unknown>,
-  userId: string | null
+  userId: string | null,
+  authHeader: string | null
 ) {
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -263,6 +293,75 @@ async function executeToolCall(
       };
     }
 
+    case "transfer_money": {
+      if (!userId) return { error: "You need to be logged in to make transfers." };
+      
+      const recipientEmail = String(args.email || "").trim().toLowerCase();
+      const amount = Number(args.amount);
+      
+      if (!recipientEmail) return { error: "Please provide the recipient's email address." };
+      if (!amount || amount <= 0) return { error: "Please provide a valid amount greater than 0." };
+
+      // Check PIN threshold from system_settings
+      const { data: settingsData } = await supabaseAdmin
+        .from("system_settings")
+        .select("value")
+        .eq("key", "min_pin_amount")
+        .single();
+      const minPinAmount = settingsData ? Number(settingsData.value) : 100;
+
+      if (amount >= minPinAmount) {
+        return { error: `For transfers of RM${minPinAmount.toFixed(0)} and above, please use the Transfer page where you can enter your PIN securely.` };
+      }
+
+      // Look up recipient by email
+      const { data: usersData, error: listErr } = await supabaseAdmin.auth.admin.listUsers({
+        perPage: 1,
+        page: 1,
+      });
+      
+      // Search through users for email match
+      const { data: allUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+      const recipient = allUsers?.users?.find(u => u.email?.toLowerCase() === recipientEmail);
+      
+      if (!recipient) {
+        return { error: `No NoCap user found with email ${recipientEmail}.` };
+      }
+
+      if (recipient.id === userId) {
+        return { error: "You cannot transfer to yourself." };
+      }
+
+      // Call process-transfer edge function
+      const transferResponse = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-transfer`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": authHeader || "",
+          },
+          body: JSON.stringify({
+            recipient_user_id: recipient.id,
+            amount: amount,
+          }),
+        }
+      );
+
+      const transferResult = await transferResponse.json();
+
+      if (!transferResponse.ok) {
+        return { error: transferResult.error || "Transfer failed. Please try again." };
+      }
+
+      return {
+        success: true,
+        message: `RM${amount.toFixed(2)} has been transferred to ${recipientEmail}.`,
+        new_balance: transferResult.new_balance != null ? `RM ${Number(transferResult.new_balance).toFixed(2)}` : undefined,
+        transaction_id: transferResult.transaction_id,
+      };
+    }
+
     default:
       return { error: "Unknown tool" };
   }
@@ -359,7 +458,7 @@ serve(async (req) => {
       const args = typeof tc.function.arguments === "string"
         ? JSON.parse(tc.function.arguments)
         : tc.function.arguments;
-      const result = await executeToolCall(tc.function.name, args, userId);
+      const result = await executeToolCall(tc.function.name, args, userId, authHeader);
       toolMessages.push({
         role: "tool",
         tool_call_id: tc.id,
