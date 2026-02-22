@@ -10,6 +10,7 @@ import BottomNav from "@/components/BottomNav";
 import { ArrowLeft, ShoppingCart, Star, Minus, Plus } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import ProductChat from "@/components/marketplace/ProductChat";
 
 interface Product {
   id: string;
@@ -39,6 +40,7 @@ const ProductDetail = () => {
   const { toast } = useToast();
   const [product, setProduct] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [storeName, setStoreName] = useState("");
   const [selectedImage, setSelectedImage] = useState(0);
   const [qty, setQty] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -62,6 +64,15 @@ const ProductDetail = () => {
       ]);
       setProduct(prodRes.data as Product | null);
       setReviews((revRes.data as Review[]) || []);
+      // Fetch store name for chat
+      if (prodRes.data?.store_id) {
+        const { data: storeData } = await supabase
+          .from("marketplace_stores")
+          .select("store_name")
+          .eq("id", prodRes.data.store_id)
+          .maybeSingle();
+        if (storeData) setStoreName(storeData.store_name);
+      }
       setLoading(false);
     };
     fetch();
@@ -214,6 +225,16 @@ const ProductDetail = () => {
           </Button>
         </div>
       </div>
+
+      {/* Chat with seller */}
+      {product && productId && (
+        <ProductChat
+          storeId={product.store_id}
+          productId={productId}
+          productName={product.name}
+          storeName={storeName}
+        />
+      )}
 
       <BottomNav />
     </div>

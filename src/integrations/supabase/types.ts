@@ -292,6 +292,51 @@ export type Database = {
           },
         ]
       }
+      marketplace_chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          product_id: string
+          sender_id: string
+          sender_type: string
+          store_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          product_id: string
+          sender_id: string
+          sender_type?: string
+          store_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          product_id?: string
+          sender_id?: string
+          sender_type?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_chat_messages_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_chat_messages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_discount_codes: {
         Row: {
           code: string
@@ -1261,6 +1306,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_chat_participant: {
+        Args: { _product_id: string; _store_id: string; _user_id: string }
         Returns: boolean
       }
       is_store_manager: {
