@@ -40,7 +40,7 @@ import {
   Wallet,
 } from "lucide-react";
 
-const MerchantChatTab = ({ branchId }: { branchId: string }) => {
+const MerchantChatTab = ({ branchId, onUnreadCount }: { branchId: string; onUnreadCount?: (count: number) => void }) => {
   const [storeId, setStoreId] = useState<string | null>(null);
   useEffect(() => {
     supabase
@@ -50,6 +50,37 @@ const MerchantChatTab = ({ branchId }: { branchId: string }) => {
       .maybeSingle()
       .then(({ data }) => setStoreId(data?.id || null));
   }, [branchId]);
+
+  // Count unread buyer messages for this store
+  useEffect(() => {
+    if (!storeId || !onUnreadCount) return;
+    const fetchUnread = async () => {
+      const { count } = await supabase
+        .from("marketplace_chat_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("store_id", storeId)
+        .eq("sender_type", "buyer");
+      onUnreadCount(count || 0);
+    };
+    fetchUnread();
+
+    // Listen for new buyer messages and refetch count
+    const channel = supabase
+      .channel(`chat-unread-${storeId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "marketplace_chat_messages", filter: `store_id=eq.${storeId}` },
+        (payload) => {
+          if ((payload.new as any).sender_type === "buyer") {
+            fetchUnread();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [storeId, onUnreadCount]);
+
   if (!storeId) return <div className="text-center text-white/40 py-12 text-sm">No store found for this branch. Create a store in the Shop tab first.</div>;
   return <MerchantChat storeId={storeId} />;
 };
@@ -100,6 +131,7 @@ const MerchantDashboard = () => {
   const [dynamicQrs, setDynamicQrs] = useState<DynamicQr[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [isMerchant, setIsMerchant] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
 
   // Add branch dialog
   const [showAddBranch, setShowAddBranch] = useState(false);
@@ -515,8 +547,13 @@ const MerchantDashboard = () => {
               <TabsTrigger value="shop" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 Shop
               </TabsTrigger>
-              <TabsTrigger value="chat" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+              <TabsTrigger value="chat" className="relative gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 Chat
+                {chatUnread > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                    {chatUnread > 99 ? "99+" : chatUnread}
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger value="txns" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 Txns
@@ -631,7 +668,7 @@ const MerchantDashboard = () => {
             </TabsContent>
 
             <TabsContent value="chat" className="mt-4">
-              <MerchantChatTab branchId={selectedBranch.id} />
+              <MerchantChatTab branchId={selectedBranch.id} onUnreadCount={setChatUnread} />
             </TabsContent>
 
             <TabsContent value="txns" className="mt-4">
