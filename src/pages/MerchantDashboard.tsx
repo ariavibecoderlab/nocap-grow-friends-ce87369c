@@ -22,6 +22,7 @@ import MerchantApiLogs from "@/components/merchant/MerchantApiLogs";
 import NotificationBell from "@/components/NotificationBell";
 import NocapLogo from "@/components/NocapLogo";
 import MerchantMarketplace from "@/components/merchant/MerchantMarketplace";
+import MerchantChat from "@/components/merchant/MerchantChat";
 import {
   ArrowLeft,
   Plus,
@@ -38,6 +39,20 @@ import {
   XCircle,
   Wallet,
 } from "lucide-react";
+
+const MerchantChatTab = ({ branchId }: { branchId: string }) => {
+  const [storeId, setStoreId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase
+      .from("marketplace_stores")
+      .select("id")
+      .eq("branch_id", branchId)
+      .maybeSingle()
+      .then(({ data }) => setStoreId(data?.id || null));
+  }, [branchId]);
+  if (!storeId) return <div className="text-center text-white/40 py-12 text-sm">No store found for this branch. Create a store in the Shop tab first.</div>;
+  return <MerchantChat storeId={storeId} />;
+};
 
 interface Branch {
   id: string;
@@ -493,12 +508,15 @@ const MerchantDashboard = () => {
         {/* Selected Branch Details */}
         {selectedBranch && (
           <Tabs defaultValue="qr" className="mt-4">
-            <TabsList className="w-full grid grid-cols-9 bg-white/5 border border-white/10">
+            <TabsList className="w-full grid grid-cols-10 bg-white/5 border border-white/10">
               <TabsTrigger value="qr" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 <QrCode className="h-3 w-3" /> QR
               </TabsTrigger>
               <TabsTrigger value="shop" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 Shop
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                Chat
               </TabsTrigger>
               <TabsTrigger value="txns" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 Txns
@@ -610,6 +628,10 @@ const MerchantDashboard = () => {
 
             <TabsContent value="shop" className="mt-4">
               <MerchantMarketplace branches={branches.map(b => ({ id: b.id, branch_name: b.branch_name }))} selectedBranchId={selectedBranch?.id || null} />
+            </TabsContent>
+
+            <TabsContent value="chat" className="mt-4">
+              <MerchantChatTab branchId={selectedBranch.id} />
             </TabsContent>
 
             <TabsContent value="txns" className="mt-4">
