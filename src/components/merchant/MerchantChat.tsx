@@ -199,17 +199,22 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
     const msg = text.trim();
     setText("");
 
-    const { error } = await supabase.from("marketplace_chat_messages").insert({
+    const { data: inserted, error } = await supabase.from("marketplace_chat_messages").insert({
       store_id: storeId,
       product_id: selectedThread.productId,
       sender_id: user.id,
       sender_type: "merchant",
       message: msg,
-    });
+    }).select("id, sender_id, sender_type, message, created_at, product_id").single();
 
     if (error) {
       setText(msg);
       console.error("Merchant chat send error:", error);
+    } else if (inserted) {
+      setMessages((prev) => {
+        if (prev.find((m) => m.id === inserted.id)) return prev;
+        return [...prev, inserted as ChatMessage];
+      });
     }
     setSending(false);
   };
