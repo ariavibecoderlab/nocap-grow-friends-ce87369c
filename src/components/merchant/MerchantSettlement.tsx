@@ -170,7 +170,7 @@ const MerchantSettlement = ({ userId, branches, businessName }: MerchantSettleme
           <SelectTrigger className="w-[160px] h-8 text-xs border-white/10 bg-white/5 text-white">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-primary border-white/10 text-white">
             {monthOptions.map((o) => (
               <SelectItem key={o.val} value={o.val}>{o.label}</SelectItem>
             ))}
