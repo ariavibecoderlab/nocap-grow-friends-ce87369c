@@ -23,8 +23,14 @@ const Profile = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user.id).maybeSingle()
-      .then(({ data }) => setProfile(data));
+    const fetchProfile = () => {
+      supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user.id).maybeSingle()
+        .then(({ data }) => setProfile(data));
+    };
+    fetchProfile();
+    const handler = () => fetchProfile();
+    window.addEventListener("profile-updated", handler);
+    return () => window.removeEventListener("profile-updated", handler);
   }, [user]);
 
   const handleLogout = async () => {
