@@ -403,21 +403,21 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Extract user ID from auth header if present
+    // Extract user ID from auth header by decoding JWT payload
     let userId: string | null = null;
     const authHeader = req.headers.get("Authorization");
     if (authHeader?.startsWith("Bearer ")) {
       try {
-        const supabase = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_ANON_KEY")!,
-          { global: { headers: { Authorization: authHeader } } }
-        );
         const token = authHeader.replace("Bearer ", "");
-        const { data } = await supabase.auth.getUser(token);
-        userId = data?.user?.id || null;
+        // Decode JWT payload without server roundtrip (avoids session_not_found errors)
+        const payloadBase64 = token.split(".")[1];
+        if (payloadBase64) {
+          const payload = JSON.parse(atob(payloadBase64));
+          userId = payload.sub || null;
+        }
       } catch {
         // Not authenticated — that's fine, tools will return appropriate messages
+      }
       }
     }
 
