@@ -32,6 +32,7 @@ NoCap is a digital wallet app in Malaysia that lets users:
 
 ## Account & Transaction Tools
 - You can look up the user's **profile info** (name, phone, referral code, PIN status, address) when they ask "what's my account info?" or similar
+- You can **update profile info** (name, phone, address) when they ask "change my name to..." or "update my address" — always confirm the new values before saving
 - You can show **recent transactions** (top-ups, transfers, payments, commissions) when they ask "show my transactions" or "what did I spend today?"
 - You can show **referral stats** (how many people referred, total commission earned) when they ask "how many people have I referred?" or "show my referral stats"
 - Use these tools proactively when a user's question relates to their account or transaction history
@@ -255,6 +256,32 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "update_my_profile",
+      description:
+        "Update the authenticated user's profile information. Can update name, phone number, and/or address. Always confirm the new values with the user before calling this tool.",
+      parameters: {
+        type: "object",
+        properties: {
+          full_name: {
+            type: "string",
+            description: "New full name (max 100 characters)",
+          },
+          phone: {
+            type: "string",
+            description: "New phone number (Malaysian format, e.g. 0123456789)",
+          },
+          address: {
+            type: "string",
+            description: "New address (max 500 characters)",
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 async function executeToolCall(
@@ -455,6 +482,45 @@ async function executeToolCall(
         direct_referrals: directRefs?.length || 0,
         total_network: totalNetwork?.length || 0,
         total_commission_earned: `RM ${totalCommission.toFixed(2)}`,
+      };
+    }
+
+    case "update_my_profile": {
+      if (!userId) return { error: "You need to be logged in to update your profile." };
+
+      const updates: Record<string, string> = {};
+      
+      if (args.full_name !== undefined) {
+        const name = String(args.full_name).trim();
+        if (!name || name.length > 100) return { error: "Name must be between 1 and 100 characters." };
+        updates.full_name = name;
+      }
+      if (args.phone !== undefined) {
+        const phone = String(args.phone).trim().replace(/\s+/g, "");
+        if (!/^0\d{9,10}$/.test(phone)) return { error: "Please provide a valid Malaysian phone number (e.g. 0123456789)." };
+        updates.phone = phone;
+      }
+      if (args.address !== undefined) {
+        const address = String(args.address).trim();
+        if (!address || address.length > 500) return { error: "Address must be between 1 and 500 characters." };
+        updates.address = address;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return { error: "No fields provided to update. You can update: name, phone, or address." };
+      }
+
+      const { error } = await supabaseAdmin
+        .from("profiles")
+        .update(updates)
+        .eq("user_id", userId);
+
+      if (error) return { error: "Failed to update profile. Please try again." };
+
+      return {
+        success: true,
+        message: "Profile updated successfully.",
+        updated_fields: updates,
       };
     }
 
