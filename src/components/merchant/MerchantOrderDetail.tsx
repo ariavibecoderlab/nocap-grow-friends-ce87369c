@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
-import { ArrowLeft, Package, MapPin, Phone, Mail, User, Truck, Loader2, Hash } from "lucide-react";
+import { ArrowLeft, Package, MapPin, Phone, Mail, User, Truck, Loader2, Hash, Printer } from "lucide-react";
+import { generateSalesOrderPdf } from "@/lib/generateSalesOrderPdf";
 
 interface OrderDetail {
   id: string;
@@ -24,6 +25,7 @@ interface OrderDetail {
   tracking_number: string | null;
   payment_status: string;
   created_at: string;
+  store_id: string;
 }
 
 interface OrderItem {
@@ -51,13 +53,15 @@ export default function MerchantOrderDetail({ orderId, onBack, onStatusChange }:
   const [updating, setUpdating] = useState(false);
   const [trackingInput, setTrackingInput] = useState("");
   const [savingTracking, setSavingTracking] = useState(false);
+  const [storeInfo, setStoreInfo] = useState<{ store_name: string; logo_url: string | null } | null>(null);
+  const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       const [orderRes, itemsRes] = await Promise.all([
         supabase
           .from("marketplace_orders")
-          .select("id, order_number, status, buyer_name, buyer_email, buyer_phone, shipping_address, notes, subtotal, shipping_fee, total_amount, platform_fee, tracking_number, payment_status, created_at")
+          .select("id, order_number, status, buyer_name, buyer_email, buyer_phone, shipping_address, notes, subtotal, shipping_fee, total_amount, platform_fee, tracking_number, payment_status, created_at, store_id")
           .eq("id", orderId)
           .single(),
         supabase
@@ -69,6 +73,13 @@ export default function MerchantOrderDetail({ orderId, onBack, onStatusChange }:
         const o = orderRes.data as OrderDetail;
         setOrder(o);
         setTrackingInput(o.tracking_number || "");
+        // Fetch store info
+        const storeRes = await supabase
+          .from("marketplace_stores")
+          .select("store_name, logo_url")
+          .eq("id", o.store_id)
+          .single();
+        if (storeRes.data) setStoreInfo(storeRes.data);
       }
       setItems((itemsRes.data as OrderItem[]) || []);
       setLoading(false);
@@ -98,6 +109,39 @@ export default function MerchantOrderDetail({ orderId, onBack, onStatusChange }:
     onStatusChange();
     toast({ title: "Tracking number saved" });
     setSavingTracking(false);
+  };
+
+  const printOrder = async () => {
+    if (!order || !storeInfo) return;
+    setPrinting(true);
+    try {
+      await generateSalesOrderPdf({
+        storeName: storeInfo.store_name,
+        logoUrl: storeInfo.logo_url,
+        orderNumber: order.order_number,
+        orderDate: order.created_at,
+        status: order.status,
+        buyerName: order.buyer_name,
+        buyerEmail: order.buyer_email,
+        buyerPhone: order.buyer_phone,
+        shippingAddress: order.shipping_address,
+        notes: order.notes,
+        items: items.map(i => ({
+          productName: i.product_name,
+          quantity: i.quantity,
+          unitPrice: i.unit_price,
+          subtotal: i.subtotal,
+        })),
+        subtotal: order.subtotal,
+        shippingFee: order.shipping_fee,
+        totalAmount: order.total_amount,
+        trackingNumber: order.tracking_number,
+      });
+      toast({ title: "Sales order PDF downloaded" });
+    } catch {
+      toast({ title: "Failed to generate PDF", variant: "destructive" });
+    }
+    setPrinting(false);
   };
 
   if (loading) {
@@ -137,6 +181,9 @@ export default function MerchantOrderDetail({ orderId, onBack, onStatusChange }:
             {new Date(order.created_at).toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit" })}
           </p>
         </div>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-white/60 hover:text-white" onClick={printOrder} disabled={printing}>
+          {printing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+        </Button>
         <OrderStatusBadge status={order.status} />
       </div>
 
@@ -303,6 +350,16 @@ export default function MerchantOrderDetail({ orderId, onBack, onStatusChange }:
           )}
         </CardContent>
       </Card>
+
+      {/* Print Sales Order */}
+      <Button
+        className="w-full bg-secondary text-primary hover:bg-secondary/90 text-sm h-10"
+        onClick={printOrder}
+        disabled={printing}
+      >
+        {printing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Printer className="h-4 w-4 mr-2" />}
+        Print Sales Order
+      </Button>
     </div>
   );
 }
