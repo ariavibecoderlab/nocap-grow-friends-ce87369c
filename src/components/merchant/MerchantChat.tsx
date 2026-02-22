@@ -9,6 +9,7 @@ interface ChatThread {
   sender_id: string;
   product_id: string;
   product_name: string;
+  sender_name: string;
   last_message: string;
   last_time: string;
   unread: number;
@@ -52,18 +53,20 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
 
       // Group by buyer+product
       const threadMap = new Map<string, ChatThread>();
-      // Collect product IDs for name lookup
       const productIds = new Set<string>();
+      const senderIds = new Set<string>();
 
       for (const msg of data) {
         if (msg.sender_type !== "buyer") continue;
         const key = `${msg.sender_id}::${msg.product_id}`;
         productIds.add(msg.product_id);
+        senderIds.add(msg.sender_id);
         if (!threadMap.has(key)) {
           threadMap.set(key, {
             sender_id: msg.sender_id,
             product_id: msg.product_id,
             product_name: "",
+            sender_name: "",
             last_message: msg.message,
             last_time: msg.created_at,
             unread: 0,
@@ -80,6 +83,20 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
         const nameMap = new Map(products?.map((p) => [p.id, p.name]) || []);
         threadMap.forEach((t) => {
           t.product_name = nameMap.get(t.product_id) || "Unknown Product";
+        });
+      }
+
+      // Fetch sender profiles
+      if (senderIds.size > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, phone")
+          .in("user_id", Array.from(senderIds));
+        const profileMap = new Map(
+          profiles?.map((p) => [p.user_id, p.full_name || p.phone || "Customer"]) || []
+        );
+        threadMap.forEach((t) => {
+          t.sender_name = profileMap.get(t.sender_id) || "Customer";
         });
       }
 
@@ -153,6 +170,7 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
                   sender_id: newMsg.sender_id,
                   product_id: newMsg.product_id,
                   product_name: "New Conversation",
+                  sender_name: "Customer",
                   last_message: newMsg.message,
                   last_time: newMsg.created_at,
                   unread: 1,
@@ -226,9 +244,10 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
                   <User className="h-4 w-4 text-secondary" />
                 </div>
                 <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{t.sender_name}</p>
                   <div className="flex items-center gap-2">
                     <Package className="h-3 w-3 text-secondary/60" />
-                    <p className="text-xs font-medium text-secondary truncate">{t.product_name}</p>
+                    <p className="text-xs text-secondary/80 truncate">{t.product_name}</p>
                   </div>
                   <p className="text-xs text-white/60 truncate mt-0.5">{t.last_message}</p>
                   <p className="text-[10px] text-white/30 mt-1">
@@ -259,8 +278,8 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
           ← Back
         </button>
         <div>
-          <p className="text-sm font-semibold text-white">{thread?.product_name || "Conversation"}</p>
-          <p className="text-[10px] text-white/40">Customer ID: {selectedThread.senderId.slice(0, 8)}...</p>
+          <p className="text-sm font-semibold text-white">{thread?.sender_name || "Customer"}</p>
+          <p className="text-[10px] text-white/40">Re: {thread?.product_name || "Conversation"}</p>
         </div>
       </div>
 
@@ -278,7 +297,7 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
                 }`}
               >
                 {!isMine && (
-                  <p className="text-[10px] font-medium text-secondary/80 mb-0.5">Customer</p>
+                  <p className="text-[10px] font-medium text-secondary/80 mb-0.5">{thread?.sender_name || "Customer"}</p>
                 )}
                 <p>{msg.message}</p>
                 <p className={`text-[9px] mt-1 ${isMine ? "text-primary/50" : "text-white/30"}`}>
