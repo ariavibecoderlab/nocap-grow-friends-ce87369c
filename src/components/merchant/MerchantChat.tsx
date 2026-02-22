@@ -10,6 +10,7 @@ interface ChatThread {
   product_id: string;
   product_name: string;
   sender_name: string;
+  sender_avatar: string | null;
   last_message: string;
   last_time: string;
   unread: number;
@@ -67,6 +68,7 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
             product_id: msg.product_id,
             product_name: "",
             sender_name: "",
+            sender_avatar: null,
             last_message: msg.message,
             last_time: msg.created_at,
             unread: 0,
@@ -90,13 +92,15 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
       if (senderIds.size > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, full_name, phone")
+          .select("user_id, full_name, phone, avatar_url")
           .in("user_id", Array.from(senderIds));
         const profileMap = new Map(
-          profiles?.map((p) => [p.user_id, p.full_name || p.phone || "Customer"]) || []
+          profiles?.map((p) => [p.user_id, { name: p.full_name || p.phone || "Customer", avatar: p.avatar_url }]) || []
         );
         threadMap.forEach((t) => {
-          t.sender_name = profileMap.get(t.sender_id) || "Customer";
+          const profile = profileMap.get(t.sender_id);
+          t.sender_name = profile?.name || "Customer";
+          t.sender_avatar = profile?.avatar || null;
         });
       }
 
@@ -171,6 +175,7 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
                   product_id: newMsg.product_id,
                   product_name: "New Conversation",
                   sender_name: "Customer",
+                  sender_avatar: null,
                   last_message: newMsg.message,
                   last_time: newMsg.created_at,
                   unread: 1,
@@ -245,9 +250,13 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
               className="w-full text-left rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 p-3 transition-colors"
             >
               <div className="flex items-start gap-3">
-                <div className="h-9 w-9 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
-                  <User className="h-4 w-4 text-secondary" />
-                </div>
+                {t.sender_avatar ? (
+                  <img src={t.sender_avatar} alt={t.sender_name} className="h-9 w-9 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="h-9 w-9 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
+                    <User className="h-4 w-4 text-secondary" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white truncate">{t.sender_name}</p>
                   <div className="flex items-center gap-2">
@@ -282,6 +291,13 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
         >
           ← Back
         </button>
+        {thread?.sender_avatar ? (
+          <img src={thread.sender_avatar} alt={thread.sender_name} className="h-8 w-8 rounded-full object-cover shrink-0" />
+        ) : (
+          <div className="h-8 w-8 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
+            <User className="h-4 w-4 text-secondary" />
+          </div>
+        )}
         <div>
           <p className="text-sm font-semibold text-white">{thread?.sender_name || "Customer"}</p>
           <p className="text-[10px] text-white/40">Re: {thread?.product_name || "Conversation"}</p>
