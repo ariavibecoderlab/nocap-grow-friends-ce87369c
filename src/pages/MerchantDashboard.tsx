@@ -803,7 +803,7 @@ const MerchantDashboard = () => {
                 <SelectTrigger className="border-white/10 bg-white/5 text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-primary border-white/10 text-white">
                   <SelectItem value="none">No expiry</SelectItem>
                   <SelectItem value="15">15 minutes</SelectItem>
                   <SelectItem value="30">30 minutes</SelectItem>

@@ -143,12 +143,12 @@ const MerchantTransactions = ({ userId, branchId }: MerchantTransactionsProps) =
       <div className="flex items-center gap-2 flex-wrap">
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5", !fromDate && "text-muted-foreground")}>
+            <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white", !fromDate && "text-white/40")}>
               <CalendarIcon className="h-3 w-3" />
               {fromDate ? format(fromDate, "dd MMM yyyy") : "From"}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent className="w-auto p-0 bg-primary border-white/10" align="start">
             <Calendar
               mode="single"
               selected={fromDate}
@@ -162,12 +162,12 @@ const MerchantTransactions = ({ userId, branchId }: MerchantTransactionsProps) =
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5", !toDate && "text-muted-foreground")}>
+            <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white", !toDate && "text-white/40")}>
               <CalendarIcon className="h-3 w-3" />
               {toDate ? format(toDate, "dd MMM yyyy") : "To"}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent className="w-auto p-0 bg-primary border-white/10" align="start">
             <Calendar
               mode="single"
               selected={toDate}
@@ -180,13 +180,13 @@ const MerchantTransactions = ({ userId, branchId }: MerchantTransactionsProps) =
         </Popover>
 
         {hasFilters && (
-          <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={clearFilters}>
+          <Button variant="ghost" size="sm" className="h-8 text-xs text-white/40 hover:text-white hover:bg-white/10" onClick={clearFilters}>
             Clear
           </Button>
         )}
 
         <div className="ml-auto">
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={exportCsv}>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white" onClick={exportCsv}>
             <Download className="h-3 w-3" /> Export
           </Button>
         </div>
@@ -195,13 +195,13 @@ const MerchantTransactions = ({ userId, branchId }: MerchantTransactionsProps) =
       {/* Loading */}
       {loading ? (
         <div className="flex justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 className="h-6 w-6 animate-spin text-white/40" />
         </div>
       ) : transactions.length === 0 ? (
         <div className="text-center py-8">
-          <ArrowDownLeft className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
-          <p className="text-sm text-muted-foreground">{hasFilters ? "No transactions in this date range" : "No transactions yet"}</p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <ArrowDownLeft className="mx-auto h-8 w-8 text-white/20 mb-2" />
+          <p className="text-sm text-white/40">{hasFilters ? "No transactions in this date range" : "No transactions yet"}</p>
+          <p className="text-xs text-white/30 mt-1">
             {hasFilters ? "Try adjusting your date filters" : "Payments received will appear here"}
           </p>
         </div>
@@ -218,29 +218,29 @@ const MerchantTransactions = ({ userId, branchId }: MerchantTransactionsProps) =
 
             return Object.entries(grouped).map(([date, txns]) => (
               <div key={date}>
-                <p className="text-xs font-medium text-muted-foreground mb-2">{date}</p>
+                <p className="text-xs font-medium text-white/40 mb-2">{date}</p>
                 <div className="space-y-2">
                   {txns.map((t) => {
                     const meta = t.metadata as Record<string, unknown> | null;
                     const branchName = meta?.branch_name as string | undefined;
                     return (
-                      <Card key={t.id} className="border-border/50">
+                      <Card key={t.id} className="border-white/10 bg-white/5">
                         <CardContent className="flex items-center justify-between p-3">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                              <ArrowDownLeft className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary/20">
+                              <ArrowDownLeft className="h-4 w-4 text-secondary" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-medium truncate">{t.description || "Payment received"}</p>
+                              <p className="text-sm font-medium text-white truncate">{t.description || "Payment received"}</p>
                               <div className="flex items-center gap-2">
                                 {branchName && (
-                                  <span className="text-[10px] text-muted-foreground truncate">{branchName}</span>
+                                  <span className="text-[10px] text-white/40 truncate">{branchName}</span>
                                 )}
-                                <span className="text-[10px] text-muted-foreground">{formatTime(t.created_at)}</span>
+                                <span className="text-[10px] text-white/40">{formatTime(t.created_at)}</span>
                               </div>
                             </div>
                           </div>
-                          <p className="text-sm font-semibold text-green-600 dark:text-green-400 shrink-0">
+                          <p className="text-sm font-semibold text-secondary shrink-0">
                             +RM {Number(t.amount).toFixed(2)}
                           </p>
                         </CardContent>
@@ -256,7 +256,7 @@ const MerchantTransactions = ({ userId, branchId }: MerchantTransactionsProps) =
             <Button
               variant="ghost"
               size="sm"
-              className="w-full text-muted-foreground"
+              className="w-full text-white/40 hover:text-white hover:bg-white/10"
               onClick={loadMore}
               disabled={loadingMore}
             >

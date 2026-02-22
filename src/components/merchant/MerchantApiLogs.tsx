@@ -109,7 +109,7 @@ const MerchantApiLogs = () => {
           <SelectTrigger className="bg-white/5 border-white/10 text-white text-xs h-8 flex-1">
             <SelectValue placeholder="Filter by app" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-primary border-white/10 text-white">
             <SelectItem value="all">All Apps</SelectItem>
             {apps.map((a) => (
               <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>

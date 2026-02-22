@@ -583,7 +583,7 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
                     <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
                       <SelectValue placeholder="Select branch" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-primary border-white/10 text-white">
                       {branches.map(b => (
                         <SelectItem key={b.id} value={b.id}>{b.branch_name}</SelectItem>
                       ))}
@@ -693,11 +693,11 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full bg-white/5 border border-white/10">
-          <TabsTrigger value="products" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">Products</TabsTrigger>
-          <TabsTrigger value="orders" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">Orders</TabsTrigger>
-          <TabsTrigger value="reviews" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">Reviews</TabsTrigger>
-          <TabsTrigger value="discounts" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">Discounts</TabsTrigger>
-          <TabsTrigger value="settings" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">Settings</TabsTrigger>
+          <TabsTrigger value="products" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Products</TabsTrigger>
+          <TabsTrigger value="orders" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Orders</TabsTrigger>
+          <TabsTrigger value="reviews" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Reviews</TabsTrigger>
+          <TabsTrigger value="discounts" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Discounts</TabsTrigger>
+          <TabsTrigger value="settings" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Settings</TabsTrigger>
         </TabsList>
 
         {/* PRODUCTS TAB */}
@@ -939,7 +939,7 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
                   <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-primary border-white/10 text-white">
                     <SelectItem value="classic">Classic</SelectItem>
                     <SelectItem value="bold">Bold</SelectItem>
                     <SelectItem value="minimal">Minimal</SelectItem>
@@ -1064,7 +1064,7 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
                 <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-primary border-white/10 text-white">
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="draft">Draft</SelectItem>
                 </SelectContent>
@@ -1094,7 +1094,7 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
                   <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-primary border-white/10 text-white">
                     <SelectItem value="percentage">Percentage</SelectItem>
                     <SelectItem value="fixed">Fixed Amount</SelectItem>
                   </SelectContent>

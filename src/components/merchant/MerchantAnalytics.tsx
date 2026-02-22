@@ -124,7 +124,7 @@ const MerchantAnalytics = ({ userId, branches }: MerchantAnalyticsProps) => {
           <SelectTrigger className="w-[130px] h-8 text-xs border-white/10 bg-white/5 text-white">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-primary border-white/10 text-white">
             <SelectItem value="3months">3 Months</SelectItem>
             <SelectItem value="6months">6 Months</SelectItem>
             <SelectItem value="12months">12 Months</SelectItem>
