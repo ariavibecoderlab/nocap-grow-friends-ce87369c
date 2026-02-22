@@ -28,6 +28,7 @@ NoCap is a digital wallet app in Malaysia that lets users:
 - Just say something like "transfer RM10 to user@email.com" and you'll handle it
 - Transfers below RM100 can be done via chat; for RM100+ the user must use the Transfer page (PIN required)
 - Always confirm the transfer details before executing
+- You can also check the user's wallet balance when they ask "what's my balance?" or similar
 
 ## Transaction PIN
 - Users must set a 6-digit PIN for transactions (transfers, payments)
@@ -187,6 +188,19 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "check_balance",
+      description:
+        "Check the authenticated user's wallet balance. Use when user asks about their balance, how much money they have, etc.",
+      parameters: {
+        type: "object",
+        properties: {},
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 async function executeToolCall(
@@ -291,6 +305,18 @@ async function executeToolCall(
         })),
         count: data?.length || 0,
       };
+    }
+
+    case "check_balance": {
+      if (!userId) return { error: "You need to be logged in to check your balance." };
+      const { data, error } = await supabaseAdmin
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", userId)
+        .eq("wallet_type", "member")
+        .single();
+      if (error || !data) return { error: "Could not retrieve your wallet balance." };
+      return { balance: `RM ${Number(data.balance).toFixed(2)}` };
     }
 
     case "transfer_money": {
