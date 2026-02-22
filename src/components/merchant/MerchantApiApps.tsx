@@ -282,44 +282,44 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
 
       {/* Create App Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="bg-card border-white/10 text-white max-w-sm">
+        <DialogContent className="bg-primary border-secondary/20 text-foreground max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-white">Register API App</DialogTitle>
+            <DialogTitle className="text-secondary font-display">Register API App</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <Label className="text-white/70 text-xs">App Name *</Label>
-              <Input value={appName} onChange={(e) => setAppName(e.target.value)} placeholder="My Third-Party App" className="bg-white/5 border-white/10 text-white" maxLength={100} />
+              <Label className="text-secondary/80 text-xs font-medium">App Name *</Label>
+              <Input value={appName} onChange={(e) => setAppName(e.target.value)} placeholder="My Third-Party App" className="bg-white/10 border-secondary/30 text-white placeholder:text-white/30 focus-visible:ring-secondary/50" maxLength={100} />
             </div>
             <div>
-              <Label className="text-white/70 text-xs">Description</Label>
-              <Input value={appDesc} onChange={(e) => setAppDesc(e.target.value)} placeholder="Optional description" className="bg-white/5 border-white/10 text-white" maxLength={255} />
+              <Label className="text-secondary/80 text-xs font-medium">Description</Label>
+              <Input value={appDesc} onChange={(e) => setAppDesc(e.target.value)} placeholder="Optional description" className="bg-white/10 border-secondary/30 text-white placeholder:text-white/30 focus-visible:ring-secondary/50" maxLength={255} />
             </div>
             <div>
-              <Label className="text-white/70 text-xs">Branch *</Label>
+              <Label className="text-secondary/80 text-xs font-medium">Branch *</Label>
               <Select value={branchId} onValueChange={setBranchId}>
-                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <SelectTrigger className="bg-white/10 border-secondary/30 text-white focus:ring-secondary/50">
                   <SelectValue placeholder="Select branch" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-white/10 text-white">
+                <SelectContent className="bg-primary border-secondary/20 text-white">
                   {branches.map((b) => (
-                    <SelectItem key={b.id} value={b.id} className="text-white focus:bg-white/10 focus:text-white">{b.branch_name}</SelectItem>
+                    <SelectItem key={b.id} value={b.id} className="text-white focus:bg-secondary/20 focus:text-secondary">{b.branch_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-white/70 text-xs">Webhook URL (optional)</Label>
-              <Input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://..." className="bg-white/5 border-white/10 text-white" />
+              <Label className="text-secondary/80 text-xs font-medium">Webhook URL (optional)</Label>
+              <Input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://..." className="bg-white/10 border-secondary/30 text-white placeholder:text-white/30 focus-visible:ring-secondary/50" />
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
+            <div className="flex items-center justify-between p-3 rounded-lg border border-secondary/30 bg-secondary/10">
               <div className="space-y-0.5">
-                <Label className="text-white text-xs">Sandbox Mode</Label>
-                <p className="text-[10px] text-white/40">Test integrations without using real money</p>
+                <Label className="text-secondary text-xs font-medium">Sandbox Mode</Label>
+                <p className="text-[10px] text-white/50">Test integrations without real money</p>
               </div>
-              <Switch checked={isSandbox} onCheckedChange={setIsSandbox} className="data-[state=checked]:bg-amber-500" />
+              <Switch checked={isSandbox} onCheckedChange={setIsSandbox} className="data-[state=checked]:bg-secondary" />
             </div>
-            <Button onClick={createApp} disabled={creating || !appName.trim() || !branchId} className="w-full bg-secondary text-primary hover:bg-secondary/90">
+            <Button onClick={createApp} disabled={creating || !appName.trim() || !branchId} className="w-full bg-secondary text-primary font-semibold hover:bg-secondary/90">
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create & Get Credentials"}
             </Button>
           </div>
