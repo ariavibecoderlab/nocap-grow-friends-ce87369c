@@ -30,6 +30,12 @@ NoCap is a digital wallet app in Malaysia that lets users:
 - Always confirm the transfer details before executing
 - You can also check the user's wallet balance when they ask "what's my balance?" or similar
 
+## Account & Transaction Tools
+- You can look up the user's **profile info** (name, phone, referral code, PIN status, address) when they ask "what's my account info?" or similar
+- You can show **recent transactions** (top-ups, transfers, payments, commissions) when they ask "show my transactions" or "what did I spend today?"
+- You can show **referral stats** (how many people referred, total commission earned) when they ask "how many people have I referred?" or "show my referral stats"
+- Use these tools proactively when a user's question relates to their account or transaction history
+
 ## Transaction PIN
 - Users must set a 6-digit PIN for transactions (transfers, payments)
 - PIN can be set from Profile → Set PIN
@@ -201,6 +207,54 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "get_my_profile",
+      description:
+        "Get the authenticated user's profile information including name, phone, referral code, PIN status, and address. Use when user asks about their account info, referral code, or PIN status.",
+      parameters: {
+        type: "object",
+        properties: {},
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_my_transactions",
+      description:
+        "List the authenticated user's recent wallet transactions (top-ups, transfers, payments, cashback, commissions, etc.). Use when user asks about their transaction history, recent spending, or specific transaction types.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "number",
+            description: "Number of transactions to return (default 10, max 20)",
+          },
+          type: {
+            type: "string",
+            description: "Filter by transaction type: top_up, payment, transfer_in, transfer_out, cashback, commission, withdrawal, refund",
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_referral_info",
+      description:
+        "Get the authenticated user's referral statistics including referral code, number of direct referrals, total network size, and total commission earned. Use when user asks about their referrals or referral earnings.",
+      parameters: {
+        type: "object",
+        properties: {},
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 async function executeToolCall(
@@ -319,6 +373,91 @@ async function executeToolCall(
       return { balance: `RM ${Number(data.balance).toFixed(2)}` };
     }
 
+    case "get_my_profile": {
+      if (!userId) return { error: "You need to be logged in to view your profile." };
+      const { data, error } = await supabaseAdmin
+        .from("profiles")
+        .select("full_name, phone, referral_code, has_pin, address")
+        .eq("user_id", userId)
+        .single();
+      if (error || !data) return { error: "Could not retrieve your profile information." };
+      return {
+        name: data.full_name || "Not set",
+        phone: data.phone || "Not set",
+        referral_code: data.referral_code,
+        has_pin: data.has_pin,
+        address: data.address || "Not set",
+      };
+    }
+
+    case "list_my_transactions": {
+      if (!userId) return { error: "You need to be logged in to view transactions." };
+      const limit = Math.min(Math.max(Number(args.limit) || 10, 1), 20);
+      let query = supabaseAdmin
+        .from("transactions")
+        .select("type, amount, description, created_at, status")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (args.type) {
+        query = query.eq("type", args.type);
+      }
+      const { data, error } = await query;
+      if (error) return { error: error.message };
+      return {
+        transactions: (data || []).map((t: any) => ({
+          type: t.type,
+          amount: `RM ${Number(t.amount).toFixed(2)}`,
+          description: t.description || "-",
+          date: new Date(t.created_at).toLocaleDateString("en-MY"),
+          status: t.status,
+        })),
+        count: data?.length || 0,
+      };
+    }
+
+    case "get_referral_info": {
+      if (!userId) return { error: "You need to be logged in to view referral info." };
+      
+      // Get referral code
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("referral_code")
+        .eq("user_id", userId)
+        .single();
+
+      // Count direct referrals (tier 1) and total network
+      const { data: directRefs } = await supabaseAdmin
+        .from("referral_tree")
+        .select("id", { count: "exact" })
+        .eq("ancestor_id", userId)
+        .eq("tier", 1);
+
+      const { data: totalNetwork } = await supabaseAdmin
+        .from("referral_tree")
+        .select("id", { count: "exact" })
+        .eq("ancestor_id", userId);
+
+      // Sum commission earned
+      const { data: commissions } = await supabaseAdmin
+        .from("transactions")
+        .select("amount")
+        .eq("user_id", userId)
+        .eq("type", "commission")
+        .eq("status", "completed");
+
+      const totalCommission = (commissions || []).reduce(
+        (sum: number, t: any) => sum + Number(t.amount), 0
+      );
+
+      return {
+        referral_code: profile?.referral_code || "N/A",
+        direct_referrals: directRefs?.length || 0,
+        total_network: totalNetwork?.length || 0,
+        total_commission_earned: `RM ${totalCommission.toFixed(2)}`,
+      };
+    }
+
     case "transfer_money": {
       if (!userId) return { error: "You need to be logged in to make transfers." };
       
@@ -341,12 +480,6 @@ async function executeToolCall(
       }
 
       // Look up recipient by email
-      const { data: usersData, error: listErr } = await supabaseAdmin.auth.admin.listUsers({
-        perPage: 1,
-        page: 1,
-      });
-      
-      // Search through users for email match
       const { data: allUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
       const recipient = allUsers?.users?.find(u => u.email?.toLowerCase() === recipientEmail);
       
@@ -418,7 +551,6 @@ serve(async (req) => {
       } catch {
         // Not authenticated — that's fine, tools will return appropriate messages
       }
-      }
     }
 
     const aiMessages = [
@@ -469,9 +601,8 @@ serve(async (req) => {
     const firstData = await firstResponse.json();
     const choice = firstData.choices?.[0];
 
-    // If no tool calls, stream the final response
+    // If no tool calls, return the response
     if (!choice?.message?.tool_calls?.length) {
-      // Return non-streamed response
       return new Response(
         JSON.stringify({ reply: choice?.message?.content || "I'm not sure how to help with that." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
