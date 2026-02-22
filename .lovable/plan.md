@@ -1,89 +1,91 @@
 
 
-# AI-Powered Money Transfer via Chatbot
+# Add Account & Transaction Info Tools to AI Assistant
 
 ## Overview
-Add a new `transfer_money` tool to the AI chatbot so members can transfer wallet balance by simply typing something like **"transfer to beforeb76@gmail.com 10"**. The AI will look up the recipient by email, validate everything, and execute the transfer.
+Enhance the AI chatbot so members can ask about their account details, transaction history, referral info, and more -- all through natural conversation.
 
-## How It Works
+## New Tools to Add
 
-1. User types: "Transfer RM10 to beforeb76@gmail.com"
-2. AI recognizes the intent and calls the `transfer_money` tool with `email` and `amount`
-3. The tool looks up the recipient's user ID from the email in the auth system
-4. If the email doesn't exist, returns a clear error message
-5. If found, calls the existing `process-transfer` edge function to execute the transfer
-6. Returns success/failure message to the AI, which responds naturally
+| Tool | What It Does | Example Questions |
+|------|-------------|-------------------|
+| `get_my_profile` | Returns the member's profile info (name, phone, referral code, PIN status) | "What's my account info?", "What's my referral code?" |
+| `list_my_transactions` | Returns recent wallet transactions (top-ups, transfers, payments, commissions) | "Show my recent transactions", "What did I spend today?" |
+| `get_referral_info` | Returns referral stats -- how many people referred, commission earned | "How many people have I referred?", "Show my referral stats" |
 
-## Important Considerations
+## What Members Can Ask
 
-- **PIN requirement**: Transfers of RM100+ require a PIN. Since the chatbot can't securely collect PINs, transfers via AI will be limited to amounts below the PIN threshold (default RM100). For larger amounts, the AI will guide users to the Transfer page.
-- **Authentication required**: User must be logged in to use this feature.
-- **Security**: The transfer is executed server-side using the user's authenticated session, so no one can transfer from another user's wallet.
+- "What's my profile info?" -- returns name, phone, referral code, PIN status
+- "What's my referral code?" -- returns their unique code
+- "Show my last 10 transactions" -- returns recent transaction history with type, amount, date, status
+- "How much have I earned from referrals?" -- returns referral count and total commission earned
+- "Do I have a PIN set?" -- returns PIN status
+- "What transactions did I make today?" -- filters transactions by date
 
 ## What Changes
 
-### 1. Edge Function: `ai-help-chat/index.ts`
-- Add a new `transfer_money` tool definition with parameters: `email` (string, required) and `amount` (number, required)
-- Add tool execution logic that:
-  - Validates the user is authenticated
-  - Looks up recipient by email using `supabase.auth.admin.listUsers()` filtered by email
-  - Returns "User with that email not found" if no match
-  - Prevents self-transfer
-  - Checks the min PIN amount from `system_settings` -- if amount >= threshold, returns a message telling the user to use the Transfer page instead
-  - Calls the `process-transfer` edge function internally (server-to-server) with the sender's auth token
-  - Returns success with new balance or error message
-- Update the system prompt to mention transfer capability and its limits
+### Edge Function: `supabase/functions/ai-help-chat/index.ts`
 
-### 2. No Frontend Changes Needed
-The existing `AiHelpChat.tsx` component already handles tool-calling responses. No UI changes required.
+**3 new tool definitions:**
 
-### 3. No Database Changes Needed
-Uses existing `profiles`, `wallets`, and `transactions` tables via the existing `process-transfer` function.
+1. **`get_my_profile`** -- no parameters
+   - Queries `profiles` table for the user's name, phone, referral code, PIN status, address
+   - Returns formatted profile summary
+
+2. **`list_my_transactions`** -- optional parameters: `limit` (default 10, max 20), `type` filter (topup, transfer, payment, commission, etc.)
+   - Queries `transactions` table filtered by user_id
+   - Returns recent transactions with type, amount, description, date, status
+   - Ordered by most recent first
+
+3. **`get_referral_info`** -- no parameters
+   - Queries `referral_tree` where ancestor_id = user to count direct referrals (tier 1) and total network
+   - Queries `transactions` where type = 'commission' to sum total commission earned
+   - Returns referral code, direct referral count, total network size, total commission earned
+
+**System prompt update:**
+- Add a section explaining that the AI can look up account info, transaction history, and referral stats
+- Mention available query capabilities so the AI knows when to call each tool
+
+### No Frontend or Database Changes Needed
+All data comes from existing tables (`profiles`, `transactions`, `referral_tree`) using the service role client.
 
 ## Technical Details
 
-### New Tool Definition
+### get_my_profile Response
 ```text
-transfer_money(email, amount)
-- email: Recipient's email address
-- amount: Amount in RM to transfer
+{
+  name: "Ahmad bin Ali",
+  phone: "0123456789",
+  referral_code: "ABC12345",
+  has_pin: true,
+  address: "Kuala Lumpur"
+}
 ```
 
-### Tool Execution Flow
+### list_my_transactions Response
 ```text
-User: "transfer 10 to beforeb76@gmail.com"
-    |
-    v
-AI calls: transfer_money(email="beforeb76@gmail.com", amount=10)
-    |
-    v
-Edge function:
-  1. Check user is logged in
-  2. Look up email in auth.users -> get user_id
-  3. If not found -> return error "No user found with that email"
-  4. If same as sender -> return error "Cannot transfer to yourself"  
-  5. Check amount < min_pin_amount (default RM100)
-     - If >= threshold -> return "Please use the Transfer page for amounts RM100+"
-  6. Call process-transfer with sender's token, recipient_user_id, amount
-  7. Return result (success + new balance, or error)
-    |
-    v
-AI responds: "Done! RM10.00 has been transferred to beforeb76@gmail.com. Your new balance is RM XX.XX."
+{
+  transactions: [
+    { type: "topup", amount: "RM 50.00", description: "Top up via FPX", date: "22/2/2026", status: "completed" },
+    { type: "transfer_out", amount: "RM 10.00", description: "Transfer to user@email.com", date: "21/2/2026", status: "completed" }
+  ],
+  count: 2
+}
 ```
 
-### Error Messages
-| Scenario | Message |
-|----------|---------|
-| Not logged in | "You need to be logged in to make transfers." |
-| Email not found | "No NoCap user found with email beforeb76@gmail.com." |
-| Self-transfer | "You cannot transfer to yourself." |
-| Amount too high (needs PIN) | "For transfers of RM100 and above, please use the Transfer page where you can enter your PIN securely." |
-| Insufficient balance | "Insufficient balance for this transfer." |
-| Success | Returns new balance and transaction ID |
+### get_referral_info Response
+```text
+{
+  referral_code: "ABC12345",
+  direct_referrals: 5,
+  total_network: 12,
+  total_commission_earned: "RM 45.50"
+}
+```
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/functions/ai-help-chat/index.ts` | Add `transfer_money` tool + execution logic + updated system prompt |
+| `supabase/functions/ai-help-chat/index.ts` | Add 3 new tools (get_my_profile, list_my_transactions, get_referral_info) + updated system prompt |
 
