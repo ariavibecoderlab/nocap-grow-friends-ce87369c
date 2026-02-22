@@ -40,7 +40,7 @@ import {
   Wallet,
 } from "lucide-react";
 
-const MerchantChatTab = ({ branchId, onUnreadCount }: { branchId: string; onUnreadCount?: (count: number) => void }) => {
+const MerchantChatTab = ({ branchId }: { branchId: string }) => {
   const [storeId, setStoreId] = useState<string | null>(null);
   useEffect(() => {
     supabase
@@ -50,36 +50,6 @@ const MerchantChatTab = ({ branchId, onUnreadCount }: { branchId: string; onUnre
       .maybeSingle()
       .then(({ data }) => setStoreId(data?.id || null));
   }, [branchId]);
-
-  // Count unread buyer messages for this store
-  useEffect(() => {
-    if (!storeId || !onUnreadCount) return;
-    const fetchUnread = async () => {
-      const { count } = await supabase
-        .from("marketplace_chat_messages")
-        .select("id", { count: "exact", head: true })
-        .eq("store_id", storeId)
-        .eq("sender_type", "buyer");
-      onUnreadCount(count || 0);
-    };
-    fetchUnread();
-
-    // Listen for new buyer messages and refetch count
-    const channel = supabase
-      .channel(`chat-unread-${storeId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "marketplace_chat_messages", filter: `store_id=eq.${storeId}` },
-        (payload) => {
-          if ((payload.new as any).sender_type === "buyer") {
-            fetchUnread();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [storeId, onUnreadCount]);
 
   if (!storeId) return <div className="text-center text-white/40 py-12 text-sm">No store found for this branch. Create a store in the Shop tab first.</div>;
   return <MerchantChat storeId={storeId} />;
@@ -234,6 +204,47 @@ const MerchantDashboard = () => {
   useEffect(() => {
     fetchDynamicQrs();
   }, [fetchDynamicQrs]);
+
+  // Eager load chat unread count at dashboard level
+  useEffect(() => {
+    if (!selectedBranch) return;
+    let storeIdLocal: string | null = null;
+
+    const loadUnread = async () => {
+      const { data: store } = await supabase
+        .from("marketplace_stores")
+        .select("id")
+        .eq("branch_id", selectedBranch.id)
+        .maybeSingle();
+      storeIdLocal = store?.id || null;
+      if (!storeIdLocal) return;
+
+      const { count } = await supabase
+        .from("marketplace_chat_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("store_id", storeIdLocal)
+        .eq("sender_type", "buyer");
+      setChatUnread(count || 0);
+    };
+    loadUnread();
+
+    // Realtime listener for new buyer messages
+    const channel = supabase
+      .channel(`chat-unread-eager-${selectedBranch.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "marketplace_chat_messages" },
+        (payload) => {
+          const msg = payload.new as any;
+          if (msg.sender_type === "buyer" && storeIdLocal && msg.store_id === storeIdLocal) {
+            setChatUnread((c) => c + 1);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedBranch]);
 
   // Realtime payment tracking
   useEffect(() => {
@@ -668,7 +679,7 @@ const MerchantDashboard = () => {
             </TabsContent>
 
             <TabsContent value="chat" className="mt-4">
-              <MerchantChatTab branchId={selectedBranch.id} onUnreadCount={setChatUnread} />
+              <MerchantChatTab branchId={selectedBranch.id} />
             </TabsContent>
 
             <TabsContent value="txns" className="mt-4">
