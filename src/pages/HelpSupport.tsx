@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageCircle, Mail, Phone } from "lucide-react";
+import { ArrowLeft, MessageCircle, Mail, Phone, Bot, Sparkles } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import NocapLogo from "@/components/NocapLogo";
+import AiHelpChat from "@/components/AiHelpChat";
 
 const HelpSupport = () => {
   const navigate = useNavigate();
+  const [showChat, setShowChat] = useState(false);
 
   const faqs = [
     { q: "How do I top up my wallet?", a: "Go to Dashboard → Top Up, enter the amount and complete the payment via our payment gateway. Your balance will be updated once the payment is confirmed." },
@@ -32,6 +35,25 @@ const HelpSupport = () => {
       </div>
 
       <div className="mx-auto max-w-md px-4 space-y-4">
+        {/* AI Assistant Card */}
+        <Card className="border-secondary/30 bg-secondary/10 cursor-pointer hover:bg-secondary/15 transition-colors" onClick={() => setShowChat(true)}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
+              <Bot className="h-5 w-5 text-secondary" />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-display text-sm font-semibold text-white flex items-center gap-1.5">
+                Chat with AI Assistant
+                <Sparkles className="h-3.5 w-3.5 text-secondary" />
+              </h2>
+              <p className="text-[10px] text-white/50">Get instant answers about NoCap, orders, products & more</p>
+            </div>
+            <MessageCircle className="h-4 w-4 text-secondary shrink-0" />
+          </CardContent>
+        </Card>
+
+        {showChat && <AiHelpChat defaultOpen />}
+
         {/* Contact */}
         <Card className="border-white/10 bg-white/5">
           <CardContent className="p-5 space-y-3">

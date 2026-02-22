@@ -1,0 +1,406 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const SYSTEM_PROMPT = `You are NoCap AI Assistant — a friendly, helpful chatbot for the NoCap digital wallet and marketplace app. You help members and merchants with questions about the app. Keep answers concise, clear, and friendly. Use RM (Malaysian Ringgit) for currency. Use markdown for formatting when helpful.
+
+## About NoCap
+NoCap is a digital wallet app in Malaysia that lets users:
+- **Top Up**: Add money to their wallet via online payment gateway (RaudhahPay)
+- **Transfer**: Send money to other NoCap users using their phone number or referral code
+- **QR Pay**: Pay merchants by scanning their QR code
+- **Marketplace**: Browse and buy products from merchant stores
+
+## Wallet Features
+- Users have a digital wallet with a balance in RM
+- Top up via online banking (FPX) through RaudhahPay
+- Minimum top-up: RM 10
+- Transfer to other users instantly
+- Every payment to merchants earns automatic cashback based on the merchant's commission rate
+
+## Transaction PIN
+- Users must set a 6-digit PIN for transactions (transfers, payments)
+- PIN can be set from Profile → Set PIN
+- If PIN is forgotten, use Profile → Reset PIN (requires email OTP verification)
+- PIN is locked after 3 failed attempts for 30 minutes
+
+## Referral System
+- Every user gets a unique referral code
+- Share your code → friends sign up → you earn commission when they transact
+- Commission tiers: Tier 1 (direct referral) earns the most, up to Tier 5
+- Commission rates are set by the admin
+
+## Merchant Features
+- Apply to become a merchant from the app
+- Once approved, manage branches, set commission rates
+- Each branch gets a unique QR code for receiving payments
+- View transactions, analytics, and settlement reports
+- Request withdrawals to bank account
+- Create and manage marketplace stores
+
+## Marketplace
+- Merchants can create online stores with products
+- Buyers browse stores, add items to cart, and checkout
+- Payment methods: NoCap Wallet or Online Payment
+- Order lifecycle: Pending → Confirmed → Processing → Shipped → Delivered
+- Buyers can track orders from "My Orders"
+- Buyers can leave reviews and ratings after delivery
+- Merchants can set shipping rates, free shipping thresholds, and discount codes
+
+## Order Status Meanings
+- **Pending**: Order placed, awaiting merchant confirmation
+- **Confirmed**: Merchant accepted the order
+- **Processing**: Order is being prepared
+- **Shipped**: Order dispatched, tracking number may be available
+- **Delivered**: Order received by buyer
+- **Cancelled**: Order was cancelled
+
+## Common Troubleshooting
+- "Payment failed" → Check wallet balance, ensure PIN is correct
+- "Can't find a store" → Store may be in draft mode (not yet live)
+- "Order not received" → Check order status, contact merchant via store WhatsApp
+- "Forgot PIN" → Go to Profile → Reset PIN
+
+## For Merchants
+- Add products via Merchant Dashboard → Marketplace tab
+- Process orders: Confirm → Process → Ship (add tracking) → mark Delivered
+- View sales analytics and settlement reports
+- Set up API apps for integration with external systems
+- Manage branch owners and store managers
+
+## Important Notes
+- You can ONLY help with NoCap-related questions
+- If asked about unrelated topics, politely redirect to NoCap help
+- If unsure, suggest contacting support@nocap.my
+- You have tools to search products, check order status, and browse stores — use them when relevant
+- When showing product results, include name, price, and store name
+- When showing order results, include order number, status, total, and date`;
+
+const tools = [
+  {
+    type: "function",
+    function: {
+      name: "search_products",
+      description:
+        "Search marketplace products by keyword, category, or price range. Use when users ask about available products or want to find something specific.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "Search keyword for product name or description",
+          },
+          max_price: {
+            type: "number",
+            description: "Maximum price filter in RM",
+          },
+          category: {
+            type: "string",
+            description: "Category name to filter by",
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "check_order_status",
+      description:
+        "Check the status of a specific order by order number. Only works for the authenticated user's own orders.",
+      parameters: {
+        type: "object",
+        properties: {
+          order_number: {
+            type: "string",
+            description: "The order number (e.g. NC-xxxx)",
+          },
+        },
+        required: ["order_number"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_my_orders",
+      description:
+        "List the authenticated user's recent orders. Use when user asks about their orders without specifying a number.",
+      parameters: {
+        type: "object",
+        properties: {},
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "browse_stores",
+      description:
+        "Browse available marketplace stores or search for a specific store.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "Search keyword for store name",
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+];
+
+async function executeToolCall(
+  toolName: string,
+  args: Record<string, unknown>,
+  userId: string | null
+) {
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  switch (toolName) {
+    case "search_products": {
+      let query = supabaseAdmin
+        .from("marketplace_products")
+        .select("id, name, price, description, images, store_id, marketplace_stores(store_name, slug)")
+        .eq("status", "active")
+        .limit(10);
+
+      if (args.query) {
+        query = query.or(
+          `name.ilike.%${args.query}%,description.ilike.%${args.query}%`
+        );
+      }
+      if (args.max_price) {
+        query = query.lte("price", args.max_price);
+      }
+      const { data, error } = await query.order("is_featured", { ascending: false });
+      if (error) return { error: error.message };
+      return {
+        products: (data || []).map((p: any) => ({
+          name: p.name,
+          price: `RM ${Number(p.price).toFixed(2)}`,
+          description: p.description?.slice(0, 100),
+          store: p.marketplace_stores?.store_name,
+          store_slug: p.marketplace_stores?.slug,
+        })),
+        count: data?.length || 0,
+      };
+    }
+
+    case "check_order_status": {
+      if (!userId) return { error: "You need to be logged in to check orders." };
+      const { data, error } = await supabaseAdmin
+        .from("marketplace_orders")
+        .select("order_number, status, payment_status, total_amount, created_at, tracking_number, marketplace_stores(store_name)")
+        .eq("buyer_user_id", userId)
+        .eq("order_number", args.order_number)
+        .single();
+      if (error) return { error: "Order not found or you don't have access." };
+      return {
+        order_number: data.order_number,
+        status: data.status,
+        payment_status: data.payment_status,
+        total: `RM ${Number(data.total_amount).toFixed(2)}`,
+        date: new Date(data.created_at).toLocaleDateString("en-MY"),
+        tracking: data.tracking_number,
+        store: (data as any).marketplace_stores?.store_name,
+      };
+    }
+
+    case "list_my_orders": {
+      if (!userId) return { error: "You need to be logged in to view orders." };
+      const { data, error } = await supabaseAdmin
+        .from("marketplace_orders")
+        .select("order_number, status, total_amount, created_at, marketplace_stores(store_name)")
+        .eq("buyer_user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) return { error: error.message };
+      return {
+        orders: (data || []).map((o: any) => ({
+          order_number: o.order_number,
+          status: o.status,
+          total: `RM ${Number(o.total_amount).toFixed(2)}`,
+          date: new Date(o.created_at).toLocaleDateString("en-MY"),
+          store: o.marketplace_stores?.store_name,
+        })),
+        count: data?.length || 0,
+      };
+    }
+
+    case "browse_stores": {
+      let query = supabaseAdmin
+        .from("marketplace_stores")
+        .select("store_name, slug, description, tagline")
+        .eq("status", "live")
+        .limit(10);
+      if (args.query) {
+        query = query.ilike("store_name", `%${args.query}%`);
+      }
+      const { data, error } = await query;
+      if (error) return { error: error.message };
+      return {
+        stores: (data || []).map((s: any) => ({
+          name: s.store_name,
+          slug: s.slug,
+          description: s.description?.slice(0, 100),
+          tagline: s.tagline,
+        })),
+        count: data?.length || 0,
+      };
+    }
+
+    default:
+      return { error: "Unknown tool" };
+  }
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { messages } = await req.json();
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Extract user ID from auth header if present
+    let userId: string | null = null;
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const supabase = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        const token = authHeader.replace("Bearer ", "");
+        const { data } = await supabase.auth.getUser(token);
+        userId = data?.user?.id || null;
+      } catch {
+        // Not authenticated — that's fine, tools will return appropriate messages
+      }
+    }
+
+    const aiMessages = [
+      { role: "system", content: SYSTEM_PROMPT },
+      ...messages,
+    ];
+
+    // First call — may return tool_calls
+    const firstResponse = await fetch(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: aiMessages,
+          tools,
+          stream: false,
+        }),
+      }
+    );
+
+    if (!firstResponse.ok) {
+      const status = firstResponse.status;
+      if (status === 429) {
+        return new Response(
+          JSON.stringify({ error: "I'm receiving too many requests right now. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (status === 402) {
+        return new Response(
+          JSON.stringify({ error: "AI service credits exhausted. Please try again later." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const t = await firstResponse.text();
+      console.error("AI gateway error:", status, t);
+      return new Response(
+        JSON.stringify({ error: "AI service error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const firstData = await firstResponse.json();
+    const choice = firstData.choices?.[0];
+
+    // If no tool calls, stream the final response
+    if (!choice?.message?.tool_calls?.length) {
+      // Return non-streamed response
+      return new Response(
+        JSON.stringify({ reply: choice?.message?.content || "I'm not sure how to help with that." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Execute tool calls
+    const toolMessages = [];
+    for (const tc of choice.message.tool_calls) {
+      const args = typeof tc.function.arguments === "string"
+        ? JSON.parse(tc.function.arguments)
+        : tc.function.arguments;
+      const result = await executeToolCall(tc.function.name, args, userId);
+      toolMessages.push({
+        role: "tool",
+        tool_call_id: tc.id,
+        content: JSON.stringify(result),
+      });
+    }
+
+    // Second call with tool results — stream this one
+    const secondResponse = await fetch(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [...aiMessages, choice.message, ...toolMessages],
+          stream: true,
+        }),
+      }
+    );
+
+    if (!secondResponse.ok) {
+      const t = await secondResponse.text();
+      console.error("AI second call error:", secondResponse.status, t);
+      return new Response(
+        JSON.stringify({ error: "AI service error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    return new Response(secondResponse.body, {
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    });
+  } catch (e) {
+    console.error("ai-help-chat error:", e);
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
