@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageCircle, X, Send, Bot, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Bot, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -238,6 +238,17 @@ const AiHelpChat = ({ defaultOpen = false }: AiHelpChatProps) => {
             <h3 className="text-sm font-semibold text-white">NoCap AI Assistant</h3>
             <p className="text-[10px] text-white/40">Ask me anything about NoCap</p>
           </div>
+          {messages.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white/50 hover:text-white hover:bg-white/10 h-8 w-8"
+              onClick={() => { setMessages([]); setInput(""); }}
+              title="New Chat"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="text-white/50 hover:text-white hover:bg-white/10 h-8 w-8" onClick={() => setIsOpen(false)}>
             <X className="h-4 w-4" />
           </Button>
@@ -282,8 +293,10 @@ const AiHelpChat = ({ defaultOpen = false }: AiHelpChatProps) => {
 
           {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
             <div className="flex justify-start">
-              <div className="bg-white/5 rounded-2xl rounded-bl-sm px-3 py-2">
-                <Loader2 className="h-4 w-4 text-white/40 animate-spin" />
+              <div className="bg-white/5 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-white/40 animate-[bounce_1.4s_ease-in-out_infinite]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-white/40 animate-[bounce_1.4s_ease-in-out_0.2s_infinite]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-white/40 animate-[bounce_1.4s_ease-in-out_0.4s_infinite]" />
               </div>
             </div>
           )}
