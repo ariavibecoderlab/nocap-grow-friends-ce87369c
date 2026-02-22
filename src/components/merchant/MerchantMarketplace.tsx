@@ -12,10 +12,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
 import MerchantOrderDetail from "@/components/merchant/MerchantOrderDetail";
-import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star } from "lucide-react";
+import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star, Printer } from "lucide-react";
 import MerchantReviews from "@/components/merchant/MerchantReviews";
 import { Json } from "@/integrations/supabase/types";
 import { compressImage } from "@/lib/compressImage";
+import { generateBulkSalesOrderPdf, type SalesOrderData } from "@/lib/generateSalesOrderPdf";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface StoreData {
   id: string;
@@ -111,6 +113,8 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
   // Order update
   const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
+  const [bulkPrinting, setBulkPrinting] = useState(false);
 
   // Discount dialog
   const [showDiscount, setShowDiscount] = useState(false);
@@ -365,6 +369,86 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
     if (store) await fetchOrders(store.id);
     toast({ title: `Order ${newStatus}` });
     setUpdatingOrder(null);
+  };
+
+  const toggleOrderSelection = (orderId: string) => {
+    setSelectedOrderIds(prev => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  };
+
+  const toggleSelectAllOrders = () => {
+    if (selectedOrderIds.size === orders.length) {
+      setSelectedOrderIds(new Set());
+    } else {
+      setSelectedOrderIds(new Set(orders.map(o => o.id)));
+    }
+  };
+
+  const bulkPrintOrders = async () => {
+    if (!store || selectedOrderIds.size === 0) return;
+    setBulkPrinting(true);
+    try {
+      // Fetch full order details + items for selected orders
+      const ids = Array.from(selectedOrderIds);
+      const [ordersRes, itemsRes, storeRes] = await Promise.all([
+        supabase
+          .from("marketplace_orders")
+          .select("id, order_number, status, buyer_name, buyer_email, buyer_phone, shipping_address, notes, subtotal, shipping_fee, total_amount, tracking_number, created_at")
+          .in("id", ids),
+        supabase
+          .from("marketplace_order_items")
+          .select("order_id, product_name, quantity, unit_price, subtotal")
+          .in("order_id", ids),
+        supabase
+          .from("marketplace_stores")
+          .select("store_name, logo_url")
+          .eq("id", store.id)
+          .single(),
+      ]);
+
+      if (!ordersRes.data || !storeRes.data) throw new Error("Failed to fetch data");
+
+      const itemsByOrder = new Map<string, typeof itemsRes.data>();
+      for (const item of (itemsRes.data || [])) {
+        const arr = itemsByOrder.get(item.order_id) || [];
+        arr.push(item);
+        itemsByOrder.set(item.order_id, arr);
+      }
+
+      const salesOrders: SalesOrderData[] = ordersRes.data.map(o => ({
+        storeName: storeRes.data.store_name,
+        logoUrl: storeRes.data.logo_url,
+        orderNumber: o.order_number,
+        orderDate: o.created_at,
+        status: o.status,
+        buyerName: o.buyer_name,
+        buyerEmail: o.buyer_email,
+        buyerPhone: o.buyer_phone,
+        shippingAddress: o.shipping_address,
+        notes: o.notes,
+        items: (itemsByOrder.get(o.id) || []).map(i => ({
+          productName: i.product_name,
+          quantity: i.quantity,
+          unitPrice: i.unit_price,
+          subtotal: i.subtotal,
+        })),
+        subtotal: o.subtotal,
+        shippingFee: o.shipping_fee,
+        totalAmount: o.total_amount,
+        trackingNumber: o.tracking_number,
+      }));
+
+      await generateBulkSalesOrderPdf(salesOrders);
+      toast({ title: `${salesOrders.length} sales order(s) downloaded` });
+      setSelectedOrderIds(new Set());
+    } catch {
+      toast({ title: "Failed to generate PDF", variant: "destructive" });
+    }
+    setBulkPrinting(false);
   };
 
   const saveDiscount = async () => {
@@ -675,23 +759,59 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
               </CardContent>
             </Card>
           ) : (
-            orders.map(o => (
-              <Card key={o.id} className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/[0.07] transition-colors"
-                onClick={() => setSelectedOrderId(o.id)}>
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-white">#{o.order_number}</p>
-                      <p className="text-[10px] text-white/40">{o.buyer_name} · {new Date(o.created_at).toLocaleDateString("en-MY", { day: "numeric", month: "short" })}</p>
+            <>
+              {/* Bulk actions bar */}
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={selectedOrderIds.size === orders.length && orders.length > 0}
+                    onCheckedChange={toggleSelectAllOrders}
+                  />
+                  <span className="text-xs text-white/50">
+                    {selectedOrderIds.size > 0
+                      ? `${selectedOrderIds.size} selected`
+                      : "Select all"}
+                  </span>
+                </label>
+                {selectedOrderIds.size > 0 && (
+                  <Button
+                    size="sm"
+                    className="bg-secondary text-primary text-xs h-8"
+                    onClick={bulkPrintOrders}
+                    disabled={bulkPrinting}
+                  >
+                    {bulkPrinting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Printer className="h-3.5 w-3.5 mr-1" />}
+                    Print {selectedOrderIds.size} Order{selectedOrderIds.size > 1 ? "s" : ""}
+                  </Button>
+                )}
+              </div>
+              {orders.map(o => (
+                <Card key={o.id} className="border-white/10 bg-white/5 hover:bg-white/[0.07] transition-colors">
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={selectedOrderIds.has(o.id)}
+                        onCheckedChange={() => toggleOrderSelection(o.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div
+                        className="flex items-center justify-between flex-1 cursor-pointer"
+                        onClick={() => setSelectedOrderId(o.id)}
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-white">#{o.order_number}</p>
+                          <p className="text-[10px] text-white/40">{o.buyer_name} · {new Date(o.created_at).toLocaleDateString("en-MY", { day: "numeric", month: "short" })}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-white">RM {o.total_amount.toFixed(2)}</p>
+                          <OrderStatusBadge status={o.status} />
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-white">RM {o.total_amount.toFixed(2)}</p>
-                      <OrderStatusBadge status={o.status} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              ))}
+            </>
           )}
         </TabsContent>
 
