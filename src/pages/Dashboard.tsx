@@ -66,6 +66,7 @@ const Dashboard = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const [isMerchant, setIsMerchant] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -78,13 +79,14 @@ const Dashboard = () => {
 
     const fetchData = async () => {
       setLoadingData(true);
-      const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes] = await Promise.all([
+      const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes, merchantRoleRes] = await Promise.all([
         supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
         supabase.from("profiles").select("full_name, phone, referral_code, avatar_url, address, has_pin").eq("user_id", user.id).maybeSingle(),
         supabase.from("referral_tree").select("id").eq("ancestor_id", user.id).eq("tier", 1),
         supabase.from("referral_tree").select("id").eq("ancestor_id", user.id),
         supabase.from("transactions").select("amount, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed"),
-        supabase.from("transactions").select("id, type, amount, status, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5)
+        supabase.from("transactions").select("id, type, amount, status, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
+        supabase.from("user_roles").select("id").eq("user_id", user.id).eq("role", "merchant").maybeSingle()
       ]);
 
       if (walletRes.data) setBalance(Number(walletRes.data.balance));
@@ -96,6 +98,7 @@ const Dashboard = () => {
         setCommissionEarnings(earningsRes.data.filter(t => t.type === 'commission').reduce((sum, t) => sum + Number(t.amount), 0));
       }
       if (txRes.data) setTransactions(txRes.data as Transaction[]);
+      setIsMerchant(!!merchantRoleRes.data);
       setLoadingData(false);
     };
 
@@ -303,16 +306,16 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Become a Merchant */}
-        <Card className="mt-4 border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate("/merchant/register")}>
+        {/* Merchant CTA */}
+        <Card className="mt-4 border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate(isMerchant ? "/merchant" : "/merchant/register")}>
           <CardContent className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/20">
                 <Store className="h-5 w-5 text-secondary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Become a Merchant</p>
-                <p className="text-[10px] text-white/40">Start accepting payments for your business</p>
+                <p className="text-sm font-semibold text-white">{isMerchant ? "Merchant Dashboard" : "Become a Merchant"}</p>
+                <p className="text-[10px] text-white/40">{isMerchant ? "Manage your business and orders" : "Start accepting payments for your business"}</p>
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-white/30" />
