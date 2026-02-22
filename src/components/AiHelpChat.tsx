@@ -191,9 +191,15 @@ const AiHelpChat = ({ defaultOpen = false }: AiHelpChatProps) => {
           setMessages((prev) => [...prev, { role: "assistant", content: "I couldn't generate a response. Please try again." }]);
         }
       } else {
-        // Non-streaming JSON response
+      // Non-streaming JSON response
         const data = await resp.json();
         setMessages((prev) => [...prev, { role: "assistant", content: data.reply || "I'm not sure how to help with that." }]);
+      }
+
+      // If the user asked to update profile, dispatch event so pages refresh
+      const lastUserMsg = text.toLowerCase();
+      if (lastUserMsg.includes("update") || lastUserMsg.includes("change") || lastUserMsg.includes("set my") || lastUserMsg.includes("tukar") || lastUserMsg.includes("kemaskini")) {
+        window.dispatchEvent(new Event("profile-updated"));
       }
     } catch (e) {
       console.error("Chat error:", e);

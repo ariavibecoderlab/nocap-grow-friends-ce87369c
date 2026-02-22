@@ -74,35 +74,35 @@ const Dashboard = () => {
     }
   }, [user, authLoading, navigate]);
 
+  const fetchDashboardData = async () => {
+    if (!user) return;
+    setLoadingData(true);
+    const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes, merchantRoleRes] = await Promise.all([
+      supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
+      supabase.from("profiles").select("full_name, phone, referral_code, avatar_url, address, has_pin").eq("user_id", user.id).maybeSingle(),
+      supabase.from("referral_tree").select("id").eq("ancestor_id", user.id).eq("tier", 1),
+      supabase.from("referral_tree").select("id").eq("ancestor_id", user.id),
+      supabase.from("transactions").select("amount, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed"),
+      supabase.from("transactions").select("id, type, amount, status, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
+      supabase.from("user_roles").select("id").eq("user_id", user.id).eq("role", "merchant").maybeSingle()
+    ]);
+
+    if (walletRes.data) setBalance(Number(walletRes.data.balance));
+    if (profileRes.data) setProfile(profileRes.data);
+    if (directReferrals.data) setReferralCount(directReferrals.data.length);
+    if (allReferrals.data) setNetworkCount(allReferrals.data.length);
+    if (earningsRes.data) {
+      setCashbackEarnings(earningsRes.data.filter(t => t.type === 'cashback').reduce((sum, t) => sum + Number(t.amount), 0));
+      setCommissionEarnings(earningsRes.data.filter(t => t.type === 'commission').reduce((sum, t) => sum + Number(t.amount), 0));
+    }
+    if (txRes.data) setTransactions(txRes.data as Transaction[]);
+    setIsMerchant(!!merchantRoleRes.data);
+    setLoadingData(false);
+  };
+
   useEffect(() => {
     if (!user) return;
-
-    const fetchData = async () => {
-      setLoadingData(true);
-      const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes, merchantRoleRes] = await Promise.all([
-        supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
-        supabase.from("profiles").select("full_name, phone, referral_code, avatar_url, address, has_pin").eq("user_id", user.id).maybeSingle(),
-        supabase.from("referral_tree").select("id").eq("ancestor_id", user.id).eq("tier", 1),
-        supabase.from("referral_tree").select("id").eq("ancestor_id", user.id),
-        supabase.from("transactions").select("amount, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed"),
-        supabase.from("transactions").select("id, type, amount, status, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
-        supabase.from("user_roles").select("id").eq("user_id", user.id).eq("role", "merchant").maybeSingle()
-      ]);
-
-      if (walletRes.data) setBalance(Number(walletRes.data.balance));
-      if (profileRes.data) setProfile(profileRes.data);
-      if (directReferrals.data) setReferralCount(directReferrals.data.length);
-      if (allReferrals.data) setNetworkCount(allReferrals.data.length);
-      if (earningsRes.data) {
-        setCashbackEarnings(earningsRes.data.filter(t => t.type === 'cashback').reduce((sum, t) => sum + Number(t.amount), 0));
-        setCommissionEarnings(earningsRes.data.filter(t => t.type === 'commission').reduce((sum, t) => sum + Number(t.amount), 0));
-      }
-      if (txRes.data) setTransactions(txRes.data as Transaction[]);
-      setIsMerchant(!!merchantRoleRes.data);
-      setLoadingData(false);
-    };
-
-    fetchData();
+    fetchDashboardData();
 
     // Realtime: auto-refresh wallet balance & transactions on changes
     const walletChannel = supabase
@@ -135,8 +135,13 @@ const Dashboard = () => {
       )
       .subscribe();
 
+    // Listen for profile updates from AI chat
+    const handleProfileUpdated = () => fetchDashboardData();
+    window.addEventListener("profile-updated", handleProfileUpdated);
+
     return () => {
       supabase.removeChannel(walletChannel);
+      window.removeEventListener("profile-updated", handleProfileUpdated);
     };
   }, [user]);
 
