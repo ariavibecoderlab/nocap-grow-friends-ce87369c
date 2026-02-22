@@ -155,7 +155,7 @@ const MerchantTransactions = ({ userId, branchId }: MerchantTransactionsProps) =
               onSelect={setFromDate}
               disabled={(date) => date > new Date() || (toDate ? date > toDate : false)}
               initialFocus
-              className={cn("p-3 pointer-events-auto")}
+              className={cn("p-3 pointer-events-auto text-white [&_.rdp-day]:text-white [&_.rdp-head_cell]:text-white/50 [&_.rdp-caption_label]:text-white [&_.rdp-nav_button]:text-white/50 [&_.rdp-nav_button:hover]:text-white [&_.rdp-day_outside]:text-white/30 [&_.rdp-day_disabled]:text-white/20")}
             />
           </PopoverContent>
         </Popover>
@@ -174,7 +174,7 @@ const MerchantTransactions = ({ userId, branchId }: MerchantTransactionsProps) =
               onSelect={setToDate}
               disabled={(date) => date > new Date() || (fromDate ? date < fromDate : false)}
               initialFocus
-              className={cn("p-3 pointer-events-auto")}
+              className={cn("p-3 pointer-events-auto text-white [&_.rdp-day]:text-white [&_.rdp-head_cell]:text-white/50 [&_.rdp-caption_label]:text-white [&_.rdp-nav_button]:text-white/50 [&_.rdp-nav_button:hover]:text-white [&_.rdp-day_outside]:text-white/30 [&_.rdp-day_disabled]:text-white/20")}
             />
           </PopoverContent>
         </Popover>
