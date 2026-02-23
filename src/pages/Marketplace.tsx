@@ -71,6 +71,22 @@ const Marketplace = () => {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
+  // Set marketplace OG meta tags
+  useEffect(() => {
+    document.title = "NOcap Marketplace - Shop. Earn. Grow.";
+    const ogImage = document.querySelector('meta[property="og:image"]');
+    const twImage = document.querySelector('meta[name="twitter:image"]');
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    const twTitle = document.querySelector('meta[name="twitter:title"]');
+    if (ogImage) ogImage.setAttribute("content", "/og-marketplace.png");
+    if (twImage) twImage.setAttribute("content", "/og-marketplace.png");
+    if (ogTitle) ogTitle.setAttribute("content", "NOcap Marketplace - Shop. Earn. Grow.");
+    if (twTitle) twTitle.setAttribute("content", "NOcap Marketplace - Shop. Earn. Grow.");
+    return () => {
+      document.title = "NOcap - Malaysia 1st Affiliate Marketplace";
+    };
+  }, []);
+
   // Back to top scroll listener
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 400);
