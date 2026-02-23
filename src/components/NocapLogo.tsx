@@ -12,9 +12,9 @@ interface NocapLogoProps {
 }
 
 const sizeMap = {
-  sm: "h-14",
-  md: "h-20",
-  lg: "h-32",
+  sm: "h-[4.55rem]",
+  md: "h-[6.5rem]",
+  lg: "h-[10.4rem]",
 };
 
 const variantMap: Record<LogoVariant, string> = {
