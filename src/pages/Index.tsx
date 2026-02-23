@@ -59,7 +59,7 @@ const Index = () => {
         transition={{ duration: 0.5 }}
         className="flex items-center justify-between px-6 py-5 md:px-12">
 
-        <NocapLogo size="sm" />
+        <NocapLogo size="sm" variant="horizontal" />
         <Button
           variant="outline"
           className="border-secondary bg-transparent text-secondary hover:bg-secondary hover:text-primary"
@@ -324,7 +324,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="bg-primary px-6 py-10 text-center text-white/40 text-sm">
         <div className="flex flex-col items-center gap-3">
-          <NocapLogo size="sm" />
+          <NocapLogo size="sm" variant="stacked" />
           <p>© 2026 NOcap. All rights reserved.</p>
         </div>
       </footer>

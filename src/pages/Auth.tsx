@@ -233,7 +233,7 @@ const Auth = () => {
 
       <div className="relative z-10 w-full max-w-md">
         <div className="mb-8 flex flex-col items-center">
-          <NocapLogo size="lg" />
+          <NocapLogo size="lg" variant="stacked" />
           <p className="mt-2 text-sm text-white/60">Affiliate Cashback Platform</p>
         </div>
 

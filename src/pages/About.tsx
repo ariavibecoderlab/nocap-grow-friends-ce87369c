@@ -26,7 +26,7 @@ const About = () => {
         <Card className="border-white/10 bg-white/5">
           <CardContent className="p-5 space-y-4">
             <div className="flex items-center justify-center py-4">
-              <NocapLogo size="lg" />
+              <NocapLogo size="lg" variant="stacked" />
             </div>
             <p className="text-center text-xs text-white/40">Version 1.0.0</p>
           </CardContent>
