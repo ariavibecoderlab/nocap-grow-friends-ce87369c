@@ -111,6 +111,18 @@ Berikut adalah soalan yang sering ditanya pengguna dalam Bahasa Melayu. Gunakan 
 - **"Adakah NoCap selamat?"** → Ya, NoCap menggunakan PIN transaksi 6 digit dan pengesahan email untuk melindungi akaun anda.
 - **"Macam mana nak hubungi sokongan?"** → Anda boleh email ke support@nocap.my atau tanya saya di sini untuk bantuan segera.
 
+## Admin Features (for admin-role users only)
+If the user has admin privileges, you can help them with:
+- **View all users**: List registered users with their roles and wallet balances
+- **Manage user roles**: Grant or remove roles (member, merchant, branch, admin) for any user
+- **View all transactions**: See platform-wide transaction history with filters
+- **View pending merchant applications**: Check merchants awaiting approval
+- **Approve/reject merchants**: Process merchant applications
+- **View pending withdrawals**: Check withdrawal requests awaiting approval
+- **View platform stats**: Overall platform statistics (total users, transactions, revenue)
+
+When an admin asks about users, transactions, or approvals, use the admin tools. Always confirm destructive actions (role changes, approvals) before executing.
+
 ## Important Notes
 - You can ONLY help with NoCap-related questions
 - If asked about unrelated topics, politely redirect to NoCap help
@@ -302,6 +314,112 @@ const tools = [
             description: "New address (max 500 characters)",
           },
         },
+        additionalProperties: false,
+      },
+    },
+  },
+  // === Admin Tools ===
+  {
+    type: "function",
+    function: {
+      name: "admin_list_users",
+      description: "List all registered users with their roles and wallet balances. Admin only. Use when admin asks to see users, check a user's role, or find a user.",
+      parameters: {
+        type: "object",
+        properties: {
+          search: { type: "string", description: "Search by name, phone, or referral code" },
+          limit: { type: "number", description: "Number of users to return (default 20, max 50)" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "admin_update_role",
+      description: "Grant or remove a role for a user. Admin only. Roles: member, merchant, branch, admin. Always confirm with the admin before executing.",
+      parameters: {
+        type: "object",
+        properties: {
+          user_email: { type: "string", description: "Email of the user to update" },
+          role: { type: "string", description: "Role to grant or remove: member, merchant, branch, admin" },
+          action: { type: "string", description: "'grant' to add or 'remove' to remove the role" },
+        },
+        required: ["user_email", "role", "action"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "admin_list_transactions",
+      description: "List platform-wide transactions with optional filters. Admin only.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Number of transactions (default 20, max 50)" },
+          type: { type: "string", description: "Filter by type: top_up, payment, transfer_in, transfer_out, cashback, commission, withdrawal, refund" },
+          status: { type: "string", description: "Filter by status: pending, completed, failed, cancelled" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "admin_list_merchant_applications",
+      description: "List merchant applications, optionally filtered by status. Admin only.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "Filter by status: pending, approved, rejected (default: all)" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "admin_process_merchant",
+      description: "Approve or reject a pending merchant application. Admin only. Always confirm before executing.",
+      parameters: {
+        type: "object",
+        properties: {
+          application_id: { type: "string", description: "The merchant application ID" },
+          action: { type: "string", description: "'approve' or 'reject'" },
+          rejection_reason: { type: "string", description: "Reason for rejection (required if rejecting)" },
+        },
+        required: ["application_id", "action"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "admin_list_withdrawals",
+      description: "List withdrawal requests, optionally filtered by status. Admin only.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "Filter by status: pending, approved, rejected (default: all)" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "admin_platform_stats",
+      description: "Get overall platform statistics: total users, total transactions, revenue, etc. Admin only.",
+      parameters: {
+        type: "object",
+        properties: {},
         additionalProperties: false,
       },
     },
@@ -608,6 +726,195 @@ async function executeToolCall(
         message: `RM${amount.toFixed(2)} has been transferred to ${recipientEmail}.`,
         new_balance: transferResult.new_balance != null ? `RM ${Number(transferResult.new_balance).toFixed(2)}` : undefined,
         transaction_id: transferResult.transaction_id,
+      };
+    }
+
+    // === Admin Tools ===
+    case "admin_list_users": {
+      if (!userId) return { error: "You need to be logged in." };
+      const { data: adminCheck } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+      if (!adminCheck) return { error: "You do not have admin privileges." };
+
+      const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 50);
+      let profileQuery = supabaseAdmin.from("profiles").select("user_id, full_name, phone, referral_code").limit(limit);
+      if (args.search) {
+        profileQuery = profileQuery.or(`full_name.ilike.%${args.search}%,phone.ilike.%${args.search}%,referral_code.ilike.%${args.search}%`);
+      }
+      const { data: profiles, error: pErr } = await profileQuery;
+      if (pErr) return { error: pErr.message };
+
+      const userIds = (profiles || []).map((p: any) => p.user_id);
+      const { data: roles } = await supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", userIds);
+      const { data: wallets } = await supabaseAdmin.from("wallets").select("user_id, balance").in("user_id", userIds);
+
+      const { data: allAuthUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+      const emailMap: Record<string, string> = {};
+      allAuthUsers?.users?.forEach((u: any) => { emailMap[u.id] = u.email || ""; });
+
+      return {
+        users: (profiles || []).map((p: any) => ({
+          name: p.full_name || "No name",
+          email: emailMap[p.user_id] || "—",
+          phone: p.phone || "—",
+          referral_code: p.referral_code,
+          roles: (roles || []).filter((r: any) => r.user_id === p.user_id).map((r: any) => r.role),
+          balance: `RM ${Number((wallets || []).find((w: any) => w.user_id === p.user_id)?.balance || 0).toFixed(2)}`,
+        })),
+        count: profiles?.length || 0,
+      };
+    }
+
+    case "admin_update_role": {
+      if (!userId) return { error: "You need to be logged in." };
+      const { data: adminCheck } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+      if (!adminCheck) return { error: "You do not have admin privileges." };
+
+      const email = String(args.user_email || "").trim().toLowerCase();
+      const role = String(args.role || "").trim();
+      const action = String(args.action || "").trim();
+
+      if (!["member", "merchant", "branch", "admin"].includes(role)) return { error: "Invalid role." };
+      if (!["grant", "remove"].includes(action)) return { error: "Action must be 'grant' or 'remove'." };
+
+      const { data: allUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+      const targetUser = allUsers?.users?.find((u: any) => u.email?.toLowerCase() === email);
+      if (!targetUser) return { error: `No user found with email ${email}.` };
+
+      if (action === "grant") {
+        const { error } = await supabaseAdmin.from("user_roles").insert({ user_id: targetUser.id, role }).select();
+        if (error?.code === "23505") return { message: `User already has the '${role}' role.` };
+        if (error) return { error: error.message };
+        return { success: true, message: `Granted '${role}' role to ${email}.` };
+      } else {
+        const { error } = await supabaseAdmin.from("user_roles").delete().eq("user_id", targetUser.id).eq("role", role);
+        if (error) return { error: error.message };
+        return { success: true, message: `Removed '${role}' role from ${email}.` };
+      }
+    }
+
+    case "admin_list_transactions": {
+      if (!userId) return { error: "You need to be logged in." };
+      const { data: adminCheck } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+      if (!adminCheck) return { error: "You do not have admin privileges." };
+
+      const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 50);
+      let query = supabaseAdmin.from("transactions").select("type, amount, description, created_at, status, user_id").order("created_at", { ascending: false }).limit(limit);
+      if (args.type) query = query.eq("type", args.type);
+      if (args.status) query = query.eq("status", args.status);
+      const { data, error } = await query;
+      if (error) return { error: error.message };
+      return {
+        transactions: (data || []).map((t: any) => ({
+          type: t.type,
+          amount: `RM ${Number(t.amount).toFixed(2)}`,
+          description: t.description || "-",
+          date: new Date(t.created_at).toLocaleDateString("en-MY"),
+          status: t.status,
+        })),
+        count: data?.length || 0,
+      };
+    }
+
+    case "admin_list_merchant_applications": {
+      if (!userId) return { error: "You need to be logged in." };
+      const { data: adminCheck } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+      if (!adminCheck) return { error: "You do not have admin privileges." };
+
+      let query = supabaseAdmin.from("merchant_applications").select("id, business_name, business_type, status, created_at, user_id").order("created_at", { ascending: false }).limit(20);
+      if (args.status) query = query.eq("status", args.status);
+      const { data, error } = await query;
+      if (error) return { error: error.message };
+      return {
+        applications: (data || []).map((a: any) => ({
+          id: a.id,
+          business_name: a.business_name,
+          business_type: a.business_type || "—",
+          status: a.status,
+          date: new Date(a.created_at).toLocaleDateString("en-MY"),
+        })),
+        count: data?.length || 0,
+      };
+    }
+
+    case "admin_process_merchant": {
+      if (!userId) return { error: "You need to be logged in." };
+      const { data: adminCheck } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+      if (!adminCheck) return { error: "You do not have admin privileges." };
+
+      const appId = String(args.application_id || "").trim();
+      const action = String(args.action || "").trim();
+      if (!["approve", "reject"].includes(action)) return { error: "Action must be 'approve' or 'reject'." };
+
+      const response = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/admin-actions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            action: action === "approve" ? "approve_merchant" : "reject_merchant",
+            applicationId: appId,
+            rejectionReason: args.rejection_reason || "",
+            reviewedBy: userId,
+          }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) return { error: result.error || `Failed to ${action} merchant.` };
+      return { success: true, message: `Merchant application ${action === "approve" ? "approved" : "rejected"} successfully.` };
+    }
+
+    case "admin_list_withdrawals": {
+      if (!userId) return { error: "You need to be logged in." };
+      const { data: adminCheck } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+      if (!adminCheck) return { error: "You do not have admin privileges." };
+
+      let query = supabaseAdmin.from("withdrawal_requests").select("id, amount, bank_name, bank_account_no, bank_account_holder, status, created_at, wallet_type").order("created_at", { ascending: false }).limit(20);
+      if (args.status) query = query.eq("status", args.status);
+      const { data, error } = await query;
+      if (error) return { error: error.message };
+      return {
+        withdrawals: (data || []).map((w: any) => ({
+          id: w.id,
+          amount: `RM ${Number(w.amount).toFixed(2)}`,
+          bank: `${w.bank_name} - ${w.bank_account_no} (${w.bank_account_holder})`,
+          status: w.status,
+          wallet_type: w.wallet_type,
+          date: new Date(w.created_at).toLocaleDateString("en-MY"),
+        })),
+        count: data?.length || 0,
+      };
+    }
+
+    case "admin_platform_stats": {
+      if (!userId) return { error: "You need to be logged in." };
+      const { data: adminCheck } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+      if (!adminCheck) return { error: "You do not have admin privileges." };
+
+      const [
+        { count: totalUsers },
+        { count: totalMerchants },
+        { data: txns },
+        { count: pendingMerchants },
+        { count: pendingWithdrawals },
+      ] = await Promise.all([
+        supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }),
+        supabaseAdmin.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "merchant"),
+        supabaseAdmin.from("transactions").select("amount").eq("status", "completed"),
+        supabaseAdmin.from("merchant_applications").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabaseAdmin.from("withdrawal_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      ]);
+
+      const totalVolume = (txns || []).reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+
+      return {
+        total_users: totalUsers || 0,
+        total_merchants: totalMerchants || 0,
+        total_transaction_volume: `RM ${totalVolume.toFixed(2)}`,
+        pending_merchant_applications: pendingMerchants || 0,
+        pending_withdrawals: pendingWithdrawals || 0,
       };
     }
 
