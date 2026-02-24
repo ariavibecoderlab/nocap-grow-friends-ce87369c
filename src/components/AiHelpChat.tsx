@@ -220,7 +220,7 @@ const AiHelpChat = ({ defaultOpen = false }: AiHelpChatProps) => {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-20 right-4 z-50 h-12 w-12 rounded-full bg-secondary text-secondary-foreground shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
+        className="fixed bottom-24 right-4 z-50 h-12 w-12 rounded-full bg-secondary text-secondary-foreground shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
         aria-label="Open AI chat"
       >
         <MessageCircle className="h-5 w-5" />
