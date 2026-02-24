@@ -1169,6 +1169,51 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions_backup: {
+        Row: {
+          amount: number
+          commission_amount: number | null
+          created_at: string
+          description: string | null
+          fee_amount: number | null
+          id: string
+          metadata: Json | null
+          net_amount: number | null
+          reference_id: string | null
+          status: Database["public"]["Enums"]["transaction_status"]
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          commission_amount?: number | null
+          created_at?: string
+          description?: string | null
+          fee_amount?: number | null
+          id?: string
+          metadata?: Json | null
+          net_amount?: number | null
+          reference_id?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"]
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          commission_amount?: number | null
+          created_at?: string
+          description?: string | null
+          fee_amount?: number | null
+          id?: string
+          metadata?: Json | null
+          net_amount?: number | null
+          reference_id?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"]
+          type?: Database["public"]["Enums"]["transaction_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
