@@ -23,6 +23,8 @@ import {
   Layers,
   Coins,
   Network,
+  Phone,
+  MessageCircle,
 } from "lucide-react";
 
 interface ReferralMember {
@@ -385,7 +387,7 @@ const Referral = () => {
                                 <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${colors.bg} text-[10px] font-semibold ${colors.text}`}>
                                   {(member.full_name || "?").charAt(0).toUpperCase()}
                                 </div>
-                                <div className="min-w-0">
+                                <div className="min-w-0 flex-1">
                                   <span className="text-sm text-white/80 truncate block">{member.full_name || "Member"}</span>
                                   {member.tier === 1 && (member.phone || member.email) && (
                                     <span className="text-[10px] text-white/40 truncate block">
@@ -393,6 +395,28 @@ const Referral = () => {
                                     </span>
                                   )}
                                 </div>
+                                {member.tier === 1 && member.phone && (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <a
+                                      href={`tel:${member.phone}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-secondary/20 transition-colors"
+                                      title="Call"
+                                    >
+                                      <Phone className="h-3.5 w-3.5 text-secondary" />
+                                    </a>
+                                    <a
+                                      href={`https://wa.me/${member.phone.replace(/[^0-9]/g, "")}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-green-500/20 transition-colors"
+                                      title="WhatsApp"
+                                    >
+                                      <MessageCircle className="h-3.5 w-3.5 text-green-400" />
+                                    </a>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           ))}
