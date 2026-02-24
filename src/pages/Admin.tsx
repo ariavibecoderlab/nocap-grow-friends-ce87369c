@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
@@ -15,22 +15,43 @@ import { Shield, ClipboardCheck } from "lucide-react";
 import NocapLogo from "@/components/NocapLogo";
 import { generateUatPdf } from "@/lib/generateUatPdf";
 import AdminWalletCard from "@/components/admin/AdminWalletCard";
+import { supabase } from "@/integrations/supabase/client";
 
 const Admin = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdminCheck();
+  const [isAiOnlyAdmin, setIsAiOnlyAdmin] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) { setSettingsLoading(false); return; }
+    supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "ai_only_admin_ids")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) {
+          const ids = data.value.split(",").map((id: string) => id.trim());
+          setIsAiOnlyAdmin(ids.includes(user.id));
+        }
+        setSettingsLoading(false);
+      });
+  }, [user]);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
-    if (!authLoading && !adminLoading && !isAdmin) navigate("/dashboard");
-  }, [authLoading, adminLoading, isAdmin, user, navigate]);
+    if (!authLoading && !adminLoading && !settingsLoading) {
+      if (!isAdmin || isAiOnlyAdmin) navigate("/dashboard");
+    }
+  }, [authLoading, adminLoading, settingsLoading, isAdmin, isAiOnlyAdmin, user, navigate]);
 
-  if (authLoading || adminLoading) {
+  if (authLoading || adminLoading || settingsLoading) {
     return <div className="flex items-center justify-center min-h-screen bg-primary text-white/40">Loading...</div>;
   }
 
-  if (!isAdmin) return null;
+  if (!isAdmin || isAiOnlyAdmin) return null;
 
   return (
     <div className="min-h-screen bg-primary pb-20">

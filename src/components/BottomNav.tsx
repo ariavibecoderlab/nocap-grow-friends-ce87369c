@@ -19,20 +19,35 @@ const BottomNav = () => {
   const { isAdmin } = useAdminCheck();
   const { user } = useAuth();
   const [isBranchOwner, setIsBranchOwner] = useState(false);
+  const [isAiOnlyAdmin, setIsAiOnlyAdmin] = useState(false);
 
   useEffect(() => {
     if (!user) return;
+    // Check branch role
     supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .eq("role", "branch")
       .then(({ data }) => setIsBranchOwner((data?.length ?? 0) > 0));
+
+    // Check if user is an AI-only admin (no admin menu)
+    supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "ai_only_admin_ids")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) {
+          const ids = data.value.split(",").map((id: string) => id.trim());
+          setIsAiOnlyAdmin(ids.includes(user.id));
+        }
+      });
   }, [user]);
 
   let navItems = [...baseNavItems];
   if (isBranchOwner) navItems = [...navItems, { label: "Branch", icon: Store, path: "/branch" }];
-  if (isAdmin) navItems = [...navItems, { label: "Admin", icon: Shield, path: "/admin" }];
+  if (isAdmin && !isAiOnlyAdmin) navItems = [...navItems, { label: "Admin", icon: Shield, path: "/admin" }];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-primary/95 backdrop-blur-sm">
