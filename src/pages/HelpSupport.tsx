@@ -60,15 +60,15 @@ const HelpSupport = () => {
             <h2 className="font-display text-sm font-semibold text-white">Contact Us</h2>
             <div className="flex items-center gap-3 text-sm text-white/70">
               <Mail className="h-4 w-4 text-secondary shrink-0" />
-              <span>support@nocap.my</span>
+              <span>salam.zulkarnain@brainybunch.com</span>
             </div>
             <div className="flex items-center gap-3 text-sm text-white/70">
               <Phone className="h-4 w-4 text-secondary shrink-0" />
-              <span>+60 11-1234 5678</span>
+              <span>+6017-6976479</span>
             </div>
             <div className="flex items-center gap-3 text-sm text-white/70">
               <MessageCircle className="h-4 w-4 text-secondary shrink-0" />
-              <span>WhatsApp: +60 11-1234 5678</span>
+              <span>WhatsApp: +6017-6976479</span>
             </div>
           </CardContent>
         </Card>
