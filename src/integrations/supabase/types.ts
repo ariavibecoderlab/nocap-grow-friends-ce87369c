@@ -1301,6 +1301,13 @@ export type Database = {
       cleanup_old_api_logs: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       generate_referral_code: { Args: never; Returns: string }
+      get_referral_emails: {
+        Args: { referral_user_ids: string[] }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

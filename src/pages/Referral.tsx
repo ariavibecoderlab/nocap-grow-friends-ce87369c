@@ -30,6 +30,7 @@ interface ReferralMember {
   full_name: string | null;
   tier: number;
   phone: string | null;
+  email: string | null;
 }
 
 interface CommissionTx {
@@ -97,13 +98,18 @@ const Referral = () => {
 
       if (referralRes.data && referralRes.data.length > 0) {
         const userIds = referralRes.data.map((r) => r.user_id);
-        const { data: profilesData } = await supabase.from("profiles").select("user_id, full_name, phone").in("user_id", userIds);
-        const profileMap = new Map(profilesData?.map((p) => [p.user_id, { full_name: p.full_name, phone: p.phone }]) || []);
+        const [profilesRes, emailsRes] = await Promise.all([
+          supabase.from("profiles").select("user_id, full_name, phone").in("user_id", userIds),
+          supabase.rpc("get_referral_emails", { referral_user_ids: userIds }),
+        ]);
+        const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, { full_name: p.full_name, phone: p.phone }]) || []);
+        const emailMap = new Map((emailsRes.data as { user_id: string; email: string }[] || []).map((e) => [e.user_id, e.email]));
         setReferrals(
           referralRes.data.map((r) => ({
             user_id: r.user_id,
             full_name: profileMap.get(r.user_id)?.full_name || null,
             phone: r.tier === 1 ? (profileMap.get(r.user_id)?.phone || null) : null,
+            email: r.tier === 1 ? (emailMap.get(r.user_id) || null) : null,
             tier: r.tier,
           }))
         );
@@ -381,8 +387,10 @@ const Referral = () => {
                                 </div>
                                 <div className="min-w-0">
                                   <span className="text-sm text-white/80 truncate block">{member.full_name || "Member"}</span>
-                                  {member.tier === 1 && member.phone && (
-                                    <span className="text-[10px] text-white/40 truncate block">{member.phone}</span>
+                                  {member.tier === 1 && (member.phone || member.email) && (
+                                    <span className="text-[10px] text-white/40 truncate block">
+                                      {[member.phone, member.email].filter(Boolean).join(" · ")}
+                                    </span>
                                   )}
                                 </div>
                               </div>
