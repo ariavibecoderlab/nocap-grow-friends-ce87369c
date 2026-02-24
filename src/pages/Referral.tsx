@@ -29,6 +29,7 @@ interface ReferralMember {
   user_id: string;
   full_name: string | null;
   tier: number;
+  phone: string | null;
 }
 
 interface CommissionTx {
@@ -96,12 +97,13 @@ const Referral = () => {
 
       if (referralRes.data && referralRes.data.length > 0) {
         const userIds = referralRes.data.map((r) => r.user_id);
-        const { data: profilesData } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
-        const nameMap = new Map(profilesData?.map((p) => [p.user_id, p.full_name]) || []);
+        const { data: profilesData } = await supabase.from("profiles").select("user_id, full_name, phone").in("user_id", userIds);
+        const profileMap = new Map(profilesData?.map((p) => [p.user_id, { full_name: p.full_name, phone: p.phone }]) || []);
         setReferrals(
           referralRes.data.map((r) => ({
             user_id: r.user_id,
-            full_name: nameMap.get(r.user_id) || null,
+            full_name: profileMap.get(r.user_id)?.full_name || null,
+            phone: r.tier === 1 ? (profileMap.get(r.user_id)?.phone || null) : null,
             tier: r.tier,
           }))
         );
@@ -377,7 +379,12 @@ const Referral = () => {
                                 <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${colors.bg} text-[10px] font-semibold ${colors.text}`}>
                                   {(member.full_name || "?").charAt(0).toUpperCase()}
                                 </div>
-                                <span className="text-sm text-white/80 truncate">{member.full_name || "Member"}</span>
+                                <div className="min-w-0">
+                                  <span className="text-sm text-white/80 truncate block">{member.full_name || "Member"}</span>
+                                  {member.tier === 1 && member.phone && (
+                                    <span className="text-[10px] text-white/40 truncate block">{member.phone}</span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           ))}
