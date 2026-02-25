@@ -431,14 +431,13 @@ const tools = [
     type: "function",
     function: {
       name: "merchant_lookup_customer",
-      description: "Look up customer details who have ordered from the merchant's store. Merchant only. Search by name, email, phone, or order number. Returns customer info, order history, and total spending at the merchant's store.",
+      description: "Look up customer details who have ordered from the merchant's store, or list all customers. Merchant only. Optionally search by name, email, phone, or order number. If no search term is provided, returns all customers. Returns customer info, order history, and total spending at the merchant's store.",
       parameters: {
         type: "object",
         properties: {
-          search: { type: "string", description: "Search by customer name, email, phone number, or order number" },
+          search: { type: "string", description: "Optional: search by customer name, email, phone number, or order number. Leave empty to list all customers." },
           store_id: { type: "string", description: "Optional store ID to filter by specific store (if merchant has multiple stores)" },
         },
-        required: ["search"],
         additionalProperties: false,
       },
     },
@@ -945,7 +944,6 @@ async function executeToolCall(
       if (!merchantCheck) return { error: "You do not have merchant privileges." };
 
       const search = String(args.search || "").trim();
-      if (!search) return { error: "Please provide a search term (customer name, email, phone, or order number)." };
 
       // Get merchant's stores
       let storeQuery = supabaseAdmin.from("marketplace_stores").select("id, store_name").eq("merchant_user_id", userId);
@@ -954,22 +952,23 @@ async function executeToolCall(
       if (!stores?.length) return { error: "You don't have any marketplace stores." };
       const storeIds = stores.map((s: any) => s.id);
 
-      // Search orders by customer name, email, phone, or order number
+      // Query orders — optionally filter by search term
       let orderQuery = supabaseAdmin
         .from("marketplace_orders")
         .select("order_number, status, total_amount, created_at, buyer_name, buyer_email, buyer_phone, shipping_address, buyer_user_id, store_id, tracking_number")
         .in("store_id", storeIds)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(100);
 
-      // Try matching on multiple fields
-      orderQuery = orderQuery.or(
-        `buyer_name.ilike.%${search}%,buyer_email.ilike.%${search}%,buyer_phone.ilike.%${search}%,order_number.ilike.%${search}%`
-      );
+      if (search) {
+        orderQuery = orderQuery.or(
+          `buyer_name.ilike.%${search}%,buyer_email.ilike.%${search}%,buyer_phone.ilike.%${search}%,order_number.ilike.%${search}%`
+        );
+      }
 
       const { data: orders, error: oErr } = await orderQuery;
       if (oErr) return { error: oErr.message };
-      if (!orders?.length) return { message: `No customers found matching "${search}" in your store orders.` };
+      if (!orders?.length) return { message: search ? `No customers found matching "${search}" in your store orders.` : "No customers have ordered from your store yet." };
 
       // Group by customer email to aggregate
       const customerMap: Record<string, any> = {};
