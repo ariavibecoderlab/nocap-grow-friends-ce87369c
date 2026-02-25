@@ -59,6 +59,8 @@ NoCap is a digital wallet app in Malaysia that lets users:
 - View transactions, analytics, and settlement reports
 - Request withdrawals to bank account
 - Create and manage marketplace stores
+- **Customer Lookup**: Merchants can ask you to look up customer details (name, email, phone, address, order history, total spending) from their store orders. Just ask "find customer Ahmad" or "show orders for customer@email.com"
+- Create and manage marketplace stores
 
 ## Marketplace
 - Merchants can create online stores with products
@@ -420,6 +422,23 @@ const tools = [
       parameters: {
         type: "object",
         properties: {},
+        additionalProperties: false,
+      },
+    },
+  },
+  // === Merchant Tools ===
+  {
+    type: "function",
+    function: {
+      name: "merchant_lookup_customer",
+      description: "Look up customer details who have ordered from the merchant's store. Merchant only. Search by name, email, phone, or order number. Returns customer info, order history, and total spending at the merchant's store.",
+      parameters: {
+        type: "object",
+        properties: {
+          search: { type: "string", description: "Search by customer name, email, phone number, or order number" },
+          store_id: { type: "string", description: "Optional store ID to filter by specific store (if merchant has multiple stores)" },
+        },
+        required: ["search"],
         additionalProperties: false,
       },
     },
@@ -915,6 +934,78 @@ async function executeToolCall(
         total_transaction_volume: `RM ${totalVolume.toFixed(2)}`,
         pending_merchant_applications: pendingMerchants || 0,
         pending_withdrawals: pendingWithdrawals || 0,
+      };
+    }
+
+    // === Merchant Tools ===
+    case "merchant_lookup_customer": {
+      if (!userId) return { error: "You need to be logged in." };
+      // Check merchant role
+      const { data: merchantCheck } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId).eq("role", "merchant").maybeSingle();
+      if (!merchantCheck) return { error: "You do not have merchant privileges." };
+
+      const search = String(args.search || "").trim();
+      if (!search) return { error: "Please provide a search term (customer name, email, phone, or order number)." };
+
+      // Get merchant's stores
+      let storeQuery = supabaseAdmin.from("marketplace_stores").select("id, store_name").eq("merchant_user_id", userId);
+      if (args.store_id) storeQuery = storeQuery.eq("id", args.store_id);
+      const { data: stores } = await storeQuery;
+      if (!stores?.length) return { error: "You don't have any marketplace stores." };
+      const storeIds = stores.map((s: any) => s.id);
+
+      // Search orders by customer name, email, phone, or order number
+      let orderQuery = supabaseAdmin
+        .from("marketplace_orders")
+        .select("order_number, status, total_amount, created_at, buyer_name, buyer_email, buyer_phone, shipping_address, buyer_user_id, store_id, tracking_number")
+        .in("store_id", storeIds)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      // Try matching on multiple fields
+      orderQuery = orderQuery.or(
+        `buyer_name.ilike.%${search}%,buyer_email.ilike.%${search}%,buyer_phone.ilike.%${search}%,order_number.ilike.%${search}%`
+      );
+
+      const { data: orders, error: oErr } = await orderQuery;
+      if (oErr) return { error: oErr.message };
+      if (!orders?.length) return { message: `No customers found matching "${search}" in your store orders.` };
+
+      // Group by customer email to aggregate
+      const customerMap: Record<string, any> = {};
+      for (const o of orders) {
+        const key = o.buyer_email.toLowerCase();
+        if (!customerMap[key]) {
+          customerMap[key] = {
+            name: o.buyer_name,
+            email: o.buyer_email,
+            phone: o.buyer_phone,
+            address: o.shipping_address,
+            total_spent: 0,
+            order_count: 0,
+            orders: [],
+          };
+        }
+        customerMap[key].total_spent += Number(o.total_amount);
+        customerMap[key].order_count += 1;
+        customerMap[key].orders.push({
+          order_number: o.order_number,
+          status: o.status,
+          total: `RM ${Number(o.total_amount).toFixed(2)}`,
+          date: new Date(o.created_at).toLocaleDateString("en-MY"),
+          tracking: o.tracking_number || null,
+        });
+      }
+
+      const customers = Object.values(customerMap).map((c: any) => ({
+        ...c,
+        total_spent: `RM ${c.total_spent.toFixed(2)}`,
+      }));
+
+      return {
+        customers,
+        count: customers.length,
+        store_names: stores.map((s: any) => s.store_name),
       };
     }
 
