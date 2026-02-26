@@ -17,7 +17,7 @@
 6. [Rate Limits](#rate-limits)
 7. [Error Codes](#error-codes)
 8. [Sandbox Mode](#sandbox-mode)
-9. [3rd Party Integration Guide](#3rd-party-integration-guide)
+9. [3rd Party Integration Roadmap](#3rd-party-integration-roadmap)
 
 ---
 
@@ -794,42 +794,239 @@ For rapid sandbox testing without the full OAuth flow, use the **Generate Test T
 
 ---
 
-## 3rd Party Integration Guide
+## 3rd Party Integration Roadmap
 
-If your system already integrates with NoCap for wallet/payments and you want to add the **referral/affiliate module**, follow these steps. **No need to remove your existing integration.**
+This section provides a complete step-by-step guide for integrating NoCap into your system. Two paths are available:
 
-### For Existing Users (Scope Upgrade)
+- **Path A** (Prompts 1–9): New to NoCap — full integration from scratch
+- **Path B** (Prompts 6–9 only): Already have NoCap wallet — upgrade only
 
-Your existing users' access tokens only have `balance` and `charge` scopes. To access referral features, they need to **re-authorize once** with the `referral` scope added:
+> **Important:** Existing users do NOT need to disconnect. Wallet and payment features continue working throughout the upgrade. Users only re-authorize once to unlock referral features.
 
-1. Detect if a connected user's stored token doesn't include the `referral` scope
-2. Show a prompt like **"Enable Referral Features"**
-3. Redirect them to:
-   ```
-   https://nocap.life/authorize?app_id=YOUR_APP_ID&redirect_uri=YOUR_CALLBACK&scope=balance,charge,referral&state=RANDOM
-   ```
-4. After approval, exchange the code via `POST /api-token-exchange` (same as original flow)
-5. Replace the old stored access token with the new one
+### Quick Reference
 
-> The NoCap authorize endpoint supports **scope upgrades** — it automatically revokes the old token and issues a new one with the updated scopes. No conflict errors.
+| Prompt | New Integration | Existing (Upgrade) |
+|--------|:-:|:-:|
+| 1 — Credentials & DB | ✅ | Skip |
+| 2 — API Service Layer | ✅ | Skip |
+| 3 — OAuth Connection | ✅ | Skip |
+| 4 — Registration with Referral | ✅ | Skip |
+| 5 — Wallet Payment Checkout | ✅ | Skip |
+| 6 — Upgrade DB + New API Functions | ✅ | **Start here** |
+| 7 — Re-authorize for Referral Scope | ✅ | ✅ |
+| 8 — Multi-Branch Charge Routing | ✅ | ✅ |
+| 9 — Referral Dashboard & Admin | ✅ | ✅ |
 
-### For New Users (Programmatic Registration)
+---
 
-Use `POST /api-referral-register` to create NoCap accounts for new customers during your own signup flow:
+### Prompt 1 — Store NoCap API Credentials (New integrators only)
 
-1. Customer signs up on your system (optionally with a referral code)
-2. Call `POST /api-referral-register` with their email, name, and referral code
-3. Store the returned `access_token` and `referral_code` in your database
-4. Use the token for all future NoCap API calls on their behalf
+```
+We are integrating with NoCap wallet and affiliate system.
+Store these as backend secrets:
+- NOCAP_APP_ID, NOCAP_API_KEY, NOCAP_API_SECRET
 
-### Building the Referral Dashboard
+Base URL: https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1
 
-Once users have the `referral` scope, you can build a referral section showing:
+Create a "nocap_connections" table:
+- id (uuid, primary key)
+- customer_id (uuid, references our user table)
+- nocap_user_id (uuid)
+- access_token (text)
+- scopes (text array, e.g. ['balance','charge','referral'])
+- referral_code (text)
+- connected_at, updated_at (timestamps)
 
-- **Referral code** with copy/share button (`GET /api-referral-info`)
-- **Stats**: direct referrals, network size, cashback earned, commission earned
-- **Network tree**: Tiers 1-5 hierarchy (`GET /api-referral-network`)
-- **Earnings history**: paginated cashback/commission transactions (`GET /api-cashback-history`)
+Add RLS so customers can only read their own connection.
+```
+
+---
+
+### Prompt 2 — Build NoCap API Service Layer (New integrators only)
+
+```
+Create an API service file for NoCap endpoints.
+Use stored secrets. Base URL: https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1
+
+WALLET & PAYMENTS:
+1. checkBalance(accessToken) -> GET /api-balance
+2. createCharge(accessToken, amount, description, reference, pin?,
+   branch_id?, metadata?) -> POST /api-charge
+   Note: branch_id required if merchant-level app
+3. getChargeStatus(chargeId) -> GET /api-charge-status?charge_id={chargeId}
+4. listCharges(filters?) -> GET /api-charges-list
+5. refundCharge(chargeId, amount?, reason?) -> POST /api-refund
+6. listBranches() -> GET /api-branches
+
+REFERRAL / AFFILIATE:
+7. getReferralInfo(accessToken) -> GET /api-referral-info
+8. registerViaReferral(email, referralCode, fullName?) -> POST /api-referral-register
+9. getReferralNetwork(accessToken) -> GET /api-referral-network
+10. getCashbackHistory(accessToken, filters?) -> GET /api-cashback-history
+
+All use x-api-key + x-api-secret headers. Bearer token endpoints noted above.
+```
+
+---
+
+### Prompt 3 — OAuth Wallet Connection Flow (New integrators only)
+
+```
+Add "Connect NoCap Wallet" button. Redirect to:
+https://nocap.life/authorize?app_id=NOCAP_APP_ID
+  &redirect_uri=OUR_CALLBACK
+  &scope=balance,charge,referral
+  &state=RANDOM
+
+Request ALL three scopes upfront.
+
+Callback page:
+1. Receive ?code=XXX&state=YYY
+2. Verify state (CSRF protection)
+3. Call POST /api-token-exchange with { code, app_id, app_secret }
+4. Store access_token, scopes, user info in nocap_connections
+5. Show success and redirect to dashboard
+
+Handle ?error=access_denied case.
+```
+
+---
+
+### Prompt 4 — New Customer Registration with Referral (New integrators only)
+
+```
+When new customer signs up with a referral code:
+1. Add optional "Referral Code" field to signup form
+2. After our account creation, call POST /api-referral-register
+3. Store returned access_token, nocap_user_id, referral_code
+4. Customer is auto-connected — no OAuth needed
+5. Show their own referral code
+
+If no referral code, skip NoCap auto-registration.
+If NoCap registration fails, don't block our signup.
+```
+
+---
+
+### Prompt 5 — Wallet Payment in Checkout (New integrators only)
+
+```
+Add NoCap as payment option in checkout:
+1. Show NoCap balance (GET /api-balance)
+2. Call POST /api-charge with { amount, description, reference,
+   branch_id, metadata }
+3. Handle PIN_REQUIRED: show PIN input, retry with PIN
+4. Handle INSUFFICIENT_BALANCE: show top-up message
+5. On success, mark order as paid
+
+Webhook handling:
+- Verify X-Webhook-Signature (HMAC-SHA256)
+- Handle charge.completed, charge.failed, charge.refunded
+```
+
+---
+
+### Start Here If Already Integrated
+
+### Prompt 6 — Upgrade for Affiliate and Multi-Branch (All integrators)
+
+```
+Upgrading existing NoCap integration. DO NOT remove existing wallet features.
+
+1. Add to nocap_connections table:
+   - referral_code (text)
+   - scopes (text array)
+
+2. Create "nocap_branch_mappings" table:
+   - id, our_outlet_id, nocap_branch_id, nocap_branch_name,
+     created_at, updated_at
+
+3. Add new functions to existing NoCap API service:
+   REFERRAL: getReferralInfo, registerViaReferral,
+             getReferralNetwork, getCashbackHistory
+   BRANCH:   listBranches() -> GET /api-branches
+
+4. Update existing createCharge to accept optional branch_id parameter.
+   Required for merchant-level apps.
+
+Base URL: https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1
+```
+
+---
+
+### Prompt 7 — Re-authorize Existing Users for Referral Scope (All integrators)
+
+```
+Existing customers have only "balance" and "charge" scopes.
+DO NOT break existing wallet functionality.
+
+1. Check stored scopes for each connected customer
+2. If missing "referral", show banner: "Unlock Referral Rewards!"
+3. On click, redirect to NoCap authorize with
+   scope=balance,charge,referral
+4. NoCap auto-revokes old token and issues new one
+5. Exchange code via POST /api-token-exchange (same existing flow)
+6. Update stored access_token and scopes
+7. Hide banner once referral scope granted
+
+Also: when new customers sign up with referral code,
+call POST /api-referral-register to auto-create their NoCap account.
+```
+
+---
+
+### Prompt 8 — Multi-Branch Charge Routing (All integrators)
+
+```
+DO NOT change existing payment logic. Just add branch routing:
+
+1. Call GET /api-branches to fetch active NoCap branches
+2. Store in nocap_branch_mappings table
+3. Admin settings page to map our outlets to NoCap branch IDs
+4. Include branch_id in POST /api-charge body
+5. Show unmapped outlets as warnings
+6. Add "Refresh Branches" button
+
+Example: POST /api-charge { amount: 25.00, description: "Order #456",
+reference: "order-456", branch_id: "uuid-of-branch" }
+```
+
+---
+
+### Prompt 9 — Referral Dashboard and Admin Panel (All integrators)
+
+```
+DO NOT modify existing wallet/payment UI. Add new sections:
+
+CUSTOMER DASHBOARD (only if referral scope granted):
+1. Referral code with copy/share buttons (GET /api-referral-info)
+2. Stats cards: direct referrals, network size, cashback, commission
+3. Network tree Tiers 1-5 (GET /api-referral-network)
+4. Earnings history with cashback/commission tabs
+   (GET /api-cashback-history)
+5. Share feature: "Join us! Use my code: XXXX"
+
+ADMIN SECTION:
+- Branch mapping management
+- Connected customers overview
+- Top referrers by network size
+```
+
+---
+
+### FAQ — Common Upgrade Questions
+
+**Q: Do existing users need to disconnect and reconnect?**
+A: No. Existing wallet and payment features continue working with their current token. They only re-authorize once (Prompt 7) to unlock referral features.
+
+**Q: What happens to old tokens during scope upgrade?**
+A: The NoCap authorize endpoint automatically revokes the old token and issues a new one with updated scopes. No conflict errors.
+
+**Q: Is branch_id required for all API charge requests?**
+A: Only for merchant-level apps (registered without a specific branch). Branch-level apps default to their assigned branch.
+
+**Q: Can I use both branch-level and merchant-level apps?**
+A: Yes. Merchant-level apps offer flexibility for multi-outlet systems with a single set of credentials. Branch-level apps are simpler for single-location setups.
 
 ---
 
