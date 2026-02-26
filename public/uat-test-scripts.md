@@ -37,6 +37,12 @@
 26. [API Developer Portal](#26-api-developer-portal)
 27. [Notifications](#27-notifications)
 28. [Responsive / Mobile](#28-responsive--mobile)
+29. [Session Management & Security](#29-session-management--security)
+30. [Concurrent Transactions & Race Conditions](#30-concurrent-transactions--race-conditions)
+31. [Network & Error Handling](#31-network--error-handling)
+32. [Token & Credential Edge Cases](#32-token--credential-edge-cases)
+33. [Data Boundary & Validation](#33-data-boundary--validation)
+34. [Nightly Test Account Reset](#34-nightly-test-account-reset)
 
 ---
 
@@ -1196,6 +1202,64 @@ Each test case includes:
 | **Precondition** | User on profile page |
 | **Steps** | 1. Enter a name with 10,000 characters <br> 2. Attempt to save |
 | **Expected** | Validation error or input truncated. No database error. |
+| **Status** | |
+
+---
+
+## 34. Nightly Test Account Reset
+
+### TC-RESET-001: Reverse All Test Transactions
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Test account (`azarul@brainybunch.com`) has completed transactions today |
+| **Steps** | 1. Trigger `nightly-test-reset` edge function with `?mode=reverse` <br> 2. Verify all payment transactions for the test user are reversed <br> 3. Verify branch wallets are debited back <br> 4. Verify cashback and tier 1-5 commissions are reversed <br> 5. Verify admin platform fees are reversed |
+| **Expected** | All financial impacts from today's test transactions are fully reversed. Reversal audit trail transactions created. |
+| **Status** | |
+
+### TC-RESET-002: Top Up After Reset
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Reversal mode has completed |
+| **Steps** | 1. Trigger `nightly-test-reset` with `?mode=topup` <br> 2. Check test account wallet balance |
+| **Expected** | Test account member wallet balance is exactly RM 1,000.00. A `top_up` transaction with description "Nightly test reset top-up" is recorded. |
+| **Status** | |
+
+### TC-RESET-003: Daily Email Report
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Reversal and top-up completed for the day |
+| **Steps** | 1. Trigger `nightly-test-reset` with `?mode=report` <br> 2. Check email inbox at `azarul@brainybunch.com` |
+| **Expected** | Formatted HTML email received containing: summary section (date, total reversed, amounts by type, final balance) and detail table (each reversed transaction with time, type, amount, description, status). |
+| **Status** | |
+
+### TC-RESET-004: Referral Commission Reversal
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Test account made a payment that generated tier 1-5 commissions |
+| **Steps** | 1. Make a payment as the test user at a merchant branch <br> 2. Verify commissions were distributed to referral ancestors (tier 1-5) <br> 3. Trigger `?mode=reverse` <br> 4. Check each ancestor's wallet balance |
+| **Expected** | All tier 1-5 commission amounts are debited back from each ancestor's member wallet. Commission reversal transactions created. |
+| **Status** | |
+
+### TC-RESET-005: Skip Already Reversed Transactions
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Reversal has already run once today |
+| **Steps** | 1. Trigger `?mode=reverse` a second time |
+| **Expected** | No duplicate reversals. Function skips transactions already marked as reversed. Operation is idempotent. |
+| **Status** | |
+
+### TC-RESET-006: Skip Own Reset Top-ups
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Previous nightly reset top-up transaction exists |
+| **Steps** | 1. Trigger `?mode=reverse` <br> 2. Check that nightly reset top-up transactions are not reversed |
+| **Expected** | Transactions with description containing "Nightly test reset" are skipped during reversal. |
 | **Status** | |
 
 ---

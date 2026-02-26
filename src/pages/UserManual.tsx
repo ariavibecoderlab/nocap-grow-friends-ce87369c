@@ -874,6 +874,48 @@ Response includes access_token valid for 90 days.
 - Fee changes apply to **future transactions only**
 - Existing transactions retain their original fee structure
 - Changes take effect immediately after saving`
+      },
+      {
+        id: "nightly-test-reset",
+        title: "Nightly Test Account Reset",
+        content: `**Automated Test Account Management:**
+
+The platform includes an automated nightly reset system for the designated test account (\`azarul@brainybunch.com\`) to ensure consistent daily UAT testing.
+
+**Schedule (Malaysia Time — MYT):**
+| Time | Action |
+|------|--------|
+| 10:55 PM | **Reverse** all test transactions from the day |
+| 11:00 PM | **Top up** test wallet to exactly RM 1,000 |
+| 11:05 PM | **Email report** with daily summary to test account |
+
+**What Gets Reversed (100% Coverage):**
+When the nightly reset runs, it traces every transaction's \`reference_id\` chain to find and reverse ALL downstream financial impacts:
+
+| Impact | Reversal |
+|--------|----------|
+| Payer wallet debited | Credited back |
+| Branch wallet credited | Debited |
+| Branch legacy balance | Debited |
+| Cashback to payer | Debited |
+| Tier 1–5 referral commissions | Debited from each ancestor |
+| Unclaimed commissions | Debited from branch |
+| Platform fee (admin) | Debited from admin wallet |
+| Transfers (in/out) | Symmetrically reversed |
+| Top-ups | Debited (skips own reset top-ups) |
+| Refunds | Reversed symmetrically |
+
+**Daily Email Report:**
+After the reset, a formatted HTML email is sent to the test account containing:
+- **Summary**: Date, total transactions reversed, amounts by type, final wallet balance
+- **Detail table**: Every reversed transaction with time, type, amount, description, and status
+
+**Safety Measures:**
+- Hardcoded to only target the single test account email
+- Skips transactions already marked as reversed
+- Skips its own "Nightly test reset" top-up transactions
+- Creates a full audit trail of all reversal transactions
+- Logs a summary of all reversals performed`
       }
     ]
   },
