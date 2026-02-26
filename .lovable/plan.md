@@ -19,9 +19,9 @@
 
 ### Remaining Tasks
 
-| Task | Priority | Notes |
-|------|----------|-------|
-| Clean up test API apps created during testing | Low | Two test apps in `api_applications` table |
-| End-to-end test with real merchant credentials | Medium | Verify full charge→refund flow with merchant-level app |
-| Add webhook signature docs to integration guide | Low | HMAC-SHA256 verification example |
-| Consider rate-limit tuning for `api-branches` | Low | Currently 60/min, may need adjustment |
+| Task | Priority | Status |
+|------|----------|--------|
+| Clean up test API apps created during testing | Low | ✅ Done |
+| End-to-end test with real merchant credentials | Medium | ✅ Done (5/5 tests passed) |
+| Add webhook signature docs to integration guide | Low | Pending |
+| Consider rate-limit tuning for `api-branches` | Low | Pending |
