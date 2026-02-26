@@ -147,6 +147,17 @@ const testModules: TestModule[] = [
     ]
   },
   {
+    id: "nightly-reset", title: "Nightly Test Reset", icon: Database,
+    cases: [
+      { id: "TC-RESET-001", title: "Reverse All Test Transactions", precondition: "Test account (azarul@brainybunch.com) has completed transactions today", steps: ["Trigger nightly-test-reset with ?mode=reverse", "Verify all payment transactions are reversed", "Verify branch wallets debited back", "Verify cashback and commissions reversed", "Verify admin platform fees reversed"], expected: "All financial impacts from today's test transactions are fully reversed. Audit trail created.", status: "untested", notes: "" },
+      { id: "TC-RESET-002", title: "Top Up After Reset", precondition: "Reversal mode completed", steps: ["Trigger nightly-test-reset with ?mode=topup", "Check test account wallet balance"], expected: "Test account wallet balance is exactly RM 1,000.00. Top-up transaction recorded.", status: "untested", notes: "" },
+      { id: "TC-RESET-003", title: "Daily Email Report", precondition: "Reversal and top-up completed", steps: ["Trigger nightly-test-reset with ?mode=report", "Check email at azarul@brainybunch.com"], expected: "HTML email received with summary (counts, amounts) and detail table of all reversed transactions.", status: "untested", notes: "" },
+      { id: "TC-RESET-004", title: "Referral Commission Reversal", precondition: "Test account made a payment that generated tier 1-5 commissions", steps: ["Run a payment as test user at a merchant", "Verify commissions distributed to referral ancestors", "Trigger ?mode=reverse", "Check each ancestor's wallet balance"], expected: "All tier 1-5 commission amounts debited back from each ancestor's wallet.", status: "untested", notes: "" },
+      { id: "TC-RESET-005", title: "Skip Already Reversed Transactions", precondition: "Reversal already run once today", steps: ["Trigger ?mode=reverse again"], expected: "No duplicate reversals. Function skips already-reversed transactions. Idempotent.", status: "untested", notes: "" },
+      { id: "TC-RESET-006", title: "Skip Own Reset Top-ups", precondition: "Previous nightly top-up exists", steps: ["Trigger ?mode=reverse", "Check that nightly reset top-ups are not reversed"], expected: "Transactions with description 'Nightly test reset top-up' are skipped.", status: "untested", notes: "" },
+    ]
+  },
+  {
     id: "mobile", title: "Responsive / Mobile", icon: Smartphone,
     cases: [
       { id: "TC-MOBILE-001", title: "Mobile Navigation", precondition: "Mobile viewport (≤414px)", steps: ["Verify bottom nav is visible", "Tap each nav item"], expected: "Bottom nav shows Dashboard, Transactions, QR Pay, Profile.", status: "untested", notes: "" },
