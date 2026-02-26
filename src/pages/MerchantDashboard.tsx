@@ -679,11 +679,11 @@ const MerchantDashboard = () => {
             </TabsContent>
 
             <TabsContent value="chat" className="mt-4">
-              <MerchantChatTab branchId={selectedBranch.id} />
+              {selectedBranch && <MerchantChatTab branchId={selectedBranch.id} />}
             </TabsContent>
 
             <TabsContent value="txns" className="mt-4">
-              <MerchantTransactions userId={user!.id} branchId={selectedBranch.id} />
+              <MerchantTransactions userId={user!.id} branchId={selectedBranch?.id ?? ""} />
             </TabsContent>
 
             <TabsContent value="analytics" className="mt-4">
@@ -711,11 +711,11 @@ const MerchantDashboard = () => {
                 <CardContent className="p-4 space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-white/40">Branch Name</span>
-                    <span className="font-medium text-white">{selectedBranch.branch_name}</span>
+                    <span className="font-medium text-white">{selectedBranch?.branch_name}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-white/40">Commission Rate</span>
-                    <span className="font-medium text-white">{selectedBranch.commission_percent}%</span>
+                    <span className="font-medium text-white">{selectedBranch?.commission_percent}%</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-white/40">Status</span>
