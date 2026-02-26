@@ -40,7 +40,7 @@ export function generateApiGuidePdf() {
   // Version info right-aligned
   doc.setFontSize(8);
   doc.setTextColor(120, 120, 120);
-  doc.text("Version 1.0 — February 2026", pageWidth - margin, 32, { align: "right" });
+  doc.text("Version 1.1 — February 2026", pageWidth - margin, 32, { align: "right" });
 
   y = 54;
 
@@ -156,7 +156,7 @@ export function generateApiGuidePdf() {
   tableRow(["Parameter", "Required", "Description"], true);
   tableRow(["app_id", "Yes", "Your application UUID"]);
   tableRow(["redirect_uri", "Yes", "Callback URL after approval"]);
-  tableRow(["scope", "Optional", "balance, charge (defaults to both)"]);
+  tableRow(["scope", "Optional", "balance, charge, referral (defaults to balance,charge)"]);
   tableRow(["state", "Recommended", "CSRF protection string"]);
 
   subheading("Step 2 — Receive Authorization Code");
@@ -316,6 +316,37 @@ export function generateApiGuidePdf() {
   heading("8. Sandbox Mode");
   paragraph("Apps in Sandbox mode skip balance checks, PIN verification, and real money movement. Webhooks fire normally with is_sandbox: true. Use for development and testing.");
   paragraph("Generate test tokens from the Merchant Dashboard to skip the full OAuth flow during development.");
+
+  // --- 3rd Party Integration Guide ---
+  heading("9. 3rd Party Integration Guide");
+  paragraph("This section provides step-by-step instructions for existing NoCap API integrations to add referral/affiliate features. No need to remove your existing integration — simply build on top of it.");
+
+  subheading("9.1 Scope Upgrade for Existing Users");
+  paragraph("Existing connected users have tokens with 'balance' and 'charge' scopes. To access referral endpoints, they must re-authorize with the additional 'referral' scope.");
+  paragraph("The /authorize endpoint now supports seamless scope upgrades: if a user already has an active token, the old token is automatically revoked and a new one is issued with the requested scopes.");
+  paragraph("Redirect existing users to:");
+  code("https://nocap.life/authorize\n  ?app_id=YOUR_APP_ID\n  &redirect_uri=YOUR_CALLBACK\n  &scope=balance,charge,referral\n  &state=RANDOM");
+  paragraph("After approval, exchange the authorization code for a new access token using POST /api-token-exchange (same as the original flow). Replace the old stored token with the new one.");
+
+  subheading("9.2 Registering New Users via Referral");
+  paragraph("When a new customer signs up on your system with a referral code, call POST /api-referral-register to create their NoCap account automatically:");
+  code(`curl -X POST ${BASE_URL}/api-referral-register \\\n  -H "x-api-key: KEY" -H "x-api-secret: SECRET" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "email": "newuser@example.com",\n    "referral_code": "A1B2C3D4",\n    "full_name": "Ahmad Bin Ali"\n  }'`);
+  paragraph("Store the returned access_token, user_id, and referral_code in your database linked to the customer record.");
+
+  subheading("9.3 Building a Referral Dashboard");
+  paragraph("Use the stored access token to fetch referral data for your customers:");
+  tableRow(["Endpoint", "Purpose"], true);
+  tableRow(["GET /api-referral-info", "User's referral code, link, and stats"]);
+  tableRow(["GET /api-referral-network", "Multi-tier referral tree (Tiers 1–5)"]);
+  tableRow(["GET /api-cashback-history", "Paginated cashback & commission history"]);
+  paragraph("Only show referral features if the user's token includes the 'referral' scope.");
+
+  subheading("9.4 Recommended Integration Flow");
+  paragraph("1. Add a 'Referral Code' field to your signup form (optional input).");
+  paragraph("2. On signup, call POST /api-referral-register with the code to create a NoCap account.");
+  paragraph("3. For existing users, show an 'Enable Referral Features' banner that triggers re-authorization.");
+  paragraph("4. Build a referral section in your dashboard showing stats, network tree, and earnings history.");
+  paragraph("5. Provide copy/share buttons for the user's referral code and link.");
 
   // Footer
   checkPage(20);
