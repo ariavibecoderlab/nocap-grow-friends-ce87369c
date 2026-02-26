@@ -134,6 +134,22 @@ const ApiDocs = () => {
                           <td className="py-2 pr-4 font-mono text-xs">/api-charges-list</td>
                           <td className="py-2">60 req/min</td>
                         </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-referral-info</td>
+                          <td className="py-2">60 req/min</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-referral-register</td>
+                          <td className="py-2">10 req/min</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-referral-network</td>
+                          <td className="py-2">30 req/min</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-cashback-history</td>
+                          <td className="py-2">60 req/min</td>
+                        </tr>
                       </tbody>
                     </table>
                   </div>
@@ -1093,6 +1109,180 @@ app.post("/webhook/nocap", (req, res) => {
                       { name: "user_id", placeholder: "uuid", type: "query" },
                     ]}
                     needsUserToken={false}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Referral / Affiliate Endpoints */}
+              <div className="pt-4">
+                <h2 className="text-xl font-bold mb-1">Referral / Affiliate Endpoints</h2>
+                <p className="text-sm text-muted-foreground mb-4">These endpoints require the <code className="text-primary font-bold">referral</code> OAuth scope. Existing connected users must re-authorize with <code className="font-mono text-xs">scope=balance,charge,referral</code>.</p>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 text-xs font-bold rounded">GET</span>
+                    <CardTitle className="text-lg">/api-referral-info</CardTitle>
+                  </div>
+                  <CardDescription>Get the authenticated user's referral code, sharing link, and referral stats.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <h4 className="text-sm font-semibold">Request Example:</h4>
+                  <CodeBlock>{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-referral-info" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Authorization: Bearer user_token"`}</CodeBlock>
+                  <h4 className="text-sm font-semibold">Response Example:</h4>
+                  <CodeBlock>{`{
+  "referral_code": "A1B2C3D4",
+  "referral_link": "https://nocap.life/auth?ref=A1B2C3D4",
+  "stats": {
+    "direct_referrals": 5,
+    "network_size": 12,
+    "total_cashback": 15.50,
+    "total_commission": 32.00
+  }
+}`}</CodeBlock>
+                  <ApiTryIt
+                    method="GET"
+                    endpoint="api-referral-info"
+                    params={[]}
+                    needsUserToken={true}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs font-bold rounded">POST</span>
+                    <CardTitle className="text-lg">/api-referral-register</CardTitle>
+                  </div>
+                  <CardDescription>Register a new NoCap user via API, automatically linked by referral code. No bearer token needed.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Body Parameters:</h4>
+                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                      <li><code className="text-primary font-bold">email</code> (string, required): New user's email address.</li>
+                      <li><code className="text-primary font-bold">referral_code</code> (string, required): The referrer's referral code.</li>
+                      <li><code className="text-primary font-bold">full_name</code> (string, optional): User's display name.</li>
+                    </ul>
+                  </div>
+                  <h4 className="text-sm font-semibold">Request Example:</h4>
+                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-referral-register" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "email": "newuser@example.com",
+    "referral_code": "A1B2C3D4",
+    "full_name": "Ahmad Bin Ali"
+  }'`}</CodeBlock>
+                  <h4 className="text-sm font-semibold">Response Example:</h4>
+                  <CodeBlock>{`{
+  "success": true,
+  "user_id": "uuid",
+  "referral_code": "X9Y8Z7W6",
+  "access_token": "64-char-hex-string",
+  "scopes": ["balance", "charge", "referral"],
+  "message": "User registered and connected"
+}`}</CodeBlock>
+                  <ApiTryIt
+                    method="POST"
+                    endpoint="api-referral-register"
+                    params={[]}
+                    bodyFields={[
+                      { name: "email", placeholder: "newuser@example.com", type: "string", required: true },
+                      { name: "referral_code", placeholder: "A1B2C3D4", type: "string", required: true },
+                      { name: "full_name", placeholder: "Ahmad Bin Ali", type: "string" },
+                    ]}
+                    needsUserToken={false}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 text-xs font-bold rounded">GET</span>
+                    <CardTitle className="text-lg">/api-referral-network</CardTitle>
+                  </div>
+                  <CardDescription>Get the user's multi-tier referral tree (Tiers 1–5).</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <h4 className="text-sm font-semibold">Request Example:</h4>
+                  <CodeBlock>{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-referral-network" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Authorization: Bearer user_token"`}</CodeBlock>
+                  <h4 className="text-sm font-semibold">Response Example:</h4>
+                  <CodeBlock>{`{
+  "tiers": [
+    {
+      "tier": 1,
+      "count": 3,
+      "members": [
+        { "name": "Ahmad", "joined": "2026-02-23T10:00:00Z" }
+      ]
+    },
+    { "tier": 2, "count": 5, "members": [...] }
+  ]
+}`}</CodeBlock>
+                  <ApiTryIt
+                    method="GET"
+                    endpoint="api-referral-network"
+                    params={[]}
+                    needsUserToken={true}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 text-xs font-bold rounded">GET</span>
+                    <CardTitle className="text-lg">/api-cashback-history</CardTitle>
+                  </div>
+                  <CardDescription>Get paginated cashback and commission transaction history.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Query Parameters:</h4>
+                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                      <li><code className="text-primary font-bold">page</code> (number, optional): Page number. Default: 1.</li>
+                      <li><code className="text-primary font-bold">limit</code> (number, optional): Items per page (1–100). Default: 20.</li>
+                      <li><code className="text-primary font-bold">type</code> (string, optional): Filter by "cashback" or "commission".</li>
+                      <li><code className="text-primary font-bold">from</code> (string, optional): ISO date range start.</li>
+                      <li><code className="text-primary font-bold">to</code> (string, optional): ISO date range end.</li>
+                    </ul>
+                  </div>
+                  <h4 className="text-sm font-semibold">Request Example:</h4>
+                  <CodeBlock>{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-cashback-history?page=1&limit=10" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Authorization: Bearer user_token"`}</CodeBlock>
+                  <h4 className="text-sm font-semibold">Response Example:</h4>
+                  <CodeBlock>{`{
+  "transactions": [
+    { "type": "cashback", "amount": 1.50, "description": "Cashback from payment", "created_at": "2026-02-20T10:00:00Z" },
+    { "type": "commission", "amount": 0.80, "description": "Tier 1 commission", "created_at": "2026-02-19T14:30:00Z" }
+  ],
+  "totals": { "cashback": 15.50, "commission": 32.00 },
+  "pagination": { "page": 1, "limit": 10, "total": 25, "total_pages": 3, "has_more": true }
+}`}</CodeBlock>
+                  <ApiTryIt
+                    method="GET"
+                    endpoint="api-cashback-history"
+                    params={[
+                      { name: "page", placeholder: "1", type: "query" },
+                      { name: "limit", placeholder: "20", type: "query" },
+                      { name: "type", placeholder: "cashback", type: "query" },
+                      { name: "from", placeholder: "2026-01-01", type: "query" },
+                      { name: "to", placeholder: "2026-12-31", type: "query" },
+                    ]}
+                    needsUserToken={true}
                   />
                 </CardContent>
               </Card>
