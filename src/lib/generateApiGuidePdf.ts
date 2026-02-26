@@ -268,24 +268,43 @@ export function generateApiGuidePdf() {
 
   // --- Webhooks ---
   heading("5. Webhooks");
-  paragraph("Configure your webhook URL in Merchant Dashboard > API Apps. NoCap sends POST requests with HMAC-SHA256 signed payloads.");
+  paragraph("Configure your webhook URL in Merchant Dashboard > API Apps. NoCap sends POST requests with HMAC-SHA256 signed payloads for all charge events.");
+
+  subheading("How Signing Works");
+  paragraph("NoCap computes HMAC-SHA256 using your api_secret_hash (SHA-256 of your api_secret) as the key and the raw JSON payload as the message. Your server must verify this signature on every webhook.");
+  code(`HMAC-SHA256(\n  key = SHA256(your_api_secret),\n  msg = raw_json_payload\n) → hex_signature (64 chars)`);
+
+  subheading("Verification — Node.js");
+  code(`const crypto = require('crypto');\n\n// Compute once at startup:\nconst SECRET_HASH = crypto\n  .createHash('sha256')\n  .update(process.env.NOCAP_API_SECRET)\n  .digest('hex');\n\nfunction verifyWebhook(rawBody, sig) {\n  const expected = crypto\n    .createHmac('sha256', SECRET_HASH)\n    .update(rawBody).digest('hex');\n  return crypto.timingSafeEqual(\n    Buffer.from(expected, 'hex'),\n    Buffer.from(sig, 'hex')\n  );\n}`);
+
+  subheading("Verification — Python");
+  code(`import hmac, hashlib\n\nSECRET_HASH = hashlib.sha256(\n  os.environ['NOCAP_API_SECRET'].encode()\n).hexdigest()\n\ndef verify(raw_body, sig):\n  expected = hmac.new(\n    SECRET_HASH.encode(),\n    raw_body.encode(),\n    hashlib.sha256\n  ).hexdigest()\n  return hmac.compare_digest(expected, sig)`);
+
+  subheading("Verification — PHP");
+  code(`$secretHash = hash('sha256', $apiSecret);\n$expected = hash_hmac('sha256', $rawBody, $secretHash);\nif (!hash_equals($expected, $signature)) {\n  http_response_code(401);\n  die('Invalid signature');\n}`);
+
+  subheading("Security Notes");
+  paragraph("1. Always use the raw request body — do not re-serialize parsed JSON.");
+  paragraph("2. Use constant-time comparison (timingSafeEqual, compare_digest, hash_equals).");
+  paragraph("3. Reject requests with missing or invalid signatures with 401.");
+  paragraph("4. Store api_secret_hash (SHA256 of api_secret) — compute once and cache.");
 
   subheading("Headers");
   tableRow(["Header", "Description"], true);
-  tableRow(["X-Webhook-Signature", "HMAC-SHA256 hex signature"]);
-  tableRow(["X-Webhook-Attempt", "Retry attempt (1–3)"]);
+  tableRow(["X-Webhook-Signature", "HMAC-SHA256 hex signature (64 chars)"]);
+  tableRow(["X-Webhook-Attempt", "Retry attempt number (1–3)"]);
 
   subheading("Events");
-  paragraph("charge.completed — Charge was successfully processed");
-  paragraph("charge.failed — Charge failed (includes reason code)");
-  paragraph("charge.refunded — Full refund processed");
-  paragraph("charge.partial_refund — Partial refund processed");
+  paragraph("charge.completed — Charge was successfully processed and funds moved.");
+  paragraph("charge.failed — Charge failed. Check 'reason' field: PIN_REQUIRED, PIN_NOT_SET, INVALID_PIN, PIN_LOCKED, INSUFFICIENT_BALANCE.");
+  paragraph("charge.refunded — Full refund processed.");
+  paragraph("charge.partial_refund — Partial refund processed.");
 
   subheading("Retry Policy");
-  paragraph("3 attempts with exponential backoff: immediate, 1s, 2s. Respond with 2xx to acknowledge.");
+  paragraph("3 attempts with exponential backoff: immediate, 1s, 2s. Respond with 2xx to acknowledge. After 3 failures, webhook is logged as undelivered.");
 
-  subheading("Signature Verification (Node.js)");
-  code(`const crypto = require('crypto');\nfunction verify(body, sig, secret) {\n  const expected = crypto\n    .createHmac('sha256', secret)\n    .update(body).digest('hex');\n  return crypto.timingSafeEqual(\n    Buffer.from(expected),\n    Buffer.from(sig)\n  );\n}`);
+  subheading("Testing Webhooks");
+  paragraph("Sandbox mode: webhooks fire normally with is_sandbox: true. Use ngrok or Cloudflare Tunnel to expose your local server. All delivery attempts are logged in the API request logs.");
 
   // --- Rate Limits ---
   heading("6. Rate Limits");

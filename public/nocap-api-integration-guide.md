@@ -592,57 +592,176 @@ curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-cashback-history
 
 ## Webhooks
 
-If your application has a `webhook_url` configured, NoCap sends real-time notifications for charge events.
+If your application has a `webhook_url` configured, NoCap sends real-time POST notifications for charge events.
 
 ### Configuration
 
 Set your webhook URL in the Merchant Dashboard → API Apps → Edit Webhook URL.
 
+> ⚠️ **Your webhook endpoint must respond within 10 seconds.** Use a queue or background job for slow processing.
+
 ### Security — Signature Verification
 
-Every webhook includes an HMAC-SHA256 signature in the `X-Webhook-Signature` header. **Always verify this** to ensure the request is from NoCap.
+Every webhook includes an **HMAC-SHA256 signature** in the `X-Webhook-Signature` header, computed using your app's `api_secret_hash` (the SHA-256 hash of your `api_secret`) as the HMAC key and the raw JSON payload body as the message.
 
-**Verification pseudocode:**
+**You MUST verify this signature** on every webhook to ensure:
+1. The request is genuinely from NoCap (not forged)
+2. The payload has not been tampered with in transit
+
+#### How Signing Works
+
+```
+HMAC-SHA256(
+  key   = SHA256(your_api_secret),   ← this is api_secret_hash
+  msg   = raw_json_payload_string
+) → hex_signature
+```
+
+NoCap stores only the **hash** of your API secret (`api_secret_hash`). This hash is used as the HMAC signing key. Your server must also compute `SHA256(api_secret)` once and store it for verification.
+
+#### Verification — Node.js / TypeScript
+
+```javascript
+const crypto = require('crypto');
+
+// Compute once at startup and cache:
+const API_SECRET = process.env.NOCAP_API_SECRET;
+const API_SECRET_HASH = crypto
+  .createHash('sha256')
+  .update(API_SECRET)
+  .digest('hex');
+
+function verifyWebhook(rawBody, signatureHeader) {
+  const expected = crypto
+    .createHmac('sha256', API_SECRET_HASH)
+    .update(rawBody)
+    .digest('hex');
+
+  // Use timing-safe comparison to prevent timing attacks
+  return crypto.timingSafeEqual(
+    Buffer.from(expected, 'hex'),
+    Buffer.from(signatureHeader, 'hex')
+  );
+}
+
+// Express.js example
+app.post('/webhooks/nocap', express.raw({ type: 'application/json' }), (req, res) => {
+  const signature = req.headers['x-webhook-signature'];
+  const rawBody = req.body.toString();
+
+  if (!verifyWebhook(rawBody, signature)) {
+    console.error('Invalid webhook signature — rejecting');
+    return res.status(401).send('Invalid signature');
+  }
+
+  const event = JSON.parse(rawBody);
+  console.log(`Received ${event.event} for charge ${event.charge_id}`);
+
+  // Process the event (use a queue for slow operations)
+  switch (event.event) {
+    case 'charge.completed':
+      // Mark order as paid
+      break;
+    case 'charge.failed':
+      // Handle failure (show reason: event.reason)
+      break;
+    case 'charge.refunded':
+    case 'charge.partial_refund':
+      // Process refund
+      break;
+  }
+
+  res.status(200).send('OK');
+});
+```
+
+#### Verification — Python
 
 ```python
-import hmac, hashlib
+import hmac
+import hashlib
+import json
 
-def verify_webhook(payload_body, signature_header, api_secret_hash):
+# Compute once at startup:
+API_SECRET = os.environ['NOCAP_API_SECRET']
+API_SECRET_HASH = hashlib.sha256(API_SECRET.encode()).hexdigest()
+
+def verify_webhook(raw_body: str, signature_header: str) -> bool:
     expected = hmac.new(
-        api_secret_hash.encode(),
-        payload_body.encode(),
+        API_SECRET_HASH.encode(),
+        raw_body.encode(),
         hashlib.sha256
     ).hexdigest()
     return hmac.compare_digest(expected, signature_header)
+
+# Flask example
+@app.route('/webhooks/nocap', methods=['POST'])
+def handle_webhook():
+    signature = request.headers.get('X-Webhook-Signature')
+    raw_body = request.get_data(as_text=True)
+
+    if not verify_webhook(raw_body, signature):
+        return 'Invalid signature', 401
+
+    event = json.loads(raw_body)
+    # Process event...
+    return 'OK', 200
 ```
 
-```javascript
-// Node.js
-const crypto = require('crypto');
+#### Verification — PHP
 
-function verifyWebhook(payloadBody, signatureHeader, apiSecretHash) {
-  const expected = crypto
-    .createHmac('sha256', apiSecretHash)
-    .update(payloadBody)
-    .digest('hex');
-  return crypto.timingSafeEqual(
-    Buffer.from(expected),
-    Buffer.from(signatureHeader)
-  );
+```php
+$apiSecret = getenv('NOCAP_API_SECRET');
+$apiSecretHash = hash('sha256', $apiSecret);
+
+$rawBody = file_get_contents('php://input');
+$signature = $_SERVER['HTTP_X_WEBHOOK_SIGNATURE'] ?? '';
+
+$expected = hash_hmac('sha256', $rawBody, $apiSecretHash);
+
+if (!hash_equals($expected, $signature)) {
+    http_response_code(401);
+    die('Invalid signature');
+}
+
+$event = json_decode($rawBody, true);
+// Process event...
+http_response_code(200);
+echo 'OK';
+```
+
+#### Verification — Go
+
+```go
+func verifyWebhook(rawBody []byte, signature, apiSecretHash string) bool {
+    mac := hmac.New(sha256.New, []byte(apiSecretHash))
+    mac.Write(rawBody)
+    expected := hex.EncodeToString(mac.Sum(nil))
+    return hmac.Equal([]byte(expected), []byte(signature))
 }
 ```
+
+### Important Security Notes
+
+1. **Always use the raw request body** for verification — do not re-serialize parsed JSON, as whitespace or key ordering may differ.
+2. **Use constant-time comparison** (`timingSafeEqual`, `compare_digest`, `hash_equals`) to prevent timing attacks.
+3. **Reject requests with missing or invalid signatures** immediately with `401`.
+4. **Log rejected webhooks** for monitoring but do not expose internal details in the response.
+5. **Store `api_secret_hash`** (not the raw secret) — compute `SHA256(api_secret)` once and cache it.
 
 ### Headers
 
 | Header | Description |
 |---|---|
 | `Content-Type` | `application/json` |
-| `X-Webhook-Signature` | HMAC-SHA256 hex signature |
+| `X-Webhook-Signature` | HMAC-SHA256 hex signature (64 characters) |
 | `X-Webhook-Attempt` | Retry attempt number (1–3) |
 
 ### Events
 
 #### `charge.completed`
+
+Fired when a charge is successfully processed and funds have moved.
 
 ```json
 {
@@ -653,12 +772,14 @@ function verifyWebhook(payloadBody, signatureHeader, apiSecretHash) {
   "description": "Order #123",
   "reference": "order-123",
   "status": "completed",
-  "metadata": {},
+  "metadata": { "order_id": "abc-123" },
   "timestamp": "2026-02-17T10:00:01Z"
 }
 ```
 
 #### `charge.failed`
+
+Fired when a charge cannot be completed. Check `reason` for the specific failure code.
 
 ```json
 {
@@ -674,9 +795,11 @@ function verifyWebhook(payloadBody, signatureHeader, apiSecretHash) {
 }
 ```
 
-**Failure reason codes:** `PIN_REQUIRED`, `PIN_NOT_SET`, `INVALID_PIN`, `INSUFFICIENT_BALANCE`
+**Failure reason codes:** `PIN_REQUIRED`, `PIN_NOT_SET`, `INVALID_PIN`, `PIN_LOCKED`, `INSUFFICIENT_BALANCE`
 
 #### `charge.refunded` / `charge.partial_refund`
+
+Fired when a refund is processed. `charge.refunded` means the full amount was returned; `charge.partial_refund` means only part was refunded.
 
 ```json
 {
@@ -702,7 +825,13 @@ NoCap retries failed webhook deliveries up to **3 times** with exponential backo
 | 2 | 1 second |
 | 3 | 2 seconds |
 
-Respond with any `2xx` status code to acknowledge receipt. Non-2xx responses or network errors trigger a retry.
+Respond with any `2xx` status code to acknowledge receipt. Non-2xx responses or network errors trigger a retry. After 3 failed attempts, the webhook is marked as undelivered (logged in `api_request_logs`).
+
+### Testing Webhooks
+
+1. **Sandbox mode**: Webhooks fire normally with `is_sandbox: true` — use this for development.
+2. **Use a tunnel**: Tools like ngrok or Cloudflare Tunnel expose your local server for webhook testing.
+3. **Check delivery logs**: All webhook attempts (including failures) are logged in the API request logs visible in the Merchant Dashboard.
 
 ---
 
