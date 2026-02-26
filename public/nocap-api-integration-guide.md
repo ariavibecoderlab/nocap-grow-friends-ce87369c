@@ -948,7 +948,60 @@ This section provides a complete step-by-step guide for integrating NoCap into y
 
 ---
 
+### Pre-Integration: NoCap Merchant Setup
+
+Before handing prompts to your developer, the **NoCap merchant** must complete these steps in the NoCap Merchant Dashboard:
+
+#### Fresh Integration (New to NoCap API)
+
+1. **Register as a Merchant** — Complete the merchant application at `/merchant-register` and wait for admin approval.
+2. **Create Branches** — Add all outlet locations under Branch Management. Each branch gets a unique QR code.
+3. **Create a Merchant-Level API App** — Go to API Apps → Create App. Select **"All Branches"** so the app covers every outlet with a single set of credentials.
+4. **Save Credentials** — Securely copy and share `app_id`, `api_key`, and `api_secret` with your developer. The `api_secret` is shown only once.
+5. **Set Webhook URL** — Enter your server's webhook endpoint in the app settings.
+6. **Enable Sandbox** — Toggle sandbox mode for development/testing.
+
+#### Upgrade Integration (Already Using NoCap Wallet)
+
+1. **Create a NEW Merchant-Level API App** — Select "All Branches". Keep the old branch-level app active during transition.
+2. **Share New Credentials** — Provide `app_id`, `api_key`, and `api_secret` to your 3rd party developer.
+3. **Set Webhook URL** — Configure the webhook endpoint on the new app.
+4. **Transition Period** — Once the 3rd party completes Prompts 6–9, existing members re-authorize and the old branch-level app can be deactivated.
+
+---
+
+### 3rd Party System Enhancements Required
+
+Summary of all changes needed on the 3rd party system:
+
+| Enhancement | Fresh Integration | Upgrade |
+|---|---|---|
+| `nocap_connections` table | New table | Add `referral_code` + `scopes` columns |
+| `nocap_branch_mappings` table | New table | New table |
+| API service layer | Build full (10 functions) | Add referral + branch functions |
+| OAuth flow | Build with all 3 scopes | Update to include `referral` scope |
+| Charge routing | Include `branch_id` | Update `createCharge` for `branch_id` |
+| Re-authorization banner | Build | Build |
+| Referral dashboard UI | Build | Build |
+| Webhook verification | Build HMAC-SHA256 | No change (already implemented) |
+
+---
+
+### Member Action Required
+
+Existing connected members do **NOT** need to disconnect or create new accounts:
+
+1. **Current State** — Members already connected via OAuth have `balance` and `charge` scopes. Wallet and payments continue working normally.
+2. **Re-authorization** — The 3rd party system shows a banner: **"Unlock Referral Rewards!"** for members missing the `referral` scope.
+3. **One-Click Upgrade** — Member clicks the banner → redirected to NoCap `/authorize` with `scope=balance,charge,referral` → approves → redirected back.
+4. **Token Swap** — NoCap automatically revokes the old token and issues a new one with all 3 scopes. No conflict errors.
+5. **No Disruption** — Wallet balance, payment history, and all existing features remain intact throughout.
+
+---
+
 ### Prompt 1 — Store NoCap API Credentials (New integrators only)
+
+> **NoCap Merchant Action:** Must have created a merchant-level API app and shared credentials before this step.
 
 ```
 We are integrating with NoCap wallet and affiliate system.
@@ -969,9 +1022,13 @@ Create a "nocap_connections" table:
 Add RLS so customers can only read their own connection.
 ```
 
+> **Member Impact:** None — this is backend setup only.
+
 ---
 
 ### Prompt 2 — Build NoCap API Service Layer (New integrators only)
+
+> **NoCap Merchant Action:** None — credentials already shared in Prompt 1.
 
 ```
 Create an API service file for NoCap endpoints.
@@ -996,9 +1053,13 @@ REFERRAL / AFFILIATE:
 All use x-api-key + x-api-secret headers. Bearer token endpoints noted above.
 ```
 
+> **Member Impact:** None — this is backend code only.
+
 ---
 
 ### Prompt 3 — OAuth Wallet Connection Flow (New integrators only)
+
+> **NoCap Merchant Action:** Ensure the redirect URI matches the 3rd party callback URL.
 
 ```
 Add "Connect NoCap Wallet" button. Redirect to:
@@ -1019,9 +1080,13 @@ Callback page:
 Handle ?error=access_denied case.
 ```
 
+> **Member Impact:** Members see a consent screen and approve access. Their NoCap wallet is linked to the 3rd party system.
+
 ---
 
 ### Prompt 4 — New Customer Registration with Referral (New integrators only)
+
+> **NoCap Merchant Action:** None — the API handles registration automatically.
 
 ```
 When new customer signs up with a referral code:
@@ -1035,9 +1100,13 @@ If no referral code, skip NoCap auto-registration.
 If NoCap registration fails, don't block our signup.
 ```
 
+> **Member Impact:** New members get a NoCap wallet automatically if they enter a referral code. No separate NoCap signup required.
+
 ---
 
 ### Prompt 5 — Wallet Payment in Checkout (New integrators only)
+
+> **NoCap Merchant Action:** Ensure sandbox mode is enabled for testing, then switch to live when ready.
 
 ```
 Add NoCap as payment option in checkout:
@@ -1053,11 +1122,15 @@ Webhook handling:
 - Handle charge.completed, charge.failed, charge.refunded
 ```
 
+> **Member Impact:** Members can now pay with their NoCap wallet at checkout.
+
 ---
 
 ### Start Here If Already Integrated
 
 ### Prompt 6 — Upgrade for Affiliate and Multi-Branch (All integrators)
+
+> **NoCap Merchant Action:** Must have created a NEW merchant-level API app ("All Branches") and shared the new credentials.
 
 ```
 Upgrading existing NoCap integration. DO NOT remove existing wallet features.
@@ -1081,9 +1154,13 @@ Upgrading existing NoCap integration. DO NOT remove existing wallet features.
 Base URL: https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1
 ```
 
+> **Member Impact:** None — this is backend preparation. Existing wallet features are untouched.
+
 ---
 
 ### Prompt 7 — Re-authorize Existing Users for Referral Scope (All integrators)
+
+> **NoCap Merchant Action:** None — the OAuth upgrade is handled automatically by NoCap.
 
 ```
 Existing customers have only "balance" and "charge" scopes.
@@ -1102,9 +1179,13 @@ Also: when new customers sign up with referral code,
 call POST /api-referral-register to auto-create their NoCap account.
 ```
 
+> **Member Impact:** Members see a one-time banner prompting them to unlock referral rewards. One click → approve → done. Wallet continues working throughout.
+
 ---
 
 ### Prompt 8 — Multi-Branch Charge Routing (All integrators)
+
+> **NoCap Merchant Action:** Ensure all branches are created in the NoCap Merchant Dashboard before this step. New branches can be added later (see "When a New Branch Opens" below).
 
 ```
 DO NOT change existing payment logic. Just add branch routing:
@@ -1120,9 +1201,13 @@ Example: POST /api-charge { amount: 25.00, description: "Order #456",
 reference: "order-456", branch_id: "uuid-of-branch" }
 ```
 
+> **Member Impact:** None — branch routing is transparent to members. Payments work the same way.
+
 ---
 
 ### Prompt 9 — Referral Dashboard and Admin Panel (All integrators)
+
+> **NoCap Merchant Action:** None — all data comes from NoCap API endpoints.
 
 ```
 DO NOT modify existing wallet/payment UI. Add new sections:
@@ -1141,9 +1226,39 @@ ADMIN SECTION:
 - Top referrers by network size
 ```
 
+> **Member Impact:** Members with referral scope see a new Referral Dashboard with their stats, network tree, and earnings history.
+
 ---
 
-### FAQ — Common Upgrade Questions
+### When a New Branch Opens in Future
+
+When a merchant expands and opens a new branch/outlet, here's what needs to happen on each side:
+
+#### NoCap Merchant Actions
+
+1. **Create the branch** in the NoCap Merchant Dashboard → Branch Management.
+2. The new branch is **automatically available** via `GET /api-branches` — no API app changes needed.
+3. **No credential rotation required** — merchant-level apps ("All Branches") automatically cover new branches.
+4. No need to contact NoCap support or modify any API settings.
+
+#### 3rd Party System Actions
+
+1. **Refresh branch list** — Call `GET /api-branches` or click the "Refresh Branches" button (implemented in Prompt 8).
+2. **Add mapping** — Insert a new row in `nocap_branch_mappings` linking the internal outlet ID to the new NoCap `branch_id`.
+3. **Update branch selector** — The new branch appears in the admin mapping page. Map it to the correct internal outlet.
+4. **Unmapped warning** — If Prompt 8's warning system is implemented, the new outlet surfaces as unmapped until configured.
+
+#### Member Impact
+
+- **No action required** from members — existing tokens and connections are completely unaffected.
+- Payments at the new branch work **immediately** once the mapping is configured.
+- No re-authorization, no new consent, no disruption.
+
+> **Key Point:** Because merchant-level API apps cover all branches, no API credential changes or member re-authorization is ever needed when new branches are added. The only action is to refresh the branch list and update the mapping.
+
+---
+
+### FAQ — Common Integration Questions
 
 **Q: Do existing users need to disconnect and reconnect?**
 A: No. Existing wallet and payment features continue working with their current token. They only re-authorize once (Prompt 7) to unlock referral features.
@@ -1151,11 +1266,20 @@ A: No. Existing wallet and payment features continue working with their current 
 **Q: What happens to old tokens during scope upgrade?**
 A: The NoCap authorize endpoint automatically revokes the old token and issues a new one with updated scopes. No conflict errors.
 
-**Q: Is branch_id required for all API charge requests?**
+**Q: Is `branch_id` required for all API charge requests?**
 A: Only for merchant-level apps (registered without a specific branch). Branch-level apps default to their assigned branch.
 
 **Q: Can I use both branch-level and merchant-level apps?**
 A: Yes. Merchant-level apps offer flexibility for multi-outlet systems with a single set of credentials. Branch-level apps are simpler for single-location setups.
+
+**Q: What do I do when a new branch opens?**
+A: The NoCap merchant creates the branch in the dashboard. The 3rd party system refreshes the branch list via `GET /api-branches` and maps the new branch. No credential changes or member re-authorization needed.
+
+**Q: Do I need a new API app for each branch?**
+A: No. A single merchant-level API app ("All Branches") covers all current and future branches. Use `branch_id` in the charge request to route payments.
+
+**Q: What if the merchant upgrades from branch-level to merchant-level app?**
+A: Create a new merchant-level app, share credentials with the developer, and complete Prompts 6–9. Keep the old app active during transition. Deactivate it once all members have re-authorized.
 
 ---
 
