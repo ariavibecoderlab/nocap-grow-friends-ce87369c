@@ -77,3 +77,9 @@ verify_jwt = false
 
 [functions.api-branches]
 verify_jwt = false
+
+[functions.generate-test-token]
+verify_jwt = false
+
+[functions.api-docs]
+verify_jwt = false
