@@ -426,7 +426,7 @@ const MerchantDashboard = () => {
     }
   };
 
-  if (authLoading || loadingData) {
+  if (authLoading || loadingData || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-primary">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-secondary border-t-transparent" />
