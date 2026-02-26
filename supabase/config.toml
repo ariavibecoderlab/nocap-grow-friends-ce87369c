@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.api-cashback-history]
 verify_jwt = false
+
+[functions.api-branches]
+verify_jwt = false

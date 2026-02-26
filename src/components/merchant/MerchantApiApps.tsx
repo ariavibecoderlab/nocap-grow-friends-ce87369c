@@ -22,7 +22,7 @@ interface ApiApp {
   name: string;
   description: string | null;
   api_key: string;
-  branch_id: string;
+  branch_id: string | null;
   webhook_url: string | null;
   is_active: boolean;
   is_sandbox: boolean;
@@ -75,14 +75,19 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
     if (!appName.trim() || !branchId) return;
     setCreating(true);
 
+    const bodyData: Record<string, unknown> = {
+      name: appName.trim(),
+      description: appDesc.trim() || null,
+      webhook_url: webhookUrl.trim() || null,
+      is_sandbox: isSandbox,
+    };
+    // Only include branch_id if a specific branch is selected (not merchant-level)
+    if (branchId !== '__merchant_level__') {
+      bodyData.branch_id = branchId;
+    }
+
     const { data, error } = await supabase.functions.invoke("api-register-app", {
-      body: {
-        name: appName.trim(),
-        description: appDesc.trim() || null,
-        branch_id: branchId,
-        webhook_url: webhookUrl.trim() || null,
-        is_sandbox: isSandbox,
-      },
+      body: bodyData,
     });
 
     if (error || !data?.success) {
@@ -138,7 +143,10 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
     toast({ title: `${label} copied!` });
   };
 
-  const branchName = (id: string) => branches.find((b) => b.id === id)?.branch_name || "Unknown";
+  const branchName = (id: string | null) => {
+    if (!id) return "All Branches (Merchant-Level)";
+    return branches.find((b) => b.id === id)?.branch_name || "Unknown";
+  };
 
   const startEditWebhook = (app: ApiApp) => {
     setEditingWebhook(app.id);
@@ -302,11 +310,19 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
                   <SelectValue placeholder="Select branch" />
                 </SelectTrigger>
                 <SelectContent className="bg-primary border-secondary/20 text-white">
+                  <SelectItem value="__merchant_level__" className="text-white focus:bg-secondary/20 focus:text-secondary">
+                    All Branches (Merchant-Level)
+                  </SelectItem>
                   {branches.map((b) => (
                     <SelectItem key={b.id} value={b.id} className="text-white focus:bg-secondary/20 focus:text-secondary">{b.branch_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {branchId === '__merchant_level__' && (
+                <p className="text-[10px] text-amber-400 mt-1">
+                  Merchant-level apps require branch_id in each API charge request. Use GET /api-branches to list available branches.
+                </p>
+              )}
             </div>
             <div>
               <Label className="text-secondary/80 text-xs font-medium">Webhook URL (optional)</Label>

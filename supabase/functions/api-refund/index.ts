@@ -213,12 +213,20 @@ serve(async (req) => {
       });
     }
 
-    // REAL MODE: Check branch wallet has sufficient balance
+    // REAL MODE: Resolve branch from charge metadata or app default
+    const chargeMeta = (charge as any).metadata || {};
+    const refundBranchId = chargeMeta.branch_id || (chargeMeta.custom?.branch_id) || app.branch_id;
+    if (!refundBranchId) {
+      return new Response(JSON.stringify({ error: 'Cannot determine branch for refund' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { data: branchWallet } = await supabase
       .from('wallets')
       .select('balance')
       .eq('wallet_type', 'branch')
-      .eq('branch_id', app.branch_id)
+      .eq('branch_id', refundBranchId)
       .single();
 
     if (!branchWallet || Number(branchWallet.balance) < actualRefund) {
@@ -231,18 +239,18 @@ serve(async (req) => {
     await supabase.from('wallets').update({
       balance: Number(branchWallet.balance) - actualRefund,
       updated_at: new Date().toISOString(),
-    }).eq('wallet_type', 'branch').eq('branch_id', app.branch_id);
+    }).eq('wallet_type', 'branch').eq('branch_id', refundBranchId);
 
     // Update merchant_branches.balance
     const { data: branchRow } = await supabase
       .from('merchant_branches')
       .select('balance')
-      .eq('id', app.branch_id)
+      .eq('id', refundBranchId)
       .single();
     if (branchRow) {
       await supabase.from('merchant_branches').update({
         balance: Number(branchRow.balance) - actualRefund,
-      }).eq('id', app.branch_id);
+      }).eq('id', refundBranchId);
     }
 
     // Credit member wallet
@@ -264,7 +272,7 @@ serve(async (req) => {
     const { data: branch } = await supabase
       .from('merchant_branches')
       .select('branch_name, merchant_user_id, owner_user_id')
-      .eq('id', app.branch_id)
+      .eq('id', refundBranchId)
       .single();
 
     const branchName = branch?.branch_name || 'Merchant';
@@ -277,9 +285,9 @@ serve(async (req) => {
         type: 'refund',
         amount: actualRefund,
         status: 'completed',
-        description: reason || `Refund from ${branchName} via ${app.name}`,
-        reference_id: charge.transaction_id || null,
-        metadata: { charge_id, branch_id: app.branch_id, api_app_id: app.id, api_app_name: app.name },
+      description: reason || `Refund from ${branchName} via ${app.name}`,
+      reference_id: charge.transaction_id || null,
+      metadata: { charge_id, branch_id: refundBranchId, api_app_id: app.id, api_app_name: app.name },
       })
       .select('id')
       .single();
@@ -293,7 +301,7 @@ serve(async (req) => {
       status: 'completed',
       description: `Refund to member via ${app.name}`,
       reference_id: refundTx?.id || null,
-      metadata: { charge_id, branch_id: app.branch_id, api_app_id: app.id },
+      metadata: { charge_id, branch_id: refundBranchId, api_app_id: app.id },
     });
 
     // Update the charge status and refunded total

@@ -1,0 +1,1 @@
+ALTER TABLE public.api_applications ALTER COLUMN branch_id DROP NOT NULL;
