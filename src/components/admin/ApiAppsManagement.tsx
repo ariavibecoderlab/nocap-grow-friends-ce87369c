@@ -13,7 +13,7 @@ interface ApiAppAdmin {
   description: string | null;
   api_key: string;
   merchant_user_id: string;
-  branch_id: string;
+  branch_id: string | null;
   is_active: boolean;
   created_at: string;
 }

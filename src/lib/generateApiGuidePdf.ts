@@ -193,6 +193,7 @@ export function generateApiGuidePdf() {
   tableRow(["amount", "number", "Yes", "0.01 – 50,000 MYR"]);
   tableRow(["description", "string", "No", "Payment description"]);
   tableRow(["reference", "string", "No", "Your internal reference"]);
+  tableRow(["branch_id", "string", "Conditional", "Required for merchant-level apps"]);
   tableRow(["pin", "string", "Conditional", "7-digit PIN (if amount >= threshold)"]);
   tableRow(["metadata", "object", "No", "Custom data (max 4KB)"]);
 
@@ -221,6 +222,14 @@ export function generateApiGuidePdf() {
 
   subheading("3.6 Revoke Access — POST /api-revoke");
   paragraph("Users can revoke tokens from Connected Apps settings, or call this endpoint with their session token and { token_id }.");
+
+  // --- Branch Management ---
+  heading("3b. Branch Management");
+  subheading("3.7 List Branches — GET /api-branches");
+  paragraph("Returns all active branches for the merchant who owns the API app. Auth: x-api-key + x-api-secret only (no Bearer token needed).");
+  code(`curl ${BASE_URL}/api-branches \\\n  -H "x-api-key: KEY" -H "x-api-secret: SECRET"`);
+  paragraph("Response: { branches: [{ id, branch_name, qr_code_id, is_active }] }");
+  paragraph("Use this endpoint to populate branch selectors or map internal outlet IDs to NoCap branch IDs. Required for merchant-level apps when calling POST /api-charge.");
 
   // --- Referral / Affiliate Endpoints ---
   heading("4. Referral / Affiliate Endpoints");
@@ -288,6 +297,7 @@ export function generateApiGuidePdf() {
   tableRow(["/api-charge-status", "60/min per key"]);
   tableRow(["/api-charges-list", "60/min per key"]);
   tableRow(["/api-refund", "20/min per key"]);
+  tableRow(["/api-branches", "60/min per key"]);
   tableRow(["/api-referral-info", "60/min per key"]);
   tableRow(["/api-referral-register", "10/min per app"]);
   tableRow(["/api-referral-network", "30/min per key"]);

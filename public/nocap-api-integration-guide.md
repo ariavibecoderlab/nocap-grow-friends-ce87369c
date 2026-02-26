@@ -193,6 +193,7 @@ curl -X POST https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charge \
     "amount": 10.00,
     "description": "Order #123",
     "reference": "order-123",
+    "branch_id": "uuid-of-branch",
     "pin": "1234567",
     "metadata": {
       "order_id": "abc-123",
@@ -208,6 +209,7 @@ curl -X POST https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charge \
 | `amount` | number | ✅ | Amount in MYR (0.01 – 50,000) |
 | `description` | string | Optional | Payment description |
 | `reference` | string | Optional | Your internal reference ID |
+| `branch_id` | string | Conditional | Target branch UUID. **Required** for merchant-level apps (no default branch). Optional for branch-level apps (defaults to app's branch). Use `GET /api-branches` to list available branches. |
 | `pin` | string | Conditional | User's 7-digit PIN (required when amount ≥ threshold, default RM100) |
 | `metadata` | object | Optional | Custom key-value data (max 4KB JSON object) |
 
@@ -361,7 +363,40 @@ curl -X POST https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-refund \
 }
 ```
 
-> Only `completed` charges can be refunded. The refund is deducted from the branch wallet and credited to the user's wallet.
+> Only `completed` charges can be refunded. The refund is deducted from the branch wallet and credited to the user's wallet. For merchant-level apps, the branch is resolved from the charge metadata automatically.
+
+---
+
+### 6a. List Branches
+
+**`GET /api-branches`**
+
+Requires: `x-api-key` + `x-api-secret` (no Bearer token needed)
+
+Returns all active branches for the merchant who owns the API app. Use this to populate your branch selector or map internal outlet IDs to NoCap branch IDs.
+
+```bash
+curl https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-branches \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "x-api-secret: YOUR_API_SECRET"
+```
+
+**Response (200):**
+
+```json
+{
+  "branches": [
+    {
+      "id": "uuid",
+      "branch_name": "KL Sentral Outlet",
+      "qr_code_id": "abc123",
+      "is_active": true
+    }
+  ]
+}
+```
+
+> **Merchant-Level Apps:** When registering an API app without selecting a specific branch, you create a "merchant-level" app. These apps must include `branch_id` in every `POST /api-charge` request. Use this endpoint to discover available branches.
 
 ---
 
@@ -682,6 +717,7 @@ Respond with any `2xx` status code to acknowledge receipt. Non-2xx responses or 
 | `/api-charge-status` | 60 requests | per minute per API key |
 | `/api-charges-list` | 60 requests | per minute per API key |
 | `/api-refund` | 20 requests | per minute per API key |
+| `/api-branches` | 60 requests | per minute per API key |
 | `/api-referral-info` | 60 requests | per minute per API key |
 | `/api-referral-register` | 10 requests | per minute per API key |
 | `/api-referral-network` | 30 requests | per minute per API key |

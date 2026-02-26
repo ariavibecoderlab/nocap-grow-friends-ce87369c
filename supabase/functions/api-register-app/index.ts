@@ -62,24 +62,22 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    if (!branch_id) {
-      return new Response(JSON.stringify({ error: 'Branch is required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
-    // Verify branch belongs to this merchant
-    const { data: branch } = await supabase
-      .from('merchant_branches')
-      .select('id')
-      .eq('id', branch_id)
-      .eq('merchant_user_id', user.id)
-      .single();
+    // branch_id is optional — omitting it creates a merchant-level app
+    if (branch_id) {
+      // Verify branch belongs to this merchant
+      const { data: branch } = await supabase
+        .from('merchant_branches')
+        .select('id')
+        .eq('id', branch_id)
+        .eq('merchant_user_id', user.id)
+        .single();
 
-    if (!branch) {
-      return new Response(JSON.stringify({ error: 'Branch not found or not yours' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      if (!branch) {
+        return new Response(JSON.stringify({ error: 'Branch not found or not yours' }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // Generate API secret (shown once)
@@ -89,17 +87,21 @@ serve(async (req) => {
     const apiSecretHash = await hashSecret(apiSecret);
 
     // Insert app
+    const insertData: Record<string, unknown> = {
+      name: name.trim(),
+      description: description?.trim() || null,
+      api_secret_hash: apiSecretHash,
+      merchant_user_id: user.id,
+      webhook_url: webhook_url?.trim() || null,
+      is_sandbox: !!is_sandbox,
+    };
+    if (branch_id) {
+      insertData.branch_id = branch_id;
+    }
+
     const { data: app, error: insertError } = await supabase
       .from('api_applications')
-      .insert({
-        name: name.trim(),
-        description: description?.trim() || null,
-        api_secret_hash: apiSecretHash,
-        merchant_user_id: user.id,
-        branch_id,
-        webhook_url: webhook_url?.trim() || null,
-        is_sandbox: !!is_sandbox,
-      })
+      .insert(insertData)
       .select('id, api_key, name')
       .single();
 

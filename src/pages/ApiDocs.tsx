@@ -39,7 +39,7 @@ const ApiDocs = () => {
         </div>
 
         <Tabs defaultValue="getting-started" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-6 overflow-x-auto">
             <TabsTrigger value="getting-started">Getting Started</TabsTrigger>
             <TabsTrigger value="authentication">Auth Flow</TabsTrigger>
             <TabsTrigger value="sandbox">Sandbox</TabsTrigger>
@@ -135,7 +135,8 @@ const ApiDocs = () => {
                           <td className="py-2">60 req/min</td>
                         </tr>
                         <tr className="border-b border-border/50">
-                          <td className="py-2 pr-4 font-mono text-xs">/api-referral-info</td>
+                          <td className="py-2 pr-4 font-mono text-xs">/api-branches</td>
+                          <td className="py-2">60 req/min</td>
                           <td className="py-2">60 req/min</td>
                         </tr>
                         <tr className="border-b border-border/50">
@@ -915,6 +916,7 @@ app.post("/webhook/nocap", (req, res) => {
                       <li><code className="text-primary font-bold">amount</code> (number, required): The payment amount.</li>
                       <li><code className="text-primary font-bold">description</code> (string, optional): A brief description of the charge.</li>
                       <li><code className="text-primary font-bold">reference</code> (string, optional): Your internal transaction reference ID.</li>
+                      <li><code className="text-primary font-bold">branch_id</code> (string, conditional): Target branch UUID. <strong>Required</strong> for merchant-level apps (no default branch). Optional for branch-level apps (defaults to the app's branch). Use <code className="font-mono">/api-branches</code> to list available branches.</li>
                       <li><code className="text-primary font-bold">metadata</code> (object, optional): Custom key-value data (max 4KB). Returned in webhooks and charge queries.</li>
                     </ul>
                   </div>
@@ -948,6 +950,7 @@ app.post("/webhook/nocap", (req, res) => {
                       { name: "amount", placeholder: "10.50", type: "number", required: true },
                       { name: "description", placeholder: "Order #12345", type: "string" },
                       { name: "reference", placeholder: "txn_88291", type: "string" },
+                      { name: "branch_id", placeholder: "uuid-of-branch (required for merchant-level apps)", type: "string" },
                       { name: "metadata", placeholder: '{ "order_id": "ORD-123" }', type: "json" },
                     ]}
                     needsUserToken={true}
@@ -1108,6 +1111,56 @@ app.post("/webhook/nocap", (req, res) => {
                       { name: "reference", placeholder: "txn_88291", type: "query" },
                       { name: "user_id", placeholder: "uuid", type: "query" },
                     ]}
+                    needsUserToken={false}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Branch Management Endpoint */}
+              <div className="pt-4">
+                <h2 className="text-xl font-bold mb-1">Branch Management</h2>
+                <p className="text-sm text-muted-foreground mb-4">List available branches for merchant-level API apps. Auth via <code className="text-primary font-bold">x-api-key</code> + <code className="text-primary font-bold">x-api-secret</code> only (no Bearer token needed).</p>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 text-xs font-bold rounded">GET</span>
+                    <CardTitle className="text-lg">/api-branches</CardTitle>
+                  </div>
+                  <CardDescription>List all active branches for the merchant who owns the API app.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <h4 className="text-sm font-semibold">Request Example:</h4>
+                  <CodeBlock>{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-branches" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret"`}</CodeBlock>
+                  <h4 className="text-sm font-semibold">Response Example:</h4>
+                  <CodeBlock>{`{
+  "branches": [
+    {
+      "id": "uuid",
+      "branch_name": "KL Sentral Outlet",
+      "qr_code_id": "abc123",
+      "is_active": true
+    },
+    {
+      "id": "uuid",
+      "branch_name": "Pavilion Outlet",
+      "qr_code_id": "def456",
+      "is_active": true
+    }
+  ]
+}`}</CodeBlock>
+                  <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 p-3 rounded-md">
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      💡 <strong>Tip:</strong> Use this endpoint to populate your branch selector or to map your internal outlet IDs to NoCap branch IDs. Required for merchant-level apps when calling <code className="font-mono">/api-charge</code>.
+                    </p>
+                  </div>
+                  <ApiTryIt
+                    method="GET"
+                    endpoint="api-branches"
+                    params={[]}
                     needsUserToken={false}
                   />
                 </CardContent>

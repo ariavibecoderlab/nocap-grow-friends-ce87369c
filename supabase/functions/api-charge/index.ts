@@ -208,7 +208,7 @@ serve(async (req) => {
     // Update last_used_at
     await supabase.from('api_access_tokens').update({ last_used_at: new Date().toISOString() }).eq('id', token.id);
 
-    const { amount, description, reference, pin, metadata: customMetadata } = bodyData as { amount: number; description?: string; reference?: string; pin?: string; metadata?: Record<string, unknown> };
+    const { amount, description, reference, pin, metadata: customMetadata, branch_id: bodyBranchId } = bodyData as { amount: number; description?: string; reference?: string; pin?: string; metadata?: Record<string, unknown>; branch_id?: string };
 
     // Validate custom metadata
     if (customMetadata !== undefined && customMetadata !== null) {
@@ -225,7 +225,14 @@ serve(async (req) => {
       }
     }
     const payerId = token.user_id;
-    const branch_id = app.branch_id;
+
+    // Resolve branch_id: use body param if provided, otherwise fall back to app's default branch
+    const branch_id = bodyBranchId || app.branch_id;
+    if (!branch_id) {
+      return new Response(JSON.stringify({ error: 'branch_id is required for merchant-level apps (no default branch). Include branch_id in the request body.' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     if (!amount || typeof amount !== 'number' || amount < 0.01 || amount > 50000) {
       return new Response(JSON.stringify({ error: 'Amount must be between 0.01 and 50000' }), {
@@ -253,7 +260,7 @@ serve(async (req) => {
     }
 
     // Create charge record
-    const chargeMetadata = customMetadata ? { custom: customMetadata } : {};
+    const chargeMetadata = { branch_id, ...(customMetadata ? { custom: customMetadata } : {}) };
     const { data: charge, error: chargeError } = await supabase
       .from('api_charges')
       .insert({
