@@ -24,4 +24,4 @@
 | Clean up test API apps created during testing | Low | ✅ Done |
 | End-to-end test with real merchant credentials | Medium | ✅ Done (5/5 tests passed) |
 | Add webhook signature docs to integration guide | Low | ✅ Done |
-| Consider rate-limit tuning for `api-branches` | Low | Pending |
+| Consider rate-limit tuning for `api-branches` | Low | ✅ No change needed (60/min appropriate) |
