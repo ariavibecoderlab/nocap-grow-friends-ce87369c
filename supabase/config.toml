@@ -62,3 +62,15 @@ verify_jwt = false
 
 [functions.ai-help-chat]
 verify_jwt = false
+
+[functions.api-referral-info]
+verify_jwt = false
+
+[functions.api-referral-register]
+verify_jwt = false
+
+[functions.api-referral-network]
+verify_jwt = false
+
+[functions.api-cashback-history]
+verify_jwt = false

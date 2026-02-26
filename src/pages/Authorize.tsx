@@ -16,6 +16,7 @@ type Step = "login" | "otp" | "consent";
 const SCOPE_LABELS: Record<string, { label: string; icon: React.ReactNode; description: string }> = {
   balance: { label: "View Balance", icon: <Wallet className="h-4 w-4" />, description: "Read your wallet balance" },
   charge: { label: "Create Charges", icon: <CreditCard className="h-4 w-4" />, description: "Charge payments from your wallet" },
+  referral: { label: "View Referral Network", icon: <Zap className="h-4 w-4" />, description: "Access your referral stats, network & cashback history" },
 };
 
 const Authorize = () => {
