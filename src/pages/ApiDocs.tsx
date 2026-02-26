@@ -8,6 +8,7 @@ import CodeBlock from "@/components/CodeBlock";
 import ApiTryIt from "@/components/ApiTryIt";
 import { ApiCredentialsProvider } from "@/contexts/ApiCredentialsContext";
 import { generateApiGuidePdf } from "@/lib/generateApiGuidePdf";
+import IntegrationRoadmap from "@/components/IntegrationRoadmap";
 
 const ApiDocs = () => {
   return (
@@ -39,13 +40,14 @@ const ApiDocs = () => {
         </div>
 
         <Tabs defaultValue="getting-started" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 overflow-x-auto">
+          <TabsList className="grid w-full grid-cols-7 overflow-x-auto">
             <TabsTrigger value="getting-started">Getting Started</TabsTrigger>
             <TabsTrigger value="authentication">Auth Flow</TabsTrigger>
             <TabsTrigger value="sandbox">Sandbox</TabsTrigger>
             <TabsTrigger value="endpoints">Endpoints</TabsTrigger>
             <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
             <TabsTrigger value="errors">Error Codes</TabsTrigger>
+            <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
           </TabsList>
 
           <TabsContent value="getting-started" forceMount className="data-[state=inactive]:hidden">
@@ -1795,6 +1797,10 @@ app.listen(3000);`}</CodeBlock>
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="roadmap" forceMount className="data-[state=inactive]:hidden">
+            <IntegrationRoadmap />
           </TabsContent>
         </Tabs>
       </div>
