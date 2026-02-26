@@ -1,135 +1,117 @@
 
 
-## Plan: Affiliate Module API Integration for 3rd Party Systems
+## Plan: Enable Scope Upgrade for Existing Users + 3rd Party Integration Guide
 
-### What This Is About
+### Problem Found
 
-The 3rd party system (already integrated with NoCap wallet for payments) now wants to integrate with the **affiliate/referral module**. This means:
+The current `api-authorize` endpoint (line 86-90) rejects re-authorization with a `409 Already authorized` error if the user already has an active token. This blocks existing users from upgrading their scopes to include `referral`.
 
-1. Their customers can **refer** other customers using NoCap referral codes
-2. **New customers** who sign up on the 3rd party system should automatically get a NoCap account (linked via referral)
-3. **Existing NoCap members** can connect their accounts
-4. 3rd party can query **referral stats**, **cashback**, and **wallet balance** for their connected users
+### Fix Required
 
-### Current State
+**File:** `supabase/functions/api-authorize/index.ts`
 
-- Existing API scopes: `balance`, `charge`
-- OAuth flow exists: `/authorize` page, token exchange, access tokens
-- Referral system exists: `referral_tree` table, `profiles.referral_code`, `handle_new_user` trigger builds the tree
-- Existing connected users have access tokens with `balance` and `charge` scopes
+Change the "already authorized" logic: instead of returning a 409 error, **revoke the old token and issue a new one** with the updated scopes. This way, when the 3rd party redirects existing users to `/authorize?scopes=balance,charge,referral`, the flow works seamlessly -- the old token is replaced with a new token that includes the `referral` scope.
 
-### New API Endpoints Needed
+The updated logic:
+1. Check if an active token exists for this user + app
+2. If yes, **deactivate it** (set `is_active = false`)
+3. Issue a new token with the requested scopes
+4. Return the new access token
 
-#### 1. `api-referral-info` -- Get Referral Info
-Returns the connected user's referral code, referral stats, and commission/cashback earnings.
+This is consistent with how `api-token-exchange` already works (it revokes old tokens when issuing new ones).
 
-**Response:**
-```json
-{
-  "referral_code": "A1B2C3D4",
-  "referral_link": "https://nocap.life/auth?ref=A1B2C3D4",
-  "stats": {
-    "direct_referrals": 5,
-    "network_size": 12,
-    "total_cashback": 15.50,
-    "total_commission": 32.00
-  }
-}
+### What the 3rd Party System Needs To Do
+
+**Good news: NO need to remove existing integration.** They just need to add the affiliate endpoints and prompt existing users to re-authorize once.
+
+#### Step-by-Step Prompts for the 3rd Party Lovable Project
+
+**Prompt 1 -- Add Referral API Service Layer**
+```
+Add a new API service file for NoCap referral/affiliate integration.
+Create functions that call these NoCap API endpoints:
+
+1. GET referral info: GET https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-referral-info
+   - Headers: x-api-key, x-api-secret, Authorization: Bearer {access_token}
+   - Returns: referral_code, referral_link, stats (direct_referrals, network_size, total_cashback, total_commission)
+
+2. Register new user via referral: POST https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-referral-register
+   - Headers: x-api-key, x-api-secret (no Bearer token needed)
+   - Body: { email, referral_code, full_name }
+   - Returns: user_id, referral_code, access_token
+
+3. Get referral network: GET https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-referral-network
+   - Headers: x-api-key, x-api-secret, Authorization: Bearer {access_token}
+   - Returns: tiers array with member details
+
+4. Get cashback history: GET https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-cashback-history
+   - Headers: x-api-key, x-api-secret, Authorization: Bearer {access_token}
+   - Query params: page, limit, type (cashback/commission), from, to
+   - Returns: transactions array and totals
+
+Store the API credentials (app_id, api_key, api_secret) as backend secrets.
 ```
 
-**Scope required:** `referral` (new scope)
+**Prompt 2 -- Handle New User Registration with Referral**
+```
+When a new customer registers on our system and provides a referral code,
+call the NoCap api-referral-register endpoint to automatically create
+their NoCap account. Store the returned access_token and user_id
+in our database linked to the customer record. Also store their
+referral_code so they can share it with others.
 
-#### 2. `api-referral-register` -- Register New User via Referral
-Allows the 3rd party to register a new NoCap account for their customer, automatically linked by referral code.
-
-**Request:**
-```json
-{
-  "email": "newuser@example.com",
-  "referral_code": "A1B2C3D4",
-  "full_name": "Ahmad Bin Ali"
-}
+The flow should be:
+1. Customer signs up on our system with a referral code
+2. We call POST /api-referral-register with their email, name, and referral code
+3. Store the returned access_token for future API calls on their behalf
+4. Show them their own NoCap referral code so they can refer others
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "user_id": "uuid",
-  "referral_code": "NEW_CODE",
-  "access_token": "...",
-  "message": "User registered and connected"
-}
+**Prompt 3 -- Re-authorize Existing Users for Referral Scope**
+```
+For existing customers who already connected their NoCap wallet,
+their current access token only has "balance" and "charge" scopes.
+They need to re-authorize to get the "referral" scope.
+
+Add a prompt/banner in the app that detects if a connected user
+doesn't have the referral scope yet, and shows a button like
+"Enable Referral Features". When clicked, redirect them to:
+
+https://nocap.life/authorize?app_id=YOUR_APP_ID&redirect_uri=YOUR_CALLBACK&scope=balance,charge,referral&state=RANDOM
+
+After they approve, exchange the code for a new token using
+POST /api-token-exchange (same as the original wallet connection flow).
+Replace the old stored access_token with the new one.
 ```
 
-This endpoint will:
-- Create the user in auth (auto-confirm since it's API-initiated)
-- The existing `handle_new_user` trigger builds the referral tree automatically
-- Create a wallet
-- Issue an access token for the 3rd party app
-- Return the new user's own referral code so they can refer others too
+**Prompt 4 -- Add Referral Dashboard UI**
+```
+Add a referral section to the customer dashboard that shows:
+1. Their NoCap referral code with a copy/share button
+2. Referral stats (direct referrals, network size, cashback earned, commission earned)
+3. Their referral network tree (Tiers 1-5)
+4. Cashback and commission transaction history with pagination
 
-**Auth:** API key + secret only (no bearer token needed since user doesn't exist yet)
-
-#### 3. `api-referral-network` -- Get Referral Network
-Returns the user's referral tree (Tiers 1-5) with basic info.
-
-**Response:**
-```json
-{
-  "tiers": [
-    { "tier": 1, "count": 3, "members": [{"name": "Ahmad", "joined": "2026-02-23"}] },
-    { "tier": 2, "count": 5, "members": [...] }
-  ]
-}
+Fetch all data from the NoCap API using the stored access token.
+Only show this section if the user has connected their NoCap account
+with the referral scope.
 ```
 
-**Scope required:** `referral`
-
-#### 4. `api-cashback-history` -- Get Cashback/Commission History
-Returns the user's cashback and commission transaction history.
-
-**Response:**
-```json
-{
-  "transactions": [
-    { "type": "cashback", "amount": 1.50, "description": "...", "created_at": "..." },
-    { "type": "commission", "amount": 0.80, "description": "...", "created_at": "..." }
-  ],
-  "totals": { "cashback": 15.50, "commission": 32.00 }
-}
+**Prompt 5 -- Add Referral Code Sharing in Registration Flow**
+```
+Update the registration/signup flow so that:
+1. There's an optional "Referral Code" field where new users can enter
+   a code shared by an existing customer
+2. The referral code is validated against NoCap during registration
+3. After successful registration, show the new user their own referral
+   code and encourage them to share it
 ```
 
-**Scope required:** `referral`
+### Summary of Changes in This Project (NoCap)
 
-### What Existing Connected Users Need To Do
-
-Existing users who are already connected to the 3rd party system have tokens with `balance` and `charge` scopes only. They need to:
-
-1. **Re-authorize** with the updated scope list (`balance`, `charge`, `referral`) -- the 3rd party system redirects them to `/authorize?scopes=balance,charge,referral`
-2. This will issue a new token with the `referral` scope included
-3. No data migration needed -- their referral tree already exists in NoCap
-
-### Changes Summary
-
-| Area | Change |
+| File | Change |
 |------|--------|
-| New scope | Add `referral` to the allowed scopes list |
-| New edge function | `api-referral-info` -- get referral code + stats |
-| New edge function | `api-referral-register` -- register new user via API with referral |
-| New edge function | `api-referral-network` -- get referral tree |
-| New edge function | `api-cashback-history` -- get cashback/commission history |
-| Update `api-authorize` | Accept `referral` as valid scope |
-| Update `Authorize.tsx` | Show "View Referral Network" permission in consent screen |
-| Update `api-balance` | No change needed (already works) |
-| Config | Add JWT verification settings for new functions in `config.toml` |
-| Docs | Update API documentation edge function with new endpoints |
+| `supabase/functions/api-authorize/index.ts` | Replace 409 "Already authorized" with token replacement logic (revoke old, issue new with updated scopes) |
 
-### Technical Details
-
-- All new endpoints follow existing patterns: API key + secret + bearer token auth, rate limiting, request logging
-- `api-referral-register` uses service role to create auth user (similar to how `handle_new_user` trigger works) and auto-confirms email since it's API-initiated
-- The referral code validation reuses existing `profiles.referral_code` lookup
-- No database schema changes needed -- all data already exists in `profiles`, `referral_tree`, `transactions`, and `wallets` tables
-- Webhook event `user.registered` will be sent when a new user is registered via API
+This is a small but critical fix -- just changing ~10 lines in the authorize endpoint to support scope upgrades instead of blocking them.
 
