@@ -1,6 +1,6 @@
 # NoCap API — Integration Guide
 
-> **Version:** 1.0  
+> **Version:** 1.1  
 > **Base URL:** `https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1`  
 > **Authorization URL:** `https://nocap.life/authorize`  
 > **Last Updated:** February 2026
@@ -11,11 +11,13 @@
 
 1. [Overview](#overview)
 2. [Authentication (OAuth 2.0)](#authentication-oauth-20)
-3. [API Endpoints](#api-endpoints)
-4. [Webhooks](#webhooks)
-5. [Rate Limits](#rate-limits)
-6. [Error Codes](#error-codes)
-7. [Sandbox Mode](#sandbox-mode)
+3. [API Endpoints — Wallet & Payments](#api-endpoints--wallet--payments)
+4. [API Endpoints — Referral / Affiliate](#api-endpoints--referral--affiliate)
+5. [Webhooks](#webhooks)
+6. [Rate Limits](#rate-limits)
+7. [Error Codes](#error-codes)
+8. [Sandbox Mode](#sandbox-mode)
+9. [3rd Party Integration Guide](#3rd-party-integration-guide)
 
 ---
 
@@ -27,6 +29,8 @@ NoCap provides a REST API that allows third-party applications to:
 - **Create charges / payments** from a user's wallet (`charge` scope)
 - **Refund** completed charges (full or partial)
 - **List and query** charge history
+- **Access referral info, network, and cashback history** (`referral` scope)
+- **Register new users via referral** (API key auth only)
 
 All API access is secured via **OAuth 2.0 Authorization Code** flow. Users explicitly consent to granting your application access.
 
@@ -67,14 +71,14 @@ NoCap uses the **Authorization Code** flow. The user is redirected to NoCap, log
 Redirect the user's browser to:
 
 ```
-https://nocap.life/authorize?app_id=YOUR_APP_ID&redirect_uri=YOUR_CALLBACK_URL&scope=balance,charge&state=RANDOM_STATE
+https://nocap.life/authorize?app_id=YOUR_APP_ID&redirect_uri=YOUR_CALLBACK_URL&scope=balance,charge,referral&state=RANDOM_STATE
 ```
 
 | Parameter | Required | Description |
 |---|---|---|
 | `app_id` | ✅ | Your application UUID |
 | `redirect_uri` | ✅ | Where the user is sent after approval |
-| `scope` | Optional | Comma-separated: `balance`, `charge` (defaults to both) |
+| `scope` | Optional | Comma-separated: `balance`, `charge`, `referral` (defaults to `balance,charge`) |
 | `state` | Recommended | Random string for CSRF protection — verify on callback |
 
 **Alternative parameter names** (also supported):
@@ -123,7 +127,7 @@ curl -X POST https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-token-exc
   "success": true,
   "access_token": "64-character-hex-string",
   "token_type": "Bearer",
-  "scopes": ["balance", "charge"],
+  "scopes": ["balance", "charge", "referral"],
   "expires_in": 7776000
 }
 ```
@@ -135,11 +139,11 @@ curl -X POST https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-token-exc
 | `scopes` | Granted permissions |
 | `expires_in` | Token lifetime in seconds (90 days = 7,776,000s) |
 
-> If the user already has an active token for your app, the old token is automatically revoked.
+> If the user already has an active token for your app, the old token is automatically revoked and a new one is issued with the updated scopes. This allows seamless **scope upgrades** (e.g., adding `referral` to an existing `balance,charge` token).
 
 ---
 
-## API Endpoints
+## API Endpoints — Wallet & Payments
 
 All API calls require **3 credentials** in headers:
 
@@ -378,6 +382,179 @@ curl -X POST https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-revoke \
 
 ---
 
+## API Endpoints — Referral / Affiliate
+
+These endpoints allow your application to access NoCap's multi-tier referral system. All require the `referral` scope unless noted.
+
+### 7. Get Referral Info
+
+**`GET /api-referral-info`**
+
+Requires scope: `referral`
+
+```bash
+curl https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-referral-info \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "x-api-secret: YOUR_API_SECRET" \
+  -H "Authorization: Bearer ACCESS_TOKEN"
+```
+
+**Response (200):**
+
+```json
+{
+  "referral_code": "A1B2C3D4",
+  "referral_link": "https://nocap.life/auth?ref=A1B2C3D4",
+  "stats": {
+    "direct_referrals": 12,
+    "network_size": 45,
+    "total_cashback": 230.50,
+    "total_commission": 85.00
+  }
+}
+```
+
+---
+
+### 8. Register User via Referral
+
+**`POST /api-referral-register`**
+
+Requires: `x-api-key` + `x-api-secret` only (**no Bearer token needed**)
+
+This endpoint allows your system to programmatically create NoCap accounts for your customers, linking them under a referral code.
+
+```bash
+curl -X POST https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-referral-register \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "x-api-secret: YOUR_API_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "customer@example.com",
+    "referral_code": "A1B2C3D4",
+    "full_name": "John Doe"
+  }'
+```
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `email` | string | ✅ | Customer's email address |
+| `referral_code` | string | ✅ | Existing referral code to link under |
+| `full_name` | string | Optional | Customer's full name |
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "user_id": "uuid",
+  "referral_code": "X9Y8Z7W6",
+  "access_token": "64-character-hex-string"
+}
+```
+
+> The returned `access_token` has `balance`, `charge`, and `referral` scopes. Store it securely to make API calls on behalf of this user.
+
+---
+
+### 9. Get Referral Network
+
+**`GET /api-referral-network`**
+
+Requires scope: `referral`
+
+Returns the user's multi-tier referral network (up to 5 tiers).
+
+```bash
+curl https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-referral-network \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "x-api-secret: YOUR_API_SECRET" \
+  -H "Authorization: Bearer ACCESS_TOKEN"
+```
+
+**Response (200):**
+
+```json
+{
+  "tiers": [
+    {
+      "tier": 1,
+      "members": [
+        {
+          "user_id": "uuid",
+          "full_name": "Jane Doe",
+          "email": "jane@example.com",
+          "joined_at": "2026-02-01T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "tier": 2,
+      "members": [...]
+    }
+  ],
+  "total_network_size": 45
+}
+```
+
+---
+
+### 10. Get Cashback / Commission History
+
+**`GET /api-cashback-history`**
+
+Requires scope: `referral`
+
+Returns paginated cashback and commission transaction history.
+
+```bash
+curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-cashback-history?page=1&limit=20&type=cashback" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "x-api-secret: YOUR_API_SECRET" \
+  -H "Authorization: Bearer ACCESS_TOKEN"
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `page` | integer | 1 | Page number |
+| `limit` | integer | 20 | Results per page (max 100) |
+| `type` | string | — | Filter: `cashback` or `commission` |
+| `from` | ISO date | — | Start date filter |
+| `to` | ISO date | — | End date filter |
+
+**Response (200):**
+
+```json
+{
+  "transactions": [
+    {
+      "id": "uuid",
+      "type": "cashback",
+      "amount": 2.50,
+      "description": "Cashback from payment",
+      "created_at": "2026-02-17T10:00:00Z"
+    }
+  ],
+  "totals": {
+    "total_cashback": 230.50,
+    "total_commission": 85.00
+  },
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 150,
+    "total_pages": 8,
+    "has_more": true
+  }
+}
+```
+
+---
+
 ## Webhooks
 
 If your application has a `webhook_url` configured, NoCap sends real-time notifications for charge events.
@@ -505,6 +682,10 @@ Respond with any `2xx` status code to acknowledge receipt. Non-2xx responses or 
 | `/api-charge-status` | 60 requests | per minute per API key |
 | `/api-charges-list` | 60 requests | per minute per API key |
 | `/api-refund` | 20 requests | per minute per API key |
+| `/api-referral-info` | 60 requests | per minute per API key |
+| `/api-referral-register` | 10 requests | per minute per API key |
+| `/api-referral-network` | 30 requests | per minute per API key |
+| `/api-cashback-history` | 60 requests | per minute per API key |
 
 When rate-limited, you'll receive a `429` response with a `Retry-After: 60` header.
 
@@ -532,7 +713,7 @@ All error responses follow this format:
 | 403 | Forbidden (insufficient scope or invalid PIN) |
 | 404 | Resource not found |
 | 405 | Method not allowed |
-| 409 | Conflict (e.g., already authorized) |
+| 409 | Conflict (deprecated — scope upgrades now replace old tokens) |
 | 429 | Rate limit exceeded |
 | 500 | Internal server error |
 
@@ -573,6 +754,46 @@ For rapid sandbox testing without the full OAuth flow, use the **Generate Test T
 - [ ] Set up your webhook endpoint and verify signatures
 - [ ] Test with sandbox mode
 - [ ] Switch to your live app for production
+- [ ] Request `referral` scope if you need affiliate features
+
+---
+
+## 3rd Party Integration Guide
+
+If your system already integrates with NoCap for wallet/payments and you want to add the **referral/affiliate module**, follow these steps. **No need to remove your existing integration.**
+
+### For Existing Users (Scope Upgrade)
+
+Your existing users' access tokens only have `balance` and `charge` scopes. To access referral features, they need to **re-authorize once** with the `referral` scope added:
+
+1. Detect if a connected user's stored token doesn't include the `referral` scope
+2. Show a prompt like **"Enable Referral Features"**
+3. Redirect them to:
+   ```
+   https://nocap.life/authorize?app_id=YOUR_APP_ID&redirect_uri=YOUR_CALLBACK&scope=balance,charge,referral&state=RANDOM
+   ```
+4. After approval, exchange the code via `POST /api-token-exchange` (same as original flow)
+5. Replace the old stored access token with the new one
+
+> The NoCap authorize endpoint supports **scope upgrades** — it automatically revokes the old token and issues a new one with the updated scopes. No conflict errors.
+
+### For New Users (Programmatic Registration)
+
+Use `POST /api-referral-register` to create NoCap accounts for new customers during your own signup flow:
+
+1. Customer signs up on your system (optionally with a referral code)
+2. Call `POST /api-referral-register` with their email, name, and referral code
+3. Store the returned `access_token` and `referral_code` in your database
+4. Use the token for all future NoCap API calls on their behalf
+
+### Building the Referral Dashboard
+
+Once users have the `referral` scope, you can build a referral section showing:
+
+- **Referral code** with copy/share button (`GET /api-referral-info`)
+- **Stats**: direct referrals, network size, cashback earned, commission earned
+- **Network tree**: Tiers 1-5 hierarchy (`GET /api-referral-network`)
+- **Earnings history**: paginated cashback/commission transactions (`GET /api-cashback-history`)
 
 ---
 
