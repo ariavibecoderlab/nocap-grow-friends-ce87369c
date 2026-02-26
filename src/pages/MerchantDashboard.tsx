@@ -37,6 +37,7 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  FileText,
   Wallet,
 } from "lucide-react";
 
@@ -500,6 +501,20 @@ const MerchantDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* API Integration Guide */}
+        <Card className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate("/api-docs")}>
+          <CardContent className="flex items-center gap-3 p-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary/20">
+              <FileText className="h-4 w-4 text-secondary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white">API Integration Guide</p>
+              <p className="text-[10px] text-white/40">View docs & download PDF</p>
+            </div>
+            <ArrowLeft className="h-4 w-4 text-white/30 rotate-180" />
+          </CardContent>
+        </Card>
 
         {/* Branches */}
         <div className="flex items-center justify-between">
