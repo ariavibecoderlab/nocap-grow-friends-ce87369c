@@ -49,6 +49,10 @@ All API requests should be made to:
 | /api-balance | 60 req/min |
 | /api-charge-status | 60 req/min |
 | /api-charges-list | 60 req/min |
+| /api-referral-info | 60 req/min |
+| /api-referral-register | 20 req/min |
+| /api-referral-network | 30 req/min |
+| /api-cashback-history | 60 req/min |
 
 Exceeding the limit returns a \`429 Too Many Requests\` response with a \`Retry-After\` header.
 
@@ -69,7 +73,7 @@ https://nocap.life/authorize?app_id=YOUR_APP_ID&redirect_uri=YOUR_CALLBACK_URL&s
 |---|---|---|
 | \`app_id\` | Yes | Your application's UUID |
 | \`redirect_uri\` | Yes | URL to redirect after authorization |
-| \`scope\` | No | Comma-separated: \`balance\`, \`charge\`. Default: \`balance,charge\` |
+| \`scope\` | No | Comma-separated: \`balance\`, \`charge\`, \`referral\`. Default: \`balance,charge\` |
 | \`state\` | Recommended | Random string to prevent CSRF. Returned unchanged in callback |
 
 The user will see a login screen (if not already logged in) and a consent screen showing the requested permissions.
@@ -325,7 +329,129 @@ curl -X GET "${BASE_URL}/api-charges-list?page=1&limit=10&status=completed" \\
 
 ---
 
-## Sandbox Testing Guide
+## Referral / Affiliate Endpoints
+
+These endpoints require the \`referral\` scope. Existing connected users need to re-authorize with \`scope=balance,charge,referral\` to gain access.
+
+### GET /api-referral-info
+Get the connected user's referral code, stats, and earnings.
+
+**Headers:** X-Api-Key, X-Api-Secret, Authorization (Bearer token)
+
+**Request:**
+\`\`\`bash
+curl -X GET "${BASE_URL}/api-referral-info" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Authorization: Bearer user_token"
+\`\`\`
+
+**Response:**
+\`\`\`json
+{
+  "referral_code": "A1B2C3D4",
+  "referral_link": "https://nocap.life/auth?ref=A1B2C3D4",
+  "stats": {
+    "direct_referrals": 5,
+    "network_size": 12,
+    "total_cashback": 15.50,
+    "total_commission": 32.00
+  }
+}
+\`\`\`
+
+### POST /api-referral-register
+Register a new NoCap account for a customer via API, automatically linked by referral code. **Auth:** API Key + Secret only (no bearer token needed).
+
+**Headers:** X-Api-Key, X-Api-Secret, Content-Type: application/json
+
+**Body Parameters:**
+- \`email\` (string, required): New user's email address.
+- \`referral_code\` (string, optional): Referral code of the referring user.
+- \`full_name\` (string, optional): User's full name.
+
+**Request:**
+\`\`\`bash
+curl -X POST "${BASE_URL}/api-referral-register" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "email": "newuser@example.com",
+    "referral_code": "A1B2C3D4",
+    "full_name": "Ahmad Bin Ali"
+  }'
+\`\`\`
+
+**Response (201):**
+\`\`\`json
+{
+  "success": true,
+  "user_id": "uuid",
+  "referral_code": "NEW_CODE",
+  "access_token": "64_hex_chars",
+  "scopes": ["balance", "charge", "referral"],
+  "message": "User registered and connected"
+}
+\`\`\`
+
+> If the email is already registered, returns 409 with a message to use the OAuth flow instead.
+
+> A \`user.registered\` webhook event is sent if your app has a webhook URL configured.
+
+### GET /api-referral-network
+Get the user's referral tree (Tiers 1-5).
+
+**Headers:** X-Api-Key, X-Api-Secret, Authorization (Bearer token)
+
+**Request:**
+\`\`\`bash
+curl -X GET "${BASE_URL}/api-referral-network" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Authorization: Bearer user_token"
+\`\`\`
+
+**Response:**
+\`\`\`json
+{
+  "tiers": [
+    { "tier": 1, "count": 3, "members": [{"name": "Ahmad", "joined": "2026-02-23"}] },
+    { "tier": 2, "count": 5, "members": [{"name": "Siti", "joined": "2026-02-24"}] }
+  ]
+}
+\`\`\`
+
+### GET /api-cashback-history
+Get the user's cashback and commission transaction history with pagination.
+
+**Headers:** X-Api-Key, X-Api-Secret, Authorization (Bearer token)
+
+**Query Parameters:**
+- \`page\` (number, optional): Page number. Default: 1.
+- \`limit\` (number, optional): Items per page (1–100). Default: 50.
+
+**Request:**
+\`\`\`bash
+curl -X GET "${BASE_URL}/api-cashback-history?page=1&limit=20" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Authorization: Bearer user_token"
+\`\`\`
+
+**Response:**
+\`\`\`json
+{
+  "transactions": [
+    { "type": "cashback", "amount": 1.50, "description": "Cashback from payment", "created_at": "2026-02-25T..." },
+    { "type": "commission", "amount": 0.80, "description": "Tier 1 commission", "created_at": "2026-02-24T..." }
+  ],
+  "totals": { "cashback": 15.50, "commission": 32.00 },
+  "pagination": { "page": 1, "limit": 20, "total": 45, "total_pages": 3, "has_more": true }
+}
+\`\`\`
+
+---
 
 Sandbox mode lets you build and test your entire payment integration in a safe environment.
 
