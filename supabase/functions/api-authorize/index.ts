@@ -84,9 +84,11 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existing) {
-      return new Response(JSON.stringify({ error: 'Already authorized for this app' }), {
-        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      // Revoke old token to allow scope upgrade
+      await supabase
+        .from('api_access_tokens')
+        .update({ is_active: false })
+        .eq('id', existing.id);
     }
 
     // Generate access token
