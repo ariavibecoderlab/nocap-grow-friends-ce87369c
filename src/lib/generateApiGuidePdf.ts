@@ -222,8 +222,43 @@ export function generateApiGuidePdf() {
   subheading("3.6 Revoke Access — POST /api-revoke");
   paragraph("Users can revoke tokens from Connected Apps settings, or call this endpoint with their session token and { token_id }.");
 
+  // --- Referral / Affiliate Endpoints ---
+  heading("4. Referral / Affiliate Endpoints");
+  paragraph("These endpoints require the 'referral' OAuth scope. Existing connected users must re-authorize with scope=balance,charge,referral to access these endpoints.");
+
+  subheading("4.1 Get Referral Info — GET /api-referral-info");
+  paragraph("Returns the user's referral code, sharing link, and summary stats.");
+  code(`curl ${BASE_URL}/api-referral-info \\\n  -H "x-api-key: KEY" -H "x-api-secret: SECRET" \\\n  -H "Authorization: Bearer TOKEN"`);
+  paragraph("Response:");
+  code(`{\n  "referral_code": "A1B2C3D4",\n  "referral_link": "https://nocap.life/auth?ref=A1B2C3D4",\n  "stats": {\n    "direct_referrals": 5,\n    "network_size": 12,\n    "total_cashback": 15.50,\n    "total_commission": 32.00\n  }\n}`);
+
+  subheading("4.2 Register User via Referral — POST /api-referral-register");
+  paragraph("Allows 3rd party to register a new NoCap account linked by referral code. Auth: API key + secret only (no bearer token needed).");
+  tableRow(["Field", "Type", "Required", "Description"], true);
+  tableRow(["email", "string", "Yes", "New user's email"]);
+  tableRow(["referral_code", "string", "Yes", "Referrer's code"]);
+  tableRow(["full_name", "string", "No", "User's display name"]);
+  code(`curl -X POST ${BASE_URL}/api-referral-register \\\n  -H "x-api-key: KEY" -H "x-api-secret: SECRET" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "email": "newuser@example.com",\n    "referral_code": "A1B2C3D4",\n    "full_name": "Ahmad Bin Ali"\n  }'`);
+  paragraph("Success response includes: user_id, referral_code (new user's own code), access_token, scopes.");
+  paragraph("The new user's account is auto-confirmed. The referral tree and wallet are created automatically.");
+
+  subheading("4.3 Get Referral Network — GET /api-referral-network");
+  paragraph("Returns the user's multi-tier referral tree (Tiers 1–5).");
+  code(`curl ${BASE_URL}/api-referral-network \\\n  -H "x-api-key: KEY" -H "x-api-secret: SECRET" \\\n  -H "Authorization: Bearer TOKEN"`);
+  paragraph("Response includes tiers array with tier number, member count, and member details (name, joined date).");
+
+  subheading("4.4 Cashback & Commission History — GET /api-cashback-history");
+  paragraph("Returns paginated cashback and commission transaction history.");
+  tableRow(["Parameter", "Default", "Description"], true);
+  tableRow(["page", "1", "Page number"]);
+  tableRow(["limit", "20", "Results per page (max 100)"]);
+  tableRow(["type", "—", "Filter: cashback or commission"]);
+  tableRow(["from / to", "—", "Date range (ISO format)"]);
+  code(`curl "${BASE_URL}/api-cashback-history?page=1&limit=10" \\\n  -H "x-api-key: KEY" -H "x-api-secret: SECRET" \\\n  -H "Authorization: Bearer TOKEN"`);
+  paragraph("Response includes transactions array and totals for cashback and commission.");
+
   // --- Webhooks ---
-  heading("4. Webhooks");
+  heading("5. Webhooks");
   paragraph("Configure your webhook URL in Merchant Dashboard > API Apps. NoCap sends POST requests with HMAC-SHA256 signed payloads.");
 
   subheading("Headers");
@@ -244,7 +279,7 @@ export function generateApiGuidePdf() {
   code(`const crypto = require('crypto');\nfunction verify(body, sig, secret) {\n  const expected = crypto\n    .createHmac('sha256', secret)\n    .update(body).digest('hex');\n  return crypto.timingSafeEqual(\n    Buffer.from(expected),\n    Buffer.from(sig)\n  );\n}`);
 
   // --- Rate Limits ---
-  heading("5. Rate Limits");
+  heading("6. Rate Limits");
   tableRow(["Endpoint", "Limit"], true);
   tableRow(["/authorize", "10/min per user"]);
   tableRow(["/api-token-exchange", "10/min per app"]);
@@ -253,9 +288,13 @@ export function generateApiGuidePdf() {
   tableRow(["/api-charge-status", "60/min per key"]);
   tableRow(["/api-charges-list", "60/min per key"]);
   tableRow(["/api-refund", "20/min per key"]);
+  tableRow(["/api-referral-info", "60/min per key"]);
+  tableRow(["/api-referral-register", "10/min per app"]);
+  tableRow(["/api-referral-network", "30/min per key"]);
+  tableRow(["/api-cashback-history", "60/min per key"]);
 
   // --- Error Codes ---
-  heading("6. Error Codes");
+  heading("7. Error Codes");
   tableRow(["Status", "Meaning"], true);
   tableRow(["200", "Success"]);
   tableRow(["400", "Bad request"]);
@@ -274,7 +313,7 @@ export function generateApiGuidePdf() {
   tableRow(["INSUFFICIENT_BALANCE", "Balance too low", "Top up wallet"]);
 
   // --- Sandbox ---
-  heading("7. Sandbox Mode");
+  heading("8. Sandbox Mode");
   paragraph("Apps in Sandbox mode skip balance checks, PIN verification, and real money movement. Webhooks fire normally with is_sandbox: true. Use for development and testing.");
   paragraph("Generate test tokens from the Merchant Dashboard to skip the full OAuth flow during development.");
 
