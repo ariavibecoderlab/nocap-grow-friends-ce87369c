@@ -30,7 +30,11 @@ NoCap is a digital wallet app in Malaysia that lets users:
 - You can help users transfer money by asking for the recipient's email and amount
 - Just say something like "transfer RM10 to user@email.com" and you'll handle it
 - Transfers below RM100 can be done via chat; for RM100+ the user must use the Transfer page (PIN required)
-- Always confirm the transfer details before executing
+- CRITICAL: For transfers, you MUST call the transfer_money tool TWICE:
+  1. First call with confirmed=false → shows preview details to user, present these to the user
+  2. After user confirms (says yes/ya/confirm), call transfer_money AGAIN with the SAME email and amount but confirmed=true → actually executes
+- NEVER generate a transfer success message without calling the transfer_money tool with confirmed=true
+- NEVER fabricate or make up transaction IDs or success responses
 - You can also check the user's wallet balance when they ask "what's my balance?" or similar
 
 ## Account & Transaction Tools
@@ -215,7 +219,7 @@ const tools = [
     function: {
       name: "transfer_money",
       description:
-        "Transfer money from the authenticated user's wallet to another user identified by their email address. Use when user asks to send/transfer money to someone.",
+        "Transfer money from the authenticated user's wallet to another user identified by their email address. IMPORTANT: You MUST call this tool TWICE for each transfer. First call with confirmed=false to preview details. After user confirms, call again with confirmed=true to execute. NEVER generate success without calling with confirmed=true.",
       parameters: {
         type: "object",
         properties: {
@@ -227,8 +231,12 @@ const tools = [
             type: "number",
             description: "Amount in RM to transfer",
           },
+          confirmed: {
+            type: "boolean",
+            description: "false = preview only, true = execute the transfer",
+          },
         },
-        required: ["email", "amount"],
+        required: ["email", "amount", "confirmed"],
         additionalProperties: false,
       },
     },
@@ -689,6 +697,7 @@ async function executeToolCall(
       
       const recipientEmail = String(args.email || "").trim().toLowerCase();
       const amount = Number(args.amount);
+      const confirmed = args.confirmed === true;
       
       if (!recipientEmail) return { error: "Please provide the recipient's email address." };
       if (!amount || amount <= 0) return { error: "Please provide a valid amount greater than 0." };
@@ -714,7 +723,7 @@ async function executeToolCall(
         const users = pageData?.users || [];
         if (users.length === 0) break;
         recipient = users.find((u: any) => u.email?.toLowerCase() === recipientEmail);
-        if (users.length < 1000) break; // last page
+        if (users.length < 1000) break;
         page++;
       }
       
@@ -722,7 +731,7 @@ async function executeToolCall(
         return { error: `No NoCap user found with email ${recipientEmail}.` };
       }
 
-      // Double-verify: confirm the recipient profile exists in the database
+      // Verify recipient profile exists
       const { data: recipientProfile } = await supabaseAdmin
         .from("profiles")
         .select("user_id, full_name")
@@ -733,11 +742,41 @@ async function executeToolCall(
         return { error: `User ${recipientEmail} exists but has no wallet profile. They may need to log in first.` };
       }
 
-      console.log(`[AI Transfer] Initiating: sender=${userId}, recipient=${recipient.id} (${recipientEmail}), amount=RM${amount}`);
-
       if (recipient.id === userId) {
         return { error: "You cannot transfer to yourself." };
       }
+
+      // === PREVIEW MODE (confirmed=false) ===
+      if (!confirmed) {
+        // Get sender's balance for preview
+        const { data: senderWallet } = await supabaseAdmin
+          .from("wallets")
+          .select("balance")
+          .eq("user_id", userId)
+          .eq("wallet_type", "member")
+          .single();
+
+        const currentBalance = senderWallet ? Number(senderWallet.balance) : 0;
+        
+        if (currentBalance < amount) {
+          return { error: `Insufficient balance. Your current balance is RM ${currentBalance.toFixed(2)}.` };
+        }
+
+        console.log(`[AI Transfer] Preview: sender=${userId}, recipient=${recipient.id} (${recipientEmail}), amount=RM${amount}`);
+
+        return {
+          preview: true,
+          message: "Please confirm this transfer. Call transfer_money again with confirmed=true to execute.",
+          recipient_email: recipientEmail,
+          recipient_name: recipientProfile.full_name || "Member",
+          amount: `RM ${amount.toFixed(2)}`,
+          current_balance: `RM ${currentBalance.toFixed(2)}`,
+          balance_after: `RM ${(currentBalance - amount).toFixed(2)}`,
+        };
+      }
+
+      // === EXECUTE MODE (confirmed=true) ===
+      console.log(`[AI Transfer] Executing: sender=${userId}, recipient=${recipient.id} (${recipientEmail}), amount=RM${amount}`);
 
       // Call process-transfer edge function
       const transferResponse = await fetch(
@@ -780,6 +819,7 @@ async function executeToolCall(
 
       return {
         success: true,
+        executed: true,
         message: `RM${amount.toFixed(2)} has been transferred to ${recipientEmail} (${recipientProfile.full_name || 'Member'}).`,
         recipient_name: recipientProfile.full_name || "Member",
         recipient_email: recipientEmail,
@@ -1127,59 +1167,104 @@ serve(async (req) => {
     }
 
     const firstData = await firstResponse.json();
-    const choice = firstData.choices?.[0];
+    let currentChoice = firstData.choices?.[0];
 
     // If no tool calls, return the response
-    if (!choice?.message?.tool_calls?.length) {
+    if (!currentChoice?.message?.tool_calls?.length) {
       return new Response(
-        JSON.stringify({ reply: choice?.message?.content || "I'm not sure how to help with that." }),
+        JSON.stringify({ reply: currentChoice?.message?.content || "I'm not sure how to help with that." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Execute tool calls
-    const toolMessages = [];
-    for (const tc of choice.message.tool_calls) {
-      const args = typeof tc.function.arguments === "string"
-        ? JSON.parse(tc.function.arguments)
-        : tc.function.arguments;
-      const result = await executeToolCall(tc.function.name, args, userId, authHeader);
-      toolMessages.push({
-        role: "tool",
-        tool_call_id: tc.id,
-        content: JSON.stringify(result),
-      });
-    }
-
-    // Second call with tool results — stream this one
-    const secondResponse = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [...aiMessages, choice.message, ...toolMessages],
-          stream: true,
-        }),
+    // Multi-round tool calling loop (max 3 rounds to prevent infinite loops)
+    let conversationMessages = [...aiMessages];
+    for (let round = 0; round < 3; round++) {
+      // Execute tool calls
+      const toolMessages = [];
+      for (const tc of currentChoice.message.tool_calls) {
+        const tcArgs = typeof tc.function.arguments === "string"
+          ? JSON.parse(tc.function.arguments)
+          : tc.function.arguments;
+        const result = await executeToolCall(tc.function.name, tcArgs, userId, authHeader);
+        toolMessages.push({
+          role: "tool",
+          tool_call_id: tc.id,
+          content: JSON.stringify(result),
+        });
       }
-    );
 
-    if (!secondResponse.ok) {
-      const t = await secondResponse.text();
-      console.error("AI second call error:", secondResponse.status, t);
-      return new Response(
-        JSON.stringify({ error: "AI service error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      conversationMessages = [...conversationMessages, currentChoice.message, ...toolMessages];
+
+      // Next call with tool results
+      const nextResponse = await fetch(
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: conversationMessages,
+            tools,
+            stream: false,
+          }),
+        }
       );
+
+      if (!nextResponse.ok) {
+        const t = await nextResponse.text();
+        console.error(`AI round ${round + 1} error:`, nextResponse.status, t);
+        return new Response(
+          JSON.stringify({ error: "AI service error" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const nextData = await nextResponse.json();
+      currentChoice = nextData.choices?.[0];
+
+      // If no more tool calls, stream the final response
+      if (!currentChoice?.message?.tool_calls?.length) {
+        // Make a final streaming call for the response
+        const finalResponse = await fetch(
+          "https://ai.gateway.lovable.dev/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-3-flash-preview",
+              messages: [...conversationMessages, currentChoice.message],
+              stream: true,
+            }),
+          }
+        );
+
+        if (!finalResponse.ok) {
+          // Fallback: return the non-streamed content
+          return new Response(
+            JSON.stringify({ reply: currentChoice?.message?.content || "Done." }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        return new Response(finalResponse.body, {
+          headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+        });
+      }
+      // Otherwise, loop continues to execute the next round of tool calls
     }
 
-    return new Response(secondResponse.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-    });
+    // If we exhausted rounds, return whatever content we have
+    return new Response(
+      JSON.stringify({ reply: currentChoice?.message?.content || "I completed the requested actions." }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (e) {
     console.error("ai-help-chat error:", e);
     return new Response(
