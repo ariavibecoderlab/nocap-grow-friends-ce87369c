@@ -37,11 +37,11 @@ All functions use x-api-key + x-api-secret headers. Bearer token endpoints as do
   },
   {
     id: 4,
-    title: "Registration with Referral",
+    title: "Account Creation via Referral",
     path: "A",
     pathLabel: "New integrators only",
-    prompt: `Add optional 'Referral Code' to signup. After account creation, call POST /api-referral-register with email, full_name, and referral_code. This creates the NoCap account (profile, wallet, referral tree) — it does NOT connect the wallet to your app. Store the returned user_id and referral_code for reference. Wallet connection happens later via OAuth (Prompt 3) when the user reaches your dashboard. If NoCap registration fails, don't block your signup.`,
-    memberImpact: "New members get a NoCap account created automatically. They connect their wallet later via OAuth from the 3rd party dashboard.",
+    prompt: `Add optional 'Referral Code' to signup. After account creation in your system, call POST /api-referral-register with { email, full_name, referral_code } using x-api-key and x-api-secret headers. This creates the full NoCap account: auth user, profile, RM 0.00 wallet, member role, and referral tree links — all automatically. Store the returned user_id and referral_code for reference. If the call returns 409 (user already exists), skip silently. If NoCap registration fails for other reasons, don't block your signup — log and retry later.`,
+    memberImpact: "New members get a full NoCap account (with wallet) created automatically when they register on the 3rd party system with a referral code.",
   },
   {
     id: 5,
