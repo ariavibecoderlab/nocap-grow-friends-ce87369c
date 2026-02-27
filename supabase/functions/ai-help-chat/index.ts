@@ -705,13 +705,35 @@ async function executeToolCall(
         return { error: `For transfers of RM${minPinAmount.toFixed(0)} and above, please use the Transfer page where you can enter your PIN securely.` };
       }
 
-      // Look up recipient by email
-      const { data: allUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-      const recipient = allUsers?.users?.find(u => u.email?.toLowerCase() === recipientEmail);
+      // Look up recipient by email using paginated listUsers to handle >1000 users
+      let recipient: any = null;
+      let page = 1;
+      while (!recipient) {
+        const { data: pageData, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+        if (listErr) return { error: "Failed to look up recipient. Please try again." };
+        const users = pageData?.users || [];
+        if (users.length === 0) break;
+        recipient = users.find((u: any) => u.email?.toLowerCase() === recipientEmail);
+        if (users.length < 1000) break; // last page
+        page++;
+      }
       
       if (!recipient) {
         return { error: `No NoCap user found with email ${recipientEmail}.` };
       }
+
+      // Double-verify: confirm the recipient profile exists in the database
+      const { data: recipientProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("user_id", recipient.id)
+        .single();
+      
+      if (!recipientProfile) {
+        return { error: `User ${recipientEmail} exists but has no wallet profile. They may need to log in first.` };
+      }
+
+      console.log(`[AI Transfer] Initiating: sender=${userId}, recipient=${recipient.id} (${recipientEmail}), amount=RM${amount}`);
 
       if (recipient.id === userId) {
         return { error: "You cannot transfer to yourself." };
@@ -736,12 +758,31 @@ async function executeToolCall(
       const transferResult = await transferResponse.json();
 
       if (!transferResponse.ok) {
+        console.error(`[AI Transfer] Failed: sender=${userId}, recipient=${recipient.id}, error=${transferResult.error}`);
         return { error: transferResult.error || "Transfer failed. Please try again." };
       }
 
+      // Verify the transaction was actually created in the database
+      if (transferResult.transaction_id) {
+        const { data: verifyTx } = await supabaseAdmin
+          .from("transactions")
+          .select("id, user_id, amount, type")
+          .eq("id", transferResult.transaction_id)
+          .single();
+        
+        if (!verifyTx) {
+          console.error(`[AI Transfer] CRITICAL: process-transfer returned success but transaction ${transferResult.transaction_id} not found in DB!`);
+          return { error: "Transfer may have failed. Please check your transaction history and balance before retrying." };
+        }
+      }
+
+      console.log(`[AI Transfer] Success: tx=${transferResult.transaction_id}, recipient=${recipientEmail} (${recipient.id}), amount=RM${amount}`);
+
       return {
         success: true,
-        message: `RM${amount.toFixed(2)} has been transferred to ${recipientEmail}.`,
+        message: `RM${amount.toFixed(2)} has been transferred to ${recipientEmail} (${recipientProfile.full_name || 'Member'}).`,
+        recipient_name: recipientProfile.full_name || "Member",
+        recipient_email: recipientEmail,
         new_balance: transferResult.new_balance != null ? `RM ${Number(transferResult.new_balance).toFixed(2)}` : undefined,
         transaction_id: transferResult.transaction_id,
       };
