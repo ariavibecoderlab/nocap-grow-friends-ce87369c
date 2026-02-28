@@ -99,7 +99,53 @@ serve(async (req) => {
     if (authError) {
       // Check if user already exists
       if (authError.message?.includes('already') || authError.message?.includes('duplicate')) {
-        return new Response(JSON.stringify({ error: 'User with this email already exists. Use the OAuth flow to connect existing users.' }), {
+        // Look up the existing user's profile for helpful details
+        const { data: existingUsers } = await supabase.auth.admin.listUsers({ filter: email.trim().toLowerCase() });
+        const existingUser = existingUsers?.users?.find(u => u.email === email.trim().toLowerCase());
+        
+        let existingProfile = null;
+        let hasAccessToken = false;
+        if (existingUser) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('referral_code, referred_by, has_pin')
+            .eq('user_id', existingUser.id)
+            .single();
+          existingProfile = profile;
+
+          // Check if user already has an active token for this app
+          const { data: tokenData } = await supabase
+            .from('api_access_tokens')
+            .select('id')
+            .eq('app_id', app.id)
+            .eq('user_id', existingUser.id)
+            .eq('is_active', true)
+            .limit(1);
+          hasAccessToken = (tokenData && tokenData.length > 0);
+        }
+
+        const resBody = {
+          error: 'User with this email already exists.',
+          code: 'USER_EXISTS',
+          user_id: existingUser?.id || null,
+          has_referral: !!existingProfile?.referred_by,
+          referral_code: existingProfile?.referral_code || null,
+          has_wallet_pin: existingProfile?.has_pin || false,
+          already_connected: hasAccessToken,
+          action: hasAccessToken
+            ? 'User is already connected to your app. No further action needed.'
+            : 'Use the OAuth authorization flow to connect this existing user\'s wallet to your app.',
+        };
+
+        try {
+          await supabase.from('api_request_logs').insert({
+            app_id: app.id, endpoint: '/api-referral-register', method: 'POST', status_code: 409,
+            request_body: { email: '[redacted]', referral_code: referral_code || null },
+            response_body: { ...resBody, user_id: '[redacted]' }, duration_ms: Date.now() - startTime,
+          });
+        } catch (_) { /* ignore */ }
+
+        return new Response(JSON.stringify(resBody), {
           status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
