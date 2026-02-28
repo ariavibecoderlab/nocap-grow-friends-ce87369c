@@ -1,29 +1,65 @@
 
 
-## Update Integration Roadmap Documentation
+# Admin Referral Tree Manager
 
-### Problem
-Prompt #4 in the Integration Roadmap (`IntegrationRoadmap.tsx`) incorrectly states "Customer is auto-connected -- no OAuth needed" and suggests storing the access token from registration. This misleads 3rd party developers into thinking they can skip the OAuth wallet connection step.
+## Overview
+Create a new admin-only page at `/admin/referral-tree` that displays the entire platform's referral tree as a visual hierarchy and allows admins to re-assign a user's position (change their referrer).
 
-### What Changes
+## What will be built
 
-**1. Update Prompt #4 text in `src/components/IntegrationRoadmap.tsx`**
+### 1. New page: `src/pages/AdminReferralTree.tsx`
+- Admin-only access using the same `useAdminCheck` + `isAiOnlyAdmin` guard pattern from the existing Admin page
+- Full-width layout (not constrained to `max-w-md` like mobile pages) for better tree visualization
+- **Search bar** at the top to find users by name, phone, or referral code
+- **Tree view** showing root users (those with no referrer) as top-level nodes, with expandable child nodes showing their direct referrals recursively
+- Each node displays: user name, referral code, phone, number of direct referrals, wallet balance
+- **"Change Referrer" button** on each user node that opens a dialog to reassign their position
 
-- Change the prompt text to clarify that `api-referral-register` only **creates the NoCap account** (profile, wallet, referral tree) -- it does NOT connect the wallet to the 3rd party app
-- Remove the instruction to "store access_token, nocap_user_id, referral_code" as if the user is fully connected
-- Add guidance that wallet connection happens later via OAuth (Prompt #3) when the user reaches their dashboard
-- Update the `memberImpact` to: "New members get a NoCap account created automatically. They connect their wallet later via OAuth from the 3rd party dashboard."
+### 2. Tree data loading
+- Fetch all profiles (with `referred_by` field) and build the parent-child tree client-side
+- Show users with no `referred_by` as root nodes
+- Lazy-expand children on click to keep the UI performant
 
-**2. Update the quick-reference table**
+### 3. Change Referrer dialog
+- Admin selects a user node and clicks "Change Referrer"
+- A dialog opens showing the current referrer and a searchable input to pick a new referrer (by name or referral code)
+- Includes validation: cannot set a user as their own referrer, cannot create circular references (a descendant becoming the parent)
+- On confirm, calls a new edge function to safely update the referral relationships
 
-- Adjust the description for Prompt #4 from "Registration + Referral" to "Account Creation via Referral" for clarity
+### 4. New edge function: `supabase/functions/admin-update-referrer/index.ts`
+- Accepts `{ targetUserId, newReferrerCode }` from an authenticated admin
+- Validates admin role using service role key
+- Validates no circular reference would be created
+- Updates `profiles.referred_by` to the new referrer's profile ID
+- Deletes all existing `referral_tree` rows for `targetUserId`
+- Rebuilds the 5-tier ancestor chain for `targetUserId` based on the new referrer
+- Recursively rebuilds referral_tree entries for all descendants of `targetUserId` (since their ancestor chain changes too)
+- Logs the action for audit purposes
 
-**3. Update Prompt #3 (OAuth) member impact**
+### 5. Route registration
+- Add `/admin/referral-tree` route in `App.tsx`
 
-- Add a note that this is also how API-registered users connect their wallet post-registration
+### 6. Navigation link
+- Add a "Referral Tree" button/link in the Admin page header for easy access
 
-### No backend changes needed
-The `api-referral-register` edge function is working correctly as-is -- it creates the account, wallet, and referral tree. The access token it returns can still be useful for the 3rd party to check status, but the docs should clarify it is not a substitute for the OAuth wallet connection flow.
+## Technical Details
 
-### Files to modify
-- `src/components/IntegrationRoadmap.tsx` -- Update prompts #3 and #4 text, member impact, and quick-reference table
+### Tree rendering approach
+- Use a recursive `TreeNode` component with expand/collapse state
+- Color-code depth levels using the existing `tierColors` pattern
+- Show connecting lines between parent and children (CSS borders)
+
+### Circular reference prevention
+The edge function will:
+1. Look up the new referrer's user_id
+2. Walk up the new referrer's ancestor chain in `referral_tree`
+3. If `targetUserId` appears anywhere in that chain, reject with 400 error
+
+### Descendant rebuild logic
+After updating a user's referrer, all users who have `targetUserId` in their `referral_tree` need their ancestor entries recalculated. The edge function will:
+1. Find all users where `targetUserId` is an ancestor (from `referral_tree`)
+2. For each affected user, delete their `referral_tree` entries and rebuild by walking up the `profiles.referred_by` chain
+
+### Config updates
+- Add `[functions.admin-update-referrer]` with `verify_jwt = false` to `supabase/config.toml` (JWT validated in code)
+
