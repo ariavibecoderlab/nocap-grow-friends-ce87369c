@@ -27,6 +27,7 @@ interface ProfileNode {
   referred_by: string | null; // profile id of referrer
   childCount: number;
   walletBalance?: number;
+  email?: string;
 }
 
 const tierColors = [
@@ -69,7 +70,8 @@ const TreeNode = ({
               {node.referral_code}
             </span>
           </div>
-          <div className="flex items-center gap-3 text-xs text-white/50 mt-0.5">
+          <div className="flex items-center gap-3 text-xs text-white/50 mt-0.5 flex-wrap">
+            {node.email && <span>{node.email}</span>}
             {node.phone && <span>{node.phone}</span>}
             <span className="flex items-center gap-1">
               <Users className="h-3 w-3" /> {node.childCount}
@@ -167,15 +169,19 @@ const AdminReferralTree = () => {
   // Load data
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [profilesRes, walletsRes] = await Promise.all([
+    const [profilesRes, walletsRes, emailsRes] = await Promise.all([
       supabase.from("profiles").select("id, user_id, full_name, phone, referral_code, referred_by"),
       supabase.from("wallets").select("user_id, balance").eq("wallet_type", "member"),
+      supabase.rpc("get_all_user_emails"),
     ]);
 
     const profs = profilesRes.data || [];
     const walletMap = new Map<string, number>();
     (walletsRes.data || []).forEach((w) => walletMap.set(w.user_id, Number(w.balance)));
     setWallets(walletMap);
+
+    const emailMap = new Map<string, string>();
+    (emailsRes.data || []).forEach((e: { user_id: string; email: string }) => emailMap.set(e.user_id, e.email));
 
     // Count children per profile id
     const childCountMap = new Map<string, number>();
@@ -194,6 +200,7 @@ const AdminReferralTree = () => {
       referred_by: p.referred_by,
       childCount: childCountMap.get(p.id) || 0,
       walletBalance: walletMap.get(p.user_id),
+      email: emailMap.get(p.user_id),
     }));
 
     setProfiles(nodes);
