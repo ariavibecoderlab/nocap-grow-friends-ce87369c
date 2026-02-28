@@ -1235,7 +1235,7 @@ app.post("/webhook/nocap", (req, res) => {
     "referral_code": "A1B2C3D4",
     "full_name": "Ahmad Bin Ali"
   }'`}</CodeBlock>
-                  <h4 className="text-sm font-semibold">Response Example:</h4>
+                  <h4 className="text-sm font-semibold">Success Response (201 Created):</h4>
                   <CodeBlock>{`{
   "success": true,
   "user_id": "uuid",
@@ -1244,6 +1244,66 @@ app.post("/webhook/nocap", (req, res) => {
   "scopes": ["balance", "charge", "referral"],
   "message": "User registered and connected"
 }`}</CodeBlock>
+                  <h4 className="text-sm font-semibold">Conflict Response (409 — User Already Exists):</h4>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Returned when the email is already registered in NoCap. Use these fields to decide your next step.
+                  </p>
+                  <CodeBlock>{`{
+  "error": "User with this email already exists.",
+  "code": "USER_EXISTS",
+  "user_id": "uuid",
+  "has_referral": true,
+  "referral_code": "A1B2C3D4",
+  "has_wallet_pin": true,
+  "already_connected": false,
+  "action": "Use the OAuth authorization flow to connect this existing user's wallet to your app."
+}`}</CodeBlock>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-2 pr-4 font-semibold">Field</th>
+                          <th className="text-left py-2 font-semibold">Description</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">code</td>
+                          <td className="py-2 text-xs">Always <code className="text-primary font-bold">"USER_EXISTS"</code> for this scenario.</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">user_id</td>
+                          <td className="py-2 text-xs">The existing NoCap user's UUID.</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">has_referral</td>
+                          <td className="py-2 text-xs">Whether the user was already referred by someone (<code className="font-bold">true</code>/<code className="font-bold">false</code>).</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">referral_code</td>
+                          <td className="py-2 text-xs">The user's own referral code (for sharing with others).</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">has_wallet_pin</td>
+                          <td className="py-2 text-xs">Whether the user has set up a wallet PIN.</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">already_connected</td>
+                          <td className="py-2 text-xs">Whether the user already has an active access token for your app. If <code className="font-bold">true</code>, no further action needed.</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">action</td>
+                          <td className="py-2 text-xs">Human-readable guidance on the next step for your integration.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-900 p-4 rounded-md">
+                    <p className="text-xs text-blue-800 dark:text-blue-200">
+                      <strong>💡 Handling 409 in your signup flow:</strong> If <code className="font-bold">already_connected</code> is <code className="font-bold">true</code>, skip — the user is fully linked. 
+                      If <code className="font-bold">false</code>, redirect the user to the OAuth authorization flow (Prompt 3) after they log in to your dashboard, so they can connect their existing wallet.
+                    </p>
+                  </div>
                   <ApiTryIt
                     method="POST"
                     endpoint="api-referral-register"
