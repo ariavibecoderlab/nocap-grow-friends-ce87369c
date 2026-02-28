@@ -50,10 +50,18 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Check if user exists and is properly registered
-    const { data: { user: authUser }, error: getUserErr } = await supabase.auth.admin.getUserByEmail(email);
-    
-    if (getUserErr || !authUser || !authUser.email_confirmed_at) {
+    // Check if user exists — paginate through all users
+    let authUser: any = null;
+    let page = 1;
+    while (!authUser) {
+      const { data: { users }, error: listErr } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+      if (listErr || !users || users.length === 0) break;
+      authUser = users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+      if (users.length < 1000) break; // last page
+      page++;
+    }
+
+    if (!authUser || !authUser.email_confirmed_at) {
       return new Response(JSON.stringify({ error: 'User not found' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
