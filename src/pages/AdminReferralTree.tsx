@@ -183,29 +183,63 @@ const AdminReferralTree = () => {
   // Load data
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [profilesRes, walletsRes, emailsRes] = await Promise.all([
-      supabase.from("profiles").select("id, user_id, full_name, phone, referral_code, referred_by"),
-      supabase.from("wallets").select("user_id, balance").eq("wallet_type", "member"),
+
+    // Fetch ALL profiles using pagination to avoid 1000-row limit
+    const fetchAllProfiles = async () => {
+      const PAGE = 1000;
+      let all: any[] = [];
+      let from = 0;
+      while (true) {
+        const { data } = await supabase.from("profiles")
+          .select("id, user_id, full_name, phone, referral_code, referred_by")
+          .range(from, from + PAGE - 1);
+        if (!data || data.length === 0) break;
+        all = all.concat(data);
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      return all;
+    };
+
+    const fetchAllWallets = async () => {
+      const PAGE = 1000;
+      let all: any[] = [];
+      let from = 0;
+      while (true) {
+        const { data } = await supabase.from("wallets")
+          .select("user_id, balance")
+          .eq("wallet_type", "member")
+          .range(from, from + PAGE - 1);
+        if (!data || data.length === 0) break;
+        all = all.concat(data);
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      return all;
+    };
+
+    const [profs, walletsData, emailsRes] = await Promise.all([
+      fetchAllProfiles(),
+      fetchAllWallets(),
       supabase.rpc("get_all_user_emails"),
     ]);
 
-    const profs = profilesRes.data || [];
     const walletMap = new Map<string, number>();
-    (walletsRes.data || []).forEach((w) => walletMap.set(w.user_id, Number(w.balance)));
+    walletsData.forEach((w: any) => walletMap.set(w.user_id, Number(w.balance)));
     setWallets(walletMap);
 
     const emailMap = new Map<string, string>();
-    (emailsRes.data || []).forEach((e: { user_id: string; email: string }) => emailMap.set(e.user_id, e.email));
+    ((emailsRes.data || []) as { user_id: string; email: string }[]).forEach((e) => emailMap.set(e.user_id, e.email));
 
     // Count children per profile id
     const childCountMap = new Map<string, number>();
-    profs.forEach((p) => {
+    profs.forEach((p: any) => {
       if (p.referred_by) {
         childCountMap.set(p.referred_by, (childCountMap.get(p.referred_by) || 0) + 1);
       }
     });
 
-    const nodes: ProfileNode[] = profs.map((p) => ({
+    const nodes: ProfileNode[] = profs.map((p: any) => ({
       id: p.id,
       user_id: p.user_id,
       full_name: p.full_name,
