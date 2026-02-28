@@ -12,10 +12,11 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
   AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import NocapLogo from "@/components/NocapLogo";
 import {
-  Shield, Search, ChevronRight, ChevronDown, Users, ArrowLeft, GitBranch, Loader2, Unlink, Trash2,
+  Shield, Search, ChevronRight, ChevronDown, Users, ArrowLeft, GitBranch, Loader2, Unlink, Trash2, CheckSquare, X,
 } from "lucide-react";
 
 interface ProfileNode {
@@ -39,6 +40,7 @@ const tierBg = [
 
 const TreeNode = ({
   node, depth, childrenMap, onChangeReferrer, onRemoveReferrer, onDeleteMember,
+  selectMode, selectedIds, onToggleSelect,
 }: {
   node: ProfileNode;
   depth: number;
@@ -46,6 +48,9 @@ const TreeNode = ({
   onChangeReferrer: (node: ProfileNode) => void;
   onRemoveReferrer: (node: ProfileNode) => void;
   onDeleteMember: (node: ProfileNode) => void;
+  selectMode: boolean;
+  selectedIds: Set<string>;
+  onToggleSelect: (node: ProfileNode) => void;
 }) => {
   const [expanded, setExpanded] = useState(depth < 1);
   const children = childrenMap.get(node.id) || [];
@@ -55,9 +60,17 @@ const TreeNode = ({
     <div className="ml-2 sm:ml-4">
       <div
         className={`flex items-center gap-2 p-2 rounded-lg border ${tierColors[colorIdx]} ${tierBg[colorIdx]} mb-1 cursor-pointer hover:bg-white/10 transition-colors`}
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => selectMode ? onToggleSelect(node) : setExpanded(!expanded)}
       >
-        {children.length > 0 ? (
+        {selectMode && (
+          <Checkbox
+            checked={selectedIds.has(node.user_id)}
+            onCheckedChange={() => onToggleSelect(node)}
+            onClick={(e) => e.stopPropagation()}
+            className="border-white/40 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
+          />
+        )}
+        {!selectMode && children.length > 0 ? (
           expanded ? <ChevronDown className="h-4 w-4 text-white/60 shrink-0" /> : <ChevronRight className="h-4 w-4 text-white/60 shrink-0" />
         ) : (
           <div className="w-4" />
@@ -124,6 +137,9 @@ const TreeNode = ({
               onChangeReferrer={onChangeReferrer}
               onRemoveReferrer={onRemoveReferrer}
               onDeleteMember={onDeleteMember}
+              selectMode={selectMode}
+              selectedIds={selectedIds}
+              onToggleSelect={onToggleSelect}
             />
           ))}
         </div>
@@ -155,6 +171,10 @@ const AdminReferralTree = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [nodeToDelete, setNodeToDelete] = useState<ProfileNode | null>(null);
   const [deleteReassignCode, setDeleteReassignCode] = useState("");
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkReassignCode, setBulkReassignCode] = useState("");
 
   // Admin guard
   useEffect(() => {
@@ -319,6 +339,53 @@ const AdminReferralTree = () => {
     setDeleteDialogOpen(true);
   };
 
+  const handleToggleSelect = (node: ProfileNode) => {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(node.user_id)) next.delete(node.user_id);
+      else next.add(node.user_id);
+      return next;
+    });
+  };
+
+  const handleToggleSelectMode = () => {
+    setSelectMode((prev) => {
+      if (prev) setSelectedUserIds(new Set());
+      return !prev;
+    });
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedUserIds.size === 0) return;
+    setSaving(true);
+    let successCount = 0;
+    let failCount = 0;
+    for (const userId of selectedUserIds) {
+      try {
+        const res = await supabase.functions.invoke("admin-delete-member", {
+          body: { targetUserId: userId, reassignReferrerCode: bulkReassignCode.trim() || null },
+        });
+        if (res.error) throw new Error(res.error.message);
+        const body = res.data;
+        if (body?.error) throw new Error(body.error);
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+    toast({
+      title: "Bulk delete complete",
+      description: `${successCount} deleted, ${failCount} failed.`,
+      variant: failCount > 0 ? "destructive" : "default",
+    });
+    setSelectedUserIds(new Set());
+    setSelectMode(false);
+    setBulkDeleteDialogOpen(false);
+    setBulkReassignCode("");
+    setSaving(false);
+    loadData();
+  };
+
   const confirmDeleteMember = async () => {
     if (!nodeToDelete) return;
 
@@ -439,8 +506,33 @@ const AdminReferralTree = () => {
           <h1 className="text-xl font-bold text-secondary flex items-center gap-2">
             <GitBranch className="h-5 w-5" /> Referral Tree
           </h1>
+          <div className="ml-auto">
+            <Button
+              variant={selectMode ? "default" : "outline"}
+              size="sm"
+              onClick={handleToggleSelectMode}
+              className={selectMode ? "bg-red-500 text-white hover:bg-red-600" : "border-white/20 text-white/70 hover:text-white hover:bg-white/10"}
+            >
+              {selectMode ? <><X className="h-4 w-4 mr-1" /> Cancel</> : <><CheckSquare className="h-4 w-4 mr-1" /> Select</>}
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Select mode floating bar */}
+      {selectMode && selectedUserIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-red-500/95 backdrop-blur text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-4">
+          <span className="text-sm font-medium">{selectedUserIds.size} selected</span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { setBulkReassignCode(""); setBulkDeleteDialogOpen(true); }}
+            className="border-white/40 text-white hover:bg-white/20 bg-transparent"
+          >
+            <Trash2 className="h-4 w-4 mr-1" /> Delete Selected
+          </Button>
+        </div>
+      )}
 
       {/* Search */}
       <div className="max-w-5xl mx-auto px-4 mb-4">
@@ -465,7 +557,7 @@ const AdminReferralTree = () => {
           <div>
             <p className="text-white/50 text-sm mb-3">{filteredNodes.length} result(s)</p>
             {filteredNodes.map((node) => (
-              <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} onDeleteMember={handleDeleteMember} />
+              <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} onDeleteMember={handleDeleteMember} selectMode={selectMode} selectedIds={selectedUserIds} onToggleSelect={handleToggleSelect} />
             ))}
           </div>
         ) : (
@@ -474,7 +566,7 @@ const AdminReferralTree = () => {
               {rootNodes.length} root user(s) · {profiles.length} total · Page {currentPage} of {totalPages}
             </p>
             {paginatedRoots.map((node) => (
-              <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} onDeleteMember={handleDeleteMember} />
+              <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} onDeleteMember={handleDeleteMember} selectMode={selectMode} selectedIds={selectedUserIds} onToggleSelect={handleToggleSelect} />
             ))}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
@@ -616,6 +708,40 @@ const AdminReferralTree = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Delete Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent className="bg-primary border-white/10 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-400">Delete {selectedUserIds.size} Member(s)</AlertDialogTitle>
+            <AlertDialogDescription className="text-white/50">
+              This will permanently delete <strong className="text-white">{selectedUserIds.size}</strong> member(s) and all their data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-white/50">Reassign children to referral code (optional)</label>
+              <Input
+                placeholder="Enter referral code (leave empty = root users)"
+                value={bulkReassignCode}
+                onChange={(e) => setBulkReassignCode(e.target.value.toUpperCase())}
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/30 mt-1"
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white/70 hover:text-white hover:bg-white/10">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              disabled={saving}
+              className="bg-red-500 text-white hover:bg-red-600"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
+              {saving ? "Deleting..." : `Delete ${selectedUserIds.size} Member(s)`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
