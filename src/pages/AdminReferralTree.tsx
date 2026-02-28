@@ -335,12 +335,20 @@ const AdminReferralTree = () => {
 
   const handleSave = async () => {
     if (!selectedNode) return;
+
+    // Frontend no-op guard
+    const currentReferrerNode = selectedNode.referred_by
+      ? profiles.find((p) => p.id === selectedNode.referred_by)
+      : null;
+    const currentCode = currentReferrerNode?.referral_code || "";
+    const newCode = newReferrerCode.trim().toUpperCase();
+    if (newCode === currentCode.toUpperCase()) {
+      toast({ title: "No changes needed", description: "The referrer code is already the same as the current one." });
+      return;
+    }
+
     setSaving(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      if (!token) throw new Error("Not authenticated");
-
       const res = await supabase.functions.invoke("admin-update-referrer", {
         body: {
           targetUserId: selectedNode.user_id,
