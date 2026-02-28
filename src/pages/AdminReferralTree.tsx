@@ -138,7 +138,7 @@ const AdminReferralTree = () => {
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const [nodeToRemove, setNodeToRemove] = useState<ProfileNode | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 50;
+  const [pageSize, setPageSize] = useState(50);
 
   // Admin guard
   useEffect(() => {
@@ -239,8 +239,8 @@ const AdminReferralTree = () => {
   // Reset page when search changes
   useEffect(() => { setCurrentPage(1); }, [search]);
 
-  const totalPages = Math.ceil(rootNodes.length / PAGE_SIZE);
-  const paginatedRoots = rootNodes.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const totalPages = Math.ceil(rootNodes.length / pageSize);
+  const paginatedRoots = rootNodes.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const handleChangeReferrer = (node: ProfileNode) => {
     setSelectedNode(node);
@@ -370,7 +370,7 @@ const AdminReferralTree = () => {
               <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} />
             ))}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-4">
+              <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
                 <Button
                   variant="outline"
                   size="sm"
@@ -380,7 +380,7 @@ const AdminReferralTree = () => {
                 >
                   Previous
                 </Button>
-                <span className="text-white/50 text-sm px-2">
+                <span className="text-white/50 text-sm">
                   {currentPage} / {totalPages}
                 </span>
                 <Button
@@ -392,6 +392,15 @@ const AdminReferralTree = () => {
                 >
                   Next
                 </Button>
+                <select
+                  value={pageSize}
+                  onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                  className="bg-white/5 border border-white/10 text-white text-sm rounded px-2 py-1"
+                >
+                  <option value={25} className="bg-primary">25 / page</option>
+                  <option value={50} className="bg-primary">50 / page</option>
+                  <option value={100} className="bg-primary">100 / page</option>
+                </select>
               </div>
             )}
           </div>
