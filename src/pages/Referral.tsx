@@ -10,7 +10,6 @@ import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
-import { ReferralTreeNode, type TreeNode } from "@/components/referral/ReferralTreeNode";
 import {
   Users,
   Copy,
@@ -75,7 +74,6 @@ const Referral = () => {
 
   const [profile, setProfile] = useState<{ full_name: string; referral_code: string } | null>(null);
   const [referrals, setReferrals] = useState<ReferralMember[]>([]);
-  const [treeRoot, setTreeRoot] = useState<TreeNode | null>(null);
   const [commissions, setCommissions] = useState<CommissionTx[]>([]);
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [expandedTiers, setExpandedTiers] = useState<Record<number, boolean>>({ 1: true });
@@ -94,70 +92,29 @@ const Referral = () => {
 
       const [profileRes, referralRes, commissionRes] = await Promise.all([
         supabase.from("profiles").select("full_name, referral_code").eq("user_id", user.id).maybeSingle(),
-        supabase.from("referral_tree").select("user_id, tier, ancestor_id").eq("ancestor_id", user.id).order("tier", { ascending: true }),
+        supabase.from("referral_tree").select("user_id, tier").eq("ancestor_id", user.id).order("tier", { ascending: true }),
         supabase.from("transactions").select("id, amount, description, created_at, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed").order("created_at", { ascending: false }).limit(50),
       ]);
 
       if (profileRes.data) setProfile(profileRes.data);
 
       if (referralRes.data && referralRes.data.length > 0) {
-        const allUserIds = referralRes.data.map((r) => r.user_id);
-        
-        // Fetch profiles, emails, AND parent→child (tier=1) relationships for all descendants
-        const [profilesRes, emailsRes, parentChildRes] = await Promise.all([
-          supabase.from("profiles").select("user_id, full_name, phone").in("user_id", allUserIds),
-          supabase.rpc("get_referral_emails", { referral_user_ids: allUserIds }),
-          // Get tier=1 entries for all descendants to know who referred whom
-          supabase.from("referral_tree").select("user_id, ancestor_id").eq("tier", 1).in("user_id", allUserIds),
+        const userIds = referralRes.data.map((r) => r.user_id);
+        const [profilesRes, emailsRes] = await Promise.all([
+          supabase.from("profiles").select("user_id, full_name, phone").in("user_id", userIds),
+          supabase.rpc("get_referral_emails", { referral_user_ids: userIds }),
         ]);
-        
         const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, { full_name: p.full_name, phone: p.phone }]) || []);
         const emailMap = new Map((emailsRes.data as { user_id: string; email: string }[] || []).map((e) => [e.user_id, e.email]));
-        
-        // Build flat referrals list (for stats)
-        const flatReferrals = referralRes.data.map((r) => ({
-          user_id: r.user_id,
-          full_name: profileMap.get(r.user_id)?.full_name || null,
-          phone: r.tier === 1 ? (profileMap.get(r.user_id)?.phone || null) : null,
-          email: r.tier === 1 ? (emailMap.get(r.user_id) || null) : null,
-          tier: r.tier,
-        }));
-        setReferrals(flatReferrals);
-
-        // Build parent→children map from tier=1 entries
-        const childrenMap = new Map<string, string[]>();
-        for (const entry of (parentChildRes.data || [])) {
-          const parent = entry.ancestor_id;
-          if (!childrenMap.has(parent)) childrenMap.set(parent, []);
-          childrenMap.get(parent)!.push(entry.user_id);
-        }
-
-        // Recursive tree builder
-        const buildNode = (userId: string, tier: number): TreeNode => {
-          const profile = profileMap.get(userId);
-          const childIds = childrenMap.get(userId) || [];
-          return {
-            user_id: userId,
-            full_name: profile?.full_name || null,
-            phone: tier === 1 ? (profile?.phone || null) : null,
-            email: tier === 1 ? (emailMap.get(userId) || null) : null,
-            tier,
-            children: childIds.map((cid) => buildNode(cid, tier + 1)),
-          };
-        };
-
-        // Root node is the current user; direct children are tier=1
-        const myChildren = childrenMap.get(user.id) || [];
-        setTreeRoot({
-          user_id: user.id,
-          full_name: profileRes.data?.full_name || "You",
-          phone: null,
-          email: null,
-          tier: 0,
-          children: myChildren.map((cid) => buildNode(cid, 1)),
-        });
-      } else {
-        setTreeRoot(null);
+        setReferrals(
+          referralRes.data.map((r) => ({
+            user_id: r.user_id,
+            full_name: profileMap.get(r.user_id)?.full_name || null,
+            phone: r.tier === 1 ? (profileMap.get(r.user_id)?.phone || null) : null,
+            email: r.tier === 1 ? (emailMap.get(r.user_id) || null) : null,
+            tier: r.tier,
+          }))
+        );
       }
 
       if (commissionRes.data) {
@@ -345,7 +302,7 @@ const Referral = () => {
               </CardContent>
             </Card>
 
-            {!treeRoot || treeRoot.children.length === 0 ? (
+            {referrals.length === 0 ? (
               <Card className="border-white/10 bg-white/5">
                 <CardContent className="flex flex-col items-center justify-center py-10 text-white/40">
                   <UserPlus className="h-8 w-8 mb-2 opacity-40" />
@@ -354,31 +311,121 @@ const Referral = () => {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="border-white/10 bg-white/5">
-                <CardContent className="p-4">
-                  {/* Root node (You) */}
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary text-sm font-bold">
-                      {(profile?.full_name || "Y").charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-white">{profile?.full_name || "You"}</p>
-                      <p className="text-[10px] text-white/40">Root • {referrals.length} in network</p>
-                    </div>
+              /* Visual Tree with connecting lines */
+              <div className="relative">
+                {/* You (root node) */}
+                <div className="flex items-center gap-3 mb-2 px-1">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary text-sm font-bold">
+                    {(profile?.full_name || "Y").charAt(0).toUpperCase()}
                   </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{profile?.full_name || "You"}</p>
+                    <p className="text-[10px] text-white/40">Root • {referrals.length} in network</p>
+                  </div>
+                </div>
 
-                  {/* Recursive tree */}
-                  <div className="ml-3">
-                    {treeRoot.children.map((child, idx) => (
-                      <ReferralTreeNode
-                        key={child.user_id}
-                        node={child}
-                        isLast={idx === treeRoot.children.length - 1}
-                      />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                {/* Tier sections with visual tree lines */}
+                {[1, 2, 3, 4, 5].map((tier) => {
+                  const members = referralsByTier[tier];
+                  if (!members || members.length === 0) return null;
+                  const isExpanded = expandedTiers[tier] ?? false;
+                  const colors = tierColors[tier];
+
+                  return (
+                    <div key={tier} className="relative ml-5">
+                      {/* Vertical connector line from parent */}
+                      <div className={`absolute left-0 top-0 h-full w-px border-l-2 border-dashed ${colors.line}`} />
+
+                      {/* Tier header with horizontal branch */}
+                      <div className="relative pl-6">
+                        {/* Horizontal branch line */}
+                        <div className={`absolute left-0 top-1/2 w-5 border-t-2 border-dashed ${colors.line}`} />
+                        {/* Branch dot */}
+                        <div className={`absolute left-[-5px] top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full ${colors.dot} ring-2 ring-primary`} />
+
+                        <button
+                          onClick={() => toggleTier(tier)}
+                          className="flex w-full items-center justify-between rounded-lg p-2.5 text-left hover:bg-white/5 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${colors.bg} ${colors.text}`}>
+                              T{tier}
+                            </div>
+                            <div>
+                              <span className="text-sm font-medium text-white">{tierLabels[tier]}</span>
+                              <span className="ml-2 text-[10px] text-white/30">{tierCommissionLabels[tier]} per txn</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-semibold ${colors.text}`}>{members.length}</span>
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4 text-white/40" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-white/40" />
+                            )}
+                          </div>
+                        </button>
+                      </div>
+
+                      {/* Expanded member list */}
+                      {isExpanded && (
+                        <div className="relative pl-6 pb-1">
+                          {members.map((member, idx) => (
+                            <div key={member.user_id} className="relative">
+                              {/* Connecting line for each member */}
+                              <div className={`absolute left-0 top-0 w-4 border-t border-dashed ${colors.line}`} style={{ top: '50%' }} />
+                              {idx < members.length - 1 && (
+                                <div className={`absolute left-0 top-0 h-full w-px border-l border-dashed ${colors.line}`} />
+                              )}
+                              {idx === members.length - 1 && (
+                                <div className={`absolute left-0 top-0 h-1/2 w-px border-l border-dashed ${colors.line}`} />
+                              )}
+                              {/* Small dot */}
+                              <div className={`absolute left-[-3px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full ${colors.dot}`} />
+
+                              <div className="flex items-center gap-3 pl-5 py-2">
+                                <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${colors.bg} text-[10px] font-semibold ${colors.text}`}>
+                                  {(member.full_name || "?").charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <span className="text-sm text-white/80 truncate block">{member.full_name || "Member"}</span>
+                                  {member.tier === 1 && (member.phone || member.email) && (
+                                    <span className="text-[10px] text-white/40 truncate block">
+                                      {[member.phone, member.email].filter(Boolean).join(" · ")}
+                                    </span>
+                                  )}
+                                </div>
+                                {member.tier === 1 && member.phone && (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <a
+                                      href={`tel:${member.phone}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-secondary/20 transition-colors"
+                                      title="Call"
+                                    >
+                                      <Phone className="h-3.5 w-3.5 text-secondary" />
+                                    </a>
+                                    <a
+                                      href={`https://wa.me/${member.phone.replace(/[^0-9]/g, "")}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-green-500/20 transition-colors"
+                                      title="WhatsApp"
+                                    >
+                                      <MessageCircle className="h-3.5 w-3.5 text-green-400" />
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </TabsContent>
 
