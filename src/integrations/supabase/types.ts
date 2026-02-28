@@ -1346,6 +1346,13 @@ export type Database = {
       cleanup_old_api_logs: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       generate_referral_code: { Args: never; Returns: string }
+      get_all_user_emails: {
+        Args: never
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       get_referral_emails: {
         Args: { referral_user_ids: string[] }
         Returns: {
