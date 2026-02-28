@@ -250,7 +250,8 @@ const AdminReferralTree = () => {
         (p) =>
           (p.full_name || "").toLowerCase().includes(q) ||
           (p.phone || "").includes(q) ||
-          p.referral_code.toLowerCase().includes(q)
+          p.referral_code.toLowerCase().includes(q) ||
+          (p.email || "").toLowerCase().includes(q)
       );
     }
 
