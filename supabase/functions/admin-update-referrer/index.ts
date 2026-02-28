@@ -28,15 +28,14 @@ Deno.serve(async (req) => {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
+    const { data: { user: callerUser }, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !callerUser) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const adminUserId = claimsData.claims.sub as string;
+    const adminUserId = callerUser.id;
 
     // Use service role for all DB ops
     const db = createClient(supabaseUrl, serviceRoleKey);
@@ -120,19 +119,49 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Circular reference check: walk up referrer's ancestor chain
-      // If targetUserId is an ancestor of the new referrer, it would create a cycle
+      // Circular reference handling: if target is an ancestor of new referrer,
+      // we need to detach the link that goes through target first.
       const { data: referrerAncestors } = await db
         .from("referral_tree")
         .select("ancestor_id")
         .eq("user_id", referrerProfile.user_id);
 
-      const ancestorIds = (referrerAncestors || []).map((a) => a.ancestor_id);
+      const ancestorIds = (referrerAncestors || []).map((a: any) => a.ancestor_id);
       if (ancestorIds.includes(targetUserId)) {
-        return new Response(
-          JSON.stringify({ error: "Circular reference: target user is an ancestor of the new referrer" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        // Find which direct child of target is in the chain leading to newReferrer
+        // That child's referred_by should be set to target's current referred_by (detach)
+        const { data: targetCurrentProfile } = await db
+          .from("profiles")
+          .select("id, referred_by")
+          .eq("user_id", targetUserId)
+          .single();
+
+        // Find direct children of target whose subtree contains newReferrer
+        const { data: directChildren } = await db
+          .from("profiles")
+          .select("id, user_id")
+          .eq("referred_by", targetCurrentProfile?.id);
+
+        for (const child of directChildren || []) {
+          // Check if newReferrer is this child or a descendant of this child
+          if (child.user_id === referrerProfile.user_id) {
+            await db.from("profiles")
+              .update({ referred_by: targetCurrentProfile?.referred_by || null })
+              .eq("id", child.id);
+            break;
+          }
+          const { data: childDesc } = await db
+            .from("referral_tree")
+            .select("user_id")
+            .eq("ancestor_id", child.user_id);
+          const childDescIds = (childDesc || []).map((d: any) => d.user_id);
+          if (childDescIds.includes(referrerProfile.user_id)) {
+            await db.from("profiles")
+              .update({ referred_by: targetCurrentProfile?.referred_by || null })
+              .eq("id", child.id);
+            break;
+          }
+        }
       }
 
       newReferrerProfileId = referrerProfile.id;
@@ -174,14 +203,31 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Find all descendants of targetUserId and rebuild their trees
-    // A descendant is anyone who has targetUserId as an ancestor
-    const { data: descendants } = await db
+    // Also find descendants of the detached children (who may have been reparented)
+    const { data: allDescendants } = await db
       .from("referral_tree")
       .select("user_id")
       .eq("ancestor_id", targetUserId);
 
-    const descendantUserIds = [...new Set((descendants || []).map((d) => d.user_id))];
+    const { data: targetChildProfiles } = await db
+      .from("profiles")
+      .select("user_id")
+      .eq("referred_by", newReferrerProfileId ? targetProfile.id : null);
+
+    // Gather all users who might need rebuilding
+    const rebuildSet = new Set<string>();
+    for (const d of allDescendants || []) rebuildSet.add(d.user_id);
+    // Also check for any user whose ancestor chain passes through target
+    for (const c of targetChildProfiles || []) {
+      rebuildSet.add(c.user_id);
+      const { data: cDesc } = await db
+        .from("referral_tree")
+        .select("user_id")
+        .eq("ancestor_id", c.user_id);
+      for (const cd of cDesc || []) rebuildSet.add(cd.user_id);
+    }
+
+    const descendantUserIds = [...rebuildSet];
 
     for (const descUserId of descendantUserIds) {
       // Delete all referral_tree rows for this descendant
