@@ -271,7 +271,10 @@ const AdminReferralTree = () => {
   };
 
   const handleRemoveReferrer = (node: ProfileNode) => {
-    if (!node.referred_by) return;
+    if (!node.referred_by) {
+      toast({ title: "No changes needed", description: "This user is already a root user with no referrer." });
+      return;
+    }
     setNodeToRemove(node);
     setRemoveConfirmOpen(true);
   };
