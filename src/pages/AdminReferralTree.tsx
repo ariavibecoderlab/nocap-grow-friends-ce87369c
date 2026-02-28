@@ -11,7 +11,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import NocapLogo from "@/components/NocapLogo";
 import {
-  Shield, Search, ChevronRight, ChevronDown, Users, ArrowLeft, GitBranch, Loader2,
+  Shield, Search, ChevronRight, ChevronDown, Users, ArrowLeft, GitBranch, Loader2, Unlink,
 } from "lucide-react";
 
 interface ProfileNode {
@@ -33,12 +33,13 @@ const tierBg = [
 ];
 
 const TreeNode = ({
-  node, depth, childrenMap, onChangeReferrer,
+  node, depth, childrenMap, onChangeReferrer, onRemoveReferrer,
 }: {
   node: ProfileNode;
   depth: number;
   childrenMap: Map<string, ProfileNode[]>;
   onChangeReferrer: (node: ProfileNode) => void;
+  onRemoveReferrer: (node: ProfileNode) => void;
 }) => {
   const [expanded, setExpanded] = useState(depth < 1);
   const children = childrenMap.get(node.id) || [];
@@ -74,14 +75,27 @@ const TreeNode = ({
             )}
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-white/20 text-white/70 hover:text-white hover:bg-white/10 text-xs shrink-0"
-          onClick={(e) => { e.stopPropagation(); onChangeReferrer(node); }}
-        >
-          Change
-        </Button>
+        <div className="flex items-center gap-1 shrink-0">
+          {node.referred_by && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-red-400/70 hover:text-red-400 hover:bg-red-400/10 text-xs px-2"
+              onClick={(e) => { e.stopPropagation(); onRemoveReferrer(node); }}
+              title="Remove referrer"
+            >
+              <Unlink className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-white/20 text-white/70 hover:text-white hover:bg-white/10 text-xs"
+            onClick={(e) => { e.stopPropagation(); onChangeReferrer(node); }}
+          >
+            Change
+          </Button>
+        </div>
       </div>
       {expanded && children.length > 0 && (
         <div className="border-l border-white/10 ml-3">
@@ -92,6 +106,7 @@ const TreeNode = ({
               depth={depth + 1}
               childrenMap={childrenMap}
               onChangeReferrer={onChangeReferrer}
+              onRemoveReferrer={onRemoveReferrer}
             />
           ))}
         </div>
@@ -219,6 +234,28 @@ const AdminReferralTree = () => {
     setDialogOpen(true);
   };
 
+  const handleRemoveReferrer = async (node: ProfileNode) => {
+    if (!node.referred_by) return;
+    setSaving(true);
+    try {
+      const res = await supabase.functions.invoke("admin-update-referrer", {
+        body: { targetUserId: node.user_id, newReferrerCode: null },
+      });
+      if (res.error) throw new Error(res.error.message || "Failed");
+      const body = res.data;
+      if (body?.error) throw new Error(body.error);
+      toast({
+        title: "Referrer removed",
+        description: `${node.full_name || "User"} is now a root user. ${body.descendantsRebuilt} descendant(s) rebuilt.`,
+      });
+      loadData();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedNode) return;
     setSaving(true);
@@ -299,7 +336,7 @@ const AdminReferralTree = () => {
           <div>
             <p className="text-white/50 text-sm mb-3">{filteredNodes.length} result(s)</p>
             {filteredNodes.map((node) => (
-              <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} />
+              <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} />
             ))}
           </div>
         ) : (
@@ -308,7 +345,7 @@ const AdminReferralTree = () => {
               {rootNodes.length} root user(s) · {profiles.length} total
             </p>
             {rootNodes.map((node) => (
-              <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} />
+              <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} />
             ))}
           </div>
         )}
