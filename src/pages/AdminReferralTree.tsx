@@ -137,6 +137,8 @@ const AdminReferralTree = () => {
   const [saving, setSaving] = useState(false);
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const [nodeToRemove, setNodeToRemove] = useState<ProfileNode | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 50;
 
   // Admin guard
   useEffect(() => {
@@ -233,6 +235,12 @@ const AdminReferralTree = () => {
 
     return { childrenMap: cMap, rootNodes: roots, filteredNodes: filtered };
   }, [profiles, search]);
+
+  // Reset page when search changes
+  useEffect(() => { setCurrentPage(1); }, [search]);
+
+  const totalPages = Math.ceil(rootNodes.length / PAGE_SIZE);
+  const paginatedRoots = rootNodes.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const handleChangeReferrer = (node: ProfileNode) => {
     setSelectedNode(node);
@@ -356,11 +364,36 @@ const AdminReferralTree = () => {
         ) : (
           <div>
             <p className="text-white/50 text-sm mb-3">
-              {rootNodes.length} root user(s) · {profiles.length} total
+              {rootNodes.length} root user(s) · {profiles.length} total · Page {currentPage} of {totalPages}
             </p>
-            {rootNodes.map((node) => (
+            {paginatedRoots.map((node) => (
               <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} />
             ))}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => p - 1)}
+                  className="border-white/20 text-white/70 hover:text-white hover:bg-white/10"
+                >
+                  Previous
+                </Button>
+                <span className="text-white/50 text-sm px-2">
+                  {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  className="border-white/20 text-white/70 hover:text-white hover:bg-white/10"
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
