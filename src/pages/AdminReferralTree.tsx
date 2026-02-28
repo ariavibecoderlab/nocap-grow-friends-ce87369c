@@ -15,7 +15,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import NocapLogo from "@/components/NocapLogo";
 import {
-  Shield, Search, ChevronRight, ChevronDown, Users, ArrowLeft, GitBranch, Loader2, Unlink,
+  Shield, Search, ChevronRight, ChevronDown, Users, ArrowLeft, GitBranch, Loader2, Unlink, Trash2,
 } from "lucide-react";
 
 interface ProfileNode {
@@ -38,13 +38,14 @@ const tierBg = [
 ];
 
 const TreeNode = ({
-  node, depth, childrenMap, onChangeReferrer, onRemoveReferrer,
+  node, depth, childrenMap, onChangeReferrer, onRemoveReferrer, onDeleteMember,
 }: {
   node: ProfileNode;
   depth: number;
   childrenMap: Map<string, ProfileNode[]>;
   onChangeReferrer: (node: ProfileNode) => void;
   onRemoveReferrer: (node: ProfileNode) => void;
+  onDeleteMember: (node: ProfileNode) => void;
 }) => {
   const [expanded, setExpanded] = useState(depth < 1);
   const children = childrenMap.get(node.id) || [];
@@ -82,11 +83,20 @@ const TreeNode = ({
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-red-400/70 hover:text-red-400 hover:bg-red-400/10 text-xs px-2"
+            onClick={(e) => { e.stopPropagation(); onDeleteMember(node); }}
+            title="Delete member"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
           {node.referred_by && (
             <Button
               variant="ghost"
               size="sm"
-              className="text-red-400/70 hover:text-red-400 hover:bg-red-400/10 text-xs px-2"
+              className="text-orange-400/70 hover:text-orange-400 hover:bg-orange-400/10 text-xs px-2"
               onClick={(e) => { e.stopPropagation(); onRemoveReferrer(node); }}
               title="Remove referrer"
             >
@@ -113,6 +123,7 @@ const TreeNode = ({
               childrenMap={childrenMap}
               onChangeReferrer={onChangeReferrer}
               onRemoveReferrer={onRemoveReferrer}
+              onDeleteMember={onDeleteMember}
             />
           ))}
         </div>
@@ -141,6 +152,9 @@ const AdminReferralTree = () => {
   const [nodeToRemove, setNodeToRemove] = useState<ProfileNode | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [nodeToDelete, setNodeToDelete] = useState<ProfileNode | null>(null);
+  const [deleteReassignCode, setDeleteReassignCode] = useState("");
 
   // Admin guard
   useEffect(() => {
@@ -261,6 +275,39 @@ const AdminReferralTree = () => {
     setRemoveConfirmOpen(true);
   };
 
+  const handleDeleteMember = (node: ProfileNode) => {
+    setNodeToDelete(node);
+    setDeleteReassignCode("");
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteMember = async () => {
+    if (!nodeToDelete) return;
+    setSaving(true);
+    try {
+      const res = await supabase.functions.invoke("admin-delete-member", {
+        body: {
+          targetUserId: nodeToDelete.user_id,
+          reassignReferrerCode: deleteReassignCode.trim() || null,
+        },
+      });
+      if (res.error) throw new Error(res.error.message || "Failed");
+      const body = res.data;
+      if (body?.error) throw new Error(body.error);
+      toast({
+        title: "Member deleted",
+        description: `${nodeToDelete.full_name || "User"} deleted. ${body.childrenReassigned} child(ren) reassigned${body.reassignedTo ? ` to ${body.reassignedTo}` : " as root users"}.`,
+      });
+      setDeleteDialogOpen(false);
+      setNodeToDelete(null);
+      loadData();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const confirmRemoveReferrer = async () => {
     if (!nodeToRemove) return;
     setSaving(true);
@@ -365,7 +412,7 @@ const AdminReferralTree = () => {
           <div>
             <p className="text-white/50 text-sm mb-3">{filteredNodes.length} result(s)</p>
             {filteredNodes.map((node) => (
-              <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} />
+              <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} onDeleteMember={handleDeleteMember} />
             ))}
           </div>
         ) : (
@@ -374,7 +421,7 @@ const AdminReferralTree = () => {
               {rootNodes.length} root user(s) · {profiles.length} total · Page {currentPage} of {totalPages}
             </p>
             {paginatedRoots.map((node) => (
-              <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} />
+              <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} onDeleteMember={handleDeleteMember} />
             ))}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
@@ -476,6 +523,46 @@ const AdminReferralTree = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete Member Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="bg-primary border-white/10 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-red-400">Delete Member</DialogTitle>
+            <DialogDescription className="text-white/50">
+              You are about to permanently delete <strong className="text-white">{nodeToDelete?.full_name || "this user"}</strong> ({nodeToDelete?.referral_code}).
+              {nodeToDelete && (childrenMap.get(nodeToDelete.id) || []).length > 0 && (
+                <span className="block mt-1 text-yellow-400/80">
+                  This user has {(childrenMap.get(nodeToDelete.id) || []).length} direct referral(s) that need to be reassigned.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-white/50">Reassign children to referral code</label>
+              <Input
+                placeholder="Enter referral code (leave empty = root users)"
+                value={deleteReassignCode}
+                onChange={(e) => setDeleteReassignCode(e.target.value.toUpperCase())}
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/30 mt-1"
+              />
+              <p className="text-xs text-white/30 mt-1">All direct referrals under this member will be moved to the specified referrer, or become root users if left empty.</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="border-white/20 text-white/70">
+              Cancel
+            </Button>
+            <Button onClick={confirmDeleteMember} disabled={saving} className="bg-red-500 text-white hover:bg-red-600">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
+              {saving ? "Deleting..." : "Delete Member"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

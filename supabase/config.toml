@@ -86,3 +86,6 @@ verify_jwt = false
 
 [functions.admin-update-referrer]
 verify_jwt = false
+
+[functions.admin-delete-member]
+verify_jwt = false
