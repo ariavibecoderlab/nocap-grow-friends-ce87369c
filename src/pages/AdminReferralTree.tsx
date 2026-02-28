@@ -287,6 +287,13 @@ const AdminReferralTree = () => {
 
   const confirmDeleteMember = async () => {
     if (!nodeToDelete) return;
+
+    // Warn if reassign code is filled but user has no children
+    const children = childrenMap.get(nodeToDelete.id) || [];
+    if (deleteReassignCode.trim() && children.length === 0) {
+      toast({ title: "No children to reassign", description: "This user has no referrals — the reassign code will be ignored." });
+    }
+
     setSaving(true);
     try {
       const res = await supabase.functions.invoke("admin-delete-member", {
