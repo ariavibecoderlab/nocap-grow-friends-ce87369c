@@ -18,6 +18,7 @@ import MerchantDashboard from "./pages/MerchantDashboard";
 import MerchantRegister from "./pages/MerchantRegister";
 import BranchDashboard from "./pages/BranchDashboard";
 import Admin from "./pages/Admin";
+import AdminReferralTree from "./pages/AdminReferralTree";
 import Transactions from "./pages/Transactions";
 import HelpSupport from "./pages/HelpSupport";
 import TermsConditions from "./pages/TermsConditions";
@@ -67,6 +68,7 @@ const App = () => (
               <Route path="/merchant/register" element={<MerchantRegister />} />
               <Route path="/branch" element={<BranchDashboard />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/referral-tree" element={<AdminReferralTree />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/api-docs" element={<ApiDocs />} />

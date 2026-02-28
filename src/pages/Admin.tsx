@@ -11,7 +11,7 @@ import UserManagement from "@/components/admin/UserManagement";
 import TransactionsList from "@/components/admin/TransactionsList";
 import WithdrawalApprovals from "@/components/admin/WithdrawalApprovals";
 import ApiAppsManagement from "@/components/admin/ApiAppsManagement";
-import { Shield, ClipboardCheck } from "lucide-react";
+import { Shield, ClipboardCheck, GitBranch } from "lucide-react";
 import NocapLogo from "@/components/NocapLogo";
 import { generateUatPdf } from "@/lib/generateUatPdf";
 import AdminWalletCard from "@/components/admin/AdminWalletCard";
@@ -62,6 +62,10 @@ const Admin = () => {
             <Shield className="h-5 w-5 text-secondary" />
             <h1 className="text-xl font-bold text-secondary">Admin Panel</h1>
           </div>
+          <Button variant="outline" size="sm" onClick={() => navigate("/admin/referral-tree")} className="border-white/20 text-white/70 hover:text-white hover:bg-white/10 text-xs">
+            <GitBranch className="h-3.5 w-3.5 mr-1" />
+            Tree
+          </Button>
           <Button variant="outline" size="sm" onClick={generateUatPdf} className="border-white/20 text-white/70 hover:text-white hover:bg-white/10 text-xs">
             <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
             UAT PDF
