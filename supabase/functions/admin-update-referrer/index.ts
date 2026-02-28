@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     // Get target profile
     const { data: targetProfile } = await db
       .from("profiles")
-      .select("id, user_id, referral_code")
+      .select("id, user_id, referral_code, referred_by")
       .eq("user_id", targetUserId)
       .single();
 
@@ -166,6 +166,20 @@ Deno.serve(async (req) => {
 
       newReferrerProfileId = referrerProfile.id;
       newReferrerUserId = referrerProfile.user_id;
+    }
+
+    // No-op guard: avoid rebuilding large trees when referrer is unchanged.
+    if ((targetProfile.referred_by ?? null) === newReferrerProfileId) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          updated: targetUserId,
+          newReferrerCode: newReferrerCode || null,
+          descendantsRebuilt: 0,
+          noOp: true,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // 1. Update profiles.referred_by
