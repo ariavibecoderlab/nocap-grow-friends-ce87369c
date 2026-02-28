@@ -51,10 +51,9 @@ serve(async (req) => {
     });
 
     // Check if user exists and is properly registered
-    const { data: { users }, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    const authUser = users?.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+    const { data: { user: authUser }, error: getUserErr } = await supabase.auth.admin.getUserByEmail(email);
     
-    if (listErr || !authUser || !authUser.email_confirmed_at) {
+    if (getUserErr || !authUser || !authUser.email_confirmed_at) {
       return new Response(JSON.stringify({ error: 'User not found' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
