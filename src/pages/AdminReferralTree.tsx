@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import NocapLogo from "@/components/NocapLogo";
 import {
@@ -131,6 +135,8 @@ const AdminReferralTree = () => {
   const [selectedNode, setSelectedNode] = useState<ProfileNode | null>(null);
   const [newReferrerCode, setNewReferrerCode] = useState("");
   const [saving, setSaving] = useState(false);
+  const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
+  const [nodeToRemove, setNodeToRemove] = useState<ProfileNode | null>(null);
 
   // Admin guard
   useEffect(() => {
@@ -234,25 +240,33 @@ const AdminReferralTree = () => {
     setDialogOpen(true);
   };
 
-  const handleRemoveReferrer = async (node: ProfileNode) => {
+  const handleRemoveReferrer = (node: ProfileNode) => {
     if (!node.referred_by) return;
+    setNodeToRemove(node);
+    setRemoveConfirmOpen(true);
+  };
+
+  const confirmRemoveReferrer = async () => {
+    if (!nodeToRemove) return;
     setSaving(true);
     try {
       const res = await supabase.functions.invoke("admin-update-referrer", {
-        body: { targetUserId: node.user_id, newReferrerCode: null },
+        body: { targetUserId: nodeToRemove.user_id, newReferrerCode: null },
       });
       if (res.error) throw new Error(res.error.message || "Failed");
       const body = res.data;
       if (body?.error) throw new Error(body.error);
       toast({
         title: "Referrer removed",
-        description: `${node.full_name || "User"} is now a root user. ${body.descendantsRebuilt} descendant(s) rebuilt.`,
+        description: `${nodeToRemove.full_name || "User"} is now a root user. ${body.descendantsRebuilt} descendant(s) rebuilt.`,
       });
       loadData();
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
+      setRemoveConfirmOpen(false);
+      setNodeToRemove(null);
     }
   };
 
@@ -390,6 +404,29 @@ const AdminReferralTree = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Remove Referrer Confirmation */}
+      <AlertDialog open={removeConfirmOpen} onOpenChange={setRemoveConfirmOpen}>
+        <AlertDialogContent className="bg-primary border-white/10 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-400">Remove Referrer</AlertDialogTitle>
+            <AlertDialogDescription className="text-white/50">
+              Are you sure you want to detach <strong className="text-white">{nodeToRemove?.full_name || "this user"}</strong> ({nodeToRemove?.referral_code}) from their referrer? They will become a root user and all descendant chains will be rebuilt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white/70 hover:text-white hover:bg-white/10">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRemoveReferrer}
+              disabled={saving}
+              className="bg-red-500 text-white hover:bg-red-600"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              {saving ? "Removing..." : "Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
