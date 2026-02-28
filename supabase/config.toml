@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.api-docs]
 verify_jwt = false
+
+[functions.admin-update-referrer]
+verify_jwt = false
