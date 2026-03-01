@@ -71,8 +71,18 @@ const WithdrawalApprovals = () => {
 
   const callAdmin = async (body: Record<string, unknown>) => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return { error: "No session" };
-    return await supabase.functions.invoke("admin-actions", { body });
+    if (!session) {
+      return { data: null, error: { message: "Session expired. Please log in again." } };
+    }
+    const res = await supabase.functions.invoke("admin-actions", { body });
+    // Edge function non-2xx returns data with error message
+    if (res.error) {
+      return { data: null, error: res.error };
+    }
+    if (res.data?.error) {
+      return { data: null, error: { message: res.data.error } };
+    }
+    return res;
   };
 
   const approve = async (req: WithdrawalRow) => {
