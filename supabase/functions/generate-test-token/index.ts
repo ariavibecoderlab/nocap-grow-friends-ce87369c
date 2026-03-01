@@ -85,7 +85,7 @@ serve(async (req) => {
         app_id: app.id,
         user_id: user.id,
         access_token_hash: tokenHash,
-        scopes: ['balance', 'charge'],
+        scopes: ['balance', 'charge', 'referral', 'topup'],
       });
 
     if (tokenError) {
