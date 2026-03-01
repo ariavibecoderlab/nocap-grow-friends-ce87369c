@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -232,7 +233,23 @@ const Withdraw = () => {
             </div>
             <div className="space-y-1">
               <Label className="text-white/70">Bank Name *</Label>
-              <Input placeholder="e.g. CIMB Bank" value={bankName} onChange={(e) => setBankName(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
+              <Select value={bankName} onValueChange={setBankName}>
+                <SelectTrigger className="border-white/10 bg-white/5 text-white">
+                  <SelectValue placeholder="Select bank" />
+                </SelectTrigger>
+                <SelectContent className="bg-primary border-white/10">
+                  {[
+                    "Maybank", "CIMB Bank", "Public Bank", "RHB Bank", "Hong Leong Bank",
+                    "AmBank", "Bank Islam", "Bank Rakyat", "Bank Muamalat", "Affin Bank",
+                    "Alliance Bank", "OCBC Bank", "HSBC Bank", "Standard Chartered", "UOB Bank",
+                    "BSN (Bank Simpanan Nasional)", "Agrobank",
+                  ].map((bank) => (
+                    <SelectItem key={bank} value={bank} className="text-white focus:bg-white/10 focus:text-white">
+                      {bank}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-white/70">Account Number *</Label>
