@@ -29,13 +29,49 @@ const MerchantApprovals = () => {
     },
   });
 
+  const callAdmin = async (body: Record<string, unknown>) => {
+    let { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      const refreshed = await supabase.auth.refreshSession();
+      session = refreshed.data.session;
+    }
+
+    if (!session?.access_token) {
+      throw new Error("Session expired. Please log in again.");
+    }
+
+    const response = await supabase.functions.invoke("admin-actions", {
+      body,
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+
+    if (response.error) {
+      const fnError = response.error as { message?: string; context?: Response };
+      if (fnError.context) {
+        try {
+          const payload = await fnError.context.clone().json() as { error?: string };
+          if (payload?.error) {
+            throw new Error(payload.error === "Unauthorized" ? "Session expired or unauthorized. Please log in again as admin." : payload.error);
+          }
+        } catch {
+          // Fall through to generic message
+        }
+      }
+      throw new Error(fnError.message || "Unable to complete admin action.");
+    }
+
+    const functionError = (response.data as { error?: string } | null)?.error;
+    if (functionError) {
+      throw new Error(functionError);
+    }
+
+    return response.data;
+  };
+
   const approveMutation = useMutation({
     mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
-      const { data, error } = await supabase.functions.invoke("admin-actions", {
-        body: { action: "approve_merchant", applicationId: id, applicationUserId: userId },
-      });
-      if (error) throw error;
-      return data;
+      return await callAdmin({ action: "approve_merchant", applicationId: id, applicationUserId: userId });
     },
     onSuccess: () => {
       toast({ title: "Merchant approved" });
@@ -46,11 +82,7 @@ const MerchantApprovals = () => {
 
   const rejectMutation = useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
-      const { data, error } = await supabase.functions.invoke("admin-actions", {
-        body: { action: "reject_merchant", applicationId: id, reason },
-      });
-      if (error) throw error;
-      return data;
+      return await callAdmin({ action: "reject_merchant", applicationId: id, reason });
     },
     onSuccess: () => {
       toast({ title: "Merchant rejected" });
