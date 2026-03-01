@@ -41,6 +41,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import MyOrders from "./pages/MyOrders";
+import Withdraw from "./pages/Withdraw";
 import AiHelpChat from "./components/AiHelpChat";
 
 const queryClient = new QueryClient();
@@ -89,6 +90,7 @@ const App = () => (
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/order/:orderId" element={<OrderConfirmation />} />
               <Route path="/my-orders" element={<MyOrders />} />
+              <Route path="/withdraw" element={<Withdraw />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

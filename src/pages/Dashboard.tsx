@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import TransactionDetail from "@/components/TransactionDetail";
-import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store, AlertCircle, Banknote, Send, UserPlus, Share2, ShoppingBag } from "lucide-react";
+import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store, AlertCircle, Banknote, Send, UserPlus, Share2, ShoppingBag, ArrowDownToLine } from "lucide-react";
 import NocapLogo from "@/components/NocapLogo";
 import NotificationBell from "@/components/NotificationBell";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
@@ -221,9 +221,14 @@ const Dashboard = () => {
             <p className="mt-2 font-display text-3xl font-bold tracking-tight text-secondary">
               {showBalance ? `RM ${balance.toFixed(2)}` : "RM ••••••"}
             </p>
-            <Button size="sm" className="mt-3 bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => navigate("/top-up")}>
-              <Plus className="mr-1 h-4 w-4" /> Top Up
-            </Button>
+            <div className="mt-3 flex gap-2">
+              <Button size="sm" className="bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => navigate("/top-up")}>
+                <Plus className="mr-1 h-4 w-4" /> Top Up
+              </Button>
+              <Button size="sm" variant="outline" className="border-secondary/30 text-secondary hover:bg-secondary hover:text-primary font-semibold" onClick={() => navigate("/withdraw")}>
+                <ArrowDownToLine className="mr-1 h-4 w-4" /> Withdraw
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
