@@ -61,8 +61,8 @@ const TopUp = () => {
 
   const handleTopUp = async () => {
     const numAmount = parseFloat(amount);
-    if (!numAmount || numAmount < 1 || numAmount > 10000) {
-      toast({ title: "Invalid amount", description: "Please enter an amount between RM1 and RM10,000.", variant: "destructive" });
+    if (!numAmount || numAmount < 10 || numAmount > 500) {
+      toast({ title: "Invalid amount", description: "Please enter an amount between RM10 and RM500.", variant: "destructive" });
       return;
     }
 
@@ -169,12 +169,12 @@ const TopUp = () => {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="pl-14 text-2xl font-display font-bold h-14 text-right bg-white/5 border-white/10 text-white placeholder:text-white/30"
-              min={1}
-              max={10000}
+              min={10}
+              max={500}
               step="0.01"
             />
           </div>
-          <p className="mt-1 text-xs text-white/40">Min RM1.00 · Max RM10,000.00</p>
+          <p className="mt-1 text-xs text-white/40">Min RM10.00 · Max RM500.00</p>
         </div>
 
         {/* Preset Amounts */}
@@ -198,7 +198,7 @@ const TopUp = () => {
         <Button
           className="mt-8 w-full h-12 text-base font-semibold bg-secondary text-primary hover:bg-secondary/90"
           onClick={handleTopUp}
-          disabled={loading || !amount || parseFloat(amount) < 1}
+          disabled={loading || !amount || parseFloat(amount) < 10}
         >
           {loading ? (
             <>
