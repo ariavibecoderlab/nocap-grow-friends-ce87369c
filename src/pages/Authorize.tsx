@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { verifyOtp } from "@/lib/auth";
-import { Zap, Shield, Wallet, CreditCard, ArrowLeft, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Zap, Shield, Wallet, CreditCard, ArrowLeft, Loader2, CheckCircle2, XCircle, ArrowUpCircle } from "lucide-react";
 
 type Step = "login" | "otp" | "consent";
 
@@ -17,6 +17,7 @@ const SCOPE_LABELS: Record<string, { label: string; icon: React.ReactNode; descr
   balance: { label: "View Balance", icon: <Wallet className="h-4 w-4" />, description: "Read your wallet balance" },
   charge: { label: "Create Charges", icon: <CreditCard className="h-4 w-4" />, description: "Charge payments from your wallet" },
   referral: { label: "View Referral Network", icon: <Zap className="h-4 w-4" />, description: "Access your referral stats, network & cashback history" },
+  topup: { label: "Wallet Top-Up", icon: <ArrowUpCircle className="h-4 w-4" />, description: "Initiate wallet top-ups via FPX bank transfer" },
 };
 
 const Authorize = () => {
