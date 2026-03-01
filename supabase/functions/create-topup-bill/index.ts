@@ -45,8 +45,8 @@ serve(async (req) => {
     const { amount } = await req.json();
     
     // Validate amount
-    if (!amount || typeof amount !== 'number' || amount < 1 || amount > 10000) {
-      return new Response(JSON.stringify({ error: 'Amount must be between RM1 and RM10,000' }), {
+    if (!amount || typeof amount !== 'number' || amount < 10 || amount > 500) {
+      return new Response(JSON.stringify({ error: 'Amount must be between RM10 and RM500' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
