@@ -57,7 +57,16 @@ const Withdraw = () => {
       supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
       supabase.from("system_settings").select("value").eq("key", "min_withdrawal_amount").maybeSingle(),
     ]);
-    if (wr) setRequests(wr as WithdrawalRequest[]);
+    if (wr) {
+      setRequests(wr as WithdrawalRequest[]);
+      // Pre-fill bank details from the most recent request
+      if (wr.length > 0 && !bankName && !bankAccountNo && !bankAccountHolder) {
+        const latest = wr[0] as WithdrawalRequest;
+        setBankName(latest.bank_name || "");
+        setBankAccountNo(latest.bank_account_no || "");
+        setBankAccountHolder(latest.bank_account_holder || "");
+      }
+    }
     if (wallet) setWalletBalance(Number(wallet.balance));
     if (globalSettings?.value) setMinWithdrawal(Number(globalSettings.value));
     setLoading(false);
