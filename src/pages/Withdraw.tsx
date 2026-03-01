@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
 import { Loader2, Wallet, Clock, CheckCircle2, XCircle, ArrowDownToLine, ArrowLeft, Share2, FileText } from "lucide-react";
 import { shareWithdrawalReceipt, downloadWithdrawalReceipt } from "@/lib/generateWithdrawalReceiptPdf";
+import { MALAYSIAN_BANKS } from "@/lib/constants";
 
 interface WithdrawalRequest {
   id: string;
@@ -243,12 +244,7 @@ const Withdraw = () => {
                   <SelectValue placeholder="Select bank" />
                 </SelectTrigger>
                 <SelectContent className="bg-primary border-white/10">
-                  {[
-                    "Maybank", "CIMB Bank", "Public Bank", "RHB Bank", "Hong Leong Bank",
-                    "AmBank", "Bank Islam", "Bank Rakyat", "Bank Muamalat", "Affin Bank",
-                    "Alliance Bank", "OCBC Bank", "HSBC Bank", "Standard Chartered", "UOB Bank",
-                    "BSN (Bank Simpanan Nasional)", "Agrobank",
-                  ].map((bank) => (
+                  {MALAYSIAN_BANKS.map((bank) => (
                     <SelectItem key={bank} value={bank} className="text-white focus:bg-white/10 focus:text-white">
                       {bank}
                     </SelectItem>
