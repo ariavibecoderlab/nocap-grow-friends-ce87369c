@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,6 +35,7 @@ const Withdraw = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null);
 
   const [amount, setAmount] = useState("");
   const [bankName, setBankName] = useState("");
@@ -185,7 +188,7 @@ const Withdraw = () => {
           </Card>
         ) : (
           requests.map((r) => (
-            <Card key={r.id} className="border-white/10 bg-white/5">
+            <Card key={r.id} className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => setSelectedRequest(r)}>
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -267,9 +270,65 @@ const Withdraw = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Withdrawal Detail Dialog */}
+      <Dialog open={!!selectedRequest} onOpenChange={(o) => { if (!o) setSelectedRequest(null); }}>
+        <DialogContent className="border-white/10 bg-primary text-white max-w-sm mx-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg text-white text-center">Withdrawal Details</DialogTitle>
+          </DialogHeader>
+          {selectedRequest && (() => {
+            const r = selectedRequest;
+            const date = new Date(r.created_at);
+            const statusCfg = r.status === "approved"
+              ? { icon: CheckCircle2, label: "Approved", className: "bg-green-500/20 text-green-400 border-green-500/30" }
+              : r.status === "rejected"
+              ? { icon: XCircle, label: "Rejected", className: "bg-red-500/20 text-red-400 border-red-500/30" }
+              : { icon: Clock, label: "Pending", className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
+            const StatusIcon = statusCfg.icon;
+            return (
+              <div className="space-y-5">
+                <div className="flex flex-col items-center gap-3 pt-2">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10">
+                    <ArrowDownToLine className="h-6 w-6 text-secondary" />
+                  </div>
+                  <p className="font-display text-3xl font-bold tabular-nums text-white">
+                    RM {Number(r.amount).toFixed(2)}
+                  </p>
+                  <Badge className={statusCfg.className}>
+                    <StatusIcon className="mr-1 h-3 w-3" />
+                    {statusCfg.label}
+                  </Badge>
+                </div>
+
+                <Separator className="bg-white/10" />
+
+                <div className="space-y-3">
+                  <DetailRow label="Date" value={date.toLocaleDateString("en-MY", { day: "numeric", month: "long", year: "numeric" })} />
+                  <DetailRow label="Time" value={date.toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true })} />
+                  <DetailRow label="Bank" value={r.bank_name} />
+                  <DetailRow label="Account No." value={r.bank_account_no} />
+                  <DetailRow label="Account Holder" value={r.bank_account_holder} />
+                  <DetailRow label="Request ID" value={r.id} mono />
+                  {r.rejection_reason && <DetailRow label="Rejection Reason" value={r.rejection_reason} />}
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       <BottomNav />
     </div>
   );
 };
+
+const DetailRow = ({ label, value, mono }: { label: string; value: string; mono?: boolean }) => (
+  <div className="flex items-start justify-between gap-4">
+    <span className="text-xs text-white/40 shrink-0">{label}</span>
+    <span className={`text-xs text-white text-right break-all ${mono ? "font-mono text-[10px]" : ""}`}>
+      {value}
+    </span>
+  </div>
+);
 
 export default Withdraw;
