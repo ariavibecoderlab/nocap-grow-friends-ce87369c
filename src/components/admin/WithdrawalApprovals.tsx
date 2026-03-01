@@ -70,14 +70,43 @@ const WithdrawalApprovals = () => {
   useEffect(() => { fetchRequests(); }, []);
 
   const callAdmin = async (body: Record<string, unknown>) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    let { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      const refreshed = await supabase.auth.refreshSession();
+      session = refreshed.data.session;
+    }
+
+    if (!session?.access_token) {
       return { data: null, error: { message: "Session expired. Please log in again." } };
     }
-    const res = await supabase.functions.invoke("admin-actions", { body });
-    // Edge function non-2xx returns data with error message
+
+    const res = await supabase.functions.invoke("admin-actions", {
+      body,
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+
     if (res.error) {
-      return { data: null, error: res.error };
+      const fnError = res.error as { message?: string; context?: Response };
+      if (fnError.context) {
+        try {
+          const payload = await fnError.context.clone().json() as { error?: string };
+          if (payload?.error) {
+            return {
+              data: null,
+              error: {
+                message:
+                  payload.error === "Unauthorized"
+                    ? "Session expired or unauthorized. Please log in again as admin."
+                    : payload.error,
+              },
+            };
+          }
+        } catch {
+          // Fall through to generic error
+        }
+      }
+      return { data: null, error: { message: fnError.message || "Unable to complete admin action." } };
     }
     if (res.data?.error) {
       return { data: null, error: { message: res.data.error } };
