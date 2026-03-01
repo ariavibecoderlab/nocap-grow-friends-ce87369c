@@ -150,6 +150,10 @@ const ApiDocs = () => {
                           <td className="py-2">30 req/min</td>
                         </tr>
                         <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-topup</td>
+                          <td className="py-2">30 req/min</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
                           <td className="py-2 pr-4 font-mono text-xs">/api-cashback-history</td>
                           <td className="py-2">60 req/min</td>
                         </tr>
@@ -379,7 +383,7 @@ const ApiDocs = () => {
                           <tr className="border-b border-border/50">
                             <td className="py-2 pr-4 font-mono text-xs text-primary">scope</td>
                             <td className="py-2 pr-4">No</td>
-                            <td className="py-2">Comma-separated: <code className="font-mono">balance</code>, <code className="font-mono">charge</code>. Default: both</td>
+                            <td className="py-2">Comma-separated: <code className="font-mono">balance</code>, <code className="font-mono">charge</code>, <code className="font-mono">referral</code>, <code className="font-mono">topup</code>. Default: balance,charge</td>
                           </tr>
                           <tr className="border-b border-border/50">
                             <td className="py-2 pr-4 font-mono text-xs text-primary">state</td>
@@ -1168,6 +1172,75 @@ app.post("/webhook/nocap", (req, res) => {
                 </CardContent>
               </Card>
 
+              {/* Top-Up Endpoint */}
+              <div className="pt-4">
+                <h2 className="text-xl font-bold mb-1">Wallet Top-Up</h2>
+                <p className="text-sm text-muted-foreground mb-4">Allow users to top up their NoCap wallet via FPX bank transfer. Requires the <code className="text-primary font-bold">topup</code> OAuth scope.</p>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs font-bold rounded">POST</span>
+                    <CardTitle className="text-lg">/api-topup</CardTitle>
+                  </div>
+                  <CardDescription>Initiate a wallet top-up for the authenticated user. Returns a payment URL for FPX bank transfer.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Body Parameters:</h4>
+                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                      <li><code className="text-primary font-bold">amount</code> (number, required): Top-up amount. Min: RM10, Max: RM500.</li>
+                      <li><code className="text-primary font-bold">description</code> (string, optional): A brief description for the top-up.</li>
+                      <li><code className="text-primary font-bold">reference</code> (string, optional): Your internal reference ID for idempotency. Duplicate references are rejected.</li>
+                    </ul>
+                  </div>
+                  <h4 className="text-sm font-semibold">Request Example:</h4>
+                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-topup" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Authorization: Bearer user_token" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "amount": 50.00,
+    "description": "Wallet reload",
+    "reference": "topup_001"
+  }'`}</CodeBlock>
+                  <h4 className="text-sm font-semibold">Response Example:</h4>
+                  <CodeBlock>{`{
+  "success": true,
+  "payment_url": "https://cloud.raudhahpay.com/payment/...",
+  "transaction_id": "uuid",
+  "bill_code": "BILL-123",
+  "amount": 50.00
+}`}</CodeBlock>
+                  <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 p-4 rounded-md space-y-2">
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">💡 How it works</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      Open <code className="font-mono font-bold">payment_url</code> in the user's browser or webview. After successful FPX payment, the wallet is credited automatically via webhook. 
+                      Your app will receive a <code className="font-mono font-bold">topup.completed</code> or <code className="font-mono font-bold">topup.failed</code> webhook event.
+                    </p>
+                  </div>
+                  <div className="bg-primary/5 border border-primary/20 p-4 rounded-md">
+                    <p className="text-xs text-primary font-semibold mb-1">🧪 Sandbox Mode</p>
+                    <p className="text-xs text-muted-foreground">
+                      In sandbox mode, the top-up completes immediately without creating a real payment bill. The wallet is credited instantly and a mock <code className="font-mono">payment_url</code> is returned.
+                    </p>
+                  </div>
+                  <ApiTryIt
+                    method="POST"
+                    endpoint="api-topup"
+                    params={[]}
+                    bodyFields={[
+                      { name: "amount", placeholder: "50.00", type: "number", required: true },
+                      { name: "description", placeholder: "Wallet reload", type: "string" },
+                      { name: "reference", placeholder: "topup_001", type: "string" },
+                    ]}
+                    needsUserToken={true}
+                  />
+                </CardContent>
+              </Card>
+
               {/* Referral / Affiliate Endpoints */}
               <div className="pt-4">
                 <h2 className="text-xl font-bold mb-1">Referral / Affiliate Endpoints</h2>
@@ -1440,6 +1513,14 @@ app.post("/webhook/nocap", (req, res) => {
                         <code className="text-primary font-bold whitespace-nowrap">charge.refunded</code>
                         <span className="text-muted-foreground">Sent when a charge is fully refunded.</span>
                       </div>
+                      <div className="flex items-start gap-3">
+                        <code className="text-green-600 dark:text-green-400 font-bold whitespace-nowrap">topup.completed</code>
+                        <span className="text-muted-foreground">Sent when an API-initiated wallet top-up is successfully paid via FPX.</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <code className="text-destructive font-bold whitespace-nowrap">topup.failed</code>
+                        <span className="text-muted-foreground">Sent when an API-initiated wallet top-up payment fails.</span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -1518,6 +1599,28 @@ app.post("/webhook/nocap", (req, res) => {
   "reason": "Customer returned item",
   "status": "partial_refund",
   "timestamp": "2026-02-16T12:30:00.000Z"
+}`}</CodeBlock>
+
+                  <h4 className="text-sm font-semibold mt-4">topup.completed</h4>
+                  <p className="text-xs text-muted-foreground">Sent when an API-initiated wallet top-up is successfully paid via FPX.</p>
+                  <CodeBlock>{`{
+  "event": "topup.completed",
+  "transaction_id": "uuid",
+  "amount": 50.00,
+  "reference": "topup_001",
+  "status": "completed",
+  "timestamp": "2026-03-01T10:00:00.000Z"
+}`}</CodeBlock>
+
+                  <h4 className="text-sm font-semibold mt-4">topup.failed</h4>
+                  <p className="text-xs text-muted-foreground">Sent when an API-initiated wallet top-up payment fails or is cancelled.</p>
+                  <CodeBlock>{`{
+  "event": "topup.failed",
+  "transaction_id": "uuid",
+  "amount": 50.00,
+  "reference": "topup_001",
+  "status": "failed",
+  "timestamp": "2026-03-01T10:05:00.000Z"
 }`}</CodeBlock>
                 </CardContent>
               </Card>

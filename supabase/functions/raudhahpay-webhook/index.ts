@@ -194,6 +194,81 @@ serve(async (req) => {
       });
 
       console.log(`Top-up successful: ${transactionId}, amount: ${transaction.amount}, user: ${transaction.user_id}`);
+
+      // Send webhook to 3rd party app if this was an API-initiated top-up
+      const metadata = transaction.metadata as Record<string, unknown> | null;
+      if (metadata?.api_app_id) {
+        try {
+          const { data: apiApp } = await supabase
+            .from('api_applications')
+            .select('id, webhook_url, api_secret_hash')
+            .eq('id', metadata.api_app_id)
+            .single();
+
+          if (apiApp?.webhook_url) {
+            const webhookPayload = {
+              event: 'topup.completed',
+              transaction_id: transactionId,
+              amount: Number(transaction.amount),
+              reference: metadata.reference || null,
+              status: 'completed',
+              timestamp: new Date().toISOString(),
+            };
+
+            const payloadStr = JSON.stringify(webhookPayload);
+            const encoder = new TextEncoder();
+            const hmacKey = await crypto.subtle.importKey(
+              'raw', encoder.encode(apiApp.api_secret_hash),
+              { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+            );
+            const sigBuf = await crypto.subtle.sign('HMAC', hmacKey, encoder.encode(payloadStr));
+            const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+            // Fire-and-forget with retries
+            const maxRetries = 3;
+            let delivered = false;
+            let lastStatus = 0;
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+              try {
+                const res = await fetch(apiApp.webhook_url, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Webhook-Signature': signature,
+                    'X-Webhook-Attempt': String(attempt + 1),
+                  },
+                  body: payloadStr,
+                });
+                await res.text();
+                lastStatus = res.status;
+                if (res.ok) { delivered = true; break; }
+              } catch (err) {
+                console.warn(`Topup webhook attempt ${attempt + 1} failed:`, err);
+                lastStatus = 0;
+              }
+              if (attempt < maxRetries - 1) {
+                await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+              }
+            }
+
+            // Log webhook delivery
+            await supabase.from('api_request_logs').insert({
+              app_id: apiApp.id,
+              endpoint: 'webhook:topup.completed',
+              method: 'WEBHOOK',
+              status_code: delivered ? (lastStatus || 200) : (lastStatus || 0),
+              request_body: { url: apiApp.webhook_url, event: 'topup.completed', transaction_id: transactionId },
+              response_body: { delivered, final_status: lastStatus },
+              user_id: transaction.user_id,
+              duration_ms: Date.now() - Date.now(),
+            });
+
+            console.log(`Topup webhook ${delivered ? 'delivered' : 'failed'} to ${apiApp.webhook_url}`);
+          }
+        } catch (webhookErr) {
+          console.error('Error sending topup webhook to 3rd party:', webhookErr);
+        }
+      }
     } else {
       // Status 3 = Failed, or other non-success statuses
       await supabase
@@ -210,6 +285,56 @@ serve(async (req) => {
         .eq('id', transactionId);
 
       console.log(`Top-up failed: ${transactionId}, status: ${status}, paid: ${paid}`);
+
+      // Send failure webhook to 3rd party app if API-initiated
+      const failMetadata = transaction.metadata as Record<string, unknown> | null;
+      if (failMetadata?.api_app_id) {
+        try {
+          const { data: apiApp } = await supabase
+            .from('api_applications')
+            .select('id, webhook_url, api_secret_hash')
+            .eq('id', failMetadata.api_app_id)
+            .single();
+
+          if (apiApp?.webhook_url) {
+            const failPayload = {
+              event: 'topup.failed',
+              transaction_id: transactionId,
+              amount: Number(transaction.amount),
+              reference: failMetadata.reference || null,
+              status: 'failed',
+              timestamp: new Date().toISOString(),
+            };
+
+            const payloadStr = JSON.stringify(failPayload);
+            const encoder = new TextEncoder();
+            const hmacKey = await crypto.subtle.importKey(
+              'raw', encoder.encode(apiApp.api_secret_hash),
+              { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+            );
+            const sigBuf = await crypto.subtle.sign('HMAC', hmacKey, encoder.encode(payloadStr));
+            const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+            fetch(apiApp.webhook_url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Webhook-Signature': signature },
+              body: payloadStr,
+            }).catch(e => console.error('Failed topup webhook error:', e));
+
+            await supabase.from('api_request_logs').insert({
+              app_id: apiApp.id,
+              endpoint: 'webhook:topup.failed',
+              method: 'WEBHOOK',
+              status_code: 0,
+              request_body: { url: apiApp.webhook_url, event: 'topup.failed', transaction_id: transactionId },
+              response_body: {},
+              user_id: transaction.user_id,
+            });
+          }
+        } catch (webhookErr) {
+          console.error('Error sending topup.failed webhook:', webhookErr);
+        }
+      }
     }
 
     return new Response(JSON.stringify({ success: true }), {
