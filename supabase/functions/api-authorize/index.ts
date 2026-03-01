@@ -97,7 +97,7 @@ serve(async (req) => {
     const accessToken = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('');
     const tokenHash = await hashToken(accessToken);
 
-    const allowedScopes = ['balance', 'charge', 'referral'];
+    const allowedScopes = ['balance', 'charge', 'referral', 'topup'];
     const validScopes = (scopes || ['balance', 'charge']).filter((s: string) => allowedScopes.includes(s));
 
     const { error: insertError } = await supabase

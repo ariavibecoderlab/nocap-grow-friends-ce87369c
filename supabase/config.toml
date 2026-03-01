@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.admin-delete-member]
 verify_jwt = false
+
+[functions.api-topup]
+verify_jwt = false
