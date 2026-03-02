@@ -81,7 +81,18 @@ const TopUp = () => {
 
       if (error) {
         console.error("Top-up error:", error);
-        toast({ title: "Top-up failed", description: error.message || "Unable to create payment. Please try again.", variant: "destructive" });
+        // Extract the actual error message from the edge function response
+        let description = "Unable to create payment. Please try again.";
+        try {
+          // supabase.functions.invoke puts the response body in error.context for non-2xx
+          const errorBody = typeof data === 'object' && data?.error ? data.error : null;
+          if (errorBody) {
+            description = errorBody;
+          } else if (error.message && !error.message.includes("non-2xx")) {
+            description = error.message;
+          }
+        } catch {}
+        toast({ title: "Top-up failed", description, variant: "destructive" });
         setLoading(false);
         return;
       }
