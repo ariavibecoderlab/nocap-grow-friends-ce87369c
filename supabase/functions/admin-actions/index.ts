@@ -253,14 +253,7 @@ Deno.serve(async (req) => {
         const { withdrawalId, withdrawalUserId, amount: wdAmount, walletType } = body;
         const wType = walletType || 'member';
 
-        // Check the correct wallet based on wallet_type
-        const walletQuery = adminClient
-          .from("wallets")
-          .select("balance")
-          .eq("user_id", withdrawalUserId)
-          .eq("wallet_type", wType);
-        
-        // For branch wallets we also need branch_id from the withdrawal request
+        // For branch wallets we need the branch_id
         let branchId: string | null = null;
         if (wType === 'branch') {
           const { data: wdReq } = await adminClient
@@ -269,22 +262,21 @@ Deno.serve(async (req) => {
             .eq("id", withdrawalId)
             .single();
           branchId = wdReq?.branch_id || null;
-          if (branchId) walletQuery.eq("branch_id", branchId);
         }
 
-        const { data: walletData, error: walletErr } = await walletQuery.single();
-        if (walletErr || !walletData) throw new Error("Wallet not found");
-        if (Number(walletData.balance) < Number(wdAmount)) throw new Error("Insufficient balance");
-
-        // Deduct balance from the specific wallet
-        const deductQuery = adminClient
-          .from("wallets")
-          .update({ balance: Number(walletData.balance) - Number(wdAmount) })
-          .eq("user_id", withdrawalUserId)
-          .eq("wallet_type", wType);
-        if (wType === 'branch' && branchId) deductQuery.eq("branch_id", branchId);
-        const { error: deductErr } = await deductQuery;
-        if (deductErr) throw deductErr;
+        // ATOMIC: Debit wallet
+        const { error: debitErr } = await adminClient.rpc('debit_wallet', {
+          p_user_id: withdrawalUserId,
+          p_wallet_type: wType,
+          p_amount: Number(wdAmount),
+          p_branch_id: branchId,
+        });
+        if (debitErr) {
+          const msg = debitErr.message || '';
+          if (msg.includes('Insufficient balance')) throw new Error("Insufficient balance");
+          if (msg.includes('Wallet not found')) throw new Error("Wallet not found");
+          throw debitErr;
+        }
 
         // Also update merchant_branches.balance for branch withdrawals
         if (wType === 'branch' && branchId) {
@@ -400,49 +392,30 @@ Deno.serve(async (req) => {
       case "approve_branch_withdrawal": {
         const { withdrawalId: bwId, branchId: bwBranchId, withdrawalUserId: bwUserId, amount: bwAmount } = body;
 
-        // Deduct from branch wallet in wallets table
-        const { data: branchWallet, error: bwErr } = await adminClient
-          .from("wallets")
-          .select("balance")
-          .eq("wallet_type", "branch")
-          .eq("branch_id", bwBranchId)
-          .single();
-        if (bwErr || !branchWallet) throw new Error("Branch wallet not found");
-        if (Number(branchWallet.balance) < Number(bwAmount)) throw new Error("Insufficient branch balance");
-
-        await adminClient
-          .from("wallets")
-          .update({ balance: Number(branchWallet.balance) - Number(bwAmount) })
-          .eq("wallet_type", "branch")
-          .eq("branch_id", bwBranchId);
+        // ATOMIC: Debit branch wallet
+        const { error: bwDebitErr } = await adminClient.rpc('debit_wallet', {
+          p_user_id: bwUserId, p_wallet_type: 'branch', p_amount: Number(bwAmount), p_branch_id: bwBranchId,
+        });
+        if (bwDebitErr) {
+          const msg = bwDebitErr.message || '';
+          if (msg.includes('Insufficient balance')) throw new Error("Insufficient branch balance");
+          if (msg.includes('Wallet not found')) throw new Error("Branch wallet not found");
+          throw bwDebitErr;
+        }
 
         // Also update merchant_branches.balance
         const { data: branchData } = await adminClient
-          .from("merchant_branches")
-          .select("balance")
-          .eq("id", bwBranchId)
-          .single();
+          .from("merchant_branches").select("balance").eq("id", bwBranchId).single();
         if (branchData) {
-          await adminClient
-            .from("merchant_branches")
+          await adminClient.from("merchant_branches")
             .update({ balance: Number(branchData.balance) - Number(bwAmount) })
             .eq("id", bwBranchId);
         }
 
-        // Credit branch owner's MEMBER wallet
-        const { data: ownerWallet } = await adminClient
-          .from("wallets")
-          .select("balance")
-          .eq("user_id", bwUserId)
-          .eq("wallet_type", "member")
-          .single();
-        if (ownerWallet) {
-          await adminClient
-            .from("wallets")
-            .update({ balance: Number(ownerWallet.balance) + Number(bwAmount) })
-            .eq("user_id", bwUserId)
-            .eq("wallet_type", "member");
-        }
+        // ATOMIC: Credit branch owner's MEMBER wallet
+        await adminClient.rpc('credit_wallet', {
+          p_user_id: bwUserId, p_wallet_type: 'member', p_amount: Number(bwAmount),
+        });
 
         // Update request status
         await adminClient
@@ -452,21 +425,16 @@ Deno.serve(async (req) => {
 
         // Create transaction record
         await adminClient.from("transactions").insert({
-          user_id: bwUserId,
-          type: "withdrawal",
-          amount: Number(bwAmount),
-          net_amount: Number(bwAmount),
-          status: "completed",
+          user_id: bwUserId, type: "withdrawal", amount: Number(bwAmount),
+          net_amount: Number(bwAmount), status: "completed",
           description: "Branch withdrawal to member wallet",
         });
 
         // Notify branch owner
         await adminClient.from("notifications").insert({
-          user_id: bwUserId,
-          title: "Branch Withdrawal Approved ✅",
+          user_id: bwUserId, title: "Branch Withdrawal Approved ✅",
           message: `Your branch withdrawal of RM ${Number(bwAmount).toFixed(2)} has been approved and credited to your member wallet.`,
-          type: "success",
-          branch_id: bwBranchId,
+          type: "success", branch_id: bwBranchId,
         });
 
         result = { success: true };

@@ -242,39 +242,32 @@ serve(async (req) => {
     const cashbackShare = Math.floor((commissionPool / 6) * 100) / 100;
     const tierShare = Math.floor((commissionPool / 6) * 100) / 100;
 
-    // ── 9. Debit buyer wallet ──
-    const newBuyerBalance = Number(buyerWallet.balance) - totalAmount;
-    await supabase.from('wallets')
-      .update({ balance: newBuyerBalance, updated_at: new Date().toISOString() })
-      .eq('user_id', buyerId).eq('wallet_type', 'member');
+    // ── 9. ATOMIC: Debit buyer wallet ──
+    const { data: newBuyerBalance, error: debitErr } = await supabase.rpc('debit_wallet', {
+      p_user_id: buyerId, p_wallet_type: 'member', p_amount: totalAmount,
+    });
+    if (debitErr) {
+      const msg = debitErr.message || '';
+      if (msg.includes('Insufficient balance')) return jsonRes({ error: 'Insufficient balance' }, 400);
+      throw debitErr;
+    }
 
-    // ── 10. Credit branch wallet ──
+    // ── 10. ATOMIC: Credit branch wallet ──
     const branchCredit = netAmount - commissionPool;
     const branchIncomeUserId = branch.owner_user_id || branch.merchant_user_id;
-    const { data: branchWallet } = await supabase
-      .from('wallets').select('balance')
-      .eq('wallet_type', 'branch').eq('branch_id', branch.id).single();
-
-    if (branchWallet) {
-      await supabase.from('wallets')
-        .update({ balance: Number(branchWallet.balance) + branchCredit, updated_at: new Date().toISOString() })
-        .eq('wallet_type', 'branch').eq('branch_id', branch.id);
-    } else {
+    const { error: branchCreditErr } = await supabase.rpc('credit_wallet', {
+      p_user_id: branchIncomeUserId, p_wallet_type: 'branch', p_amount: branchCredit, p_branch_id: branch.id,
+    });
+    if (branchCreditErr) {
       await supabase.from('wallets').insert({
-        user_id: branchIncomeUserId,
-        wallet_type: 'branch',
-        branch_id: branch.id,
-        balance: branchCredit,
+        user_id: branchIncomeUserId, wallet_type: 'branch', branch_id: branch.id, balance: branchCredit,
       });
     }
 
     // Update merchant_branches.balance
-    const { data: branchRow } = await supabase
-      .from('merchant_branches').select('balance').eq('id', branch.id).single();
+    const { data: branchRow } = await supabase.from('merchant_branches').select('balance').eq('id', branch.id).single();
     if (branchRow) {
-      await supabase.from('merchant_branches')
-        .update({ balance: Number(branchRow.balance) + branchCredit })
-        .eq('id', branch.id);
+      await supabase.from('merchant_branches').update({ balance: Number(branchRow.balance) + branchCredit }).eq('id', branch.id);
     }
 
     // ── 11. Create order ──
@@ -354,49 +347,32 @@ serve(async (req) => {
       metadata: { store_id: storeId, order_number: orderNumber },
     });
 
-    // ── 15. Cashback ──
+    // ── 15. ATOMIC: Cashback ──
     if (cashbackShare > 0) {
-      await supabase.from('wallets')
-        .update({ balance: newBuyerBalance + cashbackShare, updated_at: new Date().toISOString() })
-        .eq('user_id', buyerId).eq('wallet_type', 'member');
-
+      await supabase.rpc('credit_wallet', {
+        p_user_id: buyerId, p_wallet_type: 'member', p_amount: cashbackShare,
+      });
       await supabase.from('transactions').insert({
-        user_id: buyerId,
-        type: 'cashback',
-        amount: cashbackShare,
-        status: 'completed',
-        description: `Cashback from ${store.store_name}`,
-        reference_id: paymentTx?.id || null,
+        user_id: buyerId, type: 'cashback', amount: cashbackShare, status: 'completed',
+        description: `Cashback from ${store.store_name}`, reference_id: paymentTx?.id || null,
       });
     }
 
-    // ── 16. Tier commissions ──
+    // ── 16. ATOMIC: Tier commissions ──
     const { data: ancestors } = await supabase
-      .from('referral_tree')
-      .select('ancestor_id, tier')
-      .eq('user_id', buyerId)
-      .order('tier', { ascending: true })
-      .limit(5);
+      .from('referral_tree').select('ancestor_id, tier')
+      .eq('user_id', buyerId).order('tier', { ascending: true }).limit(5);
 
     let unclaimedCommission = 0;
-
     if (ancestors && ancestors.length > 0) {
       for (const ancestor of ancestors) {
         if (ancestor.tier >= 1 && ancestor.tier <= 5) {
-          const { data: ancestorWallet } = await supabase
-            .from('wallets').select('balance')
-            .eq('user_id', ancestor.ancestor_id).eq('wallet_type', 'member').single();
-
-          if (ancestorWallet) {
-            await supabase.from('wallets')
-              .update({ balance: Number(ancestorWallet.balance) + tierShare, updated_at: new Date().toISOString() })
-              .eq('user_id', ancestor.ancestor_id).eq('wallet_type', 'member');
-
+          const { error: commErr } = await supabase.rpc('credit_wallet', {
+            p_user_id: ancestor.ancestor_id, p_wallet_type: 'member', p_amount: tierShare,
+          });
+          if (!commErr) {
             await supabase.from('transactions').insert({
-              user_id: ancestor.ancestor_id,
-              type: 'commission',
-              amount: tierShare,
-              status: 'completed',
+              user_id: ancestor.ancestor_id, type: 'commission', amount: tierShare, status: 'completed',
               description: `Tier ${ancestor.tier} commission from ${store.store_name}`,
               reference_id: paymentTx?.id || null,
             });
@@ -412,52 +388,24 @@ serve(async (req) => {
 
     // Return unclaimed to branch
     if (unclaimedCommission > 0) {
-      const { data: ubw } = await supabase
-        .from('wallets').select('balance')
-        .eq('wallet_type', 'branch').eq('branch_id', branch.id).single();
-      if (ubw) {
-        await supabase.from('wallets')
-          .update({ balance: Number(ubw.balance) + unclaimedCommission, updated_at: new Date().toISOString() })
-          .eq('wallet_type', 'branch').eq('branch_id', branch.id);
-      }
+      await supabase.rpc('credit_wallet', {
+        p_user_id: branchIncomeUserId, p_wallet_type: 'branch', p_amount: unclaimedCommission, p_branch_id: branch.id,
+      });
     }
 
-    // ── 17. Credit platform fee to admin wallet ──
+    // ── 17. ATOMIC: Credit platform fee to admin wallet ──
     if (feeAmount > 0) {
-      const { data: adminRole } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'admin')
-        .limit(1)
-        .single();
-
+      const { data: adminRole } = await supabase.from('user_roles').select('user_id').eq('role', 'admin').limit(1).single();
       if (adminRole) {
-        const { data: adminWallet } = await supabase
-          .from('wallets')
-          .select('balance')
-          .eq('user_id', adminRole.user_id)
-          .eq('wallet_type', 'admin')
-          .single();
-
-        if (adminWallet) {
-          await supabase.from('wallets')
-            .update({ balance: Number(adminWallet.balance) + feeAmount, updated_at: new Date().toISOString() })
-            .eq('user_id', adminRole.user_id).eq('wallet_type', 'admin');
-        } else {
-          await supabase.from('wallets').insert({
-            user_id: adminRole.user_id,
-            wallet_type: 'admin',
-            balance: feeAmount,
-          });
+        const { error: adminErr } = await supabase.rpc('credit_wallet', {
+          p_user_id: adminRole.user_id, p_wallet_type: 'admin', p_amount: feeAmount,
+        });
+        if (adminErr) {
+          await supabase.from('wallets').insert({ user_id: adminRole.user_id, wallet_type: 'admin', balance: feeAmount });
         }
-
         await supabase.from('transactions').insert({
-          user_id: adminRole.user_id,
-          type: 'commission',
-          amount: feeAmount,
-          status: 'completed',
-          description: `Platform fee from ${store.store_name}`,
-          reference_id: paymentTx?.id || null,
+          user_id: adminRole.user_id, type: 'commission', amount: feeAmount, status: 'completed',
+          description: `Platform fee from ${store.store_name}`, reference_id: paymentTx?.id || null,
           metadata: { source: 'platform_fee', store_id: storeId, order_number: orderNumber },
         });
       }

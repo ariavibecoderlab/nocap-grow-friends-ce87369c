@@ -402,15 +402,24 @@ serve(async (req) => {
       await supabase.from('profiles').update({ pin_attempts: 0, pin_locked_until: null }).eq('user_id', payerId);
     }
 
-    // Check balance
-    const { data: payerWallet } = await supabase
-      .from('wallets')
-      .select('balance')
-      .eq('user_id', payerId)
-      .eq('wallet_type', 'member')
-      .single();
+    // === PAYMENT LOGIC (atomic wallet operations) ===
+    const { data: feeSetting } = await supabase
+      .from('system_settings').select('value').eq('key', 'platform_fee_percent').single();
 
-    if (!payerWallet || Number(payerWallet.balance) < amount) {
+    const platformFeePercent = feeSetting ? Number(feeSetting.value) : 2.0;
+    const commissionPercent = Number(branch.commission_percent);
+
+    const feeAmount = Math.round(amount * platformFeePercent) / 100;
+    const commissionPool = Math.round(amount * commissionPercent) / 100;
+    const netAmount = amount - feeAmount;
+    const cashbackShare = Math.floor((commissionPool / 6) * 100) / 100;
+    const tierShare = Math.floor((commissionPool / 6) * 100) / 100;
+
+    // ATOMIC: Debit payer
+    const { data: newPayerBalance, error: debitErr } = await supabase.rpc('debit_wallet', {
+      p_user_id: payerId, p_wallet_type: 'member', p_amount: amount,
+    });
+    if (debitErr) {
       await supabase.from('api_charges').update({ status: 'failed' }).eq('id', charge.id);
       sendWebhook(app.webhook_url, app.api_secret_hash, {
         event: 'charge.failed', charge_id: charge.id, amount, description: description || null,
@@ -422,151 +431,66 @@ serve(async (req) => {
       });
     }
 
-    // === PAYMENT LOGIC (same as process-payment) ===
-    const { data: feeSetting } = await supabase
-      .from('system_settings')
-      .select('value')
-      .eq('key', 'platform_fee_percent')
-      .single();
-
-    const platformFeePercent = feeSetting ? Number(feeSetting.value) : 2.0;
-    const commissionPercent = Number(branch.commission_percent);
-
-    const feeAmount = Math.round(amount * platformFeePercent) / 100;
-    const commissionPool = Math.round(amount * commissionPercent) / 100;
-    const netAmount = amount - feeAmount;
-    const cashbackShare = Math.floor((commissionPool / 6) * 100) / 100;
-    const tierShare = Math.floor((commissionPool / 6) * 100) / 100;
-
-    // Debit payer
-    const newPayerBalance = Number(payerWallet.balance) - amount;
-    await supabase
-      .from('wallets')
-      .update({ balance: newPayerBalance, updated_at: new Date().toISOString() })
-      .eq('user_id', payerId)
-      .eq('wallet_type', 'member');
-
-    // Credit branch wallet (create if missing)
+    // ATOMIC: Credit branch wallet (create if missing)
     const branchCredit = netAmount - commissionPool;
     const branchIncomeUserId = branch.owner_user_id || branch.merchant_user_id;
-    const { data: branchWallet, error: branchWalletErr } = await supabase
-      .from('wallets')
-      .select('balance')
-      .eq('wallet_type', 'branch')
-      .eq('branch_id', branch_id)
-      .single();
-
-    if (branchWallet) {
-      await supabase.from('wallets').update({
-        balance: Number(branchWallet.balance) + branchCredit,
-        updated_at: new Date().toISOString(),
-      }).eq('wallet_type', 'branch').eq('branch_id', branch_id);
-    } else {
-      // Wallet doesn't exist — create it with the credited amount
-      console.log(`Creating missing branch wallet for branch_id=${branch_id}, user_id=${branchIncomeUserId}`);
-      const { error: createErr } = await supabase.from('wallets').insert({
-        user_id: branchIncomeUserId,
-        wallet_type: 'branch',
-        branch_id: branch_id,
-        balance: branchCredit,
+    const { error: branchCreditErr } = await supabase.rpc('credit_wallet', {
+      p_user_id: branchIncomeUserId, p_wallet_type: 'branch', p_amount: branchCredit, p_branch_id: branch_id,
+    });
+    if (branchCreditErr) {
+      console.log(`Creating missing branch wallet for branch_id=${branch_id}`);
+      await supabase.from('wallets').insert({
+        user_id: branchIncomeUserId, wallet_type: 'branch', branch_id, balance: branchCredit,
       });
-      if (createErr) {
-        console.error('Failed to create branch wallet:', createErr);
-      }
     }
 
     // Update merchant_branches.balance
-    const { data: branchRow } = await supabase
-      .from('merchant_branches')
-      .select('balance')
-      .eq('id', branch_id)
-      .single();
+    const { data: branchRow } = await supabase.from('merchant_branches').select('balance').eq('id', branch_id).single();
     if (branchRow) {
       await supabase.from('merchant_branches').update({ balance: Number(branchRow.balance) + branchCredit }).eq('id', branch_id);
     }
 
-    // Get payer name
-    const { data: payerProfile } = await supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('user_id', payerId)
-      .single();
+    const { data: payerProfile } = await supabase.from('profiles').select('full_name').eq('user_id', payerId).single();
     const payerName = payerProfile?.full_name || 'Member';
 
-    // Create payment transaction
-    const { data: paymentTx } = await supabase
-      .from('transactions')
-      .insert({
-        user_id: payerId,
-        type: 'payment',
-        amount,
-        fee_amount: feeAmount,
-        net_amount: netAmount,
-        status: 'completed',
-        description: description || `API Payment to ${branch.branch_name}`,
-        metadata: { branch_id, branch_name: branch.branch_name, api_app_id: app.id, api_app_name: app.name },
-      })
-      .select('id')
-      .single();
+    const { data: paymentTx } = await supabase.from('transactions').insert({
+      user_id: payerId, type: 'payment', amount, fee_amount: feeAmount, net_amount: netAmount,
+      status: 'completed', description: description || `API Payment to ${branch.branch_name}`,
+      metadata: { branch_id, branch_name: branch.branch_name, api_app_id: app.id, api_app_name: app.name },
+    }).select('id').single();
 
-    // Create income transaction for branch
     await supabase.from('transactions').insert({
-      user_id: branchIncomeUserId,
-      type: 'top_up',
-      amount: branchCredit,
-      status: 'completed',
-      description: `API Payment from ${payerName}`,
-      reference_id: paymentTx?.id || null,
+      user_id: branchIncomeUserId, type: 'top_up', amount: branchCredit, status: 'completed',
+      description: `API Payment from ${payerName}`, reference_id: paymentTx?.id || null,
       metadata: { branch_id, branch_name: branch.branch_name, api_app_id: app.id },
     });
 
-    // Cashback
+    // ATOMIC: Cashback
     if (cashbackShare > 0) {
-      await supabase.from('wallets').update({
-        balance: newPayerBalance + cashbackShare,
-        updated_at: new Date().toISOString(),
-      }).eq('user_id', payerId).eq('wallet_type', 'member');
-
+      await supabase.rpc('credit_wallet', {
+        p_user_id: payerId, p_wallet_type: 'member', p_amount: cashbackShare,
+      });
       await supabase.from('transactions').insert({
-        user_id: payerId,
-        type: 'cashback',
-        amount: cashbackShare,
-        status: 'completed',
-        description: `Cashback from ${branch.branch_name}`,
-        reference_id: paymentTx?.id || null,
+        user_id: payerId, type: 'cashback', amount: cashbackShare, status: 'completed',
+        description: `Cashback from ${branch.branch_name}`, reference_id: paymentTx?.id || null,
       });
     }
 
-    // Referral tier commissions
+    // ATOMIC: Referral tier commissions
     const { data: ancestors } = await supabase
-      .from('referral_tree')
-      .select('ancestor_id, tier')
-      .eq('user_id', payerId)
-      .order('tier', { ascending: true })
-      .limit(5);
+      .from('referral_tree').select('ancestor_id, tier')
+      .eq('user_id', payerId).order('tier', { ascending: true }).limit(5);
 
     let unclaimedCommission = 0;
     if (ancestors && ancestors.length > 0) {
       for (const ancestor of ancestors) {
         if (ancestor.tier >= 1 && ancestor.tier <= 5) {
-          const { data: ancestorWallet } = await supabase
-            .from('wallets')
-            .select('balance')
-            .eq('user_id', ancestor.ancestor_id)
-            .eq('wallet_type', 'member')
-            .single();
-
-          if (ancestorWallet) {
-            await supabase.from('wallets').update({
-              balance: Number(ancestorWallet.balance) + tierShare,
-              updated_at: new Date().toISOString(),
-            }).eq('user_id', ancestor.ancestor_id).eq('wallet_type', 'member');
-
+          const { error: commErr } = await supabase.rpc('credit_wallet', {
+            p_user_id: ancestor.ancestor_id, p_wallet_type: 'member', p_amount: tierShare,
+          });
+          if (!commErr) {
             await supabase.from('transactions').insert({
-              user_id: ancestor.ancestor_id,
-              type: 'commission',
-              amount: tierShare,
-              status: 'completed',
+              user_id: ancestor.ancestor_id, type: 'commission', amount: tierShare, status: 'completed',
               description: `Tier ${ancestor.tier} commission from ${branch.branch_name}`,
               reference_id: paymentTx?.id || null,
             });
@@ -575,47 +499,50 @@ serve(async (req) => {
           }
         }
       }
-      const missingTiers = 5 - ancestors.length;
-      unclaimedCommission += missingTiers * tierShare;
+      unclaimedCommission += (5 - ancestors.length) * tierShare;
     } else {
       unclaimedCommission = 5 * tierShare;
     }
 
     // Return unclaimed to branch
-    if (unclaimedCommission > 0 && branchWallet) {
-      const { data: updatedBW } = await supabase
-        .from('wallets')
-        .select('balance')
-        .eq('wallet_type', 'branch')
-        .eq('branch_id', branch_id)
-        .single();
+    if (unclaimedCommission > 0) {
+      await supabase.rpc('credit_wallet', {
+        p_user_id: branchIncomeUserId, p_wallet_type: 'branch', p_amount: unclaimedCommission, p_branch_id: branch_id,
+      });
+    }
 
-      if (updatedBW) {
-        await supabase.from('wallets').update({
-          balance: Number(updatedBW.balance) + unclaimedCommission,
-          updated_at: new Date().toISOString(),
-        }).eq('wallet_type', 'branch').eq('branch_id', branch_id);
+    // ATOMIC: Credit platform fee to admin
+    if (feeAmount > 0) {
+      const { data: adminRole } = await supabase.from('user_roles').select('user_id').eq('role', 'admin').limit(1).single();
+      if (adminRole) {
+        const { error: adminErr } = await supabase.rpc('credit_wallet', {
+          p_user_id: adminRole.user_id, p_wallet_type: 'admin', p_amount: feeAmount,
+        });
+        if (adminErr) {
+          await supabase.from('wallets').insert({ user_id: adminRole.user_id, wallet_type: 'admin', balance: feeAmount });
+        }
+        await supabase.from('transactions').insert({
+          user_id: adminRole.user_id, type: 'commission', amount: feeAmount, status: 'completed',
+          description: `Platform fee from ${branch.branch_name}`, reference_id: paymentTx?.id || null,
+          metadata: { source: 'platform_fee', branch_id, branch_name: branch.branch_name },
+        });
       }
     }
 
     // Update charge to completed
     await supabase.from('api_charges').update({
-      status: 'completed',
-      transaction_id: paymentTx?.id || null,
-      completed_at: new Date().toISOString(),
+      status: 'completed', transaction_id: paymentTx?.id || null, completed_at: new Date().toISOString(),
     }).eq('id', charge.id);
 
     console.log(`API Charge completed: ${payerId} -> ${branch.branch_name}, RM${amount}, app: ${app.name}`);
 
-    // Send webhook notification (fire-and-forget)
     sendWebhook(app.webhook_url, app.api_secret_hash, {
       event: 'charge.completed', charge_id: charge.id, transaction_id: paymentTx?.id,
       amount, description: description || null, reference: reference || null,
-      status: 'completed', metadata: customMetadata || {},
-      timestamp: new Date().toISOString(),
+      status: 'completed', metadata: customMetadata || {}, timestamp: new Date().toISOString(),
     }, supabase, app.id);
 
-    const successRes = { success: true, charge_id: charge.id, transaction_id: paymentTx?.id, amount, new_balance: newPayerBalance + cashbackShare, cashback: cashbackShare, branch_name: branch.branch_name };
+    const successRes = { success: true, charge_id: charge.id, transaction_id: paymentTx?.id, amount, new_balance: Number(newPayerBalance) + cashbackShare, cashback: cashbackShare, branch_name: branch.branch_name };
     await logRequest(supabase, app.id, '/api-charge', 'POST', 200, { amount, description, reference }, successRes, payerId, startTime);
     return new Response(JSON.stringify(successRes), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

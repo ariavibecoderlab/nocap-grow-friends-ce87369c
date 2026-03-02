@@ -7,25 +7,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// SHA-256 + salt hash — must match manage-pin hashing logic
 async function hashPin(pin: string, salt: string): Promise<string> {
   const data = new TextEncoder().encode(pin + salt);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = new Uint8Array(hashBuffer);
-  return encodeBase64(hashArray);
+  return encodeBase64(new Uint8Array(hashBuffer));
 }
 
-// Verify PIN against stored value — supports both "salt:hash" and legacy plaintext formats
 async function verifyPin(pin: string, storedHash: string): Promise<boolean> {
-  // Legacy plaintext PINs (set before hashing was introduced)
-  if (!storedHash.includes(':')) {
-    return pin === storedHash;
-  }
-  // Properly hashed PINs (salt:hash format)
+  if (!storedHash.includes(':')) return pin === storedHash;
   const [salt, hash] = storedHash.split(':');
   if (!salt || !hash) return false;
-  const computed = await hashPin(pin, salt);
-  return computed === hash;
+  return (await hashPin(pin, salt)) === hash;
 }
 
 const MAX_ATTEMPTS = 5;
@@ -44,7 +36,6 @@ serve(async (req) => {
     if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
     if (!SUPABASE_ANON_KEY) throw new Error('SUPABASE_ANON_KEY not configured');
 
-    // Authenticate user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Not authenticated' }), {
@@ -110,7 +101,6 @@ serve(async (req) => {
         });
       }
 
-      // Check PIN lockout
       if (senderProfile.pin_locked_until) {
         const lockedUntil = new Date(senderProfile.pin_locked_until);
         if (lockedUntil > new Date()) {
@@ -122,11 +112,9 @@ serve(async (req) => {
             status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
-        // Lockout expired — reset
         await supabase.from('profiles').update({ pin_attempts: 0, pin_locked_until: null }).eq('user_id', senderId);
       }
 
-      // Verify PIN using the same salt:hash scheme as manage-pin
       const isValid = await verifyPin(String(pin), senderProfile.pin_hash);
       if (!isValid) {
         const newAttempts = (senderProfile.pin_attempts || 0) + 1;
@@ -149,28 +137,13 @@ serve(async (req) => {
         });
       }
 
-      // Reset attempts on success
       await supabase.from('profiles').update({ pin_attempts: 0, pin_locked_until: null }).eq('user_id', senderId);
     }
 
-    // Check sender's MEMBER wallet balance
-    const { data: senderWallet } = await supabase
-      .from('wallets')
-      .select('balance')
-      .eq('user_id', senderId)
-      .eq('wallet_type', 'member')
-      .single();
-
-    if (!senderWallet || Number(senderWallet.balance) < amount) {
-      return new Response(JSON.stringify({ error: 'Insufficient balance' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Check recipient's MEMBER wallet exists
+    // Check recipient wallet exists
     const { data: recipientWallet } = await supabase
       .from('wallets')
-      .select('balance')
+      .select('id')
       .eq('user_id', recipient_user_id)
       .eq('wallet_type', 'member')
       .single();
@@ -181,7 +154,33 @@ serve(async (req) => {
       });
     }
 
-    // Get recipient and sender names for description
+    // ATOMIC: Debit sender's member wallet
+    const { data: newSenderBalance, error: debitErr } = await supabase.rpc('debit_wallet', {
+      p_user_id: senderId,
+      p_wallet_type: 'member',
+      p_amount: amount,
+    });
+
+    if (debitErr) {
+      const msg = debitErr.message || '';
+      if (msg.includes('Insufficient balance')) {
+        return new Response(JSON.stringify({ error: 'Insufficient balance' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      throw debitErr;
+    }
+
+    // ATOMIC: Credit recipient's member wallet
+    const { error: creditErr } = await supabase.rpc('credit_wallet', {
+      p_user_id: recipient_user_id,
+      p_wallet_type: 'member',
+      p_amount: amount,
+    });
+
+    if (creditErr) throw creditErr;
+
+    // Get names for description
     const [{ data: recipientProfile }, { data: senderProfileName }] = await Promise.all([
       supabase.from('profiles').select('full_name').eq('user_id', recipient_user_id).single(),
       supabase.from('profiles').select('full_name').eq('user_id', senderId).single(),
@@ -189,22 +188,6 @@ serve(async (req) => {
 
     const recipientName = recipientProfile?.full_name || 'Member';
     const senderName = senderProfileName?.full_name || 'Member';
-
-    // Debit sender's member wallet
-    const newSenderBalance = Number(senderWallet.balance) - amount;
-    await supabase
-      .from('wallets')
-      .update({ balance: newSenderBalance, updated_at: new Date().toISOString() })
-      .eq('user_id', senderId)
-      .eq('wallet_type', 'member');
-
-    // Credit recipient's member wallet
-    const newRecipientBalance = Number(recipientWallet.balance) + amount;
-    await supabase
-      .from('wallets')
-      .update({ balance: newRecipientBalance, updated_at: new Date().toISOString() })
-      .eq('user_id', recipient_user_id)
-      .eq('wallet_type', 'member');
 
     // Create transfer_out transaction for sender
     const { data: outTx } = await supabase

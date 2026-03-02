@@ -15,14 +15,9 @@ async function hashSecret(secret: string): Promise<string> {
 async function logRequest(supabase: any, appId: string, endpoint: string, method: string, statusCode: number, reqBody: any, resBody: any, userId?: string, startTime?: number) {
   try {
     await supabase.from('api_request_logs').insert({
-      app_id: appId,
-      endpoint,
-      method,
-      status_code: statusCode,
-      request_body: reqBody || {},
-      response_body: resBody || {},
-      user_id: userId || null,
-      duration_ms: startTime ? Date.now() - startTime : null,
+      app_id: appId, endpoint, method, status_code: statusCode,
+      request_body: reqBody || {}, response_body: resBody || {},
+      user_id: userId || null, duration_ms: startTime ? Date.now() - startTime : null,
     });
   } catch (e) { console.error('Log insert failed:', e); }
 }
@@ -40,12 +35,10 @@ serve(async (req) => {
     const RAUDHAHPAY_COLLECTION_CODE = Deno.env.get('RAUDHAHPAY_COLLECTION_CODE');
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Parse body first so we can extract credentials from it if not in headers
     const rawBody = await req.text();
     let bodyData: Record<string, unknown> = {};
     try { if (rawBody) bodyData = JSON.parse(rawBody); } catch { /* not JSON */ }
 
-    // Accept credentials from headers OR request body
     const apiKey = req.headers.get('x-api-key') || (bodyData.api_key as string);
     const apiSecret = req.headers.get('x-api-secret') || (bodyData.api_secret as string) || (bodyData.app_secret as string);
     const authHeader = req.headers.get('Authorization');
@@ -63,12 +56,10 @@ serve(async (req) => {
       });
     }
 
-    // Validate API app
     const { data: app } = await supabase
       .from('api_applications')
       .select('id, merchant_user_id, is_active, is_sandbox, name, api_secret_hash, webhook_url')
-      .eq('api_key', apiKey)
-      .single();
+      .eq('api_key', apiKey).single();
 
     if (!app || !app.is_active) {
       return new Response(JSON.stringify({ error: 'Invalid API credentials' }), {
@@ -83,7 +74,6 @@ serve(async (req) => {
       });
     }
 
-    // Rate limit: 30 requests per minute per API key
     const { data: allowed } = await supabase.rpc('check_rate_limit', {
       p_identifier: apiKey, p_endpoint: 'api-topup', p_max_requests: 30, p_window_seconds: 60,
     });
@@ -93,15 +83,11 @@ serve(async (req) => {
       });
     }
 
-    // Validate access token
     const tokenHash = await hashSecret(bearerToken);
     const { data: token } = await supabase
       .from('api_access_tokens')
       .select('id, user_id, scopes, is_active, expires_at')
-      .eq('app_id', app.id)
-      .eq('access_token_hash', tokenHash)
-      .eq('is_active', true)
-      .single();
+      .eq('app_id', app.id).eq('access_token_hash', tokenHash).eq('is_active', true).single();
 
     if (!token) {
       return new Response(JSON.stringify({ error: 'Invalid or expired access token' }), {
@@ -121,30 +107,23 @@ serve(async (req) => {
       });
     }
 
-    // Update last_used_at
     await supabase.from('api_access_tokens').update({ last_used_at: new Date().toISOString() }).eq('id', token.id);
 
     const { amount, description, reference } = bodyData as { amount: number; description?: string; reference?: string };
     const userId = token.user_id;
 
-    // Validate amount
     if (!amount || typeof amount !== 'number' || amount < 10 || amount > 500) {
       return new Response(JSON.stringify({ error: 'Amount must be between RM10 and RM500' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Check for duplicate reference (idempotency)
     if (reference) {
       const { data: existing } = await supabase
-        .from('transactions')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('type', 'top_up')
+        .from('transactions').select('id')
+        .eq('user_id', userId).eq('type', 'top_up')
         .eq('description', `API Top-up: ${reference}`)
-        .in('status', ['pending', 'completed'])
-        .maybeSingle();
-
+        .in('status', ['pending', 'completed']).maybeSingle();
       if (existing) {
         return new Response(JSON.stringify({ error: 'Duplicate reference. A top-up with this reference already exists.', transaction_id: existing.id }), {
           status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -154,19 +133,11 @@ serve(async (req) => {
 
     // === SANDBOX MODE ===
     if (app.is_sandbox) {
-      // Create completed transaction immediately (no real bill)
-      const { data: sandboxTx, error: sandboxErr } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: userId,
-          type: 'top_up',
-          amount,
-          status: 'completed',
-          description: description || `API Top-up RM${amount.toFixed(2)}${reference ? ` (${reference})` : ''}`,
-          metadata: { api_app_id: app.id, api_app_name: app.name, sandbox: true, reference: reference || null },
-        })
-        .select('id')
-        .single();
+      const { data: sandboxTx, error: sandboxErr } = await supabase.from('transactions').insert({
+        user_id: userId, type: 'top_up', amount, status: 'completed',
+        description: description || `API Top-up RM${amount.toFixed(2)}${reference ? ` (${reference})` : ''}`,
+        metadata: { api_app_id: app.id, api_app_name: app.name, sandbox: true, reference: reference || null },
+      }).select('id').single();
 
       if (sandboxErr) {
         return new Response(JSON.stringify({ error: 'Failed to create transaction' }), {
@@ -174,29 +145,15 @@ serve(async (req) => {
         });
       }
 
-      // Credit wallet in sandbox
-      const { data: wallet } = await supabase
-        .from('wallets')
-        .select('balance')
-        .eq('user_id', userId)
-        .eq('wallet_type', 'member')
-        .single();
-
-      if (wallet) {
-        await supabase
-          .from('wallets')
-          .update({ balance: Number(wallet.balance) + amount, updated_at: new Date().toISOString() })
-          .eq('user_id', userId)
-          .eq('wallet_type', 'member');
-      }
+      // ATOMIC: Credit wallet in sandbox
+      await supabase.rpc('credit_wallet', {
+        p_user_id: userId, p_wallet_type: 'member', p_amount: amount,
+      });
 
       console.log(`[SANDBOX] API Top-up: RM${amount} for user ${userId}, app: ${app.name}`);
 
       const sandboxRes = {
-        success: true,
-        transaction_id: sandboxTx.id,
-        amount,
-        is_sandbox: true,
+        success: true, transaction_id: sandboxTx.id, amount, is_sandbox: true,
         payment_url: `https://sandbox.example.com/pay/${sandboxTx.id}`,
         message: 'Sandbox top-up completed immediately (no real payment)',
       };
@@ -213,14 +170,8 @@ serve(async (req) => {
       });
     }
 
-    // Get user profile for RaudhahPay bill
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, phone, address')
-      .eq('user_id', userId)
-      .single();
+    const { data: profile } = await supabase.from('profiles').select('full_name, phone, address').eq('user_id', userId).single();
 
-    // Get user email
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
     const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const { data: { user } } = await anonClient.auth.getUser(bearerToken);
@@ -229,20 +180,11 @@ serve(async (req) => {
     if (mobile.startsWith('0')) mobile = '60' + mobile.substring(1);
     else if (!mobile.startsWith('6')) mobile = '60' + mobile;
 
-    // Create pending transaction
     const txDescription = description || `API Top-up RM${amount.toFixed(2)}${reference ? ` (${reference})` : ''}`;
-    const { data: transaction, error: txError } = await supabase
-      .from('transactions')
-      .insert({
-        user_id: userId,
-        type: 'top_up',
-        amount,
-        status: 'pending',
-        description: txDescription,
-        metadata: { api_app_id: app.id, api_app_name: app.name, reference: reference || null },
-      })
-      .select('id')
-      .single();
+    const { data: transaction, error: txError } = await supabase.from('transactions').insert({
+      user_id: userId, type: 'top_up', amount, status: 'pending', description: txDescription,
+      metadata: { api_app_id: app.id, api_app_name: app.name, reference: reference || null },
+    }).select('id').single();
 
     if (txError) {
       console.error('Transaction insert error:', txError);
@@ -251,30 +193,19 @@ serve(async (req) => {
       });
     }
 
-    // Create RaudhahPay bill
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 1);
     const dueDateStr = dueDate.toISOString().split('T')[0];
 
     const billPayload = {
-      due: dueDateStr,
-      currency: 'MYR',
-      ref1: transaction.id,
-      ref2: userId,
+      due: dueDateStr, currency: 'MYR', ref1: transaction.id, ref2: userId,
       customer: {
         first_name: profile?.full_name?.split(' ')[0] || 'Member',
         last_name: profile?.full_name?.split(' ').slice(1).join(' ') || 'User',
-        email: user?.email || 'noemail@nocap.app',
-        mobile,
+        email: user?.email || 'noemail@nocap.app', mobile,
         address: profile?.address || 'Malaysia',
       },
-      product: [
-        {
-          title: 'NOcap Wallet Top Up (API)',
-          price: amount.toFixed(2),
-          quantity: '1',
-        },
-      ],
+      product: [{ title: 'NOcap Wallet Top Up (API)', price: amount.toFixed(2), quantity: '1' }],
     };
 
     console.log('Creating RaudhahPay bill for API top-up:', JSON.stringify(billPayload));
@@ -283,11 +214,7 @@ serve(async (req) => {
       `https://api.raudhahpay.com/api/collections/${RAUDHAHPAY_COLLECTION_CODE}/bills`,
       {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${RAUDHAHPAY_API_KEY}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${RAUDHAHPAY_API_KEY}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify(billPayload),
         signal: AbortSignal.timeout(30000),
       }
@@ -305,9 +232,7 @@ serve(async (req) => {
       });
     }
 
-    try {
-      rpData = await rpResponse.json();
-    } catch {
+    try { rpData = await rpResponse.json(); } catch {
       await supabase.from('transactions').update({ status: 'failed' }).eq('id', transaction.id);
       return new Response(JSON.stringify({ error: 'Payment gateway returned malformed response' }), {
         status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -323,22 +248,14 @@ serve(async (req) => {
     }
 
     const billCode = rpData?.bill_no || rpData?.data?.code || rpData?.code || '';
-    await supabase
-      .from('transactions')
+    await supabase.from('transactions')
       .update({ metadata: { api_app_id: app.id, api_app_name: app.name, reference: reference || null, bill_code: billCode, raudhahpay_response: rpData } })
       .eq('id', transaction.id);
 
     const paymentUrl = rpData?.payment_url || rpData?.bill_url || rpData?.data?.payment_url || rpData?.data?.url ||
       `https://cloud.raudhahpay.com/payment/gateway/secure-pay?bill_no=${billCode}`;
 
-    const successRes = {
-      success: true,
-      payment_url: paymentUrl,
-      transaction_id: transaction.id,
-      bill_code: billCode,
-      amount,
-    };
-
+    const successRes = { success: true, payment_url: paymentUrl, transaction_id: transaction.id, bill_code: billCode, amount };
     await logRequest(supabase, app.id, '/api-topup', 'POST', 200, { amount, description, reference }, successRes, userId, startTime);
     return new Response(JSON.stringify(successRes), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

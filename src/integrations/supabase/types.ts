@@ -1232,6 +1232,45 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_balance_audit: {
+        Row: {
+          branch_id: string | null
+          changed_at: string
+          changed_by: string | null
+          delta: number
+          id: string
+          new_balance: number
+          old_balance: number
+          user_id: string
+          wallet_id: string
+          wallet_type: string
+        }
+        Insert: {
+          branch_id?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          delta: number
+          id?: string
+          new_balance: number
+          old_balance?: number
+          user_id: string
+          wallet_id: string
+          wallet_type: string
+        }
+        Update: {
+          branch_id?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          delta?: number
+          id?: string
+          new_balance?: number
+          old_balance?: number
+          user_id?: string
+          wallet_id?: string
+          wallet_type?: string
+        }
+        Relationships: []
+      }
       wallets: {
         Row: {
           balance: number
@@ -1345,6 +1384,24 @@ export type Database = {
       }
       cleanup_old_api_logs: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      credit_wallet: {
+        Args: {
+          p_amount: number
+          p_branch_id?: string
+          p_user_id: string
+          p_wallet_type: string
+        }
+        Returns: number
+      }
+      debit_wallet: {
+        Args: {
+          p_amount: number
+          p_branch_id?: string
+          p_user_id: string
+          p_wallet_type: string
+        }
+        Returns: number
+      }
       generate_referral_code: { Args: never; Returns: string }
       get_all_user_emails: {
         Args: never
@@ -1381,6 +1438,17 @@ export type Database = {
       is_store_manager: {
         Args: { _store_id: string; _user_id: string }
         Returns: boolean
+      }
+      reconcile_wallet_balances: {
+        Args: never
+        Returns: {
+          branch_id: string
+          computed_balance: number
+          drift: number
+          user_id: string
+          wallet_balance: number
+          wallet_type: string
+        }[]
       }
     }
     Enums: {
