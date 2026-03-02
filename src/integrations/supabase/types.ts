@@ -1360,6 +1360,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_referral_tier_counts: {
+        Args: { p_user_id: string }
+        Returns: {
+          count: number
+          tier: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
