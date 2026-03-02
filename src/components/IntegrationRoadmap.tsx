@@ -88,6 +88,31 @@ Customer Dashboard (if referral scope granted): referral code with copy/share, s
 Admin Section: branch mapping management, connected customers overview, top referrers by network size.`,
     memberImpact: "Members with referral scope see a new Referral Dashboard.",
   },
+  {
+    id: 10,
+    title: "Add Top-Up API Service Function",
+    path: "C",
+    pathLabel: "Top-Up upgrade",
+    prompt: `Add a createTopUp service function that calls POST /api-topup. Headers: x-api-key, x-api-secret (server-to-server), and Bearer <access_token> (user context). Request body: { amount, description, reference }. Amount must be between RM10 and RM500. The reference must be unique per request for idempotency. Response: { payment_url, transaction_id, bill_code }. Handle errors: 400 (validation), 401 (invalid token), 403 (missing topup scope), 402 (amount out of range).`,
+    memberImpact: "None — backend code only.",
+  },
+  {
+    id: 11,
+    title: "Re-authorize for Top-Up Scope",
+    path: "C",
+    pathLabel: "Top-Up upgrade",
+    prompt: `Check stored scopes in nocap_connections. If 'topup' scope is missing, show a banner: 'Enable Wallet Top-Up!' On click, redirect to /authorize with scope=balance,charge,referral,topup and the same state/redirect_uri pattern as before. NoCap auto-revokes the old token and issues a new one with all four scopes. Exchange the authorization code via POST /api-token-exchange, update stored access_token and scopes in nocap_connections. Hide the banner once topup scope is granted.`,
+    memberImpact: "Members see a one-time banner. One click → approve → done. Existing wallet and payment features continue working throughout.",
+  },
+  {
+    id: 12,
+    title: "Top-Up UI & Webhook Handling",
+    path: "C",
+    pathLabel: "Top-Up upgrade",
+    merchantAction: "Ensure webhook URL is configured to receive topup.completed and topup.failed events.",
+    prompt: `Build a 'Top Up NoCap Wallet' button or page. Show current balance via GET /api-balance. Let user enter amount (RM10–RM500). On submit, call POST /api-topup with { amount, description: 'Wallet top-up', reference: <unique> }. Open the returned payment_url in a new tab/window for FPX payment via RaudhahPay. Handle webhooks: verify HMAC-SHA256 signature (same pattern as charge webhooks — use api_secret as HMAC key, raw JSON body as message, compare in constant time). Process topup.completed: update UI to reflect new balance. Process topup.failed: show error to user. Poll GET /api-balance or use webhook to refresh balance after redirect back.`,
+    memberImpact: "Members can top up their NoCap wallet directly from the 3rd party app via FPX.",
+  },
 ];
 
 function CopyPromptButton({ text }: { text: string }) {
@@ -123,32 +148,38 @@ export default function IntegrationRoadmap() {
           <div className="flex gap-3 flex-wrap">
             <Badge variant="secondary" className="text-xs">Path A (Prompts 1–9): New integration</Badge>
             <Badge variant="outline" className="text-xs">Path B (Prompts 6–9): Upgrade existing</Badge>
+            <Badge className="text-xs bg-emerald-600 hover:bg-emerald-700">Path C (Prompts 10–12): Add Top-Up</Badge>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-2 pr-4 font-semibold">Prompt</th>
                   <th className="text-left py-2 pr-4 font-semibold">New</th>
-                  <th className="text-left py-2 font-semibold">Upgrade</th>
+                  <th className="text-left py-2 pr-4 font-semibold">Upgrade</th>
+                  <th className="text-left py-2 font-semibold">Top-Up</th>
                 </tr>
               </thead>
               <tbody className="text-muted-foreground">
                 {[
-                  ["1 — Credentials & DB", "Yes", "Skip"],
-                  ["2 — API Service Layer", "Yes", "Skip"],
-                  ["3 — OAuth Connection", "Yes", "Skip"],
-                  ["4 — Account Creation via Referral", "Yes", "Skip"],
-                  ["5 — Wallet Checkout", "Yes", "Skip"],
-                  ["6 — Upgrade DB + APIs", "Yes", "Start here"],
-                  ["7 — Re-auth for Referral", "Yes", "Yes"],
-                  ["8 — Multi-Branch Routing", "Yes", "Yes"],
-                  ["9 — Referral Dashboard", "Yes", "Yes"],
-                ].map(([prompt, fresh, upgrade], i) => (
+                  ["1 — Credentials & DB", "Yes", "Skip", "Skip"],
+                  ["2 — API Service Layer", "Yes", "Skip", "Skip"],
+                  ["3 — OAuth Connection", "Yes", "Skip", "Skip"],
+                  ["4 — Account Creation via Referral", "Yes", "Skip", "Skip"],
+                  ["5 — Wallet Checkout", "Yes", "Skip", "Skip"],
+                  ["6 — Upgrade DB + APIs", "Yes", "Start here", "Skip"],
+                  ["7 — Re-auth for Referral", "Yes", "Yes", "Skip"],
+                  ["8 — Multi-Branch Routing", "Yes", "Yes", "Skip"],
+                  ["9 — Referral Dashboard", "Yes", "Yes", "Skip"],
+                  ["10 — Top-Up Service", "Skip", "Skip", "Start here"],
+                  ["11 — Re-auth for Top-Up", "Skip", "Skip", "Yes"],
+                  ["12 — Top-Up UI & Webhooks", "Skip", "Skip", "Yes"],
+                ].map(([prompt, fresh, upgrade, topup], i) => (
                   <tr key={i} className="border-b border-border/50">
                     <td className="py-2 pr-4 font-mono text-xs">{prompt}</td>
                     <td className="py-2 pr-4">{fresh}</td>
-                    <td className="py-2">{upgrade}</td>
+                    <td className="py-2 pr-4">{upgrade}</td>
+                    <td className="py-2">{topup}</td>
                   </tr>
                 ))}
               </tbody>
