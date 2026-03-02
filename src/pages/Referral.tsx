@@ -79,6 +79,7 @@ const Referral = () => {
   const [expandedTiers, setExpandedTiers] = useState<Record<number, boolean>>({ 1: true });
   const [loadingData, setLoadingData] = useState(true);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [tierCountsFromRpc, setTierCountsFromRpc] = useState<Record<number, number>>({});
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -90,24 +91,72 @@ const Referral = () => {
     const fetchData = async () => {
       setLoadingData(true);
 
-      const [profileRes, referralRes, commissionRes] = await Promise.all([
+      // Helper: fetch all referral_tree rows in batches of 1000 to bypass PostgREST limit
+      const fetchAllReferrals = async (): Promise<{ user_id: string; tier: number }[]> => {
+        const batchSize = 1000;
+        let allData: { user_id: string; tier: number }[] = [];
+        let offset = 0;
+        let hasMore = true;
+        while (hasMore) {
+          const { data } = await supabase
+            .from("referral_tree")
+            .select("user_id, tier")
+            .eq("ancestor_id", user.id)
+            .order("tier", { ascending: true })
+            .range(offset, offset + batchSize - 1);
+          if (data && data.length > 0) {
+            allData = allData.concat(data);
+            if (data.length < batchSize) hasMore = false;
+            else offset += batchSize;
+          } else {
+            hasMore = false;
+          }
+        }
+        return allData;
+      };
+
+      // Fetch tier counts via RPC (bypasses row limit) + profile + commissions in parallel
+      const [profileRes, tierCountsRes, commissionRes] = await Promise.all([
         supabase.from("profiles").select("full_name, referral_code").eq("user_id", user.id).maybeSingle(),
-        supabase.from("referral_tree").select("user_id, tier").eq("ancestor_id", user.id).order("tier", { ascending: true }),
+        supabase.rpc("get_referral_tier_counts", { p_user_id: user.id }),
         supabase.from("transactions").select("id, amount, description, created_at, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed").order("created_at", { ascending: false }).limit(50),
       ]);
 
       if (profileRes.data) setProfile(profileRes.data);
 
-      if (referralRes.data && referralRes.data.length > 0) {
-        const userIds = referralRes.data.map((r) => r.user_id);
-        const [profilesRes, emailsRes] = await Promise.all([
-          supabase.from("profiles").select("user_id, full_name, phone").in("user_id", userIds),
-          supabase.rpc("get_referral_emails", { referral_user_ids: userIds }),
-        ]);
-        const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, { full_name: p.full_name, phone: p.phone }]) || []);
-        const emailMap = new Map((emailsRes.data as { user_id: string; email: string }[] || []).map((e) => [e.user_id, e.email]));
+      // Store accurate tier counts from RPC
+      const rpcTierCounts: Record<number, number> = {};
+      if (tierCountsRes.data) {
+        for (const row of tierCountsRes.data as { tier: number; count: number }[]) {
+          rpcTierCounts[row.tier] = Number(row.count);
+        }
+      }
+      setTierCountsFromRpc(rpcTierCounts);
+
+      const allReferrals = await fetchAllReferrals();
+
+      if (allReferrals.length > 0) {
+        const userIds = allReferrals.map((r) => r.user_id);
+
+        // Fetch profiles in batches of 1000 (for .in() filter)
+        const allProfiles: { user_id: string; full_name: string | null; phone: string | null }[] = [];
+        for (let i = 0; i < userIds.length; i += 1000) {
+          const batch = userIds.slice(i, i + 1000);
+          const { data } = await supabase.from("profiles").select("user_id, full_name, phone").in("user_id", batch);
+          if (data) allProfiles.push(...data);
+        }
+
+        // Only fetch emails for tier 1 users
+        const tier1Ids = allReferrals.filter((r) => r.tier === 1).map((r) => r.user_id);
+        let emailMap = new Map<string, string>();
+        if (tier1Ids.length > 0) {
+          const { data: emailsData } = await supabase.rpc("get_referral_emails", { referral_user_ids: tier1Ids });
+          emailMap = new Map((emailsData as { user_id: string; email: string }[] || []).map((e) => [e.user_id, e.email]));
+        }
+
+        const profileMap = new Map(allProfiles.map((p) => [p.user_id, { full_name: p.full_name, phone: p.phone }]));
         setReferrals(
-          referralRes.data.map((r) => ({
+          allReferrals.map((r) => ({
             user_id: r.user_id,
             full_name: profileMap.get(r.user_id)?.full_name || null,
             phone: r.tier === 1 ? (profileMap.get(r.user_id)?.phone || null) : null,
@@ -173,8 +222,10 @@ const Referral = () => {
 
   const tierCounts = [1, 2, 3, 4, 5].map((tier) => ({
     tier,
-    count: referralsByTier[tier]?.length || 0,
+    count: tierCountsFromRpc[tier] || referralsByTier[tier]?.length || 0,
   }));
+
+  const totalNetworkCount = Object.values(tierCountsFromRpc).reduce((s, c) => s + c, 0) || referrals.length;
 
   // Per-tier earnings breakdown
   const earningsByType = useMemo(() => {
@@ -214,12 +265,12 @@ const Referral = () => {
             <div className="grid grid-cols-4 gap-3 text-center">
               <div>
                 <Users className="mx-auto h-4 w-4 text-secondary" />
-                <p className="mt-1 font-display text-xl font-bold text-white">{referrals.filter((r) => r.tier === 1).length}</p>
+                <p className="mt-1 font-display text-xl font-bold text-white">{tierCountsFromRpc[1] || referrals.filter((r) => r.tier === 1).length}</p>
                 <p className="text-[10px] text-white/40">Direct</p>
               </div>
               <div>
                 <Network className="mx-auto h-4 w-4 text-secondary" />
-                <p className="mt-1 font-display text-xl font-bold text-white">{referrals.length}</p>
+                <p className="mt-1 font-display text-xl font-bold text-white">{totalNetworkCount}</p>
                 <p className="text-[10px] text-white/40">Network</p>
               </div>
               <div>
@@ -302,7 +353,7 @@ const Referral = () => {
               </CardContent>
             </Card>
 
-            {referrals.length === 0 ? (
+            {totalNetworkCount === 0 ? (
               <Card className="border-white/10 bg-white/5">
                 <CardContent className="flex flex-col items-center justify-center py-10 text-white/40">
                   <UserPlus className="h-8 w-8 mb-2 opacity-40" />
@@ -320,7 +371,7 @@ const Referral = () => {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-white">{profile?.full_name || "You"}</p>
-                    <p className="text-[10px] text-white/40">Root • {referrals.length} in network</p>
+                    <p className="text-[10px] text-white/40">Root • {totalNetworkCount} in network</p>
                   </div>
                 </div>
 
