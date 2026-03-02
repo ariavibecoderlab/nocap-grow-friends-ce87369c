@@ -12,12 +12,13 @@
 1. [Overview](#overview)
 2. [Authentication (OAuth 2.0)](#authentication-oauth-20)
 3. [API Endpoints — Wallet & Payments](#api-endpoints--wallet--payments)
-4. [API Endpoints — Referral / Affiliate](#api-endpoints--referral--affiliate)
-5. [Webhooks](#webhooks)
-6. [Rate Limits](#rate-limits)
-7. [Error Codes](#error-codes)
-8. [Sandbox Mode](#sandbox-mode)
-9. [3rd Party Integration Roadmap](#3rd-party-integration-roadmap)
+4. [API Endpoints — Wallet Top-Up](#api-endpoints--wallet-top-up)
+5. [API Endpoints — Referral / Affiliate](#api-endpoints--referral--affiliate)
+6. [Webhooks](#webhooks)
+7. [Rate Limits](#rate-limits)
+8. [Error Codes](#error-codes)
+9. [Sandbox Mode](#sandbox-mode)
+10. [3rd Party Integration Roadmap](#3rd-party-integration-roadmap)
 
 ---
 
@@ -29,6 +30,7 @@ NoCap provides a REST API that allows third-party applications to:
 - **Create charges / payments** from a user's wallet (`charge` scope)
 - **Refund** completed charges (full or partial)
 - **List and query** charge history
+- **Initiate wallet top-ups** via FPX bank transfer (`topup` scope)
 - **Access referral info, network, and cashback history** (`referral` scope)
 - **Register new users via referral** (API key auth only)
 
@@ -78,7 +80,7 @@ https://nocap.life/authorize?app_id=YOUR_APP_ID&redirect_uri=YOUR_CALLBACK_URL&s
 |---|---|---|
 | `app_id` | ✅ | Your application UUID |
 | `redirect_uri` | ✅ | Where the user is sent after approval |
-| `scope` | Optional | Comma-separated: `balance`, `charge`, `referral` (defaults to `balance,charge`) |
+| `scope` | Optional | Comma-separated: `balance`, `charge`, `referral`, `topup` (defaults to `balance,charge`) |
 | `state` | Recommended | Random string for CSRF protection — verify on callback |
 
 **Alternative parameter names** (also supported):
@@ -139,7 +141,7 @@ curl -X POST https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-token-exc
 | `scopes` | Granted permissions |
 | `expires_in` | Token lifetime in seconds (90 days = 7,776,000s) |
 
-> If the user already has an active token for your app, the old token is automatically revoked and a new one is issued with the updated scopes. This allows seamless **scope upgrades** (e.g., adding `referral` to an existing `balance,charge` token).
+> If the user already has an active token for your app, the old token is automatically revoked and a new one is issued with the updated scopes. This allows seamless **scope upgrades** (e.g., adding `referral` or `topup` to an existing `balance,charge` token).
 
 ---
 
@@ -414,6 +416,71 @@ curl -X POST https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-revoke \
   -H "Content-Type: application/json" \
   -d '{ "token_id": "TOKEN_UUID" }'
 ```
+
+---
+
+## API Endpoints — Wallet Top-Up
+
+These endpoints allow your application to initiate wallet top-ups for users via FPX bank transfer. Requires the `topup` OAuth scope.
+
+### 6b. Initiate Top-Up
+
+**`POST /api-topup`**
+
+Requires scope: `topup`
+
+```bash
+curl -X POST https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-topup \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "x-api-secret: YOUR_API_SECRET" \
+  -H "Authorization: Bearer ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 50.00,
+    "description": "Wallet reload",
+    "reference": "topup_001"
+  }'
+```
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `amount` | number | ✅ | Top-up amount in MYR (10.00 – 500.00) |
+| `description` | string | Optional | Description for the top-up |
+| `reference` | string | Optional | Your internal reference ID. Must be unique — duplicate references are rejected for idempotency. |
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "payment_url": "https://cloud.raudhahpay.com/payment/...",
+  "transaction_id": "uuid",
+  "bill_code": "BILL-123",
+  "amount": 50.00
+}
+```
+
+| Field | Description |
+|---|---|
+| `payment_url` | URL to open in the user's browser for FPX payment |
+| `transaction_id` | NoCap transaction UUID for tracking |
+| `bill_code` | RaudhahPay bill code |
+| `amount` | Confirmed top-up amount |
+
+> Open the `payment_url` in the user's browser or webview. After successful FPX payment, the wallet is credited automatically. Your app will receive a `topup.completed` or `topup.failed` webhook event.
+
+**Error Responses:**
+
+| Status | Code | Meaning |
+|---|---|---|
+| 400 | `INVALID_AMOUNT` | Amount outside RM10–RM500 range |
+| 400 | `DUPLICATE_REFERENCE` | A top-up with this reference already exists |
+| 401 | — | Invalid or expired access token |
+| 403 | `SCOPE_REQUIRED` | Access token missing `topup` scope |
+
+> **Sandbox Mode:** In sandbox mode, the top-up completes immediately without creating a real payment bill. The wallet is credited instantly and a mock `payment_url` is returned.
 
 ---
 
@@ -815,6 +882,36 @@ Fired when a refund is processed. `charge.refunded` means the full amount was re
 }
 ```
 
+#### `topup.completed`
+
+Fired when an API-initiated wallet top-up is successfully paid via FPX.
+
+```json
+{
+  "event": "topup.completed",
+  "transaction_id": "uuid",
+  "amount": 50.00,
+  "reference": "topup_001",
+  "status": "completed",
+  "timestamp": "2026-03-01T10:00:00Z"
+}
+```
+
+#### `topup.failed`
+
+Fired when an API-initiated wallet top-up payment fails or is cancelled.
+
+```json
+{
+  "event": "topup.failed",
+  "transaction_id": "uuid",
+  "amount": 50.00,
+  "reference": "topup_001",
+  "status": "failed",
+  "timestamp": "2026-03-01T10:05:00Z"
+}
+```
+
 ### Retry Policy
 
 NoCap retries failed webhook deliveries up to **3 times** with exponential backoff:
@@ -851,6 +948,7 @@ Respond with any `2xx` status code to acknowledge receipt. Non-2xx responses or 
 | `/api-referral-register` | 10 requests | per minute per API key |
 | `/api-referral-network` | 30 requests | per minute per API key |
 | `/api-cashback-history` | 60 requests | per minute per API key |
+| `/api-topup` | 30 requests | per minute per API key |
 
 When rate-limited, you'll receive a `429` response with a `Retry-After: 60` header.
 
@@ -929,22 +1027,26 @@ This section provides a complete step-by-step guide for integrating NoCap into y
 
 - **Path A** (Prompts 1–9): New to NoCap — full integration from scratch
 - **Path B** (Prompts 6–9 only): Already have NoCap wallet — upgrade only
+- **Path C** (Prompts 10–12): Add wallet top-up to existing integration
 
 > **Important:** Existing users do NOT need to disconnect. Wallet and payment features continue working throughout the upgrade. Users only re-authorize once to unlock referral features.
 
 ### Quick Reference
 
-| Prompt | New Integration | Existing (Upgrade) |
-|--------|:-:|:-:|
-| 1 — Credentials & DB | ✅ | Skip |
-| 2 — API Service Layer | ✅ | Skip |
-| 3 — OAuth Connection | ✅ | Skip |
-| 4 — Registration with Referral | ✅ | Skip |
-| 5 — Wallet Payment Checkout | ✅ | Skip |
-| 6 — Upgrade DB + New API Functions | ✅ | **Start here** |
-| 7 — Re-authorize for Referral Scope | ✅ | ✅ |
-| 8 — Multi-Branch Charge Routing | ✅ | ✅ |
-| 9 — Referral Dashboard & Admin | ✅ | ✅ |
+| Prompt | New Integration | Existing (Upgrade) | Top-Up |
+|--------|:-:|:-:|:-:|
+| 1 — Credentials & DB | ✅ | Skip | Skip |
+| 2 — API Service Layer | ✅ | Skip | Skip |
+| 3 — OAuth Connection | ✅ | Skip | Skip |
+| 4 — Registration with Referral | ✅ | Skip | Skip |
+| 5 — Wallet Payment Checkout | ✅ | Skip | Skip |
+| 6 — Upgrade DB + New API Functions | ✅ | **Start here** | Skip |
+| 7 — Re-authorize for Referral Scope | ✅ | ✅ | Skip |
+| 8 — Multi-Branch Charge Routing | ✅ | ✅ | Skip |
+| 9 — Referral Dashboard & Admin | ✅ | ✅ | Skip |
+| 10 — Top-Up API Service Function | Skip | Skip | **Start here** |
+| 11 — Re-authorize for Top-Up Scope | Skip | Skip | ✅ |
+| 12 — Top-Up UI & Webhook Handling | Skip | Skip | ✅ |
 
 ---
 
@@ -1230,6 +1332,80 @@ ADMIN SECTION:
 
 ---
 
+### Prompt 10 — Add Top-Up API Service Function (Top-Up upgrade)
+
+> **NoCap Merchant Action:** None — existing API credentials support the top-up endpoint.
+
+```
+Add a createTopUp service function to your existing NoCap API service.
+
+Endpoint: POST /api-topup
+Headers: x-api-key, x-api-secret (server-to-server), Authorization: Bearer <access_token>
+Body: { amount, description, reference }
+- amount: RM10–RM500
+- reference: unique per request for idempotency
+
+Response: { payment_url, transaction_id, bill_code, amount }
+
+Handle errors:
+- 400: amount out of range or duplicate reference
+- 401: invalid/expired token
+- 403: missing topup scope
+```
+
+> **Member Impact:** None — backend code only.
+
+---
+
+### Prompt 11 — Re-authorize for Top-Up Scope (Top-Up upgrade)
+
+> **NoCap Merchant Action:** None — the OAuth upgrade is handled automatically by NoCap.
+
+```
+Check stored scopes in nocap_connections for each connected customer.
+If missing "topup" scope, show banner: "Enable Wallet Top-Up!"
+
+On click, redirect to NoCap authorize with:
+  scope=balance,charge,referral,topup
+  (same state/redirect_uri pattern as existing OAuth flow)
+
+NoCap auto-revokes old token and issues new one with all four scopes.
+Exchange code via POST /api-token-exchange (same existing flow).
+Update stored access_token and scopes in nocap_connections.
+Hide banner once topup scope is granted.
+
+DO NOT break existing wallet, payment, or referral functionality.
+```
+
+> **Member Impact:** Members see a one-time banner. One click → approve → done. Existing wallet, payment, and referral features continue working throughout.
+
+---
+
+### Prompt 12 — Top-Up UI & Webhook Handling (Top-Up upgrade)
+
+> **NoCap Merchant Action:** Ensure webhook URL is configured to receive `topup.completed` and `topup.failed` events.
+
+```
+Build a "Top Up NoCap Wallet" button or page.
+DO NOT modify existing wallet/payment/referral UI.
+
+1. Show current balance via GET /api-balance
+2. Let user enter amount (RM10–RM500)
+3. On submit, call POST /api-topup with:
+   { amount, description: "Wallet top-up", reference: <unique> }
+4. Open returned payment_url in new tab/window for FPX payment
+5. After redirect back, poll GET /api-balance to refresh balance
+
+Webhook handling (same HMAC-SHA256 pattern as charge webhooks):
+- topup.completed: update UI to reflect new balance
+- topup.failed: show error to user
+- Verify X-Webhook-Signature using constant-time comparison
+```
+
+> **Member Impact:** Members can top up their NoCap wallet directly from the 3rd party app via FPX bank transfer.
+
+---
+
 ### When a New Branch Opens in Future
 
 When a merchant expands and opens a new branch/outlet, here's what needs to happen on each side:
@@ -1280,6 +1456,12 @@ A: No. A single merchant-level API app ("All Branches") covers all current and f
 
 **Q: What if the merchant upgrades from branch-level to merchant-level app?**
 A: Create a new merchant-level app, share credentials with the developer, and complete Prompts 6–9. Keep the old app active during transition. Deactivate it once all members have re-authorized.
+
+**Q: How do I add wallet top-up to my existing integration?**
+A: Follow Path C (Prompts 10–12). Add the `createTopUp` service function, re-authorize users for the `topup` scope, and build the top-up UI with webhook handling. No changes to existing wallet, payment, or referral features.
+
+**Q: What scopes should I request for a full integration?**
+A: Request `scope=balance,charge,referral,topup` to enable all features: balance checking, payments, referral tracking, and wallet top-ups.
 
 ---
 
