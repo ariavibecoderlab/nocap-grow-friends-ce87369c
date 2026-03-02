@@ -138,7 +138,7 @@ export function generateApiGuidePdf() {
 
   // --- Overview ---
   heading("1. Overview");
-  paragraph("NoCap provides a REST API that allows third-party applications to check user wallet balances, create charges from user wallets, process refunds, and query charge history. All access is secured via OAuth 2.0 Authorization Code flow.");
+  paragraph("NoCap provides a REST API that allows third-party applications to check user wallet balances, create charges from user wallets, process refunds, query charge history, initiate wallet top-ups via FPX, and access referral/affiliate features. All access is secured via OAuth 2.0 Authorization Code flow.");
 
   subheading("Credentials");
   tableRow(["Credential", "Purpose"], true);
@@ -156,7 +156,7 @@ export function generateApiGuidePdf() {
   tableRow(["Parameter", "Required", "Description"], true);
   tableRow(["app_id", "Yes", "Your application UUID"]);
   tableRow(["redirect_uri", "Yes", "Callback URL after approval"]);
-  tableRow(["scope", "Optional", "balance, charge, referral (defaults to balance,charge)"]);
+  tableRow(["scope", "Optional", "balance, charge, referral, topup (defaults to balance,charge)"]);
   tableRow(["state", "Recommended", "CSRF protection string"]);
 
   subheading("Step 2 — Receive Authorization Code");
@@ -231,6 +231,18 @@ export function generateApiGuidePdf() {
   paragraph("Response: { branches: [{ id, branch_name, qr_code_id, is_active }] }");
   paragraph("Use this endpoint to populate branch selectors or map internal outlet IDs to NoCap branch IDs. Required for merchant-level apps when calling POST /api-charge.");
 
+  // --- Wallet Top-Up ---
+  heading("3c. Wallet Top-Up");
+  subheading("3.8 Initiate Top-Up — POST /api-topup");
+  paragraph("Requires scope: topup. Initiates a wallet top-up via FPX bank transfer.");
+  tableRow(["Field", "Type", "Required", "Description"], true);
+  tableRow(["amount", "number", "Yes", "RM10–RM500"]);
+  tableRow(["description", "string", "No", "Top-up description"]);
+  tableRow(["reference", "string", "No", "Unique reference for idempotency"]);
+  code(`curl -X POST ${BASE_URL}/api-topup \\\n  -H "x-api-key: KEY" -H "x-api-secret: SECRET" \\\n  -H "Authorization: Bearer TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{ "amount": 50.00, "reference": "topup_001" }'`);
+  paragraph("Response: { success, payment_url, transaction_id, bill_code, amount }");
+  paragraph("Open payment_url in user's browser for FPX payment. Wallet is credited automatically on success. Webhook events: topup.completed, topup.failed.");
+
   // --- Referral / Affiliate Endpoints ---
   heading("4. Referral / Affiliate Endpoints");
   paragraph("These endpoints require the 'referral' OAuth scope. Existing connected users must re-authorize with scope=balance,charge,referral to access these endpoints.");
@@ -299,6 +311,8 @@ export function generateApiGuidePdf() {
   paragraph("charge.failed — Charge failed. Check 'reason' field: PIN_REQUIRED, PIN_NOT_SET, INVALID_PIN, PIN_LOCKED, INSUFFICIENT_BALANCE.");
   paragraph("charge.refunded — Full refund processed.");
   paragraph("charge.partial_refund — Partial refund processed.");
+  paragraph("topup.completed — API-initiated wallet top-up successfully paid via FPX.");
+  paragraph("topup.failed — API-initiated wallet top-up payment failed or cancelled.");
 
   subheading("Retry Policy");
   paragraph("3 attempts with exponential backoff: immediate, 1s, 2s. Respond with 2xx to acknowledge. After 3 failures, webhook is logged as undelivered.");
@@ -321,6 +335,7 @@ export function generateApiGuidePdf() {
   tableRow(["/api-referral-register", "10/min per app"]);
   tableRow(["/api-referral-network", "30/min per key"]);
   tableRow(["/api-cashback-history", "60/min per key"]);
+  tableRow(["/api-topup", "30/min per key"]);
 
   // --- Error Codes ---
   heading("7. Error Codes");
@@ -348,22 +363,27 @@ export function generateApiGuidePdf() {
 
   // --- 3rd Party Integration Roadmap ---
   heading("9. 3rd Party Integration Roadmap");
-  paragraph("This section provides a complete step-by-step guide for integrating NoCap into your system. Two paths are available:");
+  paragraph("This section provides a complete step-by-step guide for integrating NoCap into your system. Three paths are available:");
   paragraph("Path A (Prompts 1–9): New to NoCap — full integration from scratch.");
   paragraph("Path B (Prompts 6–9 only): Already have NoCap wallet — upgrade only.");
+  paragraph("Path C (Prompts 10–12): Add wallet top-up to existing integration.");
+  paragraph("Important: Existing users do NOT need to disconnect. Wallet and payments continue working. Users only re-authorize once to unlock new features.");
   paragraph("Important: Existing users do NOT need to disconnect. Wallet and payments continue working. Users only re-authorize once to unlock referral features.");
 
   subheading("Quick Reference");
-  tableRow(["Prompt", "New", "Upgrade"], true);
-  tableRow(["1 — Credentials & DB", "Yes", "Skip"]);
-  tableRow(["2 — API Service Layer", "Yes", "Skip"]);
-  tableRow(["3 — OAuth Connection", "Yes", "Skip"]);
-  tableRow(["4 — Registration + Referral", "Yes", "Skip"]);
-  tableRow(["5 — Wallet Checkout", "Yes", "Skip"]);
-  tableRow(["6 — Upgrade DB + APIs", "Yes", "Start here"]);
-  tableRow(["7 — Re-auth for Referral", "Yes", "Yes"]);
-  tableRow(["8 — Multi-Branch Routing", "Yes", "Yes"]);
-  tableRow(["9 — Referral Dashboard", "Yes", "Yes"]);
+  tableRow(["Prompt", "New", "Upgrade", "Top-Up"], true);
+  tableRow(["1 — Credentials & DB", "Yes", "Skip", "Skip"]);
+  tableRow(["2 — API Service Layer", "Yes", "Skip", "Skip"]);
+  tableRow(["3 — OAuth Connection", "Yes", "Skip", "Skip"]);
+  tableRow(["4 — Registration + Referral", "Yes", "Skip", "Skip"]);
+  tableRow(["5 — Wallet Checkout", "Yes", "Skip", "Skip"]);
+  tableRow(["6 — Upgrade DB + APIs", "Yes", "Start here", "Skip"]);
+  tableRow(["7 — Re-auth for Referral", "Yes", "Yes", "Skip"]);
+  tableRow(["8 — Multi-Branch Routing", "Yes", "Yes", "Skip"]);
+  tableRow(["9 — Referral Dashboard", "Yes", "Yes", "Skip"]);
+  tableRow(["10 — Top-Up Service", "Skip", "Skip", "Start here"]);
+  tableRow(["11 — Re-auth for Top-Up", "Skip", "Skip", "Yes"]);
+  tableRow(["12 — Top-Up UI & Webhooks", "Skip", "Skip", "Yes"]);
 
   // --- Pre-Integration: NoCap Merchant Setup ---
   heading("10. Pre-Integration: NoCap Merchant Setup");
@@ -453,6 +473,19 @@ export function generateApiGuidePdf() {
   paragraph("Customer Dashboard (if referral scope granted): referral code with copy/share, stats cards, network tree Tiers 1-5, earnings history with tabs.");
   paragraph("Admin Section: branch mapping management, connected customers overview, top referrers by network size.");
   paragraph("Member Impact: Members with referral scope see a new Referral Dashboard.");
+
+  subheading("Prompt 10 — Add Top-Up API Service Function");
+  paragraph("(Top-Up upgrade — START HERE for Path C) Add a createTopUp service function that calls POST /api-topup with x-api-key, x-api-secret, and Bearer token. Body: { amount, description, reference }. Amount: RM10–RM500. Response: { payment_url, transaction_id, bill_code }.");
+  paragraph("Member Impact: None — backend code only.");
+
+  subheading("Prompt 11 — Re-authorize for Top-Up Scope");
+  paragraph("(Top-Up upgrade) Check stored scopes for 'topup'. If missing, show banner: 'Enable Wallet Top-Up!' Redirect to /authorize with scope=balance,charge,referral,topup. NoCap auto-revokes old token and issues new one. Exchange code, update stored token and scopes. Hide banner once granted.");
+  paragraph("Member Impact: Members see a one-time banner. One click → approve → done.");
+
+  subheading("Prompt 12 — Top-Up UI & Webhook Handling");
+  paragraph("(Top-Up upgrade) Merchant Action: Ensure webhook URL receives topup.completed and topup.failed events.");
+  paragraph("Build 'Top Up NoCap Wallet' button/page. Show balance via GET /api-balance. Enter amount (RM10–RM500). Call POST /api-topup. Open payment_url for FPX payment. Handle topup.completed and topup.failed webhooks (HMAC-SHA256, same pattern as charge webhooks). Update balance after success.");
+  paragraph("Member Impact: Members can top up their NoCap wallet directly from the 3rd party app via FPX.");
 
   // --- When a New Branch Opens ---
   heading("14. When a New Branch Opens");
