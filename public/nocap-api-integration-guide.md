@@ -476,9 +476,29 @@ curl -X POST https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-topup \
 | Status | Code | Meaning |
 |---|---|---|
 | 400 | `INVALID_AMOUNT` | Amount outside RM10–RM500 range |
-| 400 | `DUPLICATE_REFERENCE` | A top-up with this reference already exists |
-| 401 | — | Invalid or expired access token |
+| 401 | — | Missing or invalid API key / access token |
 | 403 | `SCOPE_REQUIRED` | Access token missing `topup` scope |
+| 409 | `DUPLICATE_REFERENCE` | A top-up with this reference already exists |
+
+**Error Response Examples:**
+
+```json
+// 400 Bad Request — Invalid amount
+{ "error": "Amount must be between RM 10.00 and RM 500.00" }
+
+// 401 Unauthorized — Missing or invalid credentials
+{ "error": "Missing or invalid API key" }
+
+// 403 Forbidden — Token lacks topup scope
+{ "error": "Access token does not have the required scope: topup" }
+
+// 409 Conflict — Duplicate reference
+{
+  "error": "A top-up with this reference already exists",
+  "code": "DUPLICATE_REFERENCE",
+  "existing_transaction_id": "uuid"
+}
+```
 
 > **Sandbox Mode:** In sandbox mode, the top-up completes immediately without creating a real payment bill. The wallet is credited instantly and a mock `payment_url` is returned.
 
