@@ -104,24 +104,38 @@ serve(async (req) => {
       });
     }
 
-    // Get all referrals grouped by tier
-    const { data: referrals } = await supabase
-      .from('referral_tree')
-      .select('user_id, tier, created_at')
-      .eq('ancestor_id', token.user_id)
-      .order('tier', { ascending: true })
-      .order('created_at', { ascending: false });
+    // Fetch all referrals in batches to bypass 1000-row limit
+    const batchSize = 1000;
+    let allReferrals: { user_id: string; tier: number; created_at: string }[] = [];
+    let offset = 0;
+    let hasMore = true;
+    while (hasMore) {
+      const { data } = await supabase
+        .from('referral_tree')
+        .select('user_id, tier, created_at')
+        .eq('ancestor_id', token.user_id)
+        .order('tier', { ascending: true })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + batchSize - 1);
+      if (data && data.length > 0) {
+        allReferrals = allReferrals.concat(data);
+        if (data.length < batchSize) hasMore = false;
+        else offset += batchSize;
+      } else {
+        hasMore = false;
+      }
+    }
 
-    // Get profile names for all referred users
-    const userIds = (referrals || []).map((r: any) => r.user_id);
+    // Get profile names in batches
+    const userIds = allReferrals.map((r: any) => r.user_id);
     let profileMap: Record<string, string> = {};
 
-    if (userIds.length > 0) {
+    for (let i = 0; i < userIds.length; i += batchSize) {
+      const batch = userIds.slice(i, i + batchSize);
       const { data: profiles } = await supabase
         .from('profiles')
         .select('user_id, full_name')
-        .in('user_id', userIds);
-
+        .in('user_id', batch);
       for (const p of (profiles || [])) {
         profileMap[p.user_id] = p.full_name || 'Member';
       }
@@ -129,7 +143,7 @@ serve(async (req) => {
 
     // Group by tier
     const tierMap: Record<number, any[]> = {};
-    for (const r of (referrals || [])) {
+    for (const r of allReferrals) {
       if (!tierMap[r.tier]) tierMap[r.tier] = [];
       tierMap[r.tier].push({
         name: profileMap[r.user_id] || 'Member',
