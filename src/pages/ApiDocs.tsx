@@ -878,7 +878,7 @@ app.post("/webhook/nocap", (req, res) => {
           </TabsContent>
 
           <TabsContent value="endpoints" forceMount className="data-[state=inactive]:hidden">
-            <div className="space-y-6">
+            <div className="space-y-6 pb-24">
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
