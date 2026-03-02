@@ -242,6 +242,12 @@ export function generateApiGuidePdf() {
   code(`curl -X POST ${BASE_URL}/api-topup \\\n  -H "x-api-key: KEY" -H "x-api-secret: SECRET" \\\n  -H "Authorization: Bearer TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{ "amount": 50.00, "reference": "topup_001" }'`);
   paragraph("Response: { success, payment_url, transaction_id, bill_code, amount }");
   paragraph("Open payment_url in user's browser for FPX payment. Wallet is credited automatically on success. Webhook events: topup.completed, topup.failed.");
+  subheading("Error Responses");
+  tableRow(["Status", "Error", "Meaning"], true);
+  tableRow(["400", "Amount must be between RM 10.00 and RM 500.00", "Invalid amount"]);
+  tableRow(["401", "Missing or invalid API key", "Bad credentials"]);
+  tableRow(["403", "Access token does not have the required scope: topup", "Missing topup scope"]);
+  tableRow(["409", "A top-up with this reference already exists", "Duplicate reference"]);
 
   // --- Referral / Affiliate Endpoints ---
   heading("4. Referral / Affiliate Endpoints");
