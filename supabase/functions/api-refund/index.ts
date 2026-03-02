@@ -24,10 +24,7 @@ async function sendWebhook(
   try {
     const payloadStr = JSON.stringify(payload);
     const encoder = new TextEncoder();
-    const hmacKey = await crypto.subtle.importKey(
-      'raw', encoder.encode(secretHash),
-      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-    );
+    const hmacKey = await crypto.subtle.importKey('raw', encoder.encode(secretHash), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     const sigBuf = await crypto.subtle.sign('HMAC', hmacKey, encoder.encode(payloadStr));
     const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
 
@@ -37,42 +34,23 @@ async function sendWebhook(
       try {
         const res = await fetch(webhookUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Webhook-Signature': signature,
-            'X-Webhook-Attempt': String(attempt + 1),
-          },
+          headers: { 'Content-Type': 'application/json', 'X-Webhook-Signature': signature, 'X-Webhook-Attempt': String(attempt + 1) },
           body: payloadStr,
         });
         await res.text();
         lastStatus = res.status;
-        if (res.ok) {
-          console.log(`Webhook delivered (attempt ${attempt + 1}): ${payload.event}`);
-          delivered = true;
-          break;
-        }
-        console.warn(`Webhook attempt ${attempt + 1} failed with status ${res.status}`);
+        if (res.ok) { delivered = true; break; }
       } catch (err) {
-        console.warn(`Webhook attempt ${attempt + 1} network error:`, err);
         lastStatus = 0;
       }
-      if (attempt < maxRetries - 1) {
-        const delayMs = Math.pow(2, attempt) * 1000;
-        await new Promise(r => setTimeout(r, delayMs));
-      }
-    }
-    if (!delivered) {
-      console.error(`Webhook delivery failed after ${maxRetries} attempts: ${webhookUrl}`);
+      if (attempt < maxRetries - 1) await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
     }
   } catch (e) { console.error('Webhook send error:', e); }
 
-  // Log webhook delivery to api_request_logs
   if (supabase && appId) {
     try {
       await supabase.from('api_request_logs').insert({
-        app_id: appId,
-        endpoint: `webhook:${payload.event || 'unknown'}`,
-        method: 'WEBHOOK',
+        app_id: appId, endpoint: `webhook:${payload.event || 'unknown'}`, method: 'WEBHOOK',
         status_code: delivered ? (lastStatus || 200) : (lastStatus || 0),
         request_body: { url: webhookUrl, event: payload.event, charge_id: payload.charge_id },
         response_body: { delivered, attempts: totalAttempts, final_status: lastStatus },
@@ -101,12 +79,10 @@ serve(async (req) => {
       });
     }
 
-    // Validate API app
     const { data: app } = await supabase
       .from('api_applications')
       .select('id, merchant_user_id, branch_id, is_active, name, api_secret_hash, webhook_url')
-      .eq('api_key', apiKey)
-      .single();
+      .eq('api_key', apiKey).single();
 
     if (!app || !app.is_active) {
       return new Response(JSON.stringify({ error: 'Invalid API credentials' }), {
@@ -121,7 +97,6 @@ serve(async (req) => {
       });
     }
 
-    // Rate limit: 20 requests per minute per API key
     const { data: allowed } = await supabase.rpc('check_rate_limit', {
       p_identifier: apiKey, p_endpoint: 'api-refund', p_max_requests: 20, p_window_seconds: 60,
     });
@@ -139,13 +114,8 @@ serve(async (req) => {
       });
     }
 
-    // Get the original charge
     const { data: charge } = await supabase
-      .from('api_charges')
-      .select('*')
-      .eq('id', charge_id)
-      .eq('app_id', app.id)
-      .single();
+      .from('api_charges').select('*').eq('id', charge_id).eq('app_id', app.id).single();
 
     if (!charge) {
       return new Response(JSON.stringify({ error: 'Charge not found' }), {
@@ -159,14 +129,10 @@ serve(async (req) => {
       });
     }
 
-    // Calculate already-refunded amount from metadata
     const metadata = (charge as any).metadata || {};
     const alreadyRefunded = Number(metadata.total_refunded || 0);
     const maxRefundable = Number(charge.amount) - alreadyRefunded;
-
-    const actualRefund = refundAmount
-      ? Math.min(Number(refundAmount), maxRefundable)
-      : maxRefundable;
+    const actualRefund = refundAmount ? Math.min(Number(refundAmount), maxRefundable) : maxRefundable;
 
     if (actualRefund <= 0) {
       return new Response(JSON.stringify({ error: 'Charge already fully refunded' }), {
@@ -174,46 +140,29 @@ serve(async (req) => {
       });
     }
 
-    // Check for sandbox mode
     const isSandbox = !!charge.is_sandbox;
 
     if (isSandbox) {
-      // SANDBOX MODE: Skip balance checks and real money movement
       const newTotalRefunded = alreadyRefunded + actualRefund;
       const newStatus = newTotalRefunded >= Number(charge.amount) ? 'refunded' : 'partial_refund';
-
       await supabase.from('api_charges').update({
-        status: newStatus,
-        metadata: { ...metadata, total_refunded: newTotalRefunded, sandbox: true },
+        status: newStatus, metadata: { ...metadata, total_refunded: newTotalRefunded, sandbox: true },
       }).eq('id', charge_id);
 
-      console.log(`[SANDBOX] API Refund: RM${actualRefund}, charge: ${charge_id}, app: ${app.name}`);
-
-      // Webhook for sandbox
       sendWebhook(app.webhook_url, app.api_secret_hash, {
         event: newStatus === 'refunded' ? 'charge.refunded' : 'charge.partial_refund',
-        charge_id,
-        refund_amount: actualRefund,
-        total_refunded: newTotalRefunded,
-        charge_amount: Number(charge.amount),
-        status: newStatus,
-        is_sandbox: true,
+        charge_id, refund_amount: actualRefund, total_refunded: newTotalRefunded,
+        charge_amount: Number(charge.amount), status: newStatus, is_sandbox: true,
         timestamp: new Date().toISOString(),
       }, supabase, app.id);
 
       return new Response(JSON.stringify({
-        success: true,
-        refund_amount: actualRefund,
-        total_refunded: newTotalRefunded,
-        charge_amount: Number(charge.amount),
-        status: newStatus,
-        is_sandbox: true,
-      }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        success: true, refund_amount: actualRefund, total_refunded: newTotalRefunded,
+        charge_amount: Number(charge.amount), status: newStatus, is_sandbox: true,
+      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // REAL MODE: Resolve branch from charge metadata or app default
+    // REAL MODE: Resolve branch
     const chargeMeta = (charge as any).metadata || {};
     const refundBranchId = chargeMeta.branch_id || (chargeMeta.custom?.branch_id) || app.branch_id;
     if (!refundBranchId) {
@@ -222,129 +171,97 @@ serve(async (req) => {
       });
     }
 
-    const { data: branchWallet } = await supabase
-      .from('wallets')
-      .select('balance')
-      .eq('wallet_type', 'branch')
-      .eq('branch_id', refundBranchId)
-      .single();
+    // ATOMIC: Debit branch wallet
+    const { error: debitErr } = await supabase.rpc('debit_wallet', {
+      p_user_id: '', // We need the branch owner's user_id
+      p_wallet_type: 'branch',
+      p_amount: actualRefund,
+      p_branch_id: refundBranchId,
+    });
 
-    if (!branchWallet || Number(branchWallet.balance) < actualRefund) {
-      return new Response(JSON.stringify({ error: 'Insufficient branch balance for refund' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    // If debit_wallet fails because we don't know user_id, fall back to direct query
+    // Actually we need to get the branch owner first
+    const { data: branch } = await supabase
+      .from('merchant_branches')
+      .select('branch_name, merchant_user_id, owner_user_id, balance')
+      .eq('id', refundBranchId).single();
+
+    const branchUserId = branch?.owner_user_id || branch?.merchant_user_id || app.merchant_user_id;
+    const branchName = branch?.branch_name || 'Merchant';
+
+    // ATOMIC: Debit branch wallet
+    const { error: branchDebitErr } = await supabase.rpc('debit_wallet', {
+      p_user_id: branchUserId,
+      p_wallet_type: 'branch',
+      p_amount: actualRefund,
+      p_branch_id: refundBranchId,
+    });
+
+    if (branchDebitErr) {
+      const msg = branchDebitErr.message || '';
+      if (msg.includes('Insufficient balance')) {
+        return new Response(JSON.stringify({ error: 'Insufficient branch balance for refund' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      throw branchDebitErr;
     }
 
-    // Debit branch wallet
-    await supabase.from('wallets').update({
-      balance: Number(branchWallet.balance) - actualRefund,
-      updated_at: new Date().toISOString(),
-    }).eq('wallet_type', 'branch').eq('branch_id', refundBranchId);
-
     // Update merchant_branches.balance
-    const { data: branchRow } = await supabase
-      .from('merchant_branches')
-      .select('balance')
-      .eq('id', refundBranchId)
-      .single();
-    if (branchRow) {
+    if (branch) {
       await supabase.from('merchant_branches').update({
-        balance: Number(branchRow.balance) - actualRefund,
+        balance: Number(branch.balance) - actualRefund,
       }).eq('id', refundBranchId);
     }
 
-    // Credit member wallet
-    const { data: memberWallet } = await supabase
-      .from('wallets')
-      .select('balance')
-      .eq('user_id', charge.user_id)
-      .eq('wallet_type', 'member')
-      .single();
-
-    if (memberWallet) {
-      await supabase.from('wallets').update({
-        balance: Number(memberWallet.balance) + actualRefund,
-        updated_at: new Date().toISOString(),
-      }).eq('user_id', charge.user_id).eq('wallet_type', 'member');
-    }
-
-    // Get branch name
-    const { data: branch } = await supabase
-      .from('merchant_branches')
-      .select('branch_name, merchant_user_id, owner_user_id')
-      .eq('id', refundBranchId)
-      .single();
-
-    const branchName = branch?.branch_name || 'Merchant';
+    // ATOMIC: Credit member wallet
+    await supabase.rpc('credit_wallet', {
+      p_user_id: charge.user_id,
+      p_wallet_type: 'member',
+      p_amount: actualRefund,
+    });
 
     // Create refund transaction for member
-    const { data: refundTx } = await supabase
-      .from('transactions')
-      .insert({
-        user_id: charge.user_id,
-        type: 'refund',
-        amount: actualRefund,
-        status: 'completed',
+    const { data: refundTx } = await supabase.from('transactions').insert({
+      user_id: charge.user_id, type: 'refund', amount: actualRefund, status: 'completed',
       description: reason || `Refund from ${branchName} via ${app.name}`,
       reference_id: charge.transaction_id || null,
       metadata: { charge_id, branch_id: refundBranchId, api_app_id: app.id, api_app_name: app.name },
-      })
-      .select('id')
-      .single();
+    }).select('id').single();
 
     // Create debit transaction for branch owner
-    const branchUserId = branch?.owner_user_id || branch?.merchant_user_id || app.merchant_user_id;
     await supabase.from('transactions').insert({
-      user_id: branchUserId,
-      type: 'refund',
-      amount: actualRefund,
-      status: 'completed',
-      description: `Refund to member via ${app.name}`,
-      reference_id: refundTx?.id || null,
+      user_id: branchUserId, type: 'refund', amount: actualRefund, status: 'completed',
+      description: `Refund to member via ${app.name}`, reference_id: refundTx?.id || null,
       metadata: { charge_id, branch_id: refundBranchId, api_app_id: app.id },
     });
 
-    // Update the charge status and refunded total
     const newTotalRefunded = alreadyRefunded + actualRefund;
     const newStatus = newTotalRefunded >= Number(charge.amount) ? 'refunded' : 'partial_refund';
 
-    // We store refund info in description since api_charges doesn't have a metadata column
     await supabase.from('api_charges').update({
-      status: newStatus,
-      metadata: { total_refunded: newTotalRefunded },
+      status: newStatus, metadata: { total_refunded: newTotalRefunded },
     }).eq('id', charge_id);
+
     await supabase.from('notifications').insert({
-      user_id: charge.user_id,
-      title: 'Refund Received',
+      user_id: charge.user_id, title: 'Refund Received',
       message: `You received a refund of RM${actualRefund.toFixed(2)} from ${branchName}.`,
       type: 'payment',
     });
 
     console.log(`API Refund: RM${actualRefund} back to ${charge.user_id}, charge: ${charge_id}, app: ${app.name}`);
 
-    // Send webhook notification with retries
     sendWebhook(app.webhook_url, app.api_secret_hash, {
       event: newStatus === 'refunded' ? 'charge.refunded' : 'charge.partial_refund',
-      charge_id,
-      transaction_id: refundTx?.id,
-      refund_amount: actualRefund,
-      total_refunded: newTotalRefunded,
-      charge_amount: Number(charge.amount),
-      reason: reason || null,
-      status: newStatus,
-      timestamp: new Date().toISOString(),
+      charge_id, transaction_id: refundTx?.id, refund_amount: actualRefund,
+      total_refunded: newTotalRefunded, charge_amount: Number(charge.amount),
+      reason: reason || null, status: newStatus, timestamp: new Date().toISOString(),
     }, supabase, app.id);
 
     return new Response(JSON.stringify({
-      success: true,
-      refund_amount: actualRefund,
-      total_refunded: newTotalRefunded,
-      charge_amount: Number(charge.amount),
-      status: newStatus,
-      transaction_id: refundTx?.id,
-    }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      success: true, refund_amount: actualRefund, total_refunded: newTotalRefunded,
+      charge_amount: Number(charge.amount), status: newStatus, transaction_id: refundTx?.id,
+    }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error: unknown) {
     console.error('Refund error:', error);
