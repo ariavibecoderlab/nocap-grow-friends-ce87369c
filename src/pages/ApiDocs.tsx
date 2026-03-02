@@ -1227,6 +1227,35 @@ app.post("/webhook/nocap", (req, res) => {
                       In sandbox mode, the top-up completes immediately without creating a real payment bill. The wallet is credited instantly and a mock <code className="font-mono">payment_url</code> is returned.
                     </p>
                   </div>
+                  <h4 className="text-sm font-semibold">Error Responses:</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">400 Bad Request — Invalid amount</p>
+                      <CodeBlock>{`{
+  "error": "Amount must be between RM 10.00 and RM 500.00"
+}`}</CodeBlock>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">401 Unauthorized — Missing or invalid credentials</p>
+                      <CodeBlock>{`{
+  "error": "Missing or invalid API key"
+}`}</CodeBlock>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">403 Forbidden — Token lacks topup scope</p>
+                      <CodeBlock>{`{
+  "error": "Access token does not have the required scope: topup"
+}`}</CodeBlock>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">409 Conflict — Duplicate reference</p>
+                      <CodeBlock>{`{
+  "error": "A top-up with this reference already exists",
+  "code": "DUPLICATE_REFERENCE",
+  "existing_transaction_id": "uuid"
+}`}</CodeBlock>
+                    </div>
+                  </div>
                   <ApiTryIt
                     method="POST"
                     endpoint="api-topup"
