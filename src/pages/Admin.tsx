@@ -11,10 +11,11 @@ import UserManagement from "@/components/admin/UserManagement";
 import TransactionsList from "@/components/admin/TransactionsList";
 import WithdrawalApprovals from "@/components/admin/WithdrawalApprovals";
 import ApiAppsManagement from "@/components/admin/ApiAppsManagement";
-import { Shield, ClipboardCheck, GitBranch } from "lucide-react";
+import { Shield, ClipboardCheck, GitBranch, ShieldCheck } from "lucide-react";
 import NocapLogo from "@/components/NocapLogo";
 import { generateUatPdf } from "@/lib/generateUatPdf";
 import AdminWalletCard from "@/components/admin/AdminWalletCard";
+import WalletReconciliation from "@/components/admin/WalletReconciliation";
 import { supabase } from "@/integrations/supabase/client";
 
 const Admin = () => {
@@ -76,13 +77,16 @@ const Admin = () => {
       <div className="mx-auto max-w-md px-4">
         <AdminWalletCard />
         <Tabs defaultValue="merchants" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 bg-white/5 border border-white/10">
+          <TabsList className="grid w-full grid-cols-7 bg-white/5 border border-white/10">
             <TabsTrigger value="merchants" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Merchants</TabsTrigger>
             <TabsTrigger value="withdrawals" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Withdraw</TabsTrigger>
             <TabsTrigger value="fees" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Fees</TabsTrigger>
             <TabsTrigger value="users" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Users</TabsTrigger>
             <TabsTrigger value="transactions" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Txns</TabsTrigger>
             <TabsTrigger value="api-apps" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">API</TabsTrigger>
+            <TabsTrigger value="audit" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+              <ShieldCheck className="h-3 w-3 mr-0.5" />Audit
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="merchants"><MerchantApprovals /></TabsContent>
           <TabsContent value="withdrawals"><WithdrawalApprovals /></TabsContent>
@@ -90,6 +94,7 @@ const Admin = () => {
           <TabsContent value="users"><UserManagement /></TabsContent>
           <TabsContent value="transactions"><TransactionsList /></TabsContent>
           <TabsContent value="api-apps"><ApiAppsManagement /></TabsContent>
+          <TabsContent value="audit"><WalletReconciliation /></TabsContent>
         </Tabs>
       </div>
 
