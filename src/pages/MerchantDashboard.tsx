@@ -22,6 +22,7 @@ import MerchantApiLogs from "@/components/merchant/MerchantApiLogs";
 import NotificationBell from "@/components/NotificationBell";
 import NocapLogo from "@/components/NocapLogo";
 import MerchantMarketplace from "@/components/merchant/MerchantMarketplace";
+import MerchantNotificationPrefs from "@/components/merchant/MerchantNotificationPrefs";
 import MerchantChat from "@/components/merchant/MerchantChat";
 import {
   ArrowLeft,
@@ -749,12 +750,17 @@ const MerchantDashboard = () => {
                 </CardContent>
               </Card>
 
+              {/* Email Report Preferences */}
+              <MerchantNotificationPrefs
+                branchId={selectedBranch.id}
+                branchName={selectedBranch.branch_name}
+              />
+
               {/* Branch Owner Assignment */}
               <BranchOwnerAssignment
                 branchId={selectedBranch.id}
                 currentOwnerId={(selectedBranch as any).owner_user_id}
                 onAssigned={() => {
-                  // Refresh branches
                   supabase
                     .from("merchant_branches")
                     .select("*")
