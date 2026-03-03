@@ -1,145 +1,125 @@
 
 
-# Transaction Audit System -- Impact Analysis and Implementation Plan
+# Admin Panel Overhaul -- Dedicated Admin Portal
 
-## Current Vulnerability Assessment
-
-After analyzing all 8 edge functions that handle wallet balance changes, here is a detailed breakdown of the race condition risks and implications of the proposed audit system.
+## Overview
+Create a separate, fully web-based admin portal at `/admin-portal` with a modern desktop-first UI (sidebar navigation), a dedicated admin account (`adminnocap@nocap.life`), and remove admin privileges from `azarul@brainybunch.com`.
 
 ---
 
-## Vulnerable Edge Functions (Read-Then-Write Pattern)
+## Part 1: Create the New Admin Account
 
-Every edge function currently uses the same dangerous pattern:
+Create the admin user via a one-time edge function or database operations:
+1. Create user `adminnocap@nocap.life` with password `lne6SNIN#` in `auth.users`
+2. Create a profile record (auto-handled by `handle_new_user` trigger, but since this admin doesn't need a referral code, we'll use a direct insert approach via edge function)
+3. Assign `admin` role in `user_roles` table
+4. Create a member wallet for the account
+
+**Approach:** Create a one-time setup edge function `setup-admin-account` that:
+- Creates the user via `supabase.auth.admin.createUser()`
+- The database trigger will auto-create profile, wallet, and member role
+- Then insert `admin` role into `user_roles`
+- After running once, the function can be deleted
+
+---
+
+## Part 2: New Admin Portal UI (Desktop-First)
+
+### Layout
+Replace the current mobile-first admin page (`max-w-md`, bottom nav, cramped 7-column tabs) with a desktop-optimized layout using the **Sidebar** component:
 
 ```text
-1. SELECT balance FROM wallets WHERE ...
-2. newBalance = balance - amount        (in JavaScript)
-3. UPDATE wallets SET balance = newBalance WHERE ...
++------------------+----------------------------------------+
+|                  |                                        |
+|   Sidebar        |   Main Content Area                    |
+|                  |                                        |
+|   - Dashboard    |   (Selected section renders here)      |
+|   - Merchants    |                                        |
+|   - Withdrawals  |                                        |
+|   - Fee Settings |                                        |
+|   - Users        |                                        |
+|   - Transactions |                                        |
+|   - API Apps     |                                        |
+|   - Audit        |                                        |
+|   - Referral Tree|                                        |
+|   - Logout       |                                        |
+|                  |                                        |
++------------------+----------------------------------------+
 ```
 
-Between steps 1 and 3, another request can read the same stale balance, causing double-spending or lost credits.
+### New Files
+| File | Purpose |
+|------|---------|
+| `src/pages/AdminPortal.tsx` | Main layout with SidebarProvider, routing |
+| `src/components/admin/AdminSidebar.tsx` | Sidebar navigation component |
+| `src/components/admin/AdminDashboard.tsx` | Overview dashboard with summary cards (total users, pending approvals, platform balance, recent activity) |
+| `src/pages/AdminLogin.tsx` | Separate login page for admin portal (email + password only, no OTP/referral flow) |
 
-### Functions Affected
+### Design Theme
+- Dark background (`bg-slate-950`) with accent colors
+- Cards with subtle borders and glass-morphism effects
+- Wider content area (no `max-w-md` constraint)
+- Professional typography and spacing
+- No BottomNav -- sidebar handles navigation
 
-| Function | Wallet Operations | Race Condition Risk |
-|---|---|---|
-| `process-payment` | Debit member, credit branch, credit admin, cashback, 5x tier commissions | **CRITICAL** -- up to 9 separate read-then-write cycles per payment |
-| `process-transfer` | Debit sender member, credit recipient member | **HIGH** -- 2 wallets modified |
-| `api-charge` | Debit member, credit branch, credit admin, cashback, 5x tier commissions | **CRITICAL** -- mirrors process-payment |
-| `api-refund` | Debit branch, credit member | **HIGH** -- 2 wallets modified |
-| `raudhahpay-webhook` | Credit member wallet on top-up | **MEDIUM** -- single wallet credit |
-| `admin-actions` (approve_withdrawal) | Debit member/branch wallet | **MEDIUM** -- admin-initiated, lower concurrency |
-| `admin-actions` (approve_branch_withdrawal) | Debit branch, credit member | **HIGH** -- 2 wallets modified |
-| `process-marketplace-order` | Debit buyer, credit branch, credit admin, cashback, 5x tier commissions | **CRITICAL** -- mirrors process-payment |
-
----
-
-## Implications on Current Features
-
-### 1. QR Payments (process-payment)
-- **Risk**: Two simultaneous QR scans from the same member could both pass the balance check and double-spend.
-- **Change**: Replace 3 lines (select, compute, update) with 1 RPC call `debit_wallet()`. The balance trigger will auto-log every change.
-- **Impact on UX**: None visible. Payments that would fail due to insufficient balance will now return a clearer error ("Insufficient balance or wallet not found") instead of silently succeeding with a negative balance.
-
-### 2. P2P Transfers (process-transfer)
-- **Risk**: Rapid repeated transfers could overdraw the sender wallet.
-- **Change**: Same atomic replacement. No UI changes needed.
-- **Impact on UX**: None visible.
-
-### 3. API Charges (api-charge)
-- **Risk**: Third-party apps making rapid sequential charges could exploit the race window.
-- **Change**: Same atomic replacement. Webhook payloads and response format remain identical.
-- **Impact on 3rd-party integrations**: None -- API contract unchanged.
-
-### 4. API Refunds (api-refund)
-- **Risk**: Concurrent refund requests for the same charge could over-refund.
-- **Change**: Use `debit_wallet()` for branch, `credit_wallet()` for member.
-- **Impact on 3rd-party integrations**: None -- API contract unchanged.
-
-### 5. Top-Up via RaudhahPay (raudhahpay-webhook)
-- **Risk**: Duplicate webhook deliveries (which RaudhahPay may send) could double-credit.
-- **Current mitigation**: Already checks `transaction.status === 'completed'` before crediting. This is partially safe but the balance update itself is still non-atomic.
-- **Change**: Use `credit_wallet()` RPC.
-- **Impact on UX**: None visible.
-
-### 6. Marketplace Orders (process-marketplace-order)
-- **Risk**: Same as QR payments -- concurrent purchases can double-spend.
-- **Change**: Same atomic replacement.
-- **Impact on UX**: None visible.
-
-### 7. Admin Withdrawal Approvals (admin-actions)
-- **Risk**: Lower risk (admin-initiated, low concurrency) but still theoretically vulnerable if two admins approve the same withdrawal simultaneously.
-- **Change**: Use `debit_wallet()` RPC.
-- **Impact on Admin Panel**: None visible.
-
-### 8. Cashback and Commission Distribution
-- **Risk**: All commission distribution loops (in process-payment, api-charge, process-marketplace-order) update up to 7 wallets sequentially with read-then-write. If the same ancestor receives commissions from two simultaneous payments, one credit could be lost.
-- **Change**: Each `credit_wallet()` call is independently atomic, so overlapping commissions will both succeed correctly.
-- **Impact**: Commission amounts will be accurate; no more "lost" commissions.
+### Route Structure
+| Route | Component |
+|-------|-----------|
+| `/admin-login` | `AdminLogin` -- simple email/password form |
+| `/admin-portal` | `AdminPortal` -- sidebar layout, default to dashboard |
+| `/admin-portal/merchants` | Merchants tab |
+| `/admin-portal/withdrawals` | Withdrawals tab |
+| `/admin-portal/fees` | Fee Settings |
+| `/admin-portal/users` | User Management |
+| `/admin-portal/transactions` | Transactions |
+| `/admin-portal/api-apps` | API Apps |
+| `/admin-portal/audit` | Wallet Reconciliation / Audit |
+| `/admin-portal/referral-tree` | Referral Tree (moved from `/admin/referral-tree`) |
 
 ---
 
-## Implications on the Audit Trigger
+## Part 3: Remove Admin from azarul@brainybunch.com
 
-### `wallet_balance_audit` Trigger Considerations
-
-- The trigger fires on `AFTER UPDATE` of the `wallets` table. Since the new `debit_wallet()` and `credit_wallet()` RPCs use `SECURITY DEFINER`, `auth.uid()` inside the trigger will return NULL for service-role calls. The `changed_by` column will be NULL for backend operations -- this is acceptable since the transaction record provides the actor context.
-- The trigger adds minimal overhead (a single INSERT per wallet UPDATE). Given that a complex payment already does 9+ database round-trips, one additional INSERT per wallet change is negligible.
-- **No existing feature is affected** by the trigger -- it is purely additive.
-
-### `reconcile_wallet_balances()` Implications
-
-- The reconciliation function compares `wallets.balance` against `SUM(transactions)`. For this to be accurate, every wallet change **must** have a corresponding transaction record. Current code already creates transaction records for all flows -- but there are edge cases:
-  - **Unclaimed commissions returned to branch**: No transaction record is created when unclaimed tier commissions are credited back to the branch wallet. This will cause drift in reconciliation.
-  - **Admin wallet fee credits**: These do have transaction records, so they are fine.
-  - **Branch wallet creation** (insert, not update): The trigger only fires on UPDATE, not INSERT. First-time branch wallet creation with a non-zero balance won't be logged by the audit trigger.
-
-- **Fix needed**: The reconciliation function must account for these edge cases, or we should add transaction records for unclaimed commission returns and handle INSERT in the trigger.
+1. Delete the `admin` role from `user_roles` for user_id `59dfea5c-75c7-42a7-90ed-d4b511c87474`
+2. The user keeps their `member` role and all other data intact
 
 ---
 
-## Implementation Plan (Updated with Impact Mitigations)
+## Part 4: Clean Up Old Admin Routes
 
-### Phase 1: Database Migration
-Create a single migration with:
-1. `wallet_balance_audit` table + RLS (admin-only SELECT)
-2. `log_wallet_balance_change()` trigger on `wallets` (fires on UPDATE and INSERT)
-3. `debit_wallet(p_user_id, p_wallet_type, p_amount, p_branch_id)` RPC
-4. `credit_wallet(p_user_id, p_wallet_type, p_amount, p_branch_id)` RPC
-5. `reconcile_wallet_balances()` RPC
-
-### Phase 2: Update Edge Functions (8 files)
-Replace all `select-compute-update` wallet patterns with `supabase.rpc('debit_wallet', ...)` and `supabase.rpc('credit_wallet', ...)`. No changes to request/response contracts.
-
-Files to modify:
-- `supabase/functions/process-payment/index.ts`
-- `supabase/functions/process-transfer/index.ts`
-- `supabase/functions/api-charge/index.ts`
-- `supabase/functions/api-refund/index.ts`
-- `supabase/functions/api-topup/index.ts`
-- `supabase/functions/raudhahpay-webhook/index.ts`
-- `supabase/functions/admin-actions/index.ts`
-- `supabase/functions/process-marketplace-order/index.ts`
-
-### Phase 3: Admin Reconciliation UI
-- New component: `src/components/admin/WalletReconciliation.tsx`
-- Add "Audit" tab to Admin panel in `src/pages/Admin.tsx`
-- Shows: drift detection table, audit log with date/user filters, summary stats
-
-### Phase 4: Idempotency Keys (Future)
-- Add `idempotency_key` column to `transactions` table
-- Edge functions generate deterministic keys to prevent duplicate processing
+- Keep `/admin` route but redirect to `/admin-portal` (or show "Access Denied")
+- Remove Admin icon from BottomNav entirely (admin portal has its own navigation)
+- Remove `ai_only_admin_ids` logic from BottomNav since admin is no longer accessible from the mobile app nav
 
 ---
 
-## Risk Summary
+## Risk Analysis
 
-| Concern | Risk Level | Mitigation |
-|---|---|---|
-| Breaking existing API contracts | None | Response formats unchanged |
-| Breaking existing UI flows | None | Same success/error responses |
-| Data loss during migration | None | Trigger is additive; no existing data modified |
-| Performance degradation | Negligible | RPC calls replace 2 queries with 1 atomic query |
-| Reconciliation false positives | Low | Address unclaimed commission edge case in function design |
+| Concern | Risk Level | Details |
+|---------|------------|---------|
+| **Losing admin access** | **LOW** | New admin account is created before removing old one. If creation fails, old admin stays. |
+| **Edge functions still work** | **NONE** | Edge functions authenticate via JWT + `has_role()` check. The new admin user has the admin role, so all edge function calls (admin-actions, admin-update-referrer, admin-delete-member) will work identically. |
+| **Nightly test reset** | **NONE** | `nightly-test-reset` references `azarul@brainybunch.com` as the TEST_EMAIL. This is the test account, not the admin account -- it remains unchanged. |
+| **RLS policies** | **NONE** | All admin RLS policies use `has_role(auth.uid(), 'admin')` which is role-based, not user-based. New admin inherits all access. |
+| **AI-only admin list** | **LOW** | The `ai_only_admin_ids` system setting references other user IDs, not the old admin. No change needed. |
+| **Existing admin components** | **NONE** | All 8 admin components (`MerchantApprovals`, `FeeSettings`, `UserManagement`, etc.) are reused as-is in the new portal. Only the layout wrapper changes. |
+| **Hardcoded password in code** | **NONE** | Password is NOT hardcoded in frontend code. It's set once via the setup edge function, then the function is deleted. |
+| **Member features for azarul** | **NONE** | Removing admin role doesn't affect member features (wallet, payments, referrals). The user keeps their `member` role. |
+| **AdminReferralTree page** | **LOW** | Currently at `/admin/referral-tree`. Will be moved to `/admin-portal/referral-tree`. Old route will be removed. |
+| **Bookmark/URL breakage** | **LOW** | Old `/admin` URLs will no longer work. This only affects the single admin user. |
+
+---
+
+## Implementation Order
+
+1. **Create setup edge function** to provision `adminnocap@nocap.life` with admin role
+2. **Run the function** to create the account, then delete the function
+3. **Build `AdminLogin.tsx`** -- clean email+password login page for admin
+4. **Build `AdminSidebar.tsx`** -- sidebar navigation component
+5. **Build `AdminDashboard.tsx`** -- overview dashboard with summary stats
+6. **Build `AdminPortal.tsx`** -- main layout with sidebar + nested content routing
+7. **Update `App.tsx`** -- add new admin routes, keep existing components
+8. **Remove admin from BottomNav** -- clean up mobile nav
+9. **Remove old admin role** from azarul via database update
+10. **Redirect old `/admin` route** to `/admin-portal` or show access denied
 
