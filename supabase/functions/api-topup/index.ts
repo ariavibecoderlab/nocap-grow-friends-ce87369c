@@ -133,10 +133,12 @@ serve(async (req) => {
 
     // === SANDBOX MODE ===
     if (app.is_sandbox) {
+      const topupIkey = ['apitop', app.id, userId, amount.toString(), reference || Math.floor(Date.now() / 10000).toString(36)].join(':');
       const { data: sandboxTx, error: sandboxErr } = await supabase.from('transactions').insert({
         user_id: userId, type: 'top_up', amount, status: 'completed',
         description: description || `API Top-up RM${amount.toFixed(2)}${reference ? ` (${reference})` : ''}`,
         metadata: { api_app_id: app.id, api_app_name: app.name, sandbox: true, reference: reference || null },
+        idempotency_key: topupIkey,
       }).select('id').single();
 
       if (sandboxErr) {
@@ -181,9 +183,11 @@ serve(async (req) => {
     else if (!mobile.startsWith('6')) mobile = '60' + mobile;
 
     const txDescription = description || `API Top-up RM${amount.toFixed(2)}${reference ? ` (${reference})` : ''}`;
+    const prodIkey = ['apitop', app.id, userId, amount.toString(), reference || Math.floor(Date.now() / 10000).toString(36)].join(':');
     const { data: transaction, error: txError } = await supabase.from('transactions').insert({
       user_id: userId, type: 'top_up', amount, status: 'pending', description: txDescription,
       metadata: { api_app_id: app.id, api_app_name: app.name, reference: reference || null },
+      idempotency_key: prodIkey,
     }).select('id').single();
 
     if (txError) {

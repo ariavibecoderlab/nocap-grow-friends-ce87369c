@@ -221,13 +221,22 @@ serve(async (req) => {
       p_amount: actualRefund,
     });
 
-    // Create refund transaction for member
-    const { data: refundTx } = await supabase.from('transactions').insert({
+    // Create refund transaction for member with idempotency
+    const refundIkey = `apiref:${charge_id}:${actualRefund}`;
+    const { data: refundTx, error: refundTxErr } = await supabase.from('transactions').insert({
       user_id: charge.user_id, type: 'refund', amount: actualRefund, status: 'completed',
       description: reason || `Refund from ${branchName} via ${app.name}`,
       reference_id: charge.transaction_id || null,
       metadata: { charge_id, branch_id: refundBranchId, api_app_id: app.id, api_app_name: app.name },
+      idempotency_key: refundIkey,
     }).select('id').single();
+
+    if (refundTxErr && (refundTxErr as any).code === '23505') {
+      const { data: existing } = await supabase.from('transactions').select('id').eq('idempotency_key', refundIkey).single();
+      return new Response(JSON.stringify({ error: 'Duplicate refund request', transaction_id: existing?.id }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Create debit transaction for branch owner
     await supabase.from('transactions').insert({

@@ -300,8 +300,9 @@ Deno.serve(async (req) => {
           .eq("id", withdrawalId);
         if (wdUpdateErr) throw wdUpdateErr;
 
-        // Create transaction record
+        // Create transaction record with idempotency
         const walletLabel = wType === 'member' ? 'Member' : wType === 'merchant' ? 'Merchant' : 'Branch';
+        const wdIkey = `wdappr:${withdrawalId}`;
         await adminClient.from("transactions").insert({
           user_id: withdrawalUserId,
           type: "withdrawal",
@@ -309,6 +310,7 @@ Deno.serve(async (req) => {
           net_amount: Number(wdAmount),
           status: "completed",
           description: `${walletLabel} wallet withdrawal to bank account`,
+          idempotency_key: wdIkey,
         });
 
         // Notify user
@@ -423,11 +425,13 @@ Deno.serve(async (req) => {
           .update({ status: "approved", reviewed_by: userId, reviewed_at: new Date().toISOString() })
           .eq("id", bwId);
 
-        // Create transaction record
+        // Create transaction record with idempotency
+        const bwIkey = `wdappr:${bwId}`;
         await adminClient.from("transactions").insert({
           user_id: bwUserId, type: "withdrawal", amount: Number(bwAmount),
           net_amount: Number(bwAmount), status: "completed",
           description: "Branch withdrawal to member wallet",
+          idempotency_key: bwIkey,
         });
 
         // Notify branch owner

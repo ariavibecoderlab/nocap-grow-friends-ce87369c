@@ -1132,6 +1132,7 @@ export type Database = {
           description: string | null
           fee_amount: number | null
           id: string
+          idempotency_key: string | null
           metadata: Json | null
           net_amount: number | null
           reference_id: string | null
@@ -1146,6 +1147,7 @@ export type Database = {
           description?: string | null
           fee_amount?: number | null
           id?: string
+          idempotency_key?: string | null
           metadata?: Json | null
           net_amount?: number | null
           reference_id?: string | null
@@ -1160,6 +1162,7 @@ export type Database = {
           description?: string | null
           fee_amount?: number | null
           id?: string
+          idempotency_key?: string | null
           metadata?: Json | null
           net_amount?: number | null
           reference_id?: string | null

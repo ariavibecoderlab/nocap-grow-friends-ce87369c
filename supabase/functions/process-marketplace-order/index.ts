@@ -30,6 +30,9 @@ function jsonRes(body: Record<string, unknown>, status = 200) {
   });
 }
 
+function idempotencyKey(...parts: string[]): string { return parts.join(':'); }
+function timeBucket(windowSec = 10): string { return Math.floor(Date.now() / (windowSec * 1000)).toString(36); }
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -273,7 +276,8 @@ serve(async (req) => {
     // ── 11. Create order ──
     const orderNumber = `MKT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
-    const { data: paymentTx } = await supabase.from('transactions').insert({
+    const ikey = idempotencyKey('mkt', buyerId, storeId!, totalAmount.toString(), timeBucket());
+    const { data: paymentTx, error: payTxErr } = await supabase.from('transactions').insert({
       user_id: buyerId,
       type: 'payment',
       amount: totalAmount,
@@ -282,7 +286,13 @@ serve(async (req) => {
       status: 'completed',
       description: `Marketplace order at ${store.store_name}`,
       metadata: { store_id: storeId, order_number: orderNumber },
+      idempotency_key: ikey,
     }).select('id').single();
+
+    if (payTxErr && (payTxErr as any).code === '23505') {
+      const { data: existing } = await supabase.from('transactions').select('id').eq('idempotency_key', ikey).single();
+      return jsonRes({ error: 'Duplicate request', transaction_id: existing?.id }, 409);
+    }
 
     const { data: order, error: orderErr } = await supabase.from('marketplace_orders').insert({
       store_id: storeId!,

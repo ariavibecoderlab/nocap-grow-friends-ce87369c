@@ -107,8 +107,10 @@ serve(async (req) => {
     const isSuccess = status === '4' || paid === 'true';
 
     if (isSuccess) {
+      const webhookIkey = `rpwh:${transactionId}`;
       await supabase.from('transactions').update({ 
         status: 'completed',
+        idempotency_key: webhookIkey,
         metadata: { 
           ...(transaction.metadata as Record<string, unknown>), 
           webhook_payload: payload, bill_no: billNo, ref_id: refId,

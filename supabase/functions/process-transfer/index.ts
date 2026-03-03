@@ -7,6 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+function idempotencyKey(...parts: string[]): string { return parts.join(':'); }
+function timeBucket(windowSec = 10): string { return Math.floor(Date.now() / (windowSec * 1000)).toString(36); }
+
 async function hashPin(pin: string, salt: string): Promise<string> {
   const data = new TextEncoder().encode(pin + salt);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -189,8 +192,9 @@ serve(async (req) => {
     const recipientName = recipientProfile?.full_name || 'Member';
     const senderName = senderProfileName?.full_name || 'Member';
 
-    // Create transfer_out transaction for sender
-    const { data: outTx } = await supabase
+    // Create transfer_out transaction for sender with idempotency
+    const ikey = idempotencyKey('xfer', senderId, recipient_user_id, amount.toString(), timeBucket());
+    const { data: outTx, error: outTxErr } = await supabase
       .from('transactions')
       .insert({
         user_id: senderId,
@@ -198,9 +202,17 @@ serve(async (req) => {
         amount,
         status: 'completed',
         description: `Transfer to ${recipientName}`,
+        idempotency_key: ikey,
       })
       .select('id')
       .single();
+
+    if (outTxErr && (outTxErr as any).code === '23505') {
+      const { data: existing } = await supabase.from('transactions').select('id').eq('idempotency_key', ikey).single();
+      return new Response(JSON.stringify({ error: 'Duplicate request', transaction_id: existing?.id }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Create transfer_in transaction for recipient
     await supabase
