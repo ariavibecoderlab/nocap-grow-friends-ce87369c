@@ -27,7 +27,7 @@ serve(async (req) => {
     // Get all active branches with their owner
     const { data: branches, error: branchErr } = await supabase
       .from('merchant_branches')
-      .select('id, branch_name, owner_user_id, merchant_user_id')
+      .select('id, branch_name, owner_user_id, merchant_user_id, report_frequency')
       .eq('is_active', true)
       .not('owner_user_id', 'is', null);
 
@@ -47,6 +47,13 @@ serve(async (req) => {
     let sentCount = 0;
 
     for (const branch of branches) {
+      // Skip if daily reports disabled for this branch
+      const freq: string[] = (branch as any).report_frequency || ['daily', 'weekly', 'monthly'];
+      if (!freq.includes('daily')) {
+        console.log(`Daily report disabled for branch ${branch.branch_name}, skipping`);
+        continue;
+      }
+
       // Get today's completed payment transactions for this branch
       // Payments to a branch have metadata->branch_id matching
       const { data: transactions, error: txErr } = await supabase

@@ -456,6 +456,17 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "update_branch_report_frequency": {
+        const { branchId: rfId, reportFrequency } = body;
+        const { error: rfErr } = await adminClient
+          .from("merchant_branches")
+          .update({ report_frequency: reportFrequency })
+          .eq("id", rfId);
+        if (rfErr) throw rfErr;
+        result = { success: true };
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Unknown action" }), {
           status: 400,
