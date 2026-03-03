@@ -1,102 +1,43 @@
 
 
-# Phase 4: Idempotency Keys for Transaction Deduplication
+# Add Date Range Filters to Audit Log Tab
 
-## Problem
+## Overview
+Add "From" and "To" date pickers to the Audit Log tab in `WalletReconciliation.tsx`, allowing admins to filter audit entries by time period. The date range will be applied server-side (in the Supabase query) for efficiency, and a "Clear" button will reset the filters.
 
-Currently, if a user double-taps a "Pay" button, or a webhook fires twice, or a network retry occurs, duplicate transactions can be created. While the atomic `debit_wallet`/`credit_wallet` RPCs prevent balance corruption, they don't prevent duplicate transaction records and double wallet movements.
+## Changes
 
-## Solution
+### File: `src/components/admin/WalletReconciliation.tsx`
 
-Add an `idempotency_key` column to the `transactions` table with a unique constraint. Each edge function generates a deterministic key before inserting a transaction. If the same key is inserted twice, the database rejects the duplicate, and the edge function returns the original transaction instead of creating a new one.
+1. **Add state** for `dateFrom` and `dateTo` (both `Date | undefined`, defaulting to `undefined`)
 
----
+2. **Add date range to the query key and query function**:
+   - Include `dateFrom` and `dateTo` in the `queryKey` so the query re-fetches when dates change
+   - Apply `.gte("changed_at", dateFrom.toISOString())` and `.lte("changed_at", dateTo + end-of-day)` filters to the Supabase query when set
+   - Remove the hard `limit(200)` when a date range is active (keep it as fallback when no range is set)
 
-## Database Migration
+3. **Add date picker UI** between the search bar and the results count:
+   - Two date pickers side by side ("From" / "To") using the Popover + Calendar pattern from shadcn
+   - A small "Clear dates" button that appears when either date is set
+   - Quick-select buttons: "Today", "Last 7 days", "Last 30 days" for convenience
 
-1. Add `idempotency_key` column (nullable `text`, default `NULL`) to `transactions` table
-2. Create a unique index on `idempotency_key` (partial -- only where it's not null, so legacy rows without keys are fine)
+4. **Update the results count text** to reflect the active filter (e.g., "42 entries (filtered by date)" vs "200 entries (latest 200)")
 
-```sql
-ALTER TABLE public.transactions ADD COLUMN idempotency_key text;
-CREATE UNIQUE INDEX idx_transactions_idempotency_key 
-  ON public.transactions (idempotency_key) 
-  WHERE idempotency_key IS NOT NULL;
+5. **Add imports**: `format` from `date-fns`, `CalendarIcon` from `lucide-react`, `Calendar` from UI, `Popover`/`PopoverTrigger`/`PopoverContent` from UI, `startOfDay`/`endOfDay`/`subDays` from `date-fns`
+
+### Technical Details
+
+```text
+Filter bar layout:
++--[Search input]-----------------------------------+
++--[From: pick date]--+--[To: pick date]--+--[Clear]+
++--[Today] [7 days] [30 days]--+                     
++--42 entries (filtered)-------+                     
 ```
 
-## Key Generation Strategy
-
-Each function generates a deterministic key from its unique inputs. The key format is `{function}:{user_id}:{distinguishing_fields}:{timestamp_bucket}` where `timestamp_bucket` is a 10-second window to allow natural retries while preventing stale replays.
-
-| Function | Key Format |
-|---|---|
-| `process-payment` | `pay:{payer_id}:{branch_id}:{amount}:{10s_bucket}` |
-| `process-transfer` | `xfer:{sender_id}:{recipient_id}:{amount}:{10s_bucket}` |
-| `process-marketplace-order` | `mkt:{buyer_id}:{store_id}:{total}:{10s_bucket}` |
-| `api-charge` | `apichg:{app_id}:{user_id}:{amount}:{reference}` (reference is already unique per app) |
-| `api-topup` | `apitop:{app_id}:{user_id}:{amount}:{reference}` |
-| `api-refund` | `apiref:{charge_id}` (one refund per charge) |
-| `raudhahpay-webhook` | `rpwh:{transaction_id}` (already checks status, but this adds belt-and-suspenders) |
-| `admin-actions` (withdrawal approval) | `wdappr:{withdrawal_id}` |
-
-## Edge Function Changes (8 files)
-
-For each function, add a helper to generate the key and wrap the transaction insert in a try/catch that handles the unique constraint violation:
-
-```typescript
-// Helper added to each function
-function idempotencyKey(...parts: string[]): string {
-  return parts.join(':');
-}
-
-function timeBucket(windowSec = 10): string {
-  return Math.floor(Date.now() / (windowSec * 1000)).toString(36);
-}
-
-// Usage in transaction insert
-const ikey = idempotencyKey('pay', payerId, branch_id, amount.toString(), timeBucket());
-const { data: paymentTx, error: txErr } = await supabase
-  .from('transactions')
-  .insert({ ..., idempotency_key: ikey })
-  .select('id')
-  .single();
-
-if (txErr?.code === '23505') { // unique_violation
-  // Duplicate -- return existing transaction
-  const { data: existing } = await supabase
-    .from('transactions')
-    .select('id')
-    .eq('idempotency_key', ikey)
-    .single();
-  return jsonRes({ error: 'Duplicate request', transaction_id: existing?.id }, 409);
-}
-```
-
-## Frontend Changes
-
-No frontend changes required. The idempotency is handled entirely server-side. The existing `disabled={submitting}` button states in `QrPay.tsx`, `Transfer.tsx`, `Checkout.tsx` remain as UX-level guards, with the database constraint as the definitive backend guard.
-
-## Files to Modify
-
-| File | Change |
-|---|---|
-| New migration SQL | Add `idempotency_key` column + unique index |
-| `supabase/functions/process-payment/index.ts` | Add key generation + duplicate handling |
-| `supabase/functions/process-transfer/index.ts` | Add key generation + duplicate handling |
-| `supabase/functions/process-marketplace-order/index.ts` | Add key generation + duplicate handling |
-| `supabase/functions/api-charge/index.ts` | Add key generation + duplicate handling |
-| `supabase/functions/api-topup/index.ts` | Add key generation + duplicate handling |
-| `supabase/functions/api-refund/index.ts` | Add key generation + duplicate handling |
-| `supabase/functions/raudhahpay-webhook/index.ts` | Add key generation + duplicate handling |
-| `supabase/functions/admin-actions/index.ts` | Add key generation + duplicate handling |
-
-## Risk Analysis
-
-| Concern | Risk Level | Details |
-|---|---|---|
-| **Breaking existing transactions** | **NONE** | Column is nullable, so all existing rows remain valid. The unique index is partial (WHERE NOT NULL). |
-| **API contract changes** | **NONE** | No new required fields. Idempotency is auto-generated server-side. |
-| **False duplicate rejection** | **LOW** | The 10-second time bucket means two genuinely different payments within 10 seconds to the same branch for the same amount would be rejected. This is an acceptable trade-off -- legitimate same-amount payments seconds apart are extremely rare. API functions using `reference` have no time bucket and are fully deterministic. |
-| **Performance impact** | **NEGLIGIBLE** | One additional B-tree index lookup per insert. |
-| **Commission/cashback transactions** | **NONE** | Only the primary transaction (payment, transfer) gets an idempotency key. Downstream commission/cashback inserts are child operations tied to `reference_id` and will only execute if the parent insert succeeds. |
+- Dates are applied server-side via Supabase `.gte()` / `.lte()` for performance
+- The Calendar component will include `pointer-events-auto` class per shadcn guidelines
+- When `dateTo` is set, we use `endOfDay(dateTo)` to include the full selected day
+- The existing text search filter still applies client-side on top of the server-side date filter
+- No database changes required -- uses the existing `changed_at` column which is already indexed by default ordering
 
