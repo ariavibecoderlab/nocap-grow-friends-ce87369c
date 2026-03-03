@@ -23,6 +23,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+function idempotencyKey(...parts: string[]): string { return parts.join(':'); }
+function timeBucket(windowSec = 10): string { return Math.floor(Date.now() / (windowSec * 1000)).toString(36); }
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -215,12 +218,21 @@ serve(async (req) => {
     const { data: payerProfile } = await supabase.from('profiles').select('full_name').eq('user_id', payerId).single();
     const payerName = payerProfile?.full_name || 'Member';
 
-    // Create payment transaction
-    const { data: paymentTx } = await supabase.from('transactions').insert({
+    // Create payment transaction with idempotency
+    const ikey = idempotencyKey('pay', payerId, branch_id, amount.toString(), timeBucket());
+    const { data: paymentTx, error: payTxErr } = await supabase.from('transactions').insert({
       user_id: payerId, type: 'payment', amount, fee_amount: feeAmount, net_amount: netAmount,
       status: 'completed', description: `Payment to ${branch.branch_name}`,
       metadata: { branch_id, branch_name: branch.branch_name },
+      idempotency_key: ikey,
     }).select('id').single();
+
+    if (payTxErr && (payTxErr as any).code === '23505') {
+      const { data: existing } = await supabase.from('transactions').select('id').eq('idempotency_key', ikey).single();
+      return new Response(JSON.stringify({ error: 'Duplicate request', transaction_id: existing?.id }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Create income transaction for branch
     await supabase.from('transactions').insert({

@@ -113,6 +113,8 @@ async function sendWebhook(
   }
 }
 
+function timeBucket(windowSec = 10): string { return Math.floor(Date.now() / (windowSec * 1000)).toString(36); }
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -453,11 +455,22 @@ serve(async (req) => {
     const { data: payerProfile } = await supabase.from('profiles').select('full_name').eq('user_id', payerId).single();
     const payerName = payerProfile?.full_name || 'Member';
 
-    const { data: paymentTx } = await supabase.from('transactions').insert({
+    const ikey = [
+      'apichg', app.id, payerId, amount.toString(), reference || timeBucket()
+    ].join(':');
+    const { data: paymentTx, error: payTxErr } = await supabase.from('transactions').insert({
       user_id: payerId, type: 'payment', amount, fee_amount: feeAmount, net_amount: netAmount,
       status: 'completed', description: description || `API Payment to ${branch.branch_name}`,
       metadata: { branch_id, branch_name: branch.branch_name, api_app_id: app.id, api_app_name: app.name },
+      idempotency_key: ikey,
     }).select('id').single();
+
+    if (payTxErr && (payTxErr as any).code === '23505') {
+      const { data: existing } = await supabase.from('transactions').select('id').eq('idempotency_key', ikey).single();
+      return new Response(JSON.stringify({ error: 'Duplicate request', transaction_id: existing?.id }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     await supabase.from('transactions').insert({
       user_id: branchIncomeUserId, type: 'top_up', amount: branchCredit, status: 'completed',
