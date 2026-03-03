@@ -848,6 +848,7 @@ export type Database = {
           merchant_user_id: string
           owner_user_id: string | null
           qr_code_id: string
+          report_frequency: string[]
           updated_at: string
         }
         Insert: {
@@ -861,6 +862,7 @@ export type Database = {
           merchant_user_id: string
           owner_user_id?: string | null
           qr_code_id?: string
+          report_frequency?: string[]
           updated_at?: string
         }
         Update: {
@@ -874,6 +876,7 @@ export type Database = {
           merchant_user_id?: string
           owner_user_id?: string | null
           qr_code_id?: string
+          report_frequency?: string[]
           updated_at?: string
         }
         Relationships: []

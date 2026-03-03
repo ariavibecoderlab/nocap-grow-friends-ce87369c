@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Plus, Store, Loader2, ShieldCheck, Percent, GitBranch } from "lucide-react";
+import { Save, Plus, Store, Loader2, ShieldCheck, Percent, GitBranch, Mail } from "lucide-react";
 
 interface MerchantApp {
   id: string;
@@ -61,11 +62,11 @@ const FeeSettings = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("merchant_branches")
-        .select("id, branch_name, commission_percent, merchant_user_id")
+        .select("id, branch_name, commission_percent, merchant_user_id, report_frequency")
         .eq("is_active", true)
         .order("branch_name");
       if (error) throw error;
-      return data as Branch[];
+      return data as (Branch & { report_frequency: string[] })[];
     },
   });
 
@@ -146,6 +147,20 @@ const FeeSettings = () => {
     },
     onSuccess: () => {
       toast({ title: "Commission updated" });
+      queryClient.invalidateQueries({ queryKey: ["admin_branches_commission"] });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const reportFreqMutation = useMutation({
+    mutationFn: async ({ branchId, reportFrequency }: { branchId: string; reportFrequency: string[] }) => {
+      const { error } = await supabase.functions.invoke("admin-actions", {
+        body: { action: "update_branch_report_frequency", branchId, reportFrequency },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Report frequency updated" });
       queryClient.invalidateQueries({ queryKey: ["admin_branches_commission"] });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -442,6 +457,56 @@ const FeeSettings = () => {
                     >
                       <Save className="h-4 w-4" />
                     </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
+      </div>
+
+      {/* Email Report Frequency */}
+      <Separator className="my-4 bg-white/10" />
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold flex items-center gap-1.5 text-white">
+          <Mail className="h-4 w-4 text-secondary" /> Email Report Frequency
+        </h3>
+        <p className="text-xs text-white/40">
+          Toggle which automated sales email reports each branch receives. Changes take effect immediately.
+        </p>
+
+        {branchesLoading ? (
+          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-white/40" /></div>
+        ) : !branches?.length ? (
+          <p className="text-xs text-white/40 text-center py-4">No active branches yet.</p>
+        ) : (
+          branches.map((b) => {
+            const freq: string[] = (b as any).report_frequency || ["daily", "weekly", "monthly"];
+            const reportTypes = ["daily", "weekly", "monthly"] as const;
+
+            const toggleFreq = (type: string, checked: boolean) => {
+              const updated = checked
+                ? [...freq, type]
+                : freq.filter((f: string) => f !== type);
+              reportFreqMutation.mutate({ branchId: b.id, reportFrequency: updated });
+            };
+
+            return (
+              <Card key={`rf-${b.id}`} className="border-white/10 bg-white/5">
+                <CardContent className="py-3">
+                  <p className="text-sm font-medium text-white mb-3">{b.branch_name}</p>
+                  <div className="flex items-center gap-6">
+                    {reportTypes.map((type) => (
+                      <label key={type} className="flex items-center gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={freq.includes(type)}
+                          onCheckedChange={(checked) => toggleFreq(type, !!checked)}
+                          disabled={reportFreqMutation.isPending}
+                          className="border-white/30 data-[state=checked]:bg-secondary data-[state=checked]:border-secondary"
+                        />
+                        <span className="text-xs text-white/70 capitalize">{type}</span>
+                      </label>
+                    ))}
                   </div>
                 </CardContent>
               </Card>

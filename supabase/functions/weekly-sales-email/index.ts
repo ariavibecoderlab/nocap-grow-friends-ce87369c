@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     // Get all active branches with their owner
     const { data: branches, error: branchErr } = await supabase
       .from("merchant_branches")
-      .select("id, branch_name, owner_user_id, merchant_user_id")
+      .select("id, branch_name, owner_user_id, merchant_user_id, report_frequency")
       .eq("is_active", true)
       .not("owner_user_id", "is", null);
 
@@ -67,6 +67,13 @@ Deno.serve(async (req) => {
     })}`;
 
     for (const branch of branches) {
+      // Skip if weekly reports disabled for this branch
+      const freq: string[] = (branch as any).report_frequency || ["daily", "weekly", "monthly"];
+      if (!freq.includes("weekly")) {
+        console.log(`Weekly report disabled for branch ${branch.branch_name}, skipping`);
+        continue;
+      }
+
       const ownerUser = allUsers.find((u: any) => u.id === branch.owner_user_id);
       if (!ownerUser?.email) {
         console.log(`No email for branch owner ${branch.owner_user_id}`);
