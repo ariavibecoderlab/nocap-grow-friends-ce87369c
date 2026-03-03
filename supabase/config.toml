@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.weekly-sales-email]
 verify_jwt = false
+
+[functions.monthly-sales-email]
+verify_jwt = false
