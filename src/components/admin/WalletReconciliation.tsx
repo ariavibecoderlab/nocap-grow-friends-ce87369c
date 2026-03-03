@@ -7,10 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, ShieldCheck, AlertTriangle, Search, X } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RefreshCw, ShieldCheck, AlertTriangle, Search, X, CalendarIcon } from "lucide-react";
+import { format, startOfDay, endOfDay, subDays } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const WalletReconciliation = () => {
   const [auditSearch, setAuditSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
 
   // Drift detection via reconcile_wallet_balances RPC
   const {
@@ -29,13 +35,24 @@ const WalletReconciliation = () => {
 
   // Audit log
   const { data: auditLogs, isLoading: auditLoading } = useQuery({
-    queryKey: ["admin_audit_log"],
+    queryKey: ["admin_audit_log", dateFrom?.toISOString(), dateTo?.toISOString()],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("wallet_balance_audit")
         .select("*")
-        .order("changed_at", { ascending: false })
-        .limit(200);
+        .order("changed_at", { ascending: false });
+
+      if (dateFrom) {
+        query = query.gte("changed_at", startOfDay(dateFrom).toISOString());
+      }
+      if (dateTo) {
+        query = query.lte("changed_at", endOfDay(dateTo).toISOString());
+      }
+      if (!dateFrom && !dateTo) {
+        query = query.limit(200);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },
@@ -52,6 +69,17 @@ const WalletReconciliation = () => {
   });
 
   const driftCount = driftData?.length ?? 0;
+  const hasDateFilter = dateFrom || dateTo;
+
+  const clearDates = () => {
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
+
+  const setPreset = (from: Date, to: Date) => {
+    setDateFrom(from);
+    setDateTo(to);
+  };
 
   return (
     <div className="space-y-4 mt-4">
@@ -157,6 +185,7 @@ const WalletReconciliation = () => {
 
         {/* Audit Log Tab */}
         <TabsContent value="audit">
+          {/* Search */}
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
             <Input
@@ -172,7 +201,103 @@ const WalletReconciliation = () => {
             )}
           </div>
 
-          <p className="text-xs text-white/40 mb-2">{filteredAudit?.length ?? 0} entries (latest 200)</p>
+          {/* Date Range Pickers */}
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "border-white/10 bg-white/5 text-xs justify-start min-w-[130px]",
+                    !dateFrom && "text-white/30"
+                  )}
+                >
+                  <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+                  {dateFrom ? format(dateFrom, "dd MMM yyyy") : "From"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateFrom}
+                  onSelect={setDateFrom}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "border-white/10 bg-white/5 text-xs justify-start min-w-[130px]",
+                    !dateTo && "text-white/30"
+                  )}
+                >
+                  <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+                  {dateTo ? format(dateTo, "dd MMM yyyy") : "To"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateTo}
+                  onSelect={setDateTo}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+
+            {hasDateFilter && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearDates}
+                className="text-xs text-white/50 hover:text-white h-8 px-2"
+              >
+                <X className="h-3.5 w-3.5 mr-1" />
+                Clear
+              </Button>
+            )}
+          </div>
+
+          {/* Quick presets */}
+          <div className="flex gap-2 mb-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPreset(new Date(), new Date())}
+              className="border-white/10 bg-white/5 text-[10px] h-7 px-2 text-white/50 hover:text-white"
+            >
+              Today
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPreset(subDays(new Date(), 6), new Date())}
+              className="border-white/10 bg-white/5 text-[10px] h-7 px-2 text-white/50 hover:text-white"
+            >
+              Last 7 days
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPreset(subDays(new Date(), 29), new Date())}
+              className="border-white/10 bg-white/5 text-[10px] h-7 px-2 text-white/50 hover:text-white"
+            >
+              Last 30 days
+            </Button>
+          </div>
+
+          <p className="text-xs text-white/40 mb-2">
+            {filteredAudit?.length ?? 0} entries
+            {hasDateFilter ? " (filtered by date)" : " (latest 200)"}
+          </p>
 
           {auditLoading ? (
             <p className="text-white/40 text-sm">Loading audit log...</p>
