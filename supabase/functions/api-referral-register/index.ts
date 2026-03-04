@@ -157,15 +157,53 @@ serve(async (req) => {
 
     const newUserId = authData.user.id;
 
-    // Wait briefly for the handle_new_user trigger to execute
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait briefly for the handle_new_user trigger to create the profile
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Get the new user's referral code
+    // Get the new user's profile
     const { data: newProfile } = await supabase
       .from('profiles')
-      .select('referral_code')
+      .select('id, referral_code, referred_by')
       .eq('user_id', newUserId)
       .single();
+
+    // Rebuild the 5-tier ancestor chain by walking profiles.referred_by
+    // This is more reliable than the trigger which depends on existing referral_tree data
+    if (newProfile?.referred_by && referral_code) {
+      // Delete any entries the trigger may have created (we'll rebuild properly)
+      await supabase
+        .from('referral_tree')
+        .delete()
+        .eq('user_id', newUserId);
+
+      // Walk up the referred_by chain to build tiers 1-5
+      let currentProfileId = newProfile.referred_by; // profile.id of direct referrer
+      let tier = 1;
+      while (currentProfileId && tier <= 5) {
+        const { data: ancestorProfile } = await supabase
+          .from('profiles')
+          .select('id, user_id, referred_by')
+          .eq('id', currentProfileId)
+          .single();
+
+        if (!ancestorProfile) break;
+
+        const { error: insertErr } = await supabase
+          .from('referral_tree')
+          .insert({
+            user_id: newUserId,
+            ancestor_id: ancestorProfile.user_id,
+            tier,
+          });
+
+        if (insertErr) {
+          console.error(`Tier ${tier} insert error:`, insertErr);
+        }
+
+        currentProfileId = ancestorProfile.referred_by;
+        tier++;
+      }
+    }
 
     // Generate access token for the 3rd party app
     const tokenBytes = new Uint8Array(32);
