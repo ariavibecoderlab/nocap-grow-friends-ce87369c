@@ -80,6 +80,7 @@ const Referral = () => {
   const [loadingData, setLoadingData] = useState(true);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [tierCountsFromRpc, setTierCountsFromRpc] = useState<Record<number, number>>({});
+  const [beyondTier5Count, setBeyondTier5Count] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -115,11 +116,12 @@ const Referral = () => {
         return allData;
       };
 
-      // Fetch tier counts via RPC (bypasses row limit) + profile + commissions in parallel
-      const [profileRes, tierCountsRes, commissionRes] = await Promise.all([
+      // Fetch tier counts via RPC (bypasses row limit) + profile + commissions + deep network count in parallel
+      const [profileRes, tierCountsRes, commissionRes, deepCountRes] = await Promise.all([
         supabase.from("profiles").select("full_name, referral_code").eq("user_id", user.id).maybeSingle(),
         supabase.rpc("get_referral_tier_counts", { p_user_id: user.id }),
         supabase.from("transactions").select("id, amount, description, created_at, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed").order("created_at", { ascending: false }).limit(50),
+        supabase.rpc("get_deep_network_count", { p_user_id: user.id }),
       ]);
 
       if (profileRes.data) setProfile(profileRes.data);
@@ -132,6 +134,11 @@ const Referral = () => {
         }
       }
       setTierCountsFromRpc(rpcTierCounts);
+
+      // Set beyond tier 5 count
+      if (deepCountRes.data && Array.isArray(deepCountRes.data) && deepCountRes.data.length > 0) {
+        setBeyondTier5Count(Number(deepCountRes.data[0].beyond_tier5) || 0);
+      }
 
       const allReferrals = await fetchAllReferrals();
 
@@ -225,7 +232,7 @@ const Referral = () => {
     count: tierCountsFromRpc[tier] || referralsByTier[tier]?.length || 0,
   }));
 
-  const totalNetworkCount = Object.values(tierCountsFromRpc).reduce((s, c) => s + c, 0) || referrals.length;
+  const totalNetworkCount = (Object.values(tierCountsFromRpc).reduce((s, c) => s + c, 0) || referrals.length) + beyondTier5Count;
 
   // Per-tier earnings breakdown
   const earningsByType = useMemo(() => {
@@ -476,6 +483,19 @@ const Referral = () => {
                     </div>
                   );
                 })}
+                {beyondTier5Count > 0 && (
+                  <div className="ml-5 relative pl-6 mt-1 mb-2">
+                    <div className="absolute left-0 top-0 h-1/2 w-px border-l-2 border-dashed border-white/10" />
+                    <div className="absolute left-0 top-1/2 w-5 border-t-2 border-dashed border-white/10" />
+                    <div className="absolute left-[-5px] top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-white/20 ring-2 ring-primary" />
+                    <div className="rounded-lg bg-white/5 border border-white/10 p-3 flex items-center gap-2">
+                      <Layers className="h-4 w-4 text-white/30 shrink-0" />
+                      <p className="text-xs text-white/50">
+                        Plus <span className="font-semibold text-white/70">{beyondTier5Count}</span> more members beyond Tier 5
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>
