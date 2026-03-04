@@ -1416,6 +1416,14 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_deep_network_count: {
+        Args: { p_user_id: string }
+        Returns: {
+          beyond_tier5: number
+          tier5_count: number
+          total_descendants: number
+        }[]
+      }
       get_referral_emails: {
         Args: { referral_user_ids: string[] }
         Returns: {
