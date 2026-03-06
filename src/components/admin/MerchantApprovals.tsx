@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { CheckCircle, XCircle, Loader2, CheckSquare, Eye, Building2, User, Landmark, FileText, ExternalLink, Download, Calendar, MapPin, Phone, Mail } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, CheckSquare, Eye, Building2, User, Landmark, FileText, ExternalLink, Download, Calendar, MapPin, Phone, Mail, GitBranch, Store, CircleDot } from "lucide-react";
 import { format } from "date-fns";
 
 interface MerchantApp {
@@ -41,6 +41,25 @@ interface ProfileInfo {
   avatar_url: string | null;
 }
 
+interface BranchInfo {
+  id: string;
+  branch_name: string;
+  branch_address: string | null;
+  commission_percent: number;
+  balance: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+interface StoreInfo {
+  id: string;
+  store_name: string;
+  slug: string;
+  status: string;
+  branch_id: string;
+  created_at: string;
+}
+
 const MerchantApprovals = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -56,6 +75,8 @@ const MerchantApprovals = () => {
   const [detailEmail, setDetailEmail] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [docPreview, setDocPreview] = useState<{ url: string; name: string } | null>(null);
+  const [detailBranches, setDetailBranches] = useState<BranchInfo[]>([]);
+  const [detailStores, setDetailStores] = useState<StoreInfo[]>([]);
 
   const { data: applications, isLoading } = useQuery({
     queryKey: ["merchant_applications", statusFilter],
@@ -75,18 +96,24 @@ const MerchantApprovals = () => {
     setDetailLoading(true);
     setDetailProfile(null);
     setDetailEmail(null);
+    setDetailBranches([]);
+    setDetailStores([]);
 
-    // Fetch profile + email in parallel
-    const [profileRes, emailRes] = await Promise.all([
+    // Fetch profile, email, branches, stores in parallel
+    const [profileRes, emailRes, branchesRes, storesRes] = await Promise.all([
       supabase.from("profiles").select("full_name, phone, avatar_url").eq("user_id", app.user_id).single(),
       supabase.rpc("get_all_user_emails").then(({ data }) => {
         const found = (data as Array<{ user_id: string; email: string }> | null)?.find((e) => e.user_id === app.user_id);
         return found?.email || null;
       }),
+      supabase.from("merchant_branches").select("id, branch_name, branch_address, commission_percent, balance, is_active, created_at").eq("merchant_user_id", app.user_id).order("created_at", { ascending: false }),
+      supabase.from("marketplace_stores").select("id, store_name, slug, status, branch_id, created_at").eq("merchant_user_id", app.user_id).order("created_at", { ascending: false }),
     ]);
 
     setDetailProfile(profileRes.data as ProfileInfo | null);
     setDetailEmail(emailRes);
+    setDetailBranches((branchesRes.data as BranchInfo[]) || []);
+    setDetailStores((storesRes.data as StoreInfo[]) || []);
     setDetailLoading(false);
   };
 
@@ -434,6 +461,59 @@ const MerchantApprovals = () => {
                         </Badge>
                       </div>
                     </div>
+                  </div>
+
+                  <Separator className="bg-border/30" />
+
+                  {/* Branches */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-secondary flex items-center gap-1.5 mb-2">
+                      <GitBranch className="h-4 w-4" /> Branches ({detailBranches.length})
+                    </h4>
+                    {detailBranches.length === 0 ? (
+                      <p className="text-muted-foreground text-sm bg-muted/20 rounded-lg p-3">No branches created yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {detailBranches.map((branch) => (
+                          <div key={branch.id} className="bg-muted/20 rounded-lg p-3 text-sm">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-medium text-foreground flex items-center gap-1.5">
+                                <CircleDot className={`h-3 w-3 ${branch.is_active ? "text-green-500" : "text-muted-foreground"}`} />
+                                {branch.branch_name}
+                              </span>
+                              <Badge variant={branch.is_active ? "default" : "secondary"} className="text-[10px]">
+                                {branch.is_active ? "Active" : "Inactive"}
+                              </Badge>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 mt-1.5 text-xs text-muted-foreground">
+                              <span>Commission: <span className="text-foreground font-medium">{branch.commission_percent}%</span></span>
+                              <span>Balance: <span className="text-foreground font-medium">RM {Number(branch.balance).toFixed(2)}</span></span>
+                              {branch.branch_address && (
+                                <span className="col-span-2 sm:col-span-1 truncate" title={branch.branch_address}>
+                                  <MapPin className="h-3 w-3 inline mr-0.5" />{branch.branch_address}
+                                </span>
+                              )}
+                            </div>
+                            {/* Stores under this branch */}
+                            {detailStores.filter((s) => s.branch_id === branch.id).length > 0 && (
+                              <div className="mt-2 pl-3 border-l-2 border-secondary/30 space-y-1">
+                                {detailStores.filter((s) => s.branch_id === branch.id).map((store) => (
+                                  <div key={store.id} className="flex items-center justify-between text-xs">
+                                    <span className="text-foreground flex items-center gap-1">
+                                      <Store className="h-3 w-3 text-secondary" /> {store.store_name}
+                                      <span className="text-muted-foreground">/{store.slug}</span>
+                                    </span>
+                                    <Badge variant={store.status === "live" ? "default" : "secondary"} className="text-[10px]">
+                                      {store.status}
+                                    </Badge>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <Separator className="bg-border/30" />
