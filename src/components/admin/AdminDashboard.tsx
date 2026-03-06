@@ -9,6 +9,7 @@ import { formatDistanceToNow } from "date-fns";
 
 interface Stats {
   totalUsers: number;
+  totalMerchants: number;
   pendingMerchants: number;
   pendingWithdrawals: number;
   recentTransactions: number;
@@ -33,15 +34,17 @@ const AdminDashboard = () => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
 
-    const [usersRes, merchantsRes, withdrawalsRes, txRes] = await Promise.all([
+    const [usersRes, merchantsRes, withdrawalsRes, txRes, totalMerchantsRes] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
       supabase.from("merchant_applications").select("id", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("withdrawal_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("transactions").select("id", { count: "exact", head: true }),
+      supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "merchant"),
     ]);
 
     setStats({
       totalUsers: usersRes.count ?? 0,
+      totalMerchants: totalMerchantsRes.count ?? 0,
       pendingMerchants: merchantsRes.count ?? 0,
       pendingWithdrawals: withdrawalsRes.count ?? 0,
       recentTransactions: txRes.count ?? 0,
@@ -125,6 +128,7 @@ const AdminDashboard = () => {
 
   const cards = [
     { title: "Total Users", value: stats?.totalUsers, icon: Users, color: "text-blue-400" },
+    { title: "Total Merchants", value: stats?.totalMerchants, icon: Store, color: "text-purple-400" },
     { title: "Pending Merchants", value: stats?.pendingMerchants, icon: Store, color: "text-secondary", alert: true },
     { title: "Pending Withdrawals", value: stats?.pendingWithdrawals, icon: Banknote, color: "text-orange-400", alert: true },
     { title: "Total Transactions", value: stats?.recentTransactions, icon: ArrowLeftRight, color: "text-green-400" },
@@ -158,7 +162,7 @@ const AdminDashboard = () => {
 
       <AdminWalletCard />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {cards.map((card) => (
           <Card key={card.title} className="bg-card border-border/50">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
