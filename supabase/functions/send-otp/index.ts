@@ -61,7 +61,7 @@ serve(async (req) => {
       page++;
     }
 
-    if (!authUser || !authUser.email_confirmed_at) {
+    if (!authUser) {
       return new Response(JSON.stringify({ error: 'User not found' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
