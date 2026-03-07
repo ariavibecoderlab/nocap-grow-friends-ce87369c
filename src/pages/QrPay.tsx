@@ -559,8 +559,18 @@ const QrPay = () => {
                   </div>
                 )}
 
-                <div className="rounded-lg bg-white/5 border border-white/10 p-3 text-sm space-y-1">
+                <div className="rounded-lg bg-white/5 border border-white/10 p-3 text-sm space-y-2">
                   <div className="flex justify-between">
+                    <span className="text-white/50">Amount Paid</span>
+                    <span className="text-white">RM {Number(amount).toFixed(2)}</span>
+                  </div>
+                  {result.cashback > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-secondary/80">Cashback Received</span>
+                      <span className="text-secondary font-semibold">+ RM {result.cashback.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="border-t border-white/10 pt-2 flex justify-between">
                     <span className="text-white/50">New Balance</span>
                     <span className="font-bold text-white">RM {result.new_balance.toFixed(2)}</span>
                   </div>
