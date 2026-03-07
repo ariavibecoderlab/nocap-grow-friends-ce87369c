@@ -177,8 +177,8 @@ serve(async (req) => {
     const feeAmount = Math.round(amount * platformFeePercent) / 100;
     const commissionPool = Math.round(amount * commissionPercent) / 100;
     const netAmount = amount - feeAmount;
-    const cashbackShare = Math.floor((commissionPool / 6) * 100) / 100;
-    const tierShare = Math.floor((commissionPool / 6) * 100) / 100;
+    const cashbackShare = Math.round((commissionPool / 6) * 100) / 100;
+    const tierShare = Math.round((commissionPool / 6) * 100) / 100;
 
     // ATOMIC: Debit payer's member wallet
     const { data: newPayerBalance, error: debitErr } = await supabase.rpc('debit_wallet', {
