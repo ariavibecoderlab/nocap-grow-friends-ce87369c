@@ -294,6 +294,41 @@ const Authorize = () => {
             </>
           )}
 
+          {/* Register step */}
+          {step === "register" && (
+            <>
+              <CardHeader className="text-center">
+                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-secondary/10">
+                  <UserPlus className="h-5 w-5 text-secondary" />
+                </div>
+                <CardTitle className="text-lg text-white">Create NoCap Account</CardTitle>
+                <CardDescription className="text-white/50">
+                  No account found for <span className="text-white font-medium">{email}</span>. Enter a referral code to register.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-white/70">Referral Code</Label>
+                  <Input
+                    type="text"
+                    placeholder="Enter referral code"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => e.key === "Enter" && handleRegister()}
+                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30 uppercase tracking-wider"
+                    autoFocus
+                  />
+                </div>
+                <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleRegister} disabled={loading || !referralCode}>
+                  {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating Account...</> : "Create Account & Send OTP"}
+                </Button>
+                <Button variant="ghost" className="w-full text-xs text-white/40 hover:text-white" onClick={() => { setStep("login"); setIsNewUser(false); }}>
+                  <ArrowLeft className="h-3 w-3 mr-1" /> Back to Sign In
+                </Button>
+              </CardContent>
+            </>
+          )}
+
           {/* OTP step */}
           {step === "otp" && (
             <>
