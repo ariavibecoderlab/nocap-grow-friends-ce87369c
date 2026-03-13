@@ -181,6 +181,7 @@ const Authorize = () => {
     setLoading(false);
   };
 
+  const handleApprove = async () => {
     if (!user) return;
     setApproving(true);
 
