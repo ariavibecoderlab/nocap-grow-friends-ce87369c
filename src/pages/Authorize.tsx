@@ -72,15 +72,44 @@ const Authorize = () => {
     }
   }, [user, authLoading, appError]);
 
+  const sendOtpViaEdgeFunction = async (targetEmail: string) => {
+    try {
+      const response = await supabase.functions.invoke('send-otp', {
+        body: { email: targetEmail },
+      });
+      let errorMessage: string | null = null;
+      if (response.error) {
+        if (response.error instanceof FunctionsHttpError) {
+          try {
+            const errorBody = await response.error.context.json();
+            errorMessage = errorBody?.error || response.error.message;
+          } catch {
+            errorMessage = response.error.message;
+          }
+        } else {
+          errorMessage = response.error.message || String(response.error);
+        }
+      } else if (response.data?.error) {
+        errorMessage = response.data.error;
+      }
+      return { ...response, errorMessage };
+    } catch (err) {
+      return { data: null, error: err, errorMessage: err instanceof Error ? err.message : String(err) };
+    }
+  };
+
   const handleSendOtp = async () => {
     if (!email) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-otp", {
-        body: { email },
-      });
+      const { error, data, errorMessage } = await sendOtpViaEdgeFunction(email);
       if (error || data?.error) {
-        toast({ title: "Error", description: "Could not send OTP. Make sure you have a NoCap account.", variant: "destructive" });
+        if (errorMessage === 'User not found') {
+          setIsNewUser(true);
+          setStep("register");
+        } else {
+          toast({ title: "Error", description: errorMessage || "Could not send OTP. Please try again.", variant: "destructive" });
+        }
       } else {
         toast({ title: "OTP Sent", description: "Check your email for the verification code." });
         setStep("otp");
@@ -91,14 +120,54 @@ const Authorize = () => {
     setLoading(false);
   };
 
-  const handleVerifyOtp = async () => {
+  const handleRegister = async () => {
+    if (!email || !referralCode) return;
     setLoading(true);
-    const { error } = await verifyOtp(email, otpCode);
-    if (error) {
-      toast({ title: "Invalid OTP", description: error.message, variant: "destructive" });
-    } else {
-      setStep("consent");
+
+    // Validate referral code
+    const { data: referrer } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("referral_code", referralCode.toUpperCase())
+      .maybeSingle();
+
+    if (!referrer) {
+      toast({ title: "Invalid referral code", description: "This referral code does not exist.", variant: "destructive" });
+      setLoading(false);
+      return;
     }
+
+    // Sign up with random password
+    const randomPassword = crypto.randomUUID();
+    const { error: signUpError } = await signUp(email, randomPassword, "", "", referralCode.toUpperCase());
+
+    if (signUpError) {
+      if (signUpError.message?.toLowerCase().includes("already registered")) {
+        toast({ title: "Email already registered", description: "Please sign in instead.", variant: "destructive" });
+        setIsNewUser(false);
+        setStep("login");
+      } else {
+        toast({ title: "Registration failed", description: signUpError.message, variant: "destructive" });
+      }
+      setLoading(false);
+      return;
+    }
+
+    // Sign out so user verifies via OTP
+    await supabase.auth.signOut();
+
+    // Send OTP to newly created user
+    const { error: otpError, data: otpData } = await sendOtpViaEdgeFunction(email);
+    if (otpError || otpData?.error) {
+      toast({ title: "Account created", description: "Please try signing in again.", variant: "destructive" });
+      setIsNewUser(false);
+      setStep("login");
+      setLoading(false);
+      return;
+    }
+
+    toast({ title: "Account created!", description: "Check your email for the verification code." });
+    setStep("otp");
     setLoading(false);
   };
 
