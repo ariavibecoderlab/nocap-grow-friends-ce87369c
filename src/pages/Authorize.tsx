@@ -170,8 +170,17 @@ const Authorize = () => {
     setStep("otp");
     setLoading(false);
   };
+  const handleVerifyOtp = async () => {
+    setLoading(true);
+    const { error } = await verifyOtp(email, otpCode);
+    if (error) {
+      toast({ title: "Invalid OTP", description: error.message, variant: "destructive" });
+    } else {
+      setStep("consent");
+    }
+    setLoading(false);
+  };
 
-  const handleApprove = async () => {
     if (!user) return;
     setApproving(true);
 
