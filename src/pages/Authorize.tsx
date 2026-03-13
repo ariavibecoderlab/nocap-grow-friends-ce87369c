@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { verifyOtp } from "@/lib/auth";
-import { Zap, Shield, Wallet, CreditCard, ArrowLeft, Loader2, CheckCircle2, XCircle, ArrowUpCircle } from "lucide-react";
+import { signUp, verifyOtp } from "@/lib/auth";
+import { FunctionsHttpError } from "@supabase/supabase-js";
+import { Zap, Shield, Wallet, CreditCard, ArrowLeft, Loader2, CheckCircle2, XCircle, ArrowUpCircle, UserPlus } from "lucide-react";
 
-type Step = "login" | "otp" | "consent";
+type Step = "login" | "register" | "otp" | "consent";
 
 const SCOPE_LABELS: Record<string, { label: string; icon: React.ReactNode; description: string }> = {
   balance: { label: "View Balance", icon: <Wallet className="h-4 w-4" />, description: "Read your wallet balance" },
@@ -35,10 +36,12 @@ const Authorize = () => {
   const [step, setStep] = useState<Step>("login");
   const [email, setEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [appName, setAppName] = useState("");
   const [appError, setAppError] = useState("");
   const [approving, setApproving] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
 
   // Validate required params
   useEffect(() => {
@@ -69,15 +72,44 @@ const Authorize = () => {
     }
   }, [user, authLoading, appError]);
 
+  const sendOtpViaEdgeFunction = async (targetEmail: string) => {
+    try {
+      const response = await supabase.functions.invoke('send-otp', {
+        body: { email: targetEmail },
+      });
+      let errorMessage: string | null = null;
+      if (response.error) {
+        if (response.error instanceof FunctionsHttpError) {
+          try {
+            const errorBody = await response.error.context.json();
+            errorMessage = errorBody?.error || response.error.message;
+          } catch {
+            errorMessage = response.error.message;
+          }
+        } else {
+          errorMessage = response.error.message || String(response.error);
+        }
+      } else if (response.data?.error) {
+        errorMessage = response.data.error;
+      }
+      return { ...response, errorMessage };
+    } catch (err) {
+      return { data: null, error: err, errorMessage: err instanceof Error ? err.message : String(err) };
+    }
+  };
+
   const handleSendOtp = async () => {
     if (!email) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-otp", {
-        body: { email },
-      });
+      const { error, data, errorMessage } = await sendOtpViaEdgeFunction(email);
       if (error || data?.error) {
-        toast({ title: "Error", description: "Could not send OTP. Make sure you have a NoCap account.", variant: "destructive" });
+        if (errorMessage === 'User not found') {
+          setIsNewUser(true);
+          setStep("register");
+        } else {
+          toast({ title: "Error", description: errorMessage || "Could not send OTP. Please try again.", variant: "destructive" });
+        }
       } else {
         toast({ title: "OTP Sent", description: "Check your email for the verification code." });
         setStep("otp");
@@ -88,6 +120,56 @@ const Authorize = () => {
     setLoading(false);
   };
 
+  const handleRegister = async () => {
+    if (!email || !referralCode) return;
+    setLoading(true);
+
+    // Validate referral code
+    const { data: referrer } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("referral_code", referralCode.toUpperCase())
+      .maybeSingle();
+
+    if (!referrer) {
+      toast({ title: "Invalid referral code", description: "This referral code does not exist.", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
+    // Sign up with random password
+    const randomPassword = crypto.randomUUID();
+    const { error: signUpError } = await signUp(email, randomPassword, "", "", referralCode.toUpperCase());
+
+    if (signUpError) {
+      if (signUpError.message?.toLowerCase().includes("already registered")) {
+        toast({ title: "Email already registered", description: "Please sign in instead.", variant: "destructive" });
+        setIsNewUser(false);
+        setStep("login");
+      } else {
+        toast({ title: "Registration failed", description: signUpError.message, variant: "destructive" });
+      }
+      setLoading(false);
+      return;
+    }
+
+    // Sign out so user verifies via OTP
+    await supabase.auth.signOut();
+
+    // Send OTP to newly created user
+    const { error: otpError, data: otpData } = await sendOtpViaEdgeFunction(email);
+    if (otpError || otpData?.error) {
+      toast({ title: "Account created", description: "Please try signing in again.", variant: "destructive" });
+      setIsNewUser(false);
+      setStep("login");
+      setLoading(false);
+      return;
+    }
+
+    toast({ title: "Account created!", description: "Check your email for the verification code." });
+    setStep("otp");
+    setLoading(false);
+  };
   const handleVerifyOtp = async () => {
     setLoading(true);
     const { error } = await verifyOtp(email, otpCode);
@@ -208,6 +290,41 @@ const Authorize = () => {
                 </div>
                 <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleSendOtp} disabled={loading || !email}>
                   {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending...</> : "Send OTP"}
+                </Button>
+              </CardContent>
+            </>
+          )}
+
+          {/* Register step */}
+          {step === "register" && (
+            <>
+              <CardHeader className="text-center">
+                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-secondary/10">
+                  <UserPlus className="h-5 w-5 text-secondary" />
+                </div>
+                <CardTitle className="text-lg text-white">Create NoCap Account</CardTitle>
+                <CardDescription className="text-white/50">
+                  No account found for <span className="text-white font-medium">{email}</span>. Enter a referral code to register.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-white/70">Referral Code</Label>
+                  <Input
+                    type="text"
+                    placeholder="Enter referral code"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => e.key === "Enter" && handleRegister()}
+                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30 uppercase tracking-wider"
+                    autoFocus
+                  />
+                </div>
+                <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleRegister} disabled={loading || !referralCode}>
+                  {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating Account...</> : "Create Account & Send OTP"}
+                </Button>
+                <Button variant="ghost" className="w-full text-xs text-white/40 hover:text-white" onClick={() => { setStep("login"); setIsNewUser(false); }}>
+                  <ArrowLeft className="h-3 w-3 mr-1" /> Back to Sign In
                 </Button>
               </CardContent>
             </>
