@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { verifyOtp } from "@/lib/auth";
-import { Zap, Shield, Wallet, CreditCard, ArrowLeft, Loader2, CheckCircle2, XCircle, ArrowUpCircle } from "lucide-react";
+import { signUp, verifyOtp } from "@/lib/auth";
+import { FunctionsHttpError } from "@supabase/supabase-js";
+import { Zap, Shield, Wallet, CreditCard, ArrowLeft, Loader2, CheckCircle2, XCircle, ArrowUpCircle, UserPlus } from "lucide-react";
 
-type Step = "login" | "otp" | "consent";
+type Step = "login" | "register" | "otp" | "consent";
 
 const SCOPE_LABELS: Record<string, { label: string; icon: React.ReactNode; description: string }> = {
   balance: { label: "View Balance", icon: <Wallet className="h-4 w-4" />, description: "Read your wallet balance" },
