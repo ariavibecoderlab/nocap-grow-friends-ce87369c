@@ -36,10 +36,12 @@ const Authorize = () => {
   const [step, setStep] = useState<Step>("login");
   const [email, setEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [appName, setAppName] = useState("");
   const [appError, setAppError] = useState("");
   const [approving, setApproving] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
 
   // Validate required params
   useEffect(() => {
