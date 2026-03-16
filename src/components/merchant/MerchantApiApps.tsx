@@ -299,6 +299,22 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
                   </p>
                 )}
               </div>
+
+              {/* Regenerate Secret */}
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive text-[10px] h-7"
+                onClick={() => regenerateSecret(app.id)}
+                disabled={regeneratingSecret === app.id}
+              >
+                {regeneratingSecret === app.id ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                Regenerate API Secret
+              </Button>
             </CardContent>
           </Card>
         ))
