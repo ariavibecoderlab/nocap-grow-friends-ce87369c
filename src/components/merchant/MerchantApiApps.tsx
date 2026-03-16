@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Key, Copy, Eye, EyeOff, Loader2, Globe, FlaskConical, Webhook, Pencil, Check, X } from "lucide-react";
+import { Plus, Key, Copy, Eye, EyeOff, Loader2, Globe, FlaskConical, Webhook, Pencil, Check, X, RefreshCw } from "lucide-react";
 
 interface Branch {
   id: string;
@@ -53,6 +53,7 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
   const [showSecret, setShowSecret] = useState(false);
   const [showTestToken, setShowTestToken] = useState(false);
   const [generatingToken, setGeneratingToken] = useState<string | null>(null);
+  const [regeneratingSecret, setRegeneratingSecret] = useState<string | null>(null);
   const [editingWebhook, setEditingWebhook] = useState<string | null>(null);
   const [webhookEdit, setWebhookEdit] = useState("");
   useEffect(() => {
@@ -136,6 +137,21 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
       toast({ title: "Test token generated!" });
     }
     setGeneratingToken(null);
+  };
+
+  const regenerateSecret = async (appId: string) => {
+    setRegeneratingSecret(appId);
+    const { data, error } = await supabase.functions.invoke("api-regenerate-secret", {
+      body: { app_id: appId },
+    });
+
+    if (error || !data?.success) {
+      toast({ title: "Error", description: data?.error || error?.message || "Failed to regenerate secret", variant: "destructive" });
+    } else {
+      setCredentials({ api_key: "", api_secret: data.api_secret });
+      toast({ title: "API Secret regenerated!", description: "Update this in your integration immediately." });
+    }
+    setRegeneratingSecret(null);
   };
 
   const copyToClipboard = (text: string, label: string) => {
@@ -283,6 +299,22 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
                   </p>
                 )}
               </div>
+
+              {/* Regenerate Secret */}
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive text-[10px] h-7"
+                onClick={() => regenerateSecret(app.id)}
+                disabled={regeneratingSecret === app.id}
+              >
+                {regeneratingSecret === app.id ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                Regenerate API Secret
+              </Button>
             </CardContent>
           </Card>
         ))
