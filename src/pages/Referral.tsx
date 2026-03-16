@@ -396,7 +396,7 @@ const Referral = () => {
                 <Button variant="outline" size="sm" onClick={copyReferralCode} className="gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-primary">
                   <Copy className="h-3.5 w-3.5" /> Copy Code
                 </Button>
-                <Button size="sm" onClick={() => setShowShareDialog(true)} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90">
+                <Button size="sm" onClick={handleShare} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90">
                   <Share2 className="h-3.5 w-3.5" /> Share
                 </Button>
               </div>
