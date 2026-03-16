@@ -380,7 +380,7 @@ const Referral = () => {
         <Card className="mt-4 border-secondary/20 bg-secondary/10">
           <CardContent className="p-5">
             <div className="flex flex-col items-center">
-              <div className="rounded-xl bg-white p-3 shadow-sm">
+              <div id="referral-qr-code" className="rounded-xl bg-white p-3 shadow-sm">
                 <QRCodeSVG
                   value={`https://nocap.life/auth?ref=${profile?.referral_code || ""}`}
                   size={140}
