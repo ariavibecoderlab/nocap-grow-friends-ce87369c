@@ -139,6 +139,21 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
     setGeneratingToken(null);
   };
 
+  const regenerateSecret = async (appId: string) => {
+    setRegeneratingSecret(appId);
+    const { data, error } = await supabase.functions.invoke("api-regenerate-secret", {
+      body: { app_id: appId },
+    });
+
+    if (error || !data?.success) {
+      toast({ title: "Error", description: data?.error || error?.message || "Failed to regenerate secret", variant: "destructive" });
+    } else {
+      setCredentials({ api_key: "", api_secret: data.api_secret });
+      toast({ title: "API Secret regenerated!", description: "Update this in your integration immediately." });
+    }
+    setRegeneratingSecret(null);
+  };
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: `${label} copied!` });
