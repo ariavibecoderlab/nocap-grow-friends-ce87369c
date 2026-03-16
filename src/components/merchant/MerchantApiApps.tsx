@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Key, Copy, Eye, EyeOff, Loader2, Globe, FlaskConical, Webhook, Pencil, Check, X } from "lucide-react";
+import { Plus, Key, Copy, Eye, EyeOff, Loader2, Globe, FlaskConical, Webhook, Pencil, Check, X, RefreshCw } from "lucide-react";
 
 interface Branch {
   id: string;
