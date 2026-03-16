@@ -194,6 +194,88 @@ const Referral = () => {
   const getShareUrl = () => `https://nocap.life/auth?ref=${profile?.referral_code || ""}`;
   const getShareText = () => `Join NOcap and earn cashback! Use my referral code *${profile?.referral_code}* to sign up: ${getShareUrl()}`;
 
+  const generateQrImage = async (): Promise<File | null> => {
+    try {
+      const svgEl = document.querySelector('#referral-qr-code svg') as SVGElement;
+      if (!svgEl) return null;
+      
+      const canvas = document.createElement('canvas');
+      const size = 512;
+      const padding = 40;
+      const totalSize = size + padding * 2;
+      canvas.width = totalSize;
+      canvas.height = totalSize + 80; // extra space for text
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+
+      // White background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw QR code
+      const svgData = new XMLSerializer().serializeToString(svgEl);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+        img.src = url;
+      });
+      
+      ctx.drawImage(img, padding, padding, size, size);
+      URL.revokeObjectURL(url);
+
+      // Draw referral code text
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Code: ${profile?.referral_code || ''}`, canvas.width / 2, size + padding + 40);
+
+      // Draw link text
+      ctx.font = '16px sans-serif';
+      ctx.fillStyle = '#666666';
+      ctx.fillText('nocap.life', canvas.width / 2, size + padding + 68);
+
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) return null;
+      return new File([blob], `nocap-referral-${profile?.referral_code || 'code'}.png`, { type: 'image/png' });
+    } catch (e) {
+      console.error('Error generating QR image:', e);
+      return null;
+    }
+  };
+
+  const handleShare = async () => {
+    const shareText = `Join NOcap and earn cashback!\n\nUse my referral code: ${profile?.referral_code}\nSign up here: ${getShareUrl()}`;
+    
+    try {
+      const qrFile = await generateQrImage();
+      
+      if (navigator.share) {
+        const shareData: ShareData = {
+          title: 'Join NOcap',
+          text: shareText,
+        };
+        
+        if (qrFile && navigator.canShare?.({ files: [qrFile] })) {
+          shareData.files = [qrFile];
+        }
+        
+        await navigator.share(shareData);
+      } else {
+        // Fallback: open share dialog
+        setShowShareDialog(true);
+      }
+    } catch (err: any) {
+      // User cancelled share - ignore AbortError
+      if (err?.name !== 'AbortError') {
+        setShowShareDialog(true);
+      }
+    }
+  };
+
   const shareToWhatsApp = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(getShareText())}`, "_blank");
   };
@@ -298,7 +380,7 @@ const Referral = () => {
         <Card className="mt-4 border-secondary/20 bg-secondary/10">
           <CardContent className="p-5">
             <div className="flex flex-col items-center">
-              <div className="rounded-xl bg-white p-3 shadow-sm">
+              <div id="referral-qr-code" className="rounded-xl bg-white p-3 shadow-sm">
                 <QRCodeSVG
                   value={`https://nocap.life/auth?ref=${profile?.referral_code || ""}`}
                   size={140}
@@ -314,7 +396,7 @@ const Referral = () => {
                 <Button variant="outline" size="sm" onClick={copyReferralCode} className="gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-primary">
                   <Copy className="h-3.5 w-3.5" /> Copy Code
                 </Button>
-                <Button size="sm" onClick={() => setShowShareDialog(true)} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90">
+                <Button size="sm" onClick={handleShare} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90">
                   <Share2 className="h-3.5 w-3.5" /> Share
                 </Button>
               </div>
