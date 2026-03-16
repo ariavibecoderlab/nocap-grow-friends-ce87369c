@@ -53,6 +53,7 @@ const MerchantApiApps = ({ branches }: MerchantApiAppsProps) => {
   const [showSecret, setShowSecret] = useState(false);
   const [showTestToken, setShowTestToken] = useState(false);
   const [generatingToken, setGeneratingToken] = useState<string | null>(null);
+  const [regeneratingSecret, setRegeneratingSecret] = useState<string | null>(null);
   const [editingWebhook, setEditingWebhook] = useState<string | null>(null);
   const [webhookEdit, setWebhookEdit] = useState("");
   useEffect(() => {
