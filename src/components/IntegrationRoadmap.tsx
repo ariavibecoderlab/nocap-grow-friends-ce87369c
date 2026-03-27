@@ -113,6 +113,15 @@ Admin Section: branch mapping management, connected customers overview, top refe
     prompt: `Build a 'Top Up NoCap Wallet' button or page. Show current balance via GET /api-balance. Let user enter amount (RM10–RM500). On submit, call POST /api-topup with { amount, description: 'Wallet top-up', reference: <unique> }. Open the returned payment_url in a new tab/window for FPX payment via RaudhahPay. Handle webhooks: verify HMAC-SHA256 signature (same pattern as charge webhooks — use api_secret as HMAC key, raw JSON body as message, compare in constant time). Process topup.completed: update UI to reflect new balance. Process topup.failed: show error to user. Poll GET /api-balance or use webhook to refresh balance after redirect back.`,
     memberImpact: "Members can top up their NoCap wallet directly from the 3rd party app via FPX.",
   },
+  {
+    id: 13,
+    title: "3rd Party Cashback & Commission Distribution",
+    path: "D",
+    pathLabel: "Distribution upgrade",
+    merchantAction: "Ensure the API app has a webhook URL configured to receive distribution.completed events. Each branch must have commission_percent set.",
+    prompt: `Add a createDistribution service function that calls POST /api-distribute. Headers: x-api-key, x-api-secret (server-to-server, no Bearer token needed). Request body: { branch_id, member_referral_code (or user_id), amount (the sale amount), reference (unique idempotency key) }. The API calculates the commission pool automatically using the branch's commission_percent. Response: { success, distribution_id, breakdown: { total_pool, cashback, tier_commissions[], unclaimed_returned, branch_debited } }. The branch wallet is debited (negative balances allowed). Cashback (1/6 of pool) goes to the member, tier commissions (1/6 each) go to up to 5 referral ancestors, and unclaimed tiers are returned to the branch. Handle errors: 400 (validation/missing fields), 401 (invalid credentials), 404 (branch or member not found), 409 (duplicate reference). Set up webhook verification (HMAC-SHA256, same pattern as charge webhooks) for distribution.completed events. Build an admin/reporting page showing distribution history with breakdowns per branch.`,
+    memberImpact: "Members automatically receive cashback when a 3rd party sale is recorded. Referral ancestors earn tier commissions.",
+  },
 ];
 
 function CopyPromptButton({ text }: { text: string }) {
@@ -149,37 +158,41 @@ export default function IntegrationRoadmap() {
             <Badge variant="secondary" className="text-xs">Path A (Prompts 1–9): New integration</Badge>
             <Badge variant="outline" className="text-xs">Path B (Prompts 6–9): Upgrade existing</Badge>
             <Badge className="text-xs bg-emerald-600 hover:bg-emerald-700">Path C (Prompts 10–12): Add Top-Up</Badge>
+            <Badge className="text-xs bg-blue-600 hover:bg-blue-700">Path D (Prompt 13): Add Distribution</Badge>
           </div>
           <div className="overflow-x-auto">
              <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-2 pr-4 font-semibold">Prompt</th>
-                  <th className="text-left py-2 pr-4 font-semibold">New</th>
-                  <th className="text-left py-2 pr-4 font-semibold">Upgrade</th>
-                  <th className="text-left py-2 font-semibold">Top-Up</th>
-                </tr>
+                 <tr className="border-b border-border">
+                   <th className="text-left py-2 pr-4 font-semibold">Prompt</th>
+                   <th className="text-left py-2 pr-4 font-semibold">New</th>
+                   <th className="text-left py-2 pr-4 font-semibold">Upgrade</th>
+                   <th className="text-left py-2 pr-4 font-semibold">Top-Up</th>
+                   <th className="text-left py-2 font-semibold">Dist</th>
+                 </tr>
               </thead>
               <tbody className="text-muted-foreground">
                 {[
-                  ["1 — Credentials & DB", "Yes", "Skip", "Skip"],
-                  ["2 — API Service Layer", "Yes", "Skip", "Skip"],
-                  ["3 — OAuth Connection", "Yes", "Skip", "Skip"],
-                  ["4 — Account Creation via Referral", "Yes", "Skip", "Skip"],
-                  ["5 — Wallet Checkout", "Yes", "Skip", "Skip"],
-                  ["6 — Upgrade DB + APIs", "Yes", "Start here", "Skip"],
-                  ["7 — Re-auth for Referral", "Yes", "Yes", "Skip"],
-                  ["8 — Multi-Branch Routing", "Yes", "Yes", "Skip"],
-                  ["9 — Referral Dashboard", "Yes", "Yes", "Skip"],
-                  ["10 — Top-Up Service", "Skip", "Skip", "Start here"],
-                  ["11 — Re-auth for Top-Up", "Skip", "Skip", "Yes"],
-                  ["12 — Top-Up UI & Webhooks", "Skip", "Skip", "Yes"],
-                ].map(([prompt, fresh, upgrade, topup], i) => (
+                  ["1 — Credentials & DB", "Yes", "Skip", "Skip", "Skip"],
+                  ["2 — API Service Layer", "Yes", "Skip", "Skip", "Skip"],
+                  ["3 — OAuth Connection", "Yes", "Skip", "Skip", "Skip"],
+                  ["4 — Account Creation via Referral", "Yes", "Skip", "Skip", "Skip"],
+                  ["5 — Wallet Checkout", "Yes", "Skip", "Skip", "Skip"],
+                  ["6 — Upgrade DB + APIs", "Yes", "Start here", "Skip", "Skip"],
+                  ["7 — Re-auth for Referral", "Yes", "Yes", "Skip", "Skip"],
+                  ["8 — Multi-Branch Routing", "Yes", "Yes", "Skip", "Skip"],
+                  ["9 — Referral Dashboard", "Yes", "Yes", "Skip", "Skip"],
+                  ["10 — Top-Up Service", "Skip", "Skip", "Start here", "Skip"],
+                  ["11 — Re-auth for Top-Up", "Skip", "Skip", "Yes", "Skip"],
+                  ["12 — Top-Up UI & Webhooks", "Skip", "Skip", "Yes", "Skip"],
+                  ["13 — Distribution", "Skip", "Skip", "Skip", "Start here"],
+                ].map(([prompt, fresh, upgrade, topup, dist], i) => (
                   <tr key={i} className="border-b border-border/50">
                     <td className="py-2 pr-4 font-mono text-xs">{prompt}</td>
                     <td className="py-2 pr-4">{fresh}</td>
                     <td className="py-2 pr-4">{upgrade}</td>
-                    <td className="py-2">{topup}</td>
+                    <td className="py-2 pr-4">{topup}</td>
+                    <td className="py-2">{dist}</td>
                   </tr>
                 ))}
               </tbody>
