@@ -101,3 +101,6 @@ verify_jwt = false
 
 [functions.monthly-sales-email]
 verify_jwt = false
+
+[functions.rebuild-referral-tree]
+verify_jwt = false

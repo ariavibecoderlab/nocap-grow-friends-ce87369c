@@ -2,10 +2,11 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Store, Banknote, ArrowLeftRight, AlertTriangle, RefreshCw, Clock } from "lucide-react";
+import { Users, Store, Banknote, ArrowLeftRight, AlertTriangle, RefreshCw, Clock, DatabaseZap } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AdminWalletCard from "@/components/admin/AdminWalletCard";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 interface Stats {
   totalUsers: number;
@@ -29,6 +30,7 @@ const AdminDashboard = () => {
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
+  const [rebuildingTree, setRebuildingTree] = useState(false);
 
   const loadStats = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -117,6 +119,24 @@ const AdminDashboard = () => {
     loadActivity();
   };
 
+  const handleRebuildTree = async () => {
+    if (!confirm("This will rebuild the entire referral tree cache from profiles.referred_by. Continue?")) return;
+    setRebuildingTree(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("rebuild-referral-tree", {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (res.error) throw res.error;
+      const result = res.data;
+      toast.success(`Referral tree rebuilt: ${result.referralTreeRows} rows for ${result.usersWithReferrer} referred users`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to rebuild referral tree");
+    } finally {
+      setRebuildingTree(false);
+    }
+  };
+
   const activityIcon = (type: ActivityItem["type"]) => {
     switch (type) {
       case "transaction": return <ArrowLeftRight className="h-3.5 w-3.5 text-green-400" />;
@@ -148,16 +168,28 @@ const AdminDashboard = () => {
             )}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="gap-2 border-border/50"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRebuildTree}
+            disabled={rebuildingTree}
+            className="gap-2 border-border/50"
+          >
+            <DatabaseZap className={`h-4 w-4 ${rebuildingTree ? "animate-spin" : ""}`} />
+            {rebuildingTree ? "Rebuilding…" : "Rebuild Referral Tree"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="gap-2 border-border/50"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <AdminWalletCard />
