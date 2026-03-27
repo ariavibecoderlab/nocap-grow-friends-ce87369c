@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,7 +75,6 @@ const Referral = () => {
   const [profile, setProfile] = useState<{ id: string; full_name: string; referral_code: string } | null>(null);
   const [referrals, setReferrals] = useState<ReferralMember[]>([]);
   const [commissions, setCommissions] = useState<CommissionTx[]>([]);
-  const [totalEarnings, setTotalEarnings] = useState(0);
   const [expandedTiers, setExpandedTiers] = useState<Record<number, boolean>>({ 1: true });
   const [loadingData, setLoadingData] = useState(true);
   const [showShareDialog, setShowShareDialog] = useState(false);
@@ -86,54 +85,79 @@ const Referral = () => {
     if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading, navigate]);
 
-  useEffect(() => {
+  const fetchReferralsFromProfiles = useCallback(async (rootProfileId: string): Promise<ReferralMember[]> => {
+    let currentParentIds = [rootProfileId];
+    const collected: Array<{ id: string; user_id: string; full_name: string | null; phone: string | null; tier: number }> = [];
+
+    for (let tier = 1; tier <= 5 && currentParentIds.length > 0; tier++) {
+      const nextLevel: Array<{ id: string; user_id: string; full_name: string | null; phone: string | null; tier: number }> = [];
+
+      for (let i = 0; i < currentParentIds.length; i += 1000) {
+        const batch = currentParentIds.slice(i, i + 1000);
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, user_id, full_name, phone")
+          .in("referred_by", batch);
+
+        if (data) {
+          nextLevel.push(...data.map((row) => ({ ...row, tier })));
+        }
+      }
+
+      collected.push(...nextLevel);
+      currentParentIds = nextLevel.map((row) => row.id);
+    }
+
+    const tier1Ids = collected.filter((row) => row.tier === 1).map((row) => row.user_id);
+    let emailMap = new Map<string, string>();
+    if (tier1Ids.length > 0) {
+      const { data: emailsData } = await supabase.rpc("get_referral_emails", { referral_user_ids: tier1Ids });
+      emailMap = new Map(((emailsData as { user_id: string; email: string }[] | null) || []).map((entry) => [entry.user_id, entry.email]));
+    }
+
+    return collected.map((row) => ({
+      user_id: row.user_id,
+      full_name: row.full_name,
+      phone: row.tier === 1 ? row.phone : null,
+      email: row.tier === 1 ? emailMap.get(row.user_id) || null : null,
+      tier: row.tier,
+    }));
+  }, []);
+
+  const fetchAllEarnings = useCallback(async (userId: string): Promise<CommissionTx[]> => {
+    const allRows: CommissionTx[] = [];
+    const pageSize = 1000;
+
+    for (let from = 0; ; from += pageSize) {
+      const to = from + pageSize - 1;
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("id, amount, description, created_at, type")
+        .eq("user_id", userId)
+        .in("type", ["cashback", "commission"])
+        .eq("status", "completed")
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+      if (!data?.length) break;
+
+      allRows.push(...(data as CommissionTx[]));
+      if (data.length < pageSize) break;
+    }
+
+    return allRows;
+  }, []);
+
+  const fetchData = useCallback(async () => {
     if (!user) return;
 
-    const fetchData = async () => {
-      setLoadingData(true);
+    setLoadingData(true);
 
-      const fetchReferralsFromProfiles = async (rootProfileId: string): Promise<ReferralMember[]> => {
-        let currentParentIds = [rootProfileId];
-        const collected: Array<{ id: string; user_id: string; full_name: string | null; phone: string | null; tier: number }> = [];
-
-        for (let tier = 1; tier <= 5 && currentParentIds.length > 0; tier++) {
-          const nextLevel: Array<{ id: string; user_id: string; full_name: string | null; phone: string | null; tier: number }> = [];
-
-          for (let i = 0; i < currentParentIds.length; i += 1000) {
-            const batch = currentParentIds.slice(i, i + 1000);
-            const { data } = await supabase
-              .from("profiles")
-              .select("id, user_id, full_name, phone")
-              .in("referred_by", batch);
-
-            if (data) {
-              nextLevel.push(...data.map((row) => ({ ...row, tier })));
-            }
-          }
-
-          collected.push(...nextLevel);
-          currentParentIds = nextLevel.map((row) => row.id);
-        }
-
-        const tier1Ids = collected.filter((row) => row.tier === 1).map((row) => row.user_id);
-        let emailMap = new Map<string, string>();
-        if (tier1Ids.length > 0) {
-          const { data: emailsData } = await supabase.rpc("get_referral_emails", { referral_user_ids: tier1Ids });
-          emailMap = new Map(((emailsData as { user_id: string; email: string }[] | null) || []).map((entry) => [entry.user_id, entry.email]));
-        }
-
-        return collected.map((row) => ({
-          user_id: row.user_id,
-          full_name: row.full_name,
-          phone: row.tier === 1 ? row.phone : null,
-          email: row.tier === 1 ? (emailMap.get(row.user_id) || null) : null,
-          tier: row.tier,
-        }));
-      };
-
-      const [profileRes, commissionRes, deepCountRes] = await Promise.all([
+    try {
+      const [profileRes, commissionRows, deepCountRes] = await Promise.all([
         supabase.from("profiles").select("id, full_name, referral_code").eq("user_id", user.id).maybeSingle(),
-        supabase.from("transactions").select("id, amount, description, created_at, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed").order("created_at", { ascending: false }),
+        fetchAllEarnings(user.id),
         supabase.rpc("get_deep_network_count", { p_user_id: user.id }),
       ]);
 
@@ -155,18 +179,56 @@ const Referral = () => {
 
       if (deepCountRes.data && Array.isArray(deepCountRes.data) && deepCountRes.data.length > 0) {
         setBeyondTier5Count(Number(deepCountRes.data[0].beyond_tier5) || 0);
+      } else {
+        setBeyondTier5Count(0);
       }
 
-      if (commissionRes.data) {
-        setCommissions(commissionRes.data as CommissionTx[]);
-        setTotalEarnings(commissionRes.data.reduce((sum, t) => sum + Number(t.amount), 0));
-      }
-
+      setCommissions(commissionRows);
+    } finally {
       setLoadingData(false);
-    };
+    }
+  }, [fetchAllEarnings, fetchReferralsFromProfiles, user]);
 
+  useEffect(() => {
+    if (!user) return;
     fetchData();
-  }, [user]);
+  }, [fetchData, user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`referral-sync-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "transactions",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchData();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "referral_tree",
+          filter: `ancestor_id=eq.${user.id}`,
+        },
+        () => {
+          fetchData();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchData, user]);
 
   const copyReferralCode = () => {
     if (profile?.referral_code) {
