@@ -24,6 +24,7 @@ import NocapLogo from "@/components/NocapLogo";
 import MerchantMarketplace from "@/components/merchant/MerchantMarketplace";
 import MerchantNotificationPrefs from "@/components/merchant/MerchantNotificationPrefs";
 import MerchantChat from "@/components/merchant/MerchantChat";
+import MerchantDistributions from "@/components/merchant/MerchantDistributions";
 import {
   ArrowLeft,
   Plus,
@@ -567,7 +568,7 @@ const MerchantDashboard = () => {
         {/* Selected Branch Details */}
         {selectedBranch && (
           <Tabs defaultValue="qr" className="mt-4">
-            <TabsList className="w-full grid grid-cols-10 bg-white/5 border border-white/10">
+            <TabsList className="w-full grid grid-cols-11 bg-white/5 border border-white/10">
               <TabsTrigger value="qr" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 <QrCode className="h-3 w-3" /> QR
               </TabsTrigger>
@@ -584,6 +585,9 @@ const MerchantDashboard = () => {
               </TabsTrigger>
               <TabsTrigger value="txns" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 Txns
+              </TabsTrigger>
+              <TabsTrigger value="dist" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                Dist
               </TabsTrigger>
               <TabsTrigger value="analytics" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
                 Analytics
@@ -700,6 +704,10 @@ const MerchantDashboard = () => {
 
             <TabsContent value="txns" className="mt-4">
               <MerchantTransactions userId={user!.id} branchId={selectedBranch?.id ?? ""} />
+            </TabsContent>
+
+            <TabsContent value="dist" className="mt-4">
+              <MerchantDistributions userId={user!.id} branchId={selectedBranch?.id ?? ""} />
             </TabsContent>
 
             <TabsContent value="analytics" className="mt-4">
