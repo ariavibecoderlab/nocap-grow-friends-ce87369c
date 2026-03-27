@@ -1408,6 +1408,15 @@ export type Database = {
         }
         Returns: number
       }
+      debit_wallet_allow_negative: {
+        Args: {
+          p_amount: number
+          p_branch_id?: string
+          p_user_id: string
+          p_wallet_type: string
+        }
+        Returns: number
+      }
       generate_referral_code: { Args: never; Returns: string }
       get_all_user_emails: {
         Args: never
@@ -1477,6 +1486,7 @@ export type Database = {
         | "commission"
         | "withdrawal"
         | "refund"
+        | "distribution"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1615,6 +1625,7 @@ export const Constants = {
         "commission",
         "withdrawal",
         "refund",
+        "distribution",
       ],
     },
   },
