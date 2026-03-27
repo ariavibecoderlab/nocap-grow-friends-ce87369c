@@ -121,7 +121,7 @@ const Dashboard = () => {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "transactions", filter: `user_id=eq.${user.id}` },
         () => {
-          // Refresh transactions list
+          // Refresh transactions list AND earnings totals
           supabase
             .from("transactions")
             .select("id, type, amount, status, description, created_at")
@@ -130,6 +130,19 @@ const Dashboard = () => {
             .limit(5)
             .then(({ data }) => {
               if (data) setTransactions(data as Transaction[]);
+            });
+          // Refresh cashback & commission totals
+          supabase
+            .from("transactions")
+            .select("amount, type")
+            .eq("user_id", user.id)
+            .in("type", ["cashback", "commission"])
+            .eq("status", "completed")
+            .then(({ data }) => {
+              if (data) {
+                setCashbackEarnings(data.filter(t => t.type === 'cashback').reduce((sum, t) => sum + Number(t.amount), 0));
+                setCommissionEarnings(data.filter(t => t.type === 'commission').reduce((sum, t) => sum + Number(t.amount), 0));
+              }
             });
         }
       )
