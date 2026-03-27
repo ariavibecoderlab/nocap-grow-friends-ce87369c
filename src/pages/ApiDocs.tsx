@@ -157,6 +157,10 @@ const ApiDocs = () => {
                           <td className="py-2 pr-4 font-mono text-xs">/api-cashback-history</td>
                           <td className="py-2">60 req/min</td>
                         </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-distribute</td>
+                          <td className="py-2">60 req/min</td>
+                        </tr>
                       </tbody>
                     </table>
                   </div>
@@ -1503,6 +1507,85 @@ app.post("/webhook/nocap", (req, res) => {
                   />
                 </CardContent>
               </Card>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 text-xs font-bold rounded">POST</span>
+                    <CardTitle className="text-lg">/api-distribute</CardTitle>
+                  </div>
+                  <CardDescription>Trigger cashback &amp; commission distribution from a 3rd-party sale. Funds are deducted from the branch wallet (negative balance allowed).</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-900 p-4 rounded-md">
+                    <p className="text-xs text-blue-800 dark:text-blue-200">
+                      <strong>💡 How it works:</strong> When a sale happens in your 3rd-party system, call this endpoint to distribute cashback to the member and tier commissions to their referral ancestors. The commission pool is calculated using the branch's <code className="font-mono font-bold">commission_percent</code> setting.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Body Parameters:</h4>
+                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                      <li><code className="text-primary font-bold">branch_id</code> (uuid, required): The branch where the sale occurred.</li>
+                      <li><code className="text-primary font-bold">member_referral_code</code> (string): Referral code of the member. Either this or <code>user_id</code> is required.</li>
+                      <li><code className="text-primary font-bold">user_id</code> (uuid): NoCap user ID of the member. Either this or <code>member_referral_code</code> is required.</li>
+                      <li><code className="text-primary font-bold">amount</code> (number, required): Sale amount in MYR (0.01–500,000).</li>
+                      <li><code className="text-primary font-bold">reference</code> (string, optional): Idempotency key to prevent duplicate distributions.</li>
+                    </ul>
+                  </div>
+                  <h4 className="text-sm font-semibold">Request Example:</h4>
+                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-distribute" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "branch_id": "uuid-of-branch",
+    "member_referral_code": "D3123F95",
+    "amount": 100.00,
+    "reference": "sale-12345"
+  }'`}</CodeBlock>
+                  <h4 className="text-sm font-semibold">Response Example:</h4>
+                  <CodeBlock>{`{
+  "success": true,
+  "distribution_id": "uuid",
+  "breakdown": {
+    "sale_amount": 100.00,
+    "commission_percent": 5,
+    "total_pool": 5.00,
+    "cashback": 0.83,
+    "tier_commissions": [
+      { "tier": 1, "amount": 0.83, "user_id": "uuid" },
+      { "tier": 2, "amount": 0.83, "user_id": "uuid" }
+    ],
+    "unclaimed_returned": 2.51,
+    "branch_debited": 2.49
+  }
+}`}</CodeBlock>
+                  <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 p-4 rounded-md space-y-2">
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">⚠️ Negative Balance</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      Unlike QR payments, this endpoint allows the branch wallet to go negative. This ensures distributions always succeed even if the branch hasn't accumulated enough sales balance yet.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Webhook Event:</h4>
+                    <p className="text-sm text-muted-foreground">
+                      A <code className="text-primary font-bold">distribution.completed</code> webhook is fired to your configured webhook URL after a successful distribution.
+                    </p>
+                  </div>
+                  <ApiTryIt
+                    method="POST"
+                    endpoint="api-distribute"
+                    params={[]}
+                    bodyFields={[
+                      { name: "branch_id", placeholder: "uuid-of-branch", type: "string", required: true },
+                      { name: "member_referral_code", placeholder: "D3123F95", type: "string" },
+                      { name: "user_id", placeholder: "uuid-of-member (alternative)", type: "string" },
+                      { name: "amount", placeholder: "100.00", type: "number", required: true },
+                      { name: "reference", placeholder: "sale-12345", type: "string" },
+                    ]}
+                    needsUserToken={false}
+                  />
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
@@ -1549,6 +1632,10 @@ app.post("/webhook/nocap", (req, res) => {
                       <div className="flex items-start gap-3">
                         <code className="text-destructive font-bold whitespace-nowrap">topup.failed</code>
                         <span className="text-muted-foreground">Sent when an API-initiated wallet top-up payment fails.</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <code className="text-green-600 dark:text-green-400 font-bold whitespace-nowrap">distribution.completed</code>
+                        <span className="text-muted-foreground">Sent when a 3rd-party cashback &amp; commission distribution is processed successfully.</span>
                       </div>
                     </div>
                   </div>

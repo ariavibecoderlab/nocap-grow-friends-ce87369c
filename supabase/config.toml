@@ -93,6 +93,9 @@ verify_jwt = false
 [functions.api-topup]
 verify_jwt = false
 
+[functions.api-distribute]
+verify_jwt = false
+
 [functions.weekly-sales-email]
 verify_jwt = false
 
