@@ -706,6 +706,10 @@ const MerchantDashboard = () => {
               <MerchantTransactions userId={user!.id} branchId={selectedBranch?.id ?? ""} />
             </TabsContent>
 
+            <TabsContent value="dist" className="mt-4">
+              <MerchantDistributions userId={user!.id} branchId={selectedBranch?.id ?? ""} />
+            </TabsContent>
+
             <TabsContent value="analytics" className="mt-4">
               <MerchantAnalytics userId={user!.id} branches={branches} />
             </TabsContent>
