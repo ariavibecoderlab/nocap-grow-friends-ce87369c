@@ -157,6 +157,10 @@ const ApiDocs = () => {
                           <td className="py-2 pr-4 font-mono text-xs">/api-cashback-history</td>
                           <td className="py-2">60 req/min</td>
                         </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-distribute</td>
+                          <td className="py-2">60 req/min</td>
+                        </tr>
                       </tbody>
                     </table>
                   </div>
@@ -1628,6 +1632,10 @@ app.post("/webhook/nocap", (req, res) => {
                       <div className="flex items-start gap-3">
                         <code className="text-destructive font-bold whitespace-nowrap">topup.failed</code>
                         <span className="text-muted-foreground">Sent when an API-initiated wallet top-up payment fails.</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <code className="text-green-600 dark:text-green-400 font-bold whitespace-nowrap">distribution.completed</code>
+                        <span className="text-muted-foreground">Sent when a 3rd-party cashback &amp; commission distribution is processed successfully.</span>
                       </div>
                     </div>
                   </div>
