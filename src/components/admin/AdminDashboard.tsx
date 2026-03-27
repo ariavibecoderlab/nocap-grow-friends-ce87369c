@@ -2,10 +2,11 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Store, Banknote, ArrowLeftRight, AlertTriangle, RefreshCw, Clock } from "lucide-react";
+import { Users, Store, Banknote, ArrowLeftRight, AlertTriangle, RefreshCw, Clock, DatabaseZap } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AdminWalletCard from "@/components/admin/AdminWalletCard";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 interface Stats {
   totalUsers: number;
