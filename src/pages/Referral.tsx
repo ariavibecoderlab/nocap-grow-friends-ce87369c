@@ -120,7 +120,7 @@ const Referral = () => {
       const [profileRes, tierCountsRes, commissionRes, deepCountRes] = await Promise.all([
         supabase.from("profiles").select("full_name, referral_code").eq("user_id", user.id).maybeSingle(),
         supabase.rpc("get_referral_tier_counts", { p_user_id: user.id }),
-        supabase.from("transactions").select("id, amount, description, created_at, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed").order("created_at", { ascending: false }).limit(50),
+        supabase.from("transactions").select("id, amount, description, created_at, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed").order("created_at", { ascending: false }),
         supabase.rpc("get_deep_network_count", { p_user_id: user.id }),
       ]);
 
