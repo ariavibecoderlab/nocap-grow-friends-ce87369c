@@ -30,6 +30,7 @@ const AdminDashboard = () => {
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
+  const [rebuildingTree, setRebuildingTree] = useState(false);
 
   const loadStats = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
