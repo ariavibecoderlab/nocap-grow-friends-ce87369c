@@ -1507,6 +1507,157 @@ app.post("/webhook/nocap", (req, res) => {
                   />
                 </CardContent>
               </Card>
+
+              {/* Payment Flow Comparison */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">💡 Payment Flow Comparison: NoCap Wallet vs Cash/Card</CardTitle>
+                  <CardDescription>Understand how cashback and commission distribution works for different payment methods.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Side-by-side flows */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Path A: NoCap Wallet */}
+                    <div className="border border-primary/30 rounded-lg p-4 space-y-3 bg-primary/5">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 bg-primary/20 text-primary text-[10px] font-bold rounded">PATH A</span>
+                        <h4 className="text-sm font-bold">Customer Pays with NoCap Wallet</h4>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Uses QR scan → <code className="font-mono text-[10px]">process-payment</code> or <code className="font-mono text-[10px]">/api-charge</code></p>
+                      <div className="space-y-2">
+                        {[
+                          { step: '1', label: 'Customer scans QR / app charges wallet', icon: '📱' },
+                          { step: '2', label: 'Funds deducted from customer\'s NoCap wallet', icon: '💳' },
+                          { step: '3', label: '1% platform fee deducted', icon: '🏦' },
+                          { step: '4', label: 'Net amount credited to branch wallet', icon: '✅' },
+                          { step: '5', label: 'Commission pool auto-distributed (cashback + tiers)', icon: '🎁' },
+                        ].map(s => (
+                          <div key={s.step} className="flex items-start gap-2">
+                            <span className="text-xs mt-0.5">{s.icon}</span>
+                            <div>
+                              <span className="text-[10px] font-bold text-primary">Step {s.step}</span>
+                              <p className="text-xs text-muted-foreground">{s.label}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="bg-background/80 rounded p-2 mt-2 space-y-1">
+                        <p className="text-[10px] font-semibold">Example: RM100 sale (5% commission)</p>
+                        <p className="text-[10px] text-muted-foreground">Platform fee: RM1.00 → Branch receives: RM99.00</p>
+                        <p className="text-[10px] text-muted-foreground">Commission pool: RM5.00 → Cashback: RM0.83 × 1 + Tiers: RM0.83 × 5</p>
+                        <p className="text-[10px] font-medium text-green-600 dark:text-green-400">Customer gets: RM0.83 cashback in NoCap wallet</p>
+                      </div>
+                    </div>
+
+                    {/* Path D: Cash/Card via api-distribute */}
+                    <div className="border border-orange-500/30 rounded-lg p-4 space-y-3 bg-orange-500/5">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 bg-orange-500/20 text-orange-600 dark:text-orange-400 text-[10px] font-bold rounded">PATH D</span>
+                        <h4 className="text-sm font-bold">Customer Pays with Cash/Card</h4>
+                      </div>
+                      <p className="text-xs text-muted-foreground">3rd party calls <code className="font-mono text-[10px]">/api-distribute</code> after sale</p>
+                      <div className="space-y-2">
+                        {[
+                          { step: '1', label: 'Customer pays with cash/card at 3rd party POS', icon: '💵' },
+                          { step: '2', label: 'If no NoCap account → call /api-referral-register to auto-create', icon: '🔗' },
+                          { step: '3', label: 'Staff marks order "completed"', icon: '✅' },
+                          { step: '4', label: '3rd party calls /api-distribute with referral code + amount', icon: '📡' },
+                          { step: '5', label: 'Branch wallet debited, cashback + tiers credited (same formula)', icon: '🎁' },
+                        ].map(s => (
+                          <div key={s.step} className="flex items-start gap-2">
+                            <span className="text-xs mt-0.5">{s.icon}</span>
+                            <div>
+                              <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400">Step {s.step}</span>
+                              <p className="text-xs text-muted-foreground">{s.label}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="bg-background/80 rounded p-2 mt-2 space-y-1">
+                        <p className="text-[10px] font-semibold">Example: RM100 sale (5% commission)</p>
+                        <p className="text-[10px] text-muted-foreground">No platform fee → Branch debited: RM2.49</p>
+                        <p className="text-[10px] text-muted-foreground">Commission pool: RM5.00 → Cashback: RM0.83 × 1 + Tiers: RM0.83 × 5</p>
+                        <p className="text-[10px] font-medium text-green-600 dark:text-green-400">Customer gets: RM0.83 cashback in NoCap wallet</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Key differences table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs border border-border rounded">
+                      <thead>
+                        <tr className="bg-muted/50">
+                          <th className="text-left p-2 border-b border-border">Aspect</th>
+                          <th className="text-left p-2 border-b border-border">NoCap Wallet (QR)</th>
+                          <th className="text-left p-2 border-b border-border">Cash/Card (api-distribute)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/50">
+                          <td className="p-2 font-medium text-foreground">Source of funds</td>
+                          <td className="p-2">Customer's NoCap wallet</td>
+                          <td className="p-2">Branch wallet (debited)</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="p-2 font-medium text-foreground">Platform fee</td>
+                          <td className="p-2">Yes (1%)</td>
+                          <td className="p-2">No (collected at POS)</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="p-2 font-medium text-foreground">Negative balance</td>
+                          <td className="p-2">Not allowed</td>
+                          <td className="p-2">Allowed ✅</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="p-2 font-medium text-foreground">Trigger</td>
+                          <td className="p-2">Customer scans QR</td>
+                          <td className="p-2">API call from 3rd party</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="p-2 font-medium text-foreground">NoCap account needed?</td>
+                          <td className="p-2">Yes (to pay)</td>
+                          <td className="p-2">Yes (auto-created via api-referral-register)</td>
+                        </tr>
+                        <tr>
+                          <td className="p-2 font-medium text-foreground">Cashback amount</td>
+                          <td className="p-2 font-medium text-green-600 dark:text-green-400">Same ✅</td>
+                          <td className="p-2 font-medium text-green-600 dark:text-green-400">Same ✅</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Important note about auto-registration */}
+                  <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-900 p-4 rounded-md space-y-2">
+                    <p className="text-xs font-semibold text-green-800 dark:text-green-200">✅ Cash/Card customers get the SAME cashback</p>
+                    <p className="text-xs text-green-700 dark:text-green-300">
+                      Customers don't need to pay with NoCap wallet. They just need a NoCap <strong>account</strong> to receive cashback into. 
+                      Your system can auto-create accounts using <code className="font-mono font-bold">/api-referral-register</code> — 
+                      the customer only needs a phone number and email. No manual signup required.
+                    </p>
+                  </div>
+
+                  {/* Integration flow for cash/card */}
+                  <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                    <h4 className="text-xs font-bold">Recommended Integration Flow (Cash/Card)</h4>
+                    <div className="flex flex-col gap-1">
+                      {[
+                        { code: '1', text: 'Customer places order and pays with cash/card at your POS' },
+                        { code: '2', text: 'Check if customer has a NoCap referral code in your system' },
+                        { code: '3', text: 'If NO → POST /api-referral-register (email, phone, referrer code) → get referral_code back' },
+                        { code: '4', text: 'Staff processes and marks order as "completed"' },
+                        { code: '5', text: 'POST /api-distribute (branch_id, member_referral_code, amount, reference)' },
+                        { code: '6', text: 'Customer receives cashback in their NoCap wallet automatically' },
+                      ].map(s => (
+                        <div key={s.code} className="flex items-start gap-2">
+                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center">{s.code}</span>
+                          <p className="text-xs text-muted-foreground">{s.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
