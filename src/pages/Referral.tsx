@@ -72,7 +72,7 @@ const Referral = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [profile, setProfile] = useState<{ full_name: string; referral_code: string } | null>(null);
+  const [profile, setProfile] = useState<{ id: string; full_name: string; referral_code: string } | null>(null);
   const [referrals, setReferrals] = useState<ReferralMember[]>([]);
   const [commissions, setCommissions] = useState<CommissionTx[]>([]);
   const [totalEarnings, setTotalEarnings] = useState(0);
@@ -92,85 +92,69 @@ const Referral = () => {
     const fetchData = async () => {
       setLoadingData(true);
 
-      // Helper: fetch all referral_tree rows in batches of 1000 to bypass PostgREST limit
-      const fetchAllReferrals = async (): Promise<{ user_id: string; tier: number }[]> => {
-        const batchSize = 1000;
-        let allData: { user_id: string; tier: number }[] = [];
-        let offset = 0;
-        let hasMore = true;
-        while (hasMore) {
-          const { data } = await supabase
-            .from("referral_tree")
-            .select("user_id, tier")
-            .eq("ancestor_id", user.id)
-            .order("tier", { ascending: true })
-            .range(offset, offset + batchSize - 1);
-          if (data && data.length > 0) {
-            allData = allData.concat(data);
-            if (data.length < batchSize) hasMore = false;
-            else offset += batchSize;
-          } else {
-            hasMore = false;
+      const fetchReferralsFromProfiles = async (rootProfileId: string): Promise<ReferralMember[]> => {
+        let currentParentIds = [rootProfileId];
+        const collected: Array<{ id: string; user_id: string; full_name: string | null; phone: string | null; tier: number }> = [];
+
+        for (let tier = 1; tier <= 5 && currentParentIds.length > 0; tier++) {
+          const nextLevel: Array<{ id: string; user_id: string; full_name: string | null; phone: string | null; tier: number }> = [];
+
+          for (let i = 0; i < currentParentIds.length; i += 1000) {
+            const batch = currentParentIds.slice(i, i + 1000);
+            const { data } = await supabase
+              .from("profiles")
+              .select("id, user_id, full_name, phone")
+              .in("referred_by", batch);
+
+            if (data) {
+              nextLevel.push(...data.map((row) => ({ ...row, tier })));
+            }
           }
+
+          collected.push(...nextLevel);
+          currentParentIds = nextLevel.map((row) => row.id);
         }
-        return allData;
+
+        const tier1Ids = collected.filter((row) => row.tier === 1).map((row) => row.user_id);
+        let emailMap = new Map<string, string>();
+        if (tier1Ids.length > 0) {
+          const { data: emailsData } = await supabase.rpc("get_referral_emails", { referral_user_ids: tier1Ids });
+          emailMap = new Map(((emailsData as { user_id: string; email: string }[] | null) || []).map((entry) => [entry.user_id, entry.email]));
+        }
+
+        return collected.map((row) => ({
+          user_id: row.user_id,
+          full_name: row.full_name,
+          phone: row.tier === 1 ? row.phone : null,
+          email: row.tier === 1 ? (emailMap.get(row.user_id) || null) : null,
+          tier: row.tier,
+        }));
       };
 
-      // Fetch tier counts via RPC (bypasses row limit) + profile + commissions + deep network count in parallel
-      const [profileRes, tierCountsRes, commissionRes, deepCountRes] = await Promise.all([
-        supabase.from("profiles").select("full_name, referral_code").eq("user_id", user.id).maybeSingle(),
-        supabase.rpc("get_referral_tier_counts", { p_user_id: user.id }),
+      const [profileRes, commissionRes, deepCountRes] = await Promise.all([
+        supabase.from("profiles").select("id, full_name, referral_code").eq("user_id", user.id).maybeSingle(),
         supabase.from("transactions").select("id, amount, description, created_at, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed").order("created_at", { ascending: false }),
         supabase.rpc("get_deep_network_count", { p_user_id: user.id }),
       ]);
 
-      if (profileRes.data) setProfile(profileRes.data);
+      if (profileRes.data) {
+        setProfile(profileRes.data);
+        const profileReferrals = await fetchReferralsFromProfiles(profileRes.data.id);
+        setReferrals(profileReferrals);
 
-      // Store accurate tier counts from RPC
-      const rpcTierCounts: Record<number, number> = {};
-      if (tierCountsRes.data) {
-        for (const row of tierCountsRes.data as { tier: number; count: number }[]) {
-          rpcTierCounts[row.tier] = Number(row.count);
-        }
+        const derivedTierCounts = profileReferrals.reduce<Record<number, number>>((acc, row) => {
+          acc[row.tier] = (acc[row.tier] || 0) + 1;
+          return acc;
+        }, {});
+        setTierCountsFromRpc(derivedTierCounts);
+      } else {
+        setProfile(null);
+        setReferrals([]);
+        setTierCountsFromRpc({});
       }
-      setTierCountsFromRpc(rpcTierCounts);
 
-      // Set beyond tier 5 count
       if (deepCountRes.data && Array.isArray(deepCountRes.data) && deepCountRes.data.length > 0) {
         setBeyondTier5Count(Number(deepCountRes.data[0].beyond_tier5) || 0);
-      }
-
-      const allReferrals = await fetchAllReferrals();
-
-      if (allReferrals.length > 0) {
-        const userIds = allReferrals.map((r) => r.user_id);
-
-        // Fetch profiles in batches of 1000 (for .in() filter)
-        const allProfiles: { user_id: string; full_name: string | null; phone: string | null }[] = [];
-        for (let i = 0; i < userIds.length; i += 1000) {
-          const batch = userIds.slice(i, i + 1000);
-          const { data } = await supabase.from("profiles").select("user_id, full_name, phone").in("user_id", batch);
-          if (data) allProfiles.push(...data);
-        }
-
-        // Only fetch emails for tier 1 users
-        const tier1Ids = allReferrals.filter((r) => r.tier === 1).map((r) => r.user_id);
-        let emailMap = new Map<string, string>();
-        if (tier1Ids.length > 0) {
-          const { data: emailsData } = await supabase.rpc("get_referral_emails", { referral_user_ids: tier1Ids });
-          emailMap = new Map((emailsData as { user_id: string; email: string }[] || []).map((e) => [e.user_id, e.email]));
-        }
-
-        const profileMap = new Map(allProfiles.map((p) => [p.user_id, { full_name: p.full_name, phone: p.phone }]));
-        setReferrals(
-          allReferrals.map((r) => ({
-            user_id: r.user_id,
-            full_name: profileMap.get(r.user_id)?.full_name || null,
-            phone: r.tier === 1 ? (profileMap.get(r.user_id)?.phone || null) : null,
-            email: r.tier === 1 ? (emailMap.get(r.user_id) || null) : null,
-            tier: r.tier,
-          }))
-        );
       }
 
       if (commissionRes.data) {
