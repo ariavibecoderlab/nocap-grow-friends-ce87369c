@@ -119,6 +119,24 @@ const AdminDashboard = () => {
     loadActivity();
   };
 
+  const handleRebuildTree = async () => {
+    if (!confirm("This will rebuild the entire referral tree cache from profiles.referred_by. Continue?")) return;
+    setRebuildingTree(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("rebuild-referral-tree", {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (res.error) throw res.error;
+      const result = res.data;
+      toast.success(`Referral tree rebuilt: ${result.referralTreeRows} rows for ${result.usersWithReferrer} referred users`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to rebuild referral tree");
+    } finally {
+      setRebuildingTree(false);
+    }
+  };
+
   const activityIcon = (type: ActivityItem["type"]) => {
     switch (type) {
       case "transaction": return <ArrowLeftRight className="h-3.5 w-3.5 text-green-400" />;
