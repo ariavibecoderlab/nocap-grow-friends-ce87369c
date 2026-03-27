@@ -168,16 +168,28 @@ const AdminDashboard = () => {
             )}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="gap-2 border-border/50"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRebuildTree}
+            disabled={rebuildingTree}
+            className="gap-2 border-border/50"
+          >
+            <DatabaseZap className={`h-4 w-4 ${rebuildingTree ? "animate-spin" : ""}`} />
+            {rebuildingTree ? "Rebuilding…" : "Rebuild Referral Tree"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="gap-2 border-border/50"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <AdminWalletCard />
