@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Search, AlertTriangle, Clock } from "lucide-react";
 import { TicketStatusBadge, TicketPriorityBadge } from "@/components/support/TicketStatusBadge";
 import { supabase } from "@/integrations/supabase/client";
+import { useSlaSettings } from "@/hooks/useSlaSettings";
 import { format } from "date-fns";
 
 export default function SupportTicketQueue() {
@@ -16,6 +17,7 @@ export default function SupportTicketQueue() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const { getSlaStatus, loading: slaLoading } = useSlaSettings();
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -32,6 +34,8 @@ export default function SupportTicketQueue() {
   const filtered = tickets.filter(t =>
     !search || t.ticket_number?.toLowerCase().includes(search.toLowerCase()) || t.subject?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const isLoading = loading || slaLoading;
 
   return (
     <div className="space-y-4">
@@ -67,29 +71,48 @@ export default function SupportTicketQueue() {
         </Select>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : (
         <div className="space-y-2">
-          {filtered.map(ticket => (
-            <Card key={ticket.id} className="cursor-pointer hover:bg-accent/50 transition-colors"
-              onClick={() => navigate(`/support-portal/tickets/${ticket.id}`)}>
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-muted-foreground">{ticket.ticket_number}</span>
-                    <TicketStatusBadge status={ticket.status} />
-                    <TicketPriorityBadge priority={ticket.priority} />
+          {filtered.map(ticket => {
+            const sla = getSlaStatus(ticket);
+            const hasBreached = sla && (sla.responseBreached || sla.resolutionBreached);
+            const hasWarning = sla && !hasBreached && (sla.responseWarning || sla.resolutionWarning);
+
+            return (
+              <Card key={ticket.id}
+                className={`cursor-pointer hover:bg-accent/50 transition-colors ${hasBreached ? "border-red-500/50" : hasWarning ? "border-yellow-500/30" : ""}`}
+                onClick={() => navigate(`/support-portal/tickets/${ticket.id}`)}>
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-mono text-muted-foreground">{ticket.ticket_number}</span>
+                      <TicketStatusBadge status={ticket.status} />
+                      <TicketPriorityBadge priority={ticket.priority} />
+                      {hasBreached && (
+                        <Badge variant="destructive" className="text-[10px] h-5 gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          {sla!.responseBreached ? "Response SLA breached" : "Resolution SLA breached"}
+                        </Badge>
+                      )}
+                      {hasWarning && (
+                        <Badge variant="outline" className="text-[10px] h-5 gap-1 border-yellow-500/50 text-yellow-500">
+                          <Clock className="h-3 w-3" />
+                          {sla!.responseWarning ? "Response SLA at risk" : "Resolution SLA at risk"}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm font-medium truncate mt-1">{ticket.subject}</p>
                   </div>
-                  <p className="text-sm font-medium truncate mt-1">{ticket.subject}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-xs text-muted-foreground capitalize">{ticket.category}</p>
-                  <p className="text-[10px] text-muted-foreground">{format(new Date(ticket.created_at), "dd MMM, HH:mm")}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="text-right shrink-0">
+                    <p className="text-xs text-muted-foreground capitalize">{ticket.category}</p>
+                    <p className="text-[10px] text-muted-foreground">{format(new Date(ticket.created_at), "dd MMM, HH:mm")}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
           {filtered.length === 0 && <p className="text-center text-muted-foreground py-8">No tickets found</p>}
         </div>
       )}
