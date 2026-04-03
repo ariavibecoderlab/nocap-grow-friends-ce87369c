@@ -82,6 +82,50 @@ const SupportPortal = () => {
                 <p className="text-xs text-muted-foreground">Unassigned</p>
               </CardContent></Card>
             </div>
+
+            {/* SLA Breach Summary */}
+            {(() => {
+              const breachedTickets = tickets.filter(t => {
+                const sla = getSlaStatus(t);
+                return sla && (sla.responseBreached || sla.resolutionBreached);
+              });
+              const atRiskTickets = tickets.filter(t => {
+                const sla = getSlaStatus(t);
+                return sla && !sla.responseBreached && !sla.resolutionBreached && (sla.responseWarning || sla.resolutionWarning);
+              });
+
+              return (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-secondary" />
+                      SLA Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-6">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-destructive" />
+                        <span className="text-2xl font-bold">{breachedTickets.length}</span>
+                        <span className="text-sm text-muted-foreground">Breached</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-yellow-500" />
+                        <span className="text-2xl font-bold">{atRiskTickets.length}</span>
+                        <span className="text-sm text-muted-foreground">At Risk</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-green-500" />
+                        <span className="text-2xl font-bold">
+                          {tickets.filter(t => t.status !== "closed" && t.status !== "resolved").length - breachedTickets.length - atRiskTickets.length}
+                        </span>
+                        <span className="text-sm text-muted-foreground">On Track</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
         )}
         {isTicketQueue && <SupportTicketQueue />}
