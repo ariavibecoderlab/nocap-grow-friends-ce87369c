@@ -116,6 +116,12 @@ export default function SupportTicketView() {
       });
       if (error) throw error;
       setMessage(""); setFiles([]);
+
+      // Send email notification to ticket owner
+      const agentName = profiles[user.id] || "Support Agent";
+      supabase.functions.invoke("support-ticket-email", {
+        body: { type: "agent_reply", ticket_id: ticketId, reply_message: message.trim() || "Attached files.", agent_name: agentName },
+      }).catch(err => console.error("Email notification error:", err));
     } catch (err: any) {
       toast({ title: "Failed to send", description: err.message, variant: "destructive" });
     } finally {

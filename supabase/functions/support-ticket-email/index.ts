@@ -102,7 +102,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, ticket_id, old_status, new_status } = await req.json();
+    const { type, ticket_id, old_status, new_status, reply_message, agent_name } = await req.json();
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -187,6 +187,29 @@ serve(async (req) => {
             ticket.category,
             `<p>Your ticket status has been updated from <strong>${statusLabels[old_status] || old_status}</strong> to <strong>${statusLabels[new_status] || new_status}</strong>.</p>
              ${new_status === "resolved" ? "<p style='color: #22c55e; margin-top: 12px;'>If this resolves your issue, no further action is needed. Otherwise, you can reply to reopen the ticket.</p>" : ""}`
+          )
+        );
+      }
+    } else if (type === "agent_reply") {
+      const agentDisplayName = agent_name || "Support Agent";
+      const replyText = reply_message || "A support agent has replied to your ticket.";
+
+      if (ownerEmail) {
+        await sendEmail(
+          ownerEmail,
+          `Reply on ${ticket.ticket_number} — ${ticket.subject}`,
+          ticketEmailTemplate(
+            "New Reply on Your Support Ticket",
+            ticket.ticket_number,
+            ticket.subject,
+            ticket.status,
+            ticket.priority,
+            ticket.category,
+            `<p><strong>${agentDisplayName}</strong> replied:</p>
+             <div style="background: #1a1a1a; border-left: 3px solid #FFD700; padding: 12px 16px; border-radius: 4px; margin: 12px 0;">
+               <p style="margin: 0; white-space: pre-wrap;">${replyText}</p>
+             </div>
+             <p style="color: #888; margin-top: 16px;">You can reply directly from the app to continue the conversation.</p>`
           )
         );
       }
