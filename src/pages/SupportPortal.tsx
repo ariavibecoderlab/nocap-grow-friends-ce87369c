@@ -29,13 +29,14 @@ const SupportPortal = () => {
       setHasAccess(true);
 
       // Fetch stats
-      const { data: tickets } = await supabase.from("support_tickets").select("status, assigned_to");
-      if (tickets) {
+      const { data: ticketData } = await supabase.from("support_tickets").select("*");
+      if (ticketData) {
+        setTickets(ticketData);
         setStats({
-          total: tickets.length,
-          open: tickets.filter(t => t.status === "open").length,
-          assignedToMe: tickets.filter(t => t.assigned_to === user.id).length,
-          unassigned: tickets.filter(t => !t.assigned_to && t.status !== "closed").length,
+          total: ticketData.length,
+          open: ticketData.filter(t => t.status === "open").length,
+          assignedToMe: ticketData.filter(t => t.assigned_to === user.id).length,
+          unassigned: ticketData.filter(t => !t.assigned_to && t.status !== "closed").length,
         });
       }
       setChecking(false);
