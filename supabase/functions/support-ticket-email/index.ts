@@ -102,7 +102,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, ticket_id, old_status, new_status } = await req.json();
+    const { type, ticket_id, old_status, new_status, reply_message, agent_name } = await req.json();
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
