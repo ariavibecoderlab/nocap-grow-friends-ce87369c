@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Loader2, Ticket, Clock, User, AlertCircle } from "lucide-react";
+import { Loader2, Ticket, Clock, User, AlertCircle, AlertTriangle, Shield } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import SupportSidebar from "@/components/support/SupportSidebar";
 import SupportTicketQueue from "@/components/support/SupportTicketQueue";
 import SupportTicketView from "@/components/support/SupportTicketView";
 import SupportAnalytics from "@/components/support/SupportAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSlaSettings } from "@/hooks/useSlaSettings";
 
 const SupportPortal = () => {
   const navigate = useNavigate();
