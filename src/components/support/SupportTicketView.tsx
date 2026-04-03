@@ -248,6 +248,7 @@ export default function SupportTicketView() {
           <Button variant="outline" size="icon" className="shrink-0" onClick={() => fileInputRef.current?.click()}>
             <Paperclip className="h-4 w-4" />
           </Button>
+          <CannedResponsePicker onSelect={(content) => setMessage(prev => prev ? prev + "\n" + content : content)} />
           <Textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Reply as support agent..."
             className="min-h-[40px] max-h-[120px] resize-none text-sm" rows={1} />
           <Button size="icon" className="shrink-0" onClick={sendReply} disabled={sending || (!message.trim() && files.length === 0)}>
