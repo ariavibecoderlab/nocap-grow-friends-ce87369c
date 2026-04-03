@@ -13,8 +13,11 @@ import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
 export default function SupportTicketView() {
-  const { ticketId } = useParams<{ ticketId: string }>();
+  const params = useParams<{ ticketId: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
+  // Support both React Router params and path-based extraction
+  const ticketId = params.ticketId || location.pathname.split("/support-portal/tickets/")[1];
   const { user } = useAuth();
   const [ticket, setTicket] = useState<any>(null);
   const [replies, setReplies] = useState<any[]>([]);
