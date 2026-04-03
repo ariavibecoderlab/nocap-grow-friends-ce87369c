@@ -41,6 +41,9 @@ import {
   XCircle,
   FileText,
   Wallet,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 
 const MerchantChatTab = ({ branchId }: { branchId: string }) => {
@@ -118,6 +121,11 @@ const MerchantDashboard = () => {
   const [qrDescription, setQrDescription] = useState("");
   const [qrExpiry, setQrExpiry] = useState("none");
   const [creatingQr, setCreatingQr] = useState(false);
+
+  // Commission edit
+  const [editingCommission, setEditingCommission] = useState(false);
+  const [commissionValue, setCommissionValue] = useState("");
+  const [savingCommission, setSavingCommission] = useState(false);
 
   // QR display dialog
   const [showQrDisplay, setShowQrDisplay] = useState<{ type: "static" | "dynamic"; data: string; label: string } | null>(null);
@@ -737,9 +745,76 @@ const MerchantDashboard = () => {
                     <span className="text-white/40">Branch Name</span>
                     <span className="font-medium text-white">{selectedBranch?.branch_name}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between items-center text-sm">
                     <span className="text-white/40">Commission Rate</span>
-                    <span className="font-medium text-white">{selectedBranch?.commission_percent}%</span>
+                    {editingCommission ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={20}
+                          step={0.5}
+                          value={commissionValue}
+                          onChange={(e) => setCommissionValue(e.target.value)}
+                          className="w-20 h-7 text-xs bg-white/10 border-white/20 text-white"
+                        />
+                        <span className="text-white/60 text-xs">%</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-secondary hover:text-secondary"
+                          disabled={savingCommission}
+                          onClick={async () => {
+                            const val = parseFloat(commissionValue);
+                            if (isNaN(val) || val < 0 || val > 20) {
+                              toast({ title: "Invalid value", description: "Commission must be between 0% and 20%", variant: "destructive" });
+                              return;
+                            }
+                            setSavingCommission(true);
+                            const { error } = await supabase
+                              .from("merchant_branches")
+                              .update({ commission_percent: val })
+                              .eq("id", selectedBranch!.id)
+                              .eq("merchant_user_id", user!.id);
+                            setSavingCommission(false);
+                            if (error) {
+                              toast({ title: "Error", description: error.message, variant: "destructive" });
+                              return;
+                            }
+                            setBranches((prev) => prev.map((b) => b.id === selectedBranch!.id ? { ...b, commission_percent: val } : b));
+                            setSelectedBranch((prev) => prev ? { ...prev, commission_percent: val } : prev);
+                            setEditingCommission(false);
+                            toast({ title: "Updated", description: `Commission rate set to ${val}%` });
+                          }}
+                        >
+                          {savingCommission ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-white/40 hover:text-white"
+                          onClick={() => setEditingCommission(false)}
+                          disabled={savingCommission}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-white">{selectedBranch?.commission_percent}%</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 text-white/40 hover:text-white"
+                          onClick={() => {
+                            setCommissionValue(String(selectedBranch?.commission_percent ?? 5));
+                            setEditingCommission(true);
+                          }}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-white/40">Status</span>
