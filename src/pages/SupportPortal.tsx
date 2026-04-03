@@ -45,6 +45,7 @@ const SupportPortal = () => {
   const path = location.pathname;
   const isTicketDetail = path.match(/\/support-portal\/tickets\/(.+)/);
   const isTicketQueue = path === "/support-portal/tickets";
+  const isAnalytics = path === "/support-portal/analytics";
   const isDashboard = path === "/support-portal";
 
   return (
