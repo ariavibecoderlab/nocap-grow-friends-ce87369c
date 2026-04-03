@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -126,6 +127,7 @@ const MerchantDashboard = () => {
   const [editingCommission, setEditingCommission] = useState(false);
   const [commissionValue, setCommissionValue] = useState("");
   const [savingCommission, setSavingCommission] = useState(false);
+  const [showCommissionConfirm, setShowCommissionConfirm] = useState(false);
 
   // QR display dialog
   const [showQrDisplay, setShowQrDisplay] = useState<{ type: "static" | "dynamic"; data: string; label: string } | null>(null);
@@ -764,27 +766,13 @@ const MerchantDashboard = () => {
                           variant="ghost"
                           className="h-7 w-7 text-secondary hover:text-secondary"
                           disabled={savingCommission}
-                          onClick={async () => {
+                          onClick={() => {
                             const val = parseFloat(commissionValue);
                             if (isNaN(val) || val < 0 || val > 20) {
                               toast({ title: "Invalid value", description: "Commission must be between 0% and 20%", variant: "destructive" });
                               return;
                             }
-                            setSavingCommission(true);
-                            const { error } = await supabase
-                              .from("merchant_branches")
-                              .update({ commission_percent: val })
-                              .eq("id", selectedBranch!.id)
-                              .eq("merchant_user_id", user!.id);
-                            setSavingCommission(false);
-                            if (error) {
-                              toast({ title: "Error", description: error.message, variant: "destructive" });
-                              return;
-                            }
-                            setBranches((prev) => prev.map((b) => b.id === selectedBranch!.id ? { ...b, commission_percent: val } : b));
-                            setSelectedBranch((prev) => prev ? { ...prev, commission_percent: val } : prev);
-                            setEditingCommission(false);
-                            toast({ title: "Updated", description: `Commission rate set to ${val}%` });
+                            setShowCommissionConfirm(true);
                           }}
                         >
                           {savingCommission ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
@@ -832,6 +820,48 @@ const MerchantDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Commission rate confirmation dialog */}
+              <AlertDialog open={showCommissionConfirm} onOpenChange={setShowCommissionConfirm}>
+                <AlertDialogContent className="bg-background border-white/10">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirm Commission Rate Change</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to change the commission rate from{" "}
+                      <strong>{selectedBranch?.commission_percent}%</strong> to{" "}
+                      <strong>{commissionValue}%</strong>? This will affect all future transactions.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={savingCommission}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      disabled={savingCommission}
+                      onClick={async () => {
+                        const val = parseFloat(commissionValue);
+                        setSavingCommission(true);
+                        const { error } = await supabase
+                          .from("merchant_branches")
+                          .update({ commission_percent: val })
+                          .eq("id", selectedBranch!.id)
+                          .eq("merchant_user_id", user!.id);
+                        setSavingCommission(false);
+                        if (error) {
+                          toast({ title: "Error", description: error.message, variant: "destructive" });
+                          return;
+                        }
+                        setBranches((prev) => prev.map((b) => b.id === selectedBranch!.id ? { ...b, commission_percent: val } : b));
+                        setSelectedBranch((prev) => prev ? { ...prev, commission_percent: val } : prev);
+                        setEditingCommission(false);
+                        setShowCommissionConfirm(false);
+                        toast({ title: "Updated", description: `Commission rate set to ${val}%` });
+                      }}
+                    >
+                      {savingCommission ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      Confirm
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
 
               {/* Email Report Preferences */}
               <MerchantNotificationPrefs
