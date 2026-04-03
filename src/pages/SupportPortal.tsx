@@ -81,6 +81,7 @@ const SupportPortal = () => {
         )}
         {isTicketQueue && <SupportTicketQueue />}
         {isTicketDetail && <SupportTicketView />}
+        {isAnalytics && <SupportAnalytics />}
       </div>
     </div>
   );
