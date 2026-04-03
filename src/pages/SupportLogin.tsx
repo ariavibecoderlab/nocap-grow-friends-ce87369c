@@ -4,34 +4,68 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Headphones } from "lucide-react";
+import { Loader2, Headphones, ArrowLeft } from "lucide-react";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import NocapLogo from "@/components/NocapLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
+type Step = "email" | "otp";
+
 const SupportLogin = () => {
   const navigate = useNavigate();
+  const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!email) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.functions.invoke("send-otp", {
+        body: { email },
+      });
       if (error) throw error;
+      setStep("otp");
+      toast({ title: "OTP Sent", description: `A verification code has been sent to ${email}` });
+    } catch (err: any) {
+      toast({ title: "Failed to send OTP", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode || otpCode.length < 6) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: otpCode,
+        type: "email",
+      });
+      if (error) throw error;
+      if (!data.user) throw new Error("Authentication failed");
+
       // Check for support role
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id).eq("role", "support");
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .eq("role", "support");
+
       if (!roles || roles.length === 0) {
         await supabase.auth.signOut();
         toast({ title: "Access Denied", description: "You do not have support agent access.", variant: "destructive" });
         return;
       }
+
       navigate("/support-portal");
     } catch (err: any) {
-      toast({ title: "Login failed", description: err.message, variant: "destructive" });
+      toast({ title: "Verification failed", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -48,21 +82,71 @@ const SupportLogin = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-white/70">Email</Label>
-              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="agent@nocap.com"
-                className="bg-white/5 border-white/10 text-white" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-white/70">Password</Label>
-              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••"
-                className="bg-white/5 border-white/10 text-white" />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading || !email || !password}>
-              {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Signing in...</> : "Sign In"}
-            </Button>
-          </form>
+          {step === "email" && (
+            <form onSubmit={handleSendOtp} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-white/70">Email</Label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="agent@nocap.com"
+                  className="bg-white/5 border-white/10 text-white"
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading || !email}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" /> Sending OTP...
+                  </>
+                ) : (
+                  "Send OTP"
+                )}
+              </Button>
+            </form>
+          )}
+
+          {step === "otp" && (
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <button
+                type="button"
+                onClick={() => { setStep("email"); setOtpCode(""); }}
+                className="flex items-center gap-1 text-white/60 hover:text-white text-sm mb-2"
+              >
+                <ArrowLeft className="h-3 w-3" /> Back
+              </button>
+              <p className="text-white/60 text-sm text-center">
+                Enter the verification code sent to <span className="text-white font-medium">{email}</span>
+              </p>
+              <div className="flex justify-center">
+                <InputOTP maxLength={7} value={otpCode} onChange={setOtpCode}>
+                  <InputOTPGroup>
+                    {Array.from({ length: 7 }).map((_, i) => (
+                      <InputOTPSlot key={i} index={i} className="bg-white/5 border-white/10 text-white" />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+              <Button type="submit" className="w-full" disabled={loading || otpCode.length < 6}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" /> Verifying...
+                  </>
+                ) : (
+                  "Verify & Sign In"
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full text-white/50 hover:text-white"
+                onClick={handleSendOtp}
+                disabled={loading}
+              >
+                Resend Code
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>
