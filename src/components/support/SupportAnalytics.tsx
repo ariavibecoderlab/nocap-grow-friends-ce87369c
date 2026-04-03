@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Loader2, TrendingUp, Clock, BarChart3, CheckCircle2, Timer, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
 import { format, differenceInMinutes, differenceInHours, subDays, startOfDay } from "date-fns";
+import SlaSettings from "@/components/support/SlaSettings";
 
 interface TicketRow {
   id: string;
