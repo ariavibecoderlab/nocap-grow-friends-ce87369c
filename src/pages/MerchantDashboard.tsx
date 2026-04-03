@@ -127,6 +127,7 @@ const MerchantDashboard = () => {
   const [editingCommission, setEditingCommission] = useState(false);
   const [commissionValue, setCommissionValue] = useState("");
   const [savingCommission, setSavingCommission] = useState(false);
+  const [showCommissionConfirm, setShowCommissionConfirm] = useState(false);
 
   // QR display dialog
   const [showQrDisplay, setShowQrDisplay] = useState<{ type: "static" | "dynamic"; data: string; label: string } | null>(null);
