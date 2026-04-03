@@ -74,10 +74,18 @@ export default function SupportTicketView() {
 
   const updateTicket = async (field: string, value: string) => {
     if (!ticketId) return;
+    const oldValue = ticket?.[field];
     const { error } = await supabase.from("support_tickets").update({ [field]: value }).eq("id", ticketId);
     if (error) { toast({ title: "Update failed", variant: "destructive" }); return; }
     setTicket((prev: any) => ({ ...prev, [field]: value }));
     toast({ title: `Ticket ${field.replace("_", " ")} updated` });
+
+    // Send email notification on status change
+    if (field === "status" && oldValue !== value) {
+      supabase.functions.invoke("support-ticket-email", {
+        body: { type: "status_changed", ticket_id: ticketId, old_status: oldValue, new_status: value },
+      }).catch(err => console.error("Email notification error:", err));
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
