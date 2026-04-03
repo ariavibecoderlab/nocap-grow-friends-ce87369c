@@ -275,6 +275,9 @@ const SupportAnalytics = () => {
 
       {/* SLA Settings */}
       <SlaSettings />
+
+      {/* Canned Responses */}
+      <CannedResponseManager />
     </div>
   );
 };
