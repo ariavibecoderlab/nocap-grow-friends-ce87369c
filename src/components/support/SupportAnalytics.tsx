@@ -271,6 +271,9 @@ const SupportAnalytics = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* SLA Settings */}
+      <SlaSettings />
     </div>
   );
 };
