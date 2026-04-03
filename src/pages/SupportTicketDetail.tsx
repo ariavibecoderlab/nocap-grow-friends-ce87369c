@@ -73,11 +73,18 @@ const SupportTicketDetail = () => {
         if (error) throw error;
         attachmentPaths.push(path);
       }
+      const replyMsg = message.trim() || "Attached files.";
       const { error } = await supabase.from("support_ticket_replies").insert({
         ticket_id: ticketId, sender_id: user.id, sender_type: "user",
-        message: message.trim() || "Attached files.", attachments: attachmentPaths,
+        message: replyMsg, attachments: attachmentPaths,
       });
       if (error) throw error;
+
+      // Notify assigned agent (or all agents if unassigned) via email
+      supabase.functions.invoke("support-ticket-email", {
+        body: { type: "user_reply", ticket_id: ticketId, reply_message: replyMsg },
+      }).catch(console.error);
+
       setMessage(""); setFiles([]);
     } catch (err: any) {
       toast({ title: "Failed to send", description: err.message, variant: "destructive" });

@@ -213,6 +213,67 @@ serve(async (req) => {
           )
         );
       }
+    } else if (type === "user_reply") {
+      const replyText = reply_message || "A user has replied to their ticket.";
+
+      // Get user's name from profiles
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", ticket.user_id)
+        .single();
+      const userName = profile?.full_name || ownerEmail || "User";
+
+      // Notify the assigned agent
+      if (agentEmail) {
+        await sendEmail(
+          agentEmail,
+          `User Reply on ${ticket.ticket_number} — ${ticket.subject}`,
+          ticketEmailTemplate(
+            "New User Reply on Support Ticket",
+            ticket.ticket_number,
+            ticket.subject,
+            ticket.status,
+            ticket.priority,
+            ticket.category,
+            `<p><strong>${userName}</strong> replied:</p>
+             <div style="background: #1a1a1a; border-left: 3px solid #FFD700; padding: 12px 16px; border-radius: 4px; margin: 12px 0;">
+               <p style="margin: 0; white-space: pre-wrap;">${replyText}</p>
+             </div>
+             <p style="color: #888; margin-top: 16px;">Log in to the Support Portal to respond.</p>`
+          )
+        );
+      } else {
+        // No assigned agent — notify all support agents
+        const { data: supportRoles } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "support");
+        if (supportRoles) {
+          for (const sr of supportRoles) {
+            const agEmail = emails?.find((e: any) => e.user_id === sr.user_id)?.email;
+            if (agEmail) {
+              await sendEmail(
+                agEmail,
+                `User Reply on ${ticket.ticket_number} (Unassigned) — ${ticket.subject}`,
+                ticketEmailTemplate(
+                  "New User Reply on Unassigned Ticket",
+                  ticket.ticket_number,
+                  ticket.subject,
+                  ticket.status,
+                  ticket.priority,
+                  ticket.category,
+                  `<p><strong>${userName}</strong> replied to an unassigned ticket:</p>
+                   <div style="background: #1a1a1a; border-left: 3px solid #FFD700; padding: 12px 16px; border-radius: 4px; margin: 12px 0;">
+                     <p style="margin: 0; white-space: pre-wrap;">${replyText}</p>
+                   </div>
+                   <p style="color: #888; margin-top: 16px;">Log in to the Support Portal to claim and respond.</p>`
+                )
+              );
+            }
+          }
+        }
+      }
     }
 
     return new Response(JSON.stringify({ success: true }), {
