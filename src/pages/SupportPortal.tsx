@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import SupportSidebar from "@/components/support/SupportSidebar";
 import SupportTicketQueue from "@/components/support/SupportTicketQueue";
 import SupportTicketView from "@/components/support/SupportTicketView";
+import SupportAnalytics from "@/components/support/SupportAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 

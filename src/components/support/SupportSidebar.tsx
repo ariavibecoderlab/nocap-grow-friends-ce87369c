@@ -1,12 +1,13 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Ticket, LogOut, Headphones } from "lucide-react";
+import { LayoutDashboard, Ticket, LogOut, Headphones, BarChart3 } from "lucide-react";
 import NocapLogo from "@/components/NocapLogo";
 import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { label: "Dashboard", path: "/support-portal", icon: LayoutDashboard },
   { label: "Tickets", path: "/support-portal/tickets", icon: Ticket },
+  { label: "Analytics", path: "/support-portal/analytics", icon: BarChart3 },
 ];
 
 export default function SupportSidebar() {
