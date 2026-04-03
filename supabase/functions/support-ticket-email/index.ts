@@ -191,11 +191,8 @@ serve(async (req) => {
         );
       }
     } else if (type === "agent_reply") {
-      const { message: replyMessage, agent_name } = await req.json().catch(() => ({}));
-      // Re-parse body for extra fields
-      const body = await req.clone().json().catch(() => ({}));
-      const agentDisplayName = body.agent_name || "Support Agent";
-      const replyText = body.reply_message || "A support agent has replied to your ticket.";
+      const agentDisplayName = agent_name || "Support Agent";
+      const replyText = reply_message || "A support agent has replied to your ticket.";
 
       if (ownerEmail) {
         await sendEmail(
