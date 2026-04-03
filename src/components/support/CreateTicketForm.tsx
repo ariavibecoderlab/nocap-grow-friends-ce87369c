@@ -92,6 +92,11 @@ export default function CreateTicketForm({ open, onOpenChange, onCreated }: Prop
         });
       }
 
+      // Send email notification (fire and forget)
+      supabase.functions.invoke("support-ticket-email", {
+        body: { type: "ticket_created", ticket_id: ticket.id },
+      }).catch(err => console.error("Email notification error:", err));
+
       toast({ title: "Ticket created successfully" });
       setSubject(""); setDescription(""); setCategory("general"); setPriority("medium"); setFiles([]);
       onOpenChange(false);
