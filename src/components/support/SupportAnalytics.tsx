@@ -7,6 +7,7 @@ import { Loader2, TrendingUp, Clock, BarChart3, CheckCircle2, Timer, ArrowUpRigh
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
 import { format, differenceInMinutes, differenceInHours, subDays, startOfDay } from "date-fns";
 import SlaSettings from "@/components/support/SlaSettings";
+import CannedResponseManager from "@/components/support/CannedResponseManager";
 
 interface TicketRow {
   id: string;
@@ -274,6 +275,9 @@ const SupportAnalytics = () => {
 
       {/* SLA Settings */}
       <SlaSettings />
+
+      {/* Canned Responses */}
+      <CannedResponseManager />
     </div>
   );
 };

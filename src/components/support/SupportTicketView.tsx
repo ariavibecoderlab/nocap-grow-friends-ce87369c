@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Send, Loader2, Paperclip, X, FileText, Image as ImageIcon } from "lucide-react";
+import CannedResponsePicker from "@/components/support/CannedResponsePicker";
 import { TicketStatusBadge, TicketPriorityBadge } from "@/components/support/TicketStatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -247,6 +248,7 @@ export default function SupportTicketView() {
           <Button variant="outline" size="icon" className="shrink-0" onClick={() => fileInputRef.current?.click()}>
             <Paperclip className="h-4 w-4" />
           </Button>
+          <CannedResponsePicker onSelect={(content) => setMessage(prev => prev ? prev + "\n" + content : content)} />
           <Textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Reply as support agent..."
             className="min-h-[40px] max-h-[120px] resize-none text-sm" rows={1} />
           <Button size="icon" className="shrink-0" onClick={sendReply} disabled={sending || (!message.trim() && files.length === 0)}>
