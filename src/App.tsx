@@ -43,6 +43,10 @@ import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import MyOrders from "./pages/MyOrders";
 import Withdraw from "./pages/Withdraw";
+import SupportTickets from "./pages/SupportTickets";
+import SupportTicketDetail from "./pages/SupportTicketDetail";
+import SupportLogin from "./pages/SupportLogin";
+import SupportPortal from "./pages/SupportPortal";
 import AiHelpChat from "./components/AiHelpChat";
 
 const queryClient = new QueryClient();
@@ -93,6 +97,11 @@ const App = () => (
               <Route path="/order/:orderId" element={<OrderConfirmation />} />
               <Route path="/my-orders" element={<MyOrders />} />
               <Route path="/withdraw" element={<Withdraw />} />
+              <Route path="/support-tickets" element={<SupportTickets />} />
+              <Route path="/support-tickets/:ticketId" element={<SupportTicketDetail />} />
+              <Route path="/support-login" element={<SupportLogin />} />
+              <Route path="/support-portal" element={<SupportPortal />} />
+              <Route path="/support-portal/*" element={<SupportPortal />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

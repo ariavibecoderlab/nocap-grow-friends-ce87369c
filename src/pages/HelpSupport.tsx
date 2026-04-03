@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageCircle, Mail, Phone, Bot, Sparkles } from "lucide-react";
+import { ArrowLeft, MessageCircle, Mail, Phone, Bot, Sparkles, Ticket } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import NocapLogo from "@/components/NocapLogo";
 import AiHelpChat from "@/components/AiHelpChat";
@@ -53,6 +53,20 @@ const HelpSupport = () => {
         </Card>
 
         {showChat && <AiHelpChat defaultOpen />}
+
+        {/* My Tickets */}
+        <Card className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/8 transition-colors" onClick={() => navigate("/support-tickets")}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+              <Ticket className="h-5 w-5 text-secondary" />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-display text-sm font-semibold text-white">My Support Tickets</h2>
+              <p className="text-[10px] text-white/50">Track and manage your support requests</p>
+            </div>
+            <ArrowLeft className="h-4 w-4 text-white/30 rotate-180 shrink-0" />
+          </CardContent>
+        </Card>
 
         {/* Contact */}
         <Card className="border-white/10 bg-white/5">
