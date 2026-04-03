@@ -1100,6 +1100,30 @@ export type Database = {
         }
         Relationships: []
       }
+      sla_settings: {
+        Row: {
+          first_response_minutes: number
+          id: string
+          priority: string
+          resolution_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          first_response_minutes?: number
+          id?: string
+          priority: string
+          resolution_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          first_response_minutes?: number
+          id?: string
+          priority?: string
+          resolution_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       support_ticket_replies: {
         Row: {
           attachments: Json
@@ -1144,6 +1168,7 @@ export type Database = {
           category: string
           created_at: string
           description: string
+          first_response_at: string | null
           id: string
           priority: string
           status: string
@@ -1157,6 +1182,7 @@ export type Database = {
           category?: string
           created_at?: string
           description: string
+          first_response_at?: string | null
           id?: string
           priority?: string
           status?: string
@@ -1170,6 +1196,7 @@ export type Database = {
           category?: string
           created_at?: string
           description?: string
+          first_response_at?: string | null
           id?: string
           priority?: string
           status?: string
