@@ -119,9 +119,9 @@ const SupportLogin = () => {
                 Enter the verification code sent to <span className="text-white font-medium">{email}</span>
               </p>
               <div className="flex justify-center">
-                <InputOTP maxLength={7} value={otpCode} onChange={setOtpCode}>
+                <InputOTP maxLength={8} value={otpCode} onChange={setOtpCode}>
                   <InputOTPGroup>
-                    {Array.from({ length: 7 }).map((_, i) => (
+                    {Array.from({ length: 8 }).map((_, i) => (
                       <InputOTPSlot key={i} index={i} className="bg-white/5 border-white/10 text-white" />
                     ))}
                   </InputOTPGroup>
