@@ -190,6 +190,32 @@ serve(async (req) => {
           )
         );
       }
+    } else if (type === "agent_reply") {
+      const { message: replyMessage, agent_name } = await req.json().catch(() => ({}));
+      // Re-parse body for extra fields
+      const body = await req.clone().json().catch(() => ({}));
+      const agentDisplayName = body.agent_name || "Support Agent";
+      const replyText = body.reply_message || "A support agent has replied to your ticket.";
+
+      if (ownerEmail) {
+        await sendEmail(
+          ownerEmail,
+          `Reply on ${ticket.ticket_number} — ${ticket.subject}`,
+          ticketEmailTemplate(
+            "New Reply on Your Support Ticket",
+            ticket.ticket_number,
+            ticket.subject,
+            ticket.status,
+            ticket.priority,
+            ticket.category,
+            `<p><strong>${agentDisplayName}</strong> replied:</p>
+             <div style="background: #1a1a1a; border-left: 3px solid #FFD700; padding: 12px 16px; border-radius: 4px; margin: 12px 0;">
+               <p style="margin: 0; white-space: pre-wrap;">${replyText}</p>
+             </div>
+             <p style="color: #888; margin-top: 16px;">You can reply directly from the app to continue the conversation.</p>`
+          )
+        );
+      }
     }
 
     return new Response(JSON.stringify({ success: true }), {
