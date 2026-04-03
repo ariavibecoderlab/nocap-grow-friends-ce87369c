@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Loader2, Ticket, Clock, User, AlertCircle } from "lucide-react";
+import { Loader2, Ticket, Clock, User, AlertCircle, AlertTriangle, Shield } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import SupportSidebar from "@/components/support/SupportSidebar";
 import SupportTicketQueue from "@/components/support/SupportTicketQueue";
 import SupportTicketView from "@/components/support/SupportTicketView";
 import SupportAnalytics from "@/components/support/SupportAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSlaSettings } from "@/hooks/useSlaSettings";
 
 const SupportPortal = () => {
   const navigate = useNavigate();
@@ -16,6 +18,8 @@ const SupportPortal = () => {
   const [hasAccess, setHasAccess] = useState(false);
   const [checking, setChecking] = useState(true);
   const [stats, setStats] = useState({ total: 0, open: 0, assignedToMe: 0, unassigned: 0 });
+  const [tickets, setTickets] = useState<any[]>([]);
+  const { getSlaStatus } = useSlaSettings();
 
   useEffect(() => {
     const check = async () => {
@@ -25,13 +29,14 @@ const SupportPortal = () => {
       setHasAccess(true);
 
       // Fetch stats
-      const { data: tickets } = await supabase.from("support_tickets").select("status, assigned_to");
-      if (tickets) {
+      const { data: ticketData } = await supabase.from("support_tickets").select("*");
+      if (ticketData) {
+        setTickets(ticketData);
         setStats({
-          total: tickets.length,
-          open: tickets.filter(t => t.status === "open").length,
-          assignedToMe: tickets.filter(t => t.assigned_to === user.id).length,
-          unassigned: tickets.filter(t => !t.assigned_to && t.status !== "closed").length,
+          total: ticketData.length,
+          open: ticketData.filter(t => t.status === "open").length,
+          assignedToMe: ticketData.filter(t => t.assigned_to === user.id).length,
+          unassigned: ticketData.filter(t => !t.assigned_to && t.status !== "closed").length,
         });
       }
       setChecking(false);
@@ -77,6 +82,50 @@ const SupportPortal = () => {
                 <p className="text-xs text-muted-foreground">Unassigned</p>
               </CardContent></Card>
             </div>
+
+            {/* SLA Breach Summary */}
+            {(() => {
+              const breachedTickets = tickets.filter(t => {
+                const sla = getSlaStatus(t);
+                return sla && (sla.responseBreached || sla.resolutionBreached);
+              });
+              const atRiskTickets = tickets.filter(t => {
+                const sla = getSlaStatus(t);
+                return sla && !sla.responseBreached && !sla.resolutionBreached && (sla.responseWarning || sla.resolutionWarning);
+              });
+
+              return (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-secondary" />
+                      SLA Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-6">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-destructive" />
+                        <span className="text-2xl font-bold">{breachedTickets.length}</span>
+                        <span className="text-sm text-muted-foreground">Breached</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-yellow-500" />
+                        <span className="text-2xl font-bold">{atRiskTickets.length}</span>
+                        <span className="text-sm text-muted-foreground">At Risk</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-green-500" />
+                        <span className="text-2xl font-bold">
+                          {tickets.filter(t => t.status !== "closed" && t.status !== "resolved").length - breachedTickets.length - atRiskTickets.length}
+                        </span>
+                        <span className="text-sm text-muted-foreground">On Track</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
         )}
         {isTicketQueue && <SupportTicketQueue />}
