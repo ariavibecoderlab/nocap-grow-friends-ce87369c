@@ -18,6 +18,8 @@ const SupportPortal = () => {
   const [hasAccess, setHasAccess] = useState(false);
   const [checking, setChecking] = useState(true);
   const [stats, setStats] = useState({ total: 0, open: 0, assignedToMe: 0, unassigned: 0 });
+  const [tickets, setTickets] = useState<any[]>([]);
+  const { getSlaStatus } = useSlaSettings();
 
   useEffect(() => {
     const check = async () => {
