@@ -54,6 +54,20 @@ const HelpSupport = () => {
 
         {showChat && <AiHelpChat defaultOpen />}
 
+        {/* My Tickets */}
+        <Card className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/8 transition-colors" onClick={() => navigate("/support-tickets")}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+              <Ticket className="h-5 w-5 text-secondary" />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-display text-sm font-semibold text-white">My Support Tickets</h2>
+              <p className="text-[10px] text-white/50">Track and manage your support requests</p>
+            </div>
+            <ArrowLeft className="h-4 w-4 text-white/30 rotate-180 shrink-0" />
+          </CardContent>
+        </Card>
+
         {/* Contact */}
         <Card className="border-white/10 bg-white/5">
           <CardContent className="p-5 space-y-3">
