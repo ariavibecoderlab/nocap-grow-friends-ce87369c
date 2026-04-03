@@ -43,6 +43,10 @@ import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import MyOrders from "./pages/MyOrders";
 import Withdraw from "./pages/Withdraw";
+import SupportTickets from "./pages/SupportTickets";
+import SupportTicketDetail from "./pages/SupportTicketDetail";
+import SupportLogin from "./pages/SupportLogin";
+import SupportPortal from "./pages/SupportPortal";
 import AiHelpChat from "./components/AiHelpChat";
 
 const queryClient = new QueryClient();
