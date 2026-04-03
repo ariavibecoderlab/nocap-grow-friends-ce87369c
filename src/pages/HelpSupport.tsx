@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageCircle, Mail, Phone, Bot, Sparkles } from "lucide-react";
+import { ArrowLeft, MessageCircle, Mail, Phone, Bot, Sparkles, Ticket } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import NocapLogo from "@/components/NocapLogo";
 import AiHelpChat from "@/components/AiHelpChat";
