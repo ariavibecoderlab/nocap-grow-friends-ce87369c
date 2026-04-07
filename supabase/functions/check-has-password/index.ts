@@ -14,59 +14,53 @@ serve(async (req) => {
   try {
     const { email } = await req.json();
 
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
-      return new Response(JSON.stringify({ error: 'Valid email is required' }), {
+    // Basic validation
+    if (!email || typeof email !== 'string') {
+      return new Response(JSON.stringify({ error: 'Email is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const trimmedEmail = email.trim().toLowerCase();
 
-    // Use admin API to generate a link — this will fail with specific error if user doesn't exist
-    // Instead, query auth.users via the admin listUsers with email filter
-    const { data, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1,
-    });
+    // Simple email format check before calling admin API
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return new Response(JSON.stringify({ exists: false, has_password: false }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    // listUsers doesn't support email filter in older SDK, so use a workaround:
-    // Try to get user by sending an invite link (dry run) — or just query directly
-    // Actually, the best approach: use the REST API directly to look up by email
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    // Use the admin API endpoint to get user by email
-    const lookupRes = await fetch(
-      `${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${serviceRoleKey}`,
-          'apikey': serviceRoleKey,
-        },
-      }
-    );
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('Missing env vars:', { hasUrl: !!supabaseUrl, hasKey: !!serviceRoleKey });
+      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    // Better approach: use generateLink to check if user exists
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+    // Use generateLink to check if user exists
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
-      email: email.toLowerCase(),
+      email: trimmedEmail,
     });
 
     if (linkError) {
-      // If error contains "User not found", user doesn't exist
-      if (linkError.message?.toLowerCase().includes('not found') || 
-          linkError.message?.toLowerCase().includes('unable to find')) {
+      const msg = linkError.message?.toLowerCase() || '';
+      // User not found or invalid email format — treat as non-existent
+      if (msg.includes('not found') || msg.includes('unable to find') || msg.includes('invalid')) {
         return new Response(JSON.stringify({ exists: false, has_password: false }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      // Other error
       console.error('generateLink error:', linkError.message);
       return new Response(JSON.stringify({ error: 'Internal error' }), {
         status: 500,
@@ -74,7 +68,6 @@ serve(async (req) => {
       });
     }
 
-    // User exists — get their ID from the link data
     const userId = linkData?.user?.id;
     if (!userId) {
       return new Response(JSON.stringify({ exists: false, has_password: false }), {
