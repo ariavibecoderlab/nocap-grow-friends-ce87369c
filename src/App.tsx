@@ -47,6 +47,7 @@ import SupportTickets from "./pages/SupportTickets";
 import SupportTicketDetail from "./pages/SupportTicketDetail";
 import SupportLogin from "./pages/SupportLogin";
 import SupportPortal from "./pages/SupportPortal";
+import ResetPassword from "./pages/ResetPassword";
 import AiHelpChat from "./components/AiHelpChat";
 
 const queryClient = new QueryClient();
@@ -102,6 +103,7 @@ const App = () => (
               <Route path="/support-login" element={<SupportLogin />} />
               <Route path="/support-portal" element={<SupportPortal />} />
               <Route path="/support-portal/*" element={<SupportPortal />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

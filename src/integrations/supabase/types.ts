@@ -999,6 +999,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           full_name: string | null
+          has_password: boolean
           has_pin: boolean
           id: string
           phone: string | null
@@ -1017,6 +1018,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           full_name?: string | null
+          has_password?: boolean
           has_pin?: boolean
           id?: string
           phone?: string | null
@@ -1035,6 +1037,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           full_name?: string | null
+          has_password?: boolean
           has_pin?: boolean
           id?: string
           phone?: string | null
