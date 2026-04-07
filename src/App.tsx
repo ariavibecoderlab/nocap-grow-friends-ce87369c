@@ -47,6 +47,7 @@ import SupportTickets from "./pages/SupportTickets";
 import SupportTicketDetail from "./pages/SupportTicketDetail";
 import SupportLogin from "./pages/SupportLogin";
 import SupportPortal from "./pages/SupportPortal";
+import ResetPassword from "./pages/ResetPassword";
 import AiHelpChat from "./components/AiHelpChat";
 
 const queryClient = new QueryClient();
