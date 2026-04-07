@@ -278,18 +278,43 @@ const Auth = () => {
               />
             </div>
             {isNewEmail && (
-              <div className="space-y-2">
-                <Label htmlFor="referralEmail" className="text-white/70">Referral Code *</Label>
-                <Input
-                  id="referralEmail"
-                  placeholder="Enter referral code"
-                  value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value)}
-                  className="uppercase border-white/10 bg-white/5 text-white placeholder:text-white/30"
-                  onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
-                />
-                <p className="text-xs text-white/40">This email is not registered. Enter a referral code to create an account.</p>
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="referralEmail" className="text-white/70">Referral Code *</Label>
+                  <Input
+                    id="referralEmail"
+                    placeholder="Enter referral code"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value)}
+                    className="uppercase border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="regPassword" className="text-white/70">Password *</Label>
+                  <Input
+                    id="regPassword"
+                    type="password"
+                    placeholder="Min 6 characters"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                  />
+                  <PasswordStrengthIndicator password={password} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="regConfirmPassword" className="text-white/70">Confirm Password *</Label>
+                  <Input
+                    id="regConfirmPassword"
+                    type="password"
+                    placeholder="Re-enter password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
+                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                  />
+                </div>
+                <p className="text-xs text-white/40">This email is not registered. Fill in the details above to create an account.</p>
+              </>
             )}
             <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleEmailSubmit} disabled={loading}>
               {loading ? "Please wait..." : isNewEmail ? "Create Account" : "Continue"}
