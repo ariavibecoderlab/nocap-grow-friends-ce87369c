@@ -78,6 +78,14 @@ const Auth = () => {
         toast({ title: "Referral code required", description: "Please enter a valid referral code to register.", variant: "destructive" });
         return;
       }
+      if (password.length < 6) {
+        toast({ title: "Password required", description: "Password must be at least 6 characters.", variant: "destructive" });
+        return;
+      }
+      if (password !== confirmPassword) {
+        toast({ title: "Error", description: "Passwords do not match.", variant: "destructive" });
+        return;
+      }
 
       setLoading(true);
 
@@ -94,10 +102,9 @@ const Auth = () => {
         return;
       }
 
-      // Sign up with random password
+      // Sign up with user-provided password
       sessionStorage.setItem(REGISTERING_FLAG, "1");
-      const randomPassword = crypto.randomUUID();
-      const { error: signUpError } = await signUp(email, randomPassword, "", "", referralCode.toUpperCase());
+      const { error: signUpError } = await signUp(email, password, "", "", referralCode.toUpperCase());
 
       if (signUpError) {
         sessionStorage.removeItem(REGISTERING_FLAG);
@@ -111,14 +118,20 @@ const Auth = () => {
         return;
       }
 
-      // Sign out so user sets password without being logged in
+      // Mark has_password via edge function
+      await supabase.functions.invoke('set-initial-password', {
+        body: { email, password },
+      });
+
+      // Sign out so user logs in fresh
       await supabase.auth.signOut();
       sessionStorage.removeItem(REGISTERING_FLAG);
 
-      // Show set-password dialog for new user
+      toast({ title: "Account created!", description: "Please login with your email and password." });
       setPassword("");
       setConfirmPassword("");
-      setShowSetPasswordDialog(true);
+      setReferralCode("");
+      setIsNewEmail(false);
       setLoading(false);
       return;
     }
@@ -278,18 +291,43 @@ const Auth = () => {
               />
             </div>
             {isNewEmail && (
-              <div className="space-y-2">
-                <Label htmlFor="referralEmail" className="text-white/70">Referral Code *</Label>
-                <Input
-                  id="referralEmail"
-                  placeholder="Enter referral code"
-                  value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value)}
-                  className="uppercase border-white/10 bg-white/5 text-white placeholder:text-white/30"
-                  onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
-                />
-                <p className="text-xs text-white/40">This email is not registered. Enter a referral code to create an account.</p>
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="referralEmail" className="text-white/70">Referral Code *</Label>
+                  <Input
+                    id="referralEmail"
+                    placeholder="Enter referral code"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value)}
+                    className="uppercase border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="regPassword" className="text-white/70">Password *</Label>
+                  <Input
+                    id="regPassword"
+                    type="password"
+                    placeholder="Min 6 characters"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                  />
+                  <PasswordStrengthIndicator password={password} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="regConfirmPassword" className="text-white/70">Confirm Password *</Label>
+                  <Input
+                    id="regConfirmPassword"
+                    type="password"
+                    placeholder="Re-enter password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
+                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                  />
+                </div>
+                <p className="text-xs text-white/40">This email is not registered. Fill in the details above to create an account.</p>
+              </>
             )}
             <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleEmailSubmit} disabled={loading}>
               {loading ? "Please wait..." : isNewEmail ? "Create Account" : "Continue"}
