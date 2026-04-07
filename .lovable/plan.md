@@ -1,88 +1,77 @@
 
 
-## Plan: Complete Support Ticketing System with Dedicated Support Agent Role
+## Plan: Revamp Login Flow — Password-First Authentication
 
 ### Overview
-Build a ticketing system managed by a new **"support"** role (not the existing "admin" role). Support agents will have their own login portal and dashboard, completely separate from the admin portal.
+Replace the current OTP-based login with a password-first flow. New users set a password immediately after registration. Existing users log in with password (with forgot-password fallback). OTP is removed from the primary login path.
 
-### Database Changes (1 migration)
+### Database Changes
 
-**1. Add `support` to `app_role` enum**
-```sql
-ALTER TYPE public.app_role ADD VALUE 'support';
-```
+1. **Add `has_password` column to `profiles` table**
+   - `has_password boolean NOT NULL DEFAULT false`
+   - This tracks whether a user has explicitly set their own password (since all accounts are created with a random password they don't know)
 
-**2. Create `support_tickets` table**
-- id (uuid, PK), ticket_number (text, auto-generated TK-000001), user_id (uuid, submitter), subject, description, category (general/billing/technical/account/marketplace), priority (low/medium/high/urgent), status (open/in_progress/resolved/closed), assigned_to (uuid, nullable — support agent), created_at, updated_at
+2. **Create edge function `check-has-password`**
+   - Accepts `{ email }`, uses service role to look up the user in `auth.users`, then checks `profiles.has_password`
+   - Returns `{ exists: true/false, has_password: true/false }`
+   - This tells the login page whether to show password login or set-password flow
 
-**3. Create `support_ticket_replies` table**
-- id, ticket_id, sender_id, sender_type (user/agent), message, attachments (jsonb — array of file URLs), created_at
+3. **Create edge function `set-initial-password`**
+   - Accepts `{ email, password }`
+   - Uses service role to call `admin.updateUserById()` to set the password
+   - Updates `profiles.has_password = true`
+   - Does NOT log the user in — returns success so the frontend redirects to login
 
-**4. Create storage bucket `support-attachments`** (private)
-- Users can upload to their own ticket path; support agents can access all
+### Auth Page (`Auth.tsx`) — New Flow
 
-**5. Create sequence for ticket numbers**
-```sql
-CREATE SEQUENCE support_ticket_seq START 1;
-```
-Default for ticket_number: `'TK-' || LPAD(nextval('support_ticket_seq')::text, 6, '0')`
+**Step 1 — Email Entry** (unchanged UI)
+- User enters email, clicks Continue
+- Calls `check-has-password` edge function
+- Three outcomes:
+  - **User not found** → show referral code field, proceed to registration
+  - **User found, has password** → show password dialog (small popup/dialog)
+  - **User found, no password** → show set-password dialog (small popup/dialog)
 
-**6. RLS Policies**
-- `support_tickets`: Users SELECT/INSERT own tickets; support agents (`has_role(uid, 'support')`) can SELECT/UPDATE all; admins can SELECT all
-- `support_ticket_replies`: Users SELECT/INSERT on own tickets; support agents SELECT/INSERT on all
-- Storage: ticket owner and support agents can read/write attachments
+**Step 2a — Registration (new user)**
+- Validate referral code → `signUp()` with random password → sign out
+- Then immediately show **set-password dialog** (using `set-initial-password` edge function)
+- On success: toast "Password set! Please login" → return to email step
 
-**7. Enable realtime** on `support_ticket_replies`
+**Step 2b — Password Login (existing user with password)**
+- Dialog with password input + "Forgot Password?" button
+- `signInWithPassword()` → navigate to dashboard
+- Forgot Password: calls `supabase.auth.resetPasswordForEmail()` → toast instructions
 
-**8. Notification trigger**: On new reply, insert into `notifications` table for the other party
+**Step 2c — Set Password (existing user without password)**
+- Dialog with new password + confirm password fields
+- Calls `set-initial-password` edge function
+- On success: toast "Password set successfully!" → close dialog, return to login to sign in with new password
 
-### Frontend — User Side
+**Step 3 — Forgot Password**
+- Uses Supabase built-in `resetPasswordForEmail()` with redirect to `/reset-password`
+- New `/reset-password` page: checks for recovery token in URL, shows new password form, calls `updateUser({ password })`
+- Updates `profiles.has_password = true` after successful reset
 
-**`src/pages/SupportTickets.tsx`** — List of user's tickets with status filters and "New Ticket" button
+### New Page: `/reset-password` (ResetPassword.tsx)
+- Detects `type=recovery` from URL hash
+- Shows new password + confirm password form
+- Calls `supabase.auth.updateUser({ password })` then updates `has_password`
+- Redirects to `/auth` on success
 
-**`src/pages/SupportTicketDetail.tsx`** — Single ticket view with:
-- Ticket info header (number, status, priority, category)
-- Threaded reply conversation with timestamps and sender labels
-- Reply input with file upload (images/videos, max 5 files, 20MB each)
-- Realtime subscription for live updates
+### Dashboard Change
+- After registration + OTP verify, show a **Dialog popup** prompting new members to set their password
+- This is removed since password is now set during registration before reaching dashboard
 
-**`src/components/support/CreateTicketForm.tsx`** — Dialog with subject, category, priority, description, and file attachments
+### UI Approach
+- Use shadcn `Dialog` component for password entry and set-password popups (small overlay windows as requested)
+- Keep the existing Auth page background and branding
 
-Add "My Tickets" link to Help & Support page and Profile settings menu.
-
-### Frontend — Support Agent Portal (separate from Admin)
-
-**`src/pages/SupportLogin.tsx`** — Dedicated login page for support agents (email/password, checks for `support` role)
-
-**`src/pages/SupportPortal.tsx`** — Sidebar layout (similar pattern to AdminPortal) with:
-- Dashboard: open ticket count, assigned to me, unassigned
-- Ticket queue: filterable by status, priority, assigned agent
-- Ticket detail: reply as agent, change status/priority, assign/reassign to other support agents
-
-**`src/components/support/SupportSidebar.tsx`** — Navigation sidebar
-
-**`src/components/support/SupportTicketQueue.tsx`** — Queue management with filters and bulk actions
-
-**`src/components/support/SupportTicketView.tsx`** — Agent view of ticket with reply, status controls, and assignment dropdown (lists all users with `support` role)
-
-### Routing
-- `/support-tickets` — member/merchant ticket list
-- `/support-tickets/:ticketId` — ticket detail
-- `/support-login` — support agent login
-- `/support-portal` — support dashboard
-- `/support-portal/tickets` — ticket queue
-- `/support-portal/tickets/:ticketId` — agent ticket view
-
-### Key Design Decisions
-- Support agents are a **completely separate role** from admins — admins cannot manage tickets (unless also given the support role)
-- Existing admin portal is untouched
-- Support agents manage tickets through their own portal with their own login
-- The existing `has_role` security definer function works with the new enum value automatically
-- Members and merchants both submit tickets from the same UI (accessible from Help & Support)
-
-### Technical Details
-- `app_role` enum extended with `'support'` — no existing code breaks since it's additive
-- File uploads compressed with existing `compressImage` utility before upload
-- Realtime on replies for live chat experience
-- Ticket assignment dropdown populated by querying `user_roles` where `role = 'support'` joined with `profiles` for names
+### Files Modified/Created
+- `supabase/functions/check-has-password/index.ts` — new edge function
+- `supabase/functions/set-initial-password/index.ts` — new edge function  
+- `src/pages/Auth.tsx` — rewrite login flow
+- `src/pages/ResetPassword.tsx` — new page for forgot password
+- `src/App.tsx` — add `/reset-password` route
+- Database migration: add `has_password` column to `profiles`
+- `src/lib/auth.ts` — minor updates
 
