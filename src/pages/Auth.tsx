@@ -11,6 +11,7 @@ import { signUp, signInWithPassword } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Coins, TrendingUp, Gift, Percent, Zap } from "lucide-react";
 import NocapLogo from "@/components/NocapLogo";
+import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 
 const REGISTERING_FLAG = "nocap_registering";
 
