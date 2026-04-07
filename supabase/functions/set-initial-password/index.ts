@@ -33,26 +33,23 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Find user by email
-    const { data: users, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-    if (listError) {
-      return new Response(JSON.stringify({ error: 'Internal error' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Find user by email using generateLink
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: email.toLowerCase(),
+    });
 
-    const user = users.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-
-    if (!user) {
+    if (linkError || !linkData?.user?.id) {
       return new Response(JSON.stringify({ error: 'User not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    const userId = linkData.user.id;
+
     // Update user password
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       password,
     });
 
@@ -67,13 +64,14 @@ serve(async (req) => {
     await supabaseAdmin
       .from('profiles')
       .update({ has_password: true })
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
+    console.error('set-initial-password error:', err);
     return new Response(JSON.stringify({ error: 'Internal error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
