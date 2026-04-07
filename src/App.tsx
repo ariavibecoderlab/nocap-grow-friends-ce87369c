@@ -103,6 +103,7 @@ const App = () => (
               <Route path="/support-login" element={<SupportLogin />} />
               <Route path="/support-portal" element={<SupportPortal />} />
               <Route path="/support-portal/*" element={<SupportPortal />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

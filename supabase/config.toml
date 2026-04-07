@@ -104,3 +104,9 @@ verify_jwt = false
 
 [functions.rebuild-referral-tree]
 verify_jwt = false
+
+[functions.check-has-password]
+verify_jwt = false
+
+[functions.set-initial-password]
+verify_jwt = false
