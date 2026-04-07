@@ -78,6 +78,14 @@ const Auth = () => {
         toast({ title: "Referral code required", description: "Please enter a valid referral code to register.", variant: "destructive" });
         return;
       }
+      if (password.length < 6) {
+        toast({ title: "Password required", description: "Password must be at least 6 characters.", variant: "destructive" });
+        return;
+      }
+      if (password !== confirmPassword) {
+        toast({ title: "Error", description: "Passwords do not match.", variant: "destructive" });
+        return;
+      }
 
       setLoading(true);
 
@@ -94,10 +102,9 @@ const Auth = () => {
         return;
       }
 
-      // Sign up with random password
+      // Sign up with user-provided password
       sessionStorage.setItem(REGISTERING_FLAG, "1");
-      const randomPassword = crypto.randomUUID();
-      const { error: signUpError } = await signUp(email, randomPassword, "", "", referralCode.toUpperCase());
+      const { error: signUpError } = await signUp(email, password, "", "", referralCode.toUpperCase());
 
       if (signUpError) {
         sessionStorage.removeItem(REGISTERING_FLAG);
@@ -111,14 +118,20 @@ const Auth = () => {
         return;
       }
 
-      // Sign out so user sets password without being logged in
+      // Mark has_password via edge function
+      await supabase.functions.invoke('set-initial-password', {
+        body: { email, password },
+      });
+
+      // Sign out so user logs in fresh
       await supabase.auth.signOut();
       sessionStorage.removeItem(REGISTERING_FLAG);
 
-      // Show set-password dialog for new user
+      toast({ title: "Account created!", description: "Please login with your email and password." });
       setPassword("");
       setConfirmPassword("");
-      setShowSetPasswordDialog(true);
+      setReferralCode("");
+      setIsNewEmail(false);
       setLoading(false);
       return;
     }
