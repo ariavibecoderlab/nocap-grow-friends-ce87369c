@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import NocapLogo from "@/components/NocapLogo";
+import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
@@ -104,6 +105,7 @@ const ResetPassword = () => {
               onChange={(e) => setPassword(e.target.value)}
               className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
             />
+            <PasswordStrengthIndicator password={password} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPwd" className="text-white/70">Confirm Password</Label>
