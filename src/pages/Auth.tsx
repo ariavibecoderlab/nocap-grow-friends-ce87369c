@@ -352,6 +352,7 @@ const Auth = () => {
                 className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
                 autoFocus
               />
+              <PasswordStrengthIndicator password={password} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPwd" className="text-white/70">Confirm Password</Label>
