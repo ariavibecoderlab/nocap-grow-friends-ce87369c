@@ -14,7 +14,6 @@ serve(async (req) => {
   try {
     const { email } = await req.json();
 
-    // Basic validation
     if (!email || typeof email !== 'string') {
       return new Response(JSON.stringify({ error: 'Email is required' }), {
         status: 400,
@@ -24,7 +23,6 @@ serve(async (req) => {
 
     const trimmedEmail = email.trim().toLowerCase();
 
-    // Simple email format check before calling admin API
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
       return new Response(JSON.stringify({ exists: false, has_password: false }), {
@@ -37,39 +35,57 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!supabaseUrl || !serviceRoleKey) {
-      console.error('Missing env vars:', { hasUrl: !!supabaseUrl, hasKey: !!serviceRoleKey });
+      console.error('Missing env vars');
       return new Response(JSON.stringify({ error: 'Server configuration error' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+    // Use GoTrue admin API to search users by email
+    // Paginate through all users to find exact email match
+    let found = false;
+    let userId: string | null = null;
+    let page = 1;
+    const perPage = 500;
 
-    // Use generateLink to check if user exists
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: trimmedEmail,
-    });
+    while (true) {
+      const res = await fetch(
+        `${supabaseUrl}/auth/v1/admin/users?page=${page}&per_page=${perPage}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${serviceRoleKey}`,
+            'apikey': serviceRoleKey,
+          },
+        }
+      );
 
-    if (linkError) {
-      const msg = linkError.message?.toLowerCase() || '';
-      // User not found or invalid email format — treat as non-existent
-      if (msg.includes('not found') || msg.includes('unable to find') || msg.includes('invalid')) {
-        return new Response(JSON.stringify({ exists: false, has_password: false }), {
-          status: 200,
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('Admin API error:', res.status, errText);
+        return new Response(JSON.stringify({ error: 'Internal error' }), {
+          status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      console.error('generateLink error:', linkError.message);
-      return new Response(JSON.stringify({ error: 'Internal error' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+
+      const data = await res.json();
+      const users = data.users || [];
+
+      for (const user of users) {
+        if (user.email?.toLowerCase() === trimmedEmail) {
+          found = true;
+          userId = user.id;
+          break;
+        }
+      }
+
+      if (found || users.length < perPage) break;
+      page++;
     }
 
-    const userId = linkData?.user?.id;
-    if (!userId) {
+    if (!found || !userId) {
       return new Response(JSON.stringify({ exists: false, has_password: false }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -77,6 +93,7 @@ serve(async (req) => {
     }
 
     // Check profile for has_password
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('has_password')
