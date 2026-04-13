@@ -880,6 +880,73 @@ export type Database = {
           },
         ]
       }
+      marketplace_return_requests: {
+        Row: {
+          buyer_user_id: string
+          created_at: string
+          id: string
+          merchant_note: string | null
+          order_id: string
+          order_item_id: string | null
+          reason: string
+          refund_amount: number
+          reviewed_at: string | null
+          status: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_user_id: string
+          created_at?: string
+          id?: string
+          merchant_note?: string | null
+          order_id: string
+          order_item_id?: string | null
+          reason: string
+          refund_amount?: number
+          reviewed_at?: string | null
+          status?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_user_id?: string
+          created_at?: string
+          id?: string
+          merchant_note?: string | null
+          order_id?: string
+          order_item_id?: string | null
+          reason?: string
+          refund_amount?: number
+          reviewed_at?: string | null
+          status?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_return_requests_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_return_requests_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_return_requests_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_reviews: {
         Row: {
           buyer_user_id: string | null
