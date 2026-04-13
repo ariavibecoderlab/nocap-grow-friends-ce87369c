@@ -77,6 +77,12 @@ const ProductDetail = () => {
           .eq("id", prodRes.data.store_id)
           .maybeSingle();
         if (storeData) setStoreName(storeData.store_name);
+
+        // Track product view
+        supabase.from("marketplace_product_views").insert({
+          product_id: productId,
+          store_id: prodRes.data.store_id,
+        }).then(() => {});
       }
       setLoading(false);
     };
