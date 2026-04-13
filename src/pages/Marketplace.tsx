@@ -45,7 +45,7 @@ interface CategoryInfo {
   store_id: string;
 }
 
-type SortOption = "featured" | "price_low" | "price_high" | "rating" | "newest";
+type SortOption = "featured" | "price_low" | "price_high" | "rating" | "newest" | "best_selling";
 
 const PAGE_SIZE = 12;
 
@@ -108,7 +108,7 @@ const Marketplace = () => {
           .order("store_name"),
         supabase
           .from("marketplace_products")
-          .select("id, store_id, name, price, images, stock_quantity, is_featured, category_id")
+          .select("id, store_id, name, price, images, stock_quantity, is_featured, category_id, sold_count")
           .eq("status", "active")
           .order("is_featured", { ascending: false }),
         supabase
