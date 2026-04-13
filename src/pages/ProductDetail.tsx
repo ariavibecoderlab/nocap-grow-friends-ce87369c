@@ -7,11 +7,12 @@ import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import CartDrawer from "@/components/marketplace/CartDrawer";
 import BottomNav from "@/components/BottomNav";
-import { ArrowLeft, ShoppingCart, Star, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Star, Minus, Plus, Zap } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import ProductChat from "@/components/marketplace/ProductChat";
 import VariantSelector, { type Variant } from "@/components/marketplace/VariantSelector";
+import ProductShareButton from "@/components/marketplace/ProductShareButton";
 
 interface Product {
   id: string;
@@ -29,6 +30,7 @@ interface Review {
   id: string;
   rating: number;
   comment: string | null;
+  review_images: Json;
   merchant_reply: string | null;
   replied_at: string | null;
   created_at: string;
@@ -59,14 +61,13 @@ const ProductDetail = () => {
           .eq("id", productId)
           .maybeSingle(),
         supabase.from("marketplace_reviews")
-          .select("id, rating, comment, merchant_reply, replied_at, created_at")
+          .select("id, rating, comment, review_images, merchant_reply, replied_at, created_at")
           .eq("product_id", productId)
           .order("created_at", { ascending: false })
           .limit(10),
       ]);
       setProduct(prodRes.data as Product | null);
       setReviews((revRes.data as Review[]) || []);
-      // Fetch store name for chat
       if (prodRes.data?.store_id) {
         const { data: storeData } = await supabase
           .from("marketplace_stores")
@@ -122,6 +123,19 @@ const ProductDetail = () => {
     toast({ title: "Added to cart", description: `${qty}× ${product.name}${variantLabel}` });
   };
 
+  const handleBuyNow = () => {
+    // Add to cart then navigate directly to checkout
+    addItem({
+      productId: product.id,
+      storeId: product.store_id,
+      name: product.name + variantLabel,
+      price: effectivePrice,
+      image: images[0] || "",
+      stock: effectiveStock,
+    });
+    navigate("/checkout");
+  };
+
   return (
     <div className="min-h-screen bg-primary pb-40">
       {/* Header */}
@@ -129,7 +143,10 @@ const ProductDetail = () => {
         <button onClick={() => navigate(-1)} className="rounded-full bg-black/40 p-2 text-white hover:bg-black/60 backdrop-blur-sm">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <CartDrawer />
+        <div className="flex items-center gap-2">
+          <ProductShareButton productName={product.name} />
+          <CartDrawer />
+        </div>
       </div>
 
       {/* Image Gallery */}
@@ -193,31 +210,47 @@ const ProductDetail = () => {
           <div className="mt-6">
             <h3 className="font-display text-sm font-semibold text-white mb-3">Reviews</h3>
             <div className="space-y-2">
-              {reviews.map(r => (
-                <div key={r.id} className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className={`h-3 w-3 ${i < r.rating ? "fill-secondary text-secondary" : "text-white/20"}`} />
-                    ))}
-                  </div>
-                  {r.comment && <p className="text-xs text-white/60">{r.comment}</p>}
-                  {r.merchant_reply && (
-                    <div className="ml-3 pl-3 border-l-2 border-secondary/30">
-                      <p className="text-[10px] text-secondary font-medium mb-0.5">Merchant Reply</p>
-                      <p className="text-xs text-white/60">{r.merchant_reply}</p>
+              {reviews.map(r => {
+                const reviewImgs = (r.review_images as string[]) || [];
+                return (
+                  <div key={r.id} className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} className={`h-3 w-3 ${i < r.rating ? "fill-secondary text-secondary" : "text-white/20"}`} />
+                      ))}
                     </div>
-                  )}
-                </div>
-              ))}
+                    {r.comment && <p className="text-xs text-white/60">{r.comment}</p>}
+                    {/* Review Photos */}
+                    {reviewImgs.length > 0 && (
+                      <div className="flex gap-1.5 overflow-x-auto">
+                        {reviewImgs.map((img, i) => (
+                          <img
+                            key={i}
+                            src={getOptimizedImageUrl(img, 200, 200)}
+                            alt="Review"
+                            className="h-16 w-16 rounded-lg object-cover border border-white/10 shrink-0"
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {r.merchant_reply && (
+                      <div className="ml-3 pl-3 border-l-2 border-secondary/30">
+                        <p className="text-[10px] text-secondary font-medium mb-0.5">Merchant Reply</p>
+                        <p className="text-xs text-white/60">{r.merchant_reply}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
       </div>
 
-      {/* Fixed bottom add-to-cart */}
+      {/* Fixed bottom: Buy Now + Add to Cart */}
       <div className="fixed bottom-16 left-0 right-0 z-30 bg-primary border-t border-white/10 px-4 py-3">
-        <div className="mx-auto max-w-md flex items-center gap-3">
-          <div className="flex items-center gap-2 border border-white/10 rounded-full px-2">
+        <div className="mx-auto max-w-md flex items-center gap-2">
+          <div className="flex items-center gap-1.5 border border-white/10 rounded-full px-2">
             <button onClick={() => setQty(Math.max(1, qty - 1))} className="p-1.5 text-white/60 hover:text-white">
               <Minus className="h-4 w-4" />
             </button>
@@ -227,12 +260,21 @@ const ProductDetail = () => {
             </button>
           </div>
           <Button
-            className="flex-1 bg-secondary text-primary hover:bg-secondary/90 font-semibold"
+            variant="outline"
+            className="flex-1 border-secondary/30 text-secondary hover:bg-secondary/10 font-semibold"
             disabled={effectiveStock <= 0}
             onClick={handleAddToCart}
           >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            Add to Cart · RM {(effectivePrice * qty).toFixed(2)}
+            <ShoppingCart className="h-4 w-4 mr-1" />
+            Cart
+          </Button>
+          <Button
+            className="flex-1 bg-secondary text-primary hover:bg-secondary/90 font-semibold"
+            disabled={effectiveStock <= 0}
+            onClick={handleBuyNow}
+          >
+            <Zap className="h-4 w-4 mr-1" />
+            Buy Now · RM {(effectivePrice * qty).toFixed(2)}
           </Button>
         </div>
       </div>

@@ -528,6 +528,44 @@ export type Database = {
           },
         ]
       }
+      marketplace_order_status_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          id: string
+          new_status: string
+          note: string | null
+          old_status: string | null
+          order_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_status: string
+          note?: string | null
+          old_status?: string | null
+          order_id: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_status?: string
+          note?: string | null
+          old_status?: string | null
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_order_status_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_orders: {
         Row: {
           bill_id: string | null
@@ -732,6 +770,7 @@ export type Database = {
           product_id: string
           rating: number
           replied_at: string | null
+          review_images: Json
         }
         Insert: {
           buyer_user_id?: string | null
@@ -743,6 +782,7 @@ export type Database = {
           product_id: string
           rating: number
           replied_at?: string | null
+          review_images?: Json
         }
         Update: {
           buyer_user_id?: string | null
@@ -754,6 +794,7 @@ export type Database = {
           product_id?: string
           rating?: number
           replied_at?: string | null
+          review_images?: Json
         }
         Relationships: [
           {
@@ -1463,6 +1504,51 @@ export type Database = {
           reference_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"]
           type?: Database["public"]["Enums"]["transaction_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_addresses: {
+        Row: {
+          address_line: string
+          city: string | null
+          created_at: string
+          id: string
+          is_default: boolean
+          label: string
+          phone: string
+          postcode: string | null
+          recipient_name: string
+          state: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address_line: string
+          city?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          phone: string
+          postcode?: string | null
+          recipient_name: string
+          state?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address_line?: string
+          city?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          phone?: string
+          postcode?: string | null
+          recipient_name?: string
+          state?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
