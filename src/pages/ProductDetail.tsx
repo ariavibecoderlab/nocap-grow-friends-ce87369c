@@ -106,17 +106,20 @@ const ProductDetail = () => {
 
   const images = (product.images as string[]) || [];
   const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+  const effectivePrice = product.price + (selectedVariant?.price_adjustment || 0);
+  const effectiveStock = selectedVariant ? selectedVariant.stock_quantity : product.stock_quantity;
+  const variantLabel = selectedVariant ? ` (${selectedVariant.variant_value})` : "";
 
   const handleAddToCart = () => {
     addItem({
       productId: product.id,
       storeId: product.store_id,
-      name: product.name,
-      price: product.price,
+      name: product.name + variantLabel,
+      price: effectivePrice,
       image: images[0] || "",
-      stock: product.stock_quantity,
+      stock: effectiveStock,
     });
-    toast({ title: "Added to cart", description: `${qty}× ${product.name}` });
+    toast({ title: "Added to cart", description: `${qty}× ${product.name}${variantLabel}` });
   };
 
   return (
