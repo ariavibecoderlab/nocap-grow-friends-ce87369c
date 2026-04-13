@@ -59,7 +59,7 @@ const ProductDetail = () => {
     const fetch = async () => {
       const [prodRes, revRes] = await Promise.all([
         supabase.from("marketplace_products")
-          .select("id, store_id, name, description, price, images, stock_quantity, sku, weight_kg")
+          .select("id, store_id, name, description, price, images, stock_quantity, sku, weight_kg, category_id")
           .eq("id", productId)
           .maybeSingle(),
         supabase.from("marketplace_reviews")
