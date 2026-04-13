@@ -222,17 +222,17 @@ const ProductDetail = () => {
               <Minus className="h-4 w-4" />
             </button>
             <span className="text-sm font-medium text-white w-6 text-center">{qty}</span>
-            <button onClick={() => setQty(Math.min(product.stock_quantity, qty + 1))} className="p-1.5 text-white/60 hover:text-white">
+            <button onClick={() => setQty(Math.min(effectiveStock, qty + 1))} className="p-1.5 text-white/60 hover:text-white">
               <Plus className="h-4 w-4" />
             </button>
           </div>
           <Button
             className="flex-1 bg-secondary text-primary hover:bg-secondary/90 font-semibold"
-            disabled={product.stock_quantity <= 0}
+            disabled={effectiveStock <= 0}
             onClick={handleAddToCart}
           >
             <ShoppingCart className="h-4 w-4 mr-2" />
-            Add to Cart · RM {(product.price * qty).toFixed(2)}
+            Add to Cart · RM {(effectivePrice * qty).toFixed(2)}
           </Button>
         </div>
       </div>
