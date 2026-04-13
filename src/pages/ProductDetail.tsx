@@ -13,6 +13,8 @@ import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import ProductChat from "@/components/marketplace/ProductChat";
 import VariantSelector, { type Variant } from "@/components/marketplace/VariantSelector";
 import ProductShareButton from "@/components/marketplace/ProductShareButton";
+import RelatedProducts from "@/components/marketplace/RelatedProducts";
+import ProductQA from "@/components/marketplace/ProductQA";
 
 interface Product {
   id: string;
@@ -245,6 +247,17 @@ const ProductDetail = () => {
             </div>
           </div>
         )}
+
+        {/* Q&A */}
+        <ProductQA productId={product.id} />
+
+        {/* Related Products */}
+        <RelatedProducts
+          productId={product.id}
+          storeId={product.store_id}
+          categoryId={(product as any).category_id || null}
+          storeSlug={slug || ""}
+        />
       </div>
 
       {/* Fixed bottom: Buy Now + Add to Cart */}

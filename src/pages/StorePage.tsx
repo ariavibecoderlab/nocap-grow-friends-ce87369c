@@ -8,6 +8,7 @@ import { ArrowLeft, Store, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Json } from "@/integrations/supabase/types";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import StoreFollowButton from "@/components/marketplace/StoreFollowButton";
 
 interface StoreData {
   id: string;
@@ -169,9 +170,12 @@ const StorePage = () => {
               </div>
             )}
           </div>
-          <div className="pb-1">
+          <div className="pb-1 flex-1 min-w-0">
             <h1 className="font-display text-xl font-bold text-white">{store.store_name}</h1>
             {store.tagline && <p className="text-xs text-white/50">{store.tagline}</p>}
+            <div className="mt-1.5">
+              <StoreFollowButton storeId={store.id} />
+            </div>
           </div>
         </div>
 
