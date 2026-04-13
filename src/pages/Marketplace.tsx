@@ -19,6 +19,7 @@ import { useWishlist } from "@/contexts/WishlistContext";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import CategoryChips from "@/components/marketplace/CategoryChips";
 import FlashSaleSection from "@/components/marketplace/FlashSaleSection";
+import BannerCarousel from "@/components/marketplace/BannerCarousel";
 
 interface ProductRow {
   id: string;
@@ -492,6 +493,9 @@ const Marketplace = () => {
           selected={selectedCategory}
           onSelect={setSelectedCategory}
         />
+
+        {/* Banner Carousel */}
+        <BannerCarousel />
 
         {/* Flash Sales */}
         <FlashSaleSection />
