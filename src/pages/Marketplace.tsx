@@ -417,6 +417,7 @@ const Marketplace = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="featured">Featured</SelectItem>
+                  <SelectItem value="best_selling">Best Selling</SelectItem>
                   <SelectItem value="price_low">Price: Low to High</SelectItem>
                   <SelectItem value="price_high">Price: High to Low</SelectItem>
                   <SelectItem value="rating">Highest Rated</SelectItem>
