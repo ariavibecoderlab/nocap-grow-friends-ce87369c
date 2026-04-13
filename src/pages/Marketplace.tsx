@@ -526,6 +526,7 @@ const Marketplace = () => {
                       stockQuantity={p.stock_quantity}
                       storeSlug={storeMap[p.store_id]?.slug || ""}
                       rating={ratings[p.id]}
+                      soldCount={p.sold_count}
                       compact
                     />
                   </div>

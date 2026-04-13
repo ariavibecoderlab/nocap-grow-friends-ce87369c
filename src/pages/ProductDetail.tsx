@@ -11,6 +11,7 @@ import { ArrowLeft, ShoppingCart, Star, Minus, Plus } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import ProductChat from "@/components/marketplace/ProductChat";
+import VariantSelector, { type Variant } from "@/components/marketplace/VariantSelector";
 
 interface Product {
   id: string;
