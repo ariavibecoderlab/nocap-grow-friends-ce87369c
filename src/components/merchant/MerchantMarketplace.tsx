@@ -12,12 +12,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
 import MerchantOrderDetail from "@/components/merchant/MerchantOrderDetail";
-import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star, Printer, Zap, BarChart3, FileUp, RotateCcw } from "lucide-react";
+import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star, Printer, Zap, BarChart3, FileUp, RotateCcw, Layout, FileText, Menu, Globe } from "lucide-react";
 import MerchantFlashSales from "@/components/merchant/MerchantFlashSales";
 import BulkProductUpload from "@/components/merchant/BulkProductUpload";
 import StoreAnalytics from "@/components/merchant/StoreAnalytics";
 import MerchantReviews from "@/components/merchant/MerchantReviews";
 import MerchantReturns from "@/components/merchant/MerchantReturns";
+import StorePageBuilder from "@/components/merchant/StorePageBuilder";
+import MerchantStorePages from "@/components/merchant/MerchantStorePages";
+import MerchantStoreMenus from "@/components/merchant/MerchantStoreMenus";
+import StoreSeoSettings from "@/components/merchant/StoreSeoSettings";
 import { Json } from "@/integrations/supabase/types";
 import ProductVariantEditor from "@/components/merchant/ProductVariantEditor";
 import { compressImage } from "@/lib/compressImage";
