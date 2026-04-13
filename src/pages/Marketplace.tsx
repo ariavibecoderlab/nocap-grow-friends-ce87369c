@@ -470,7 +470,7 @@ const Marketplace = () => {
             )}
             {sortBy !== "featured" && (
               <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer" onClick={() => setSortBy("featured")}>
-                {sortBy === "price_low" ? "Price ↑" : sortBy === "price_high" ? "Price ↓" : sortBy === "rating" ? "Top Rated" : "Newest"} <X className="h-2.5 w-2.5" />
+                {sortBy === "price_low" ? "Price ↑" : sortBy === "price_high" ? "Price ↓" : sortBy === "rating" ? "Top Rated" : sortBy === "best_selling" ? "Best Selling" : "Newest"} <X className="h-2.5 w-2.5" />
               </Badge>
             )}
             {priceFilterActive && (
