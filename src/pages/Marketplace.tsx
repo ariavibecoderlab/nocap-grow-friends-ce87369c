@@ -486,6 +486,16 @@ const Marketplace = () => {
           </div>
         )}
 
+        {/* Category Chips */}
+        <CategoryChips
+          categories={visibleCategories}
+          selected={selectedCategory}
+          onSelect={setSelectedCategory}
+        />
+
+        {/* Flash Sales */}
+        <FlashSaleSection />
+
         {/* Results count */}
         <p className="text-[10px] text-white/30 mb-3">
           {filtered.length} product{filtered.length !== 1 ? "s" : ""}
