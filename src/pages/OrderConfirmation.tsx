@@ -8,6 +8,7 @@ import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
 import ReviewForm from "@/components/marketplace/ReviewForm";
 import BottomNav from "@/components/BottomNav";
 import { ArrowLeft, Store, Package, Truck, Star } from "lucide-react";
+import OrderStatusTimeline from "@/components/marketplace/OrderStatusTimeline";
 
 interface OrderData {
   id: string;
@@ -135,6 +136,13 @@ const OrderConfirmation = () => {
             <p className="font-display text-lg font-bold text-white mt-3">{storeInfo?.store_name || "Store"}</p>
             <p className="text-xs text-white/40 mt-1">Order #{order.order_number}</p>
             <div className="mt-2"><OrderStatusBadge status={order.status} /></div>
+          </CardContent>
+        </Card>
+
+        {/* Order Status Timeline */}
+        <Card className="border-white/10 bg-white/5">
+          <CardContent className="p-4">
+            <OrderStatusTimeline orderId={order.id} currentStatus={order.status} />
           </CardContent>
         </Card>
 

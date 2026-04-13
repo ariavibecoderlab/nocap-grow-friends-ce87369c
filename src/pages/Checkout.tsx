@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
 import { ArrowLeft, ShoppingCart, Tag, Loader2, CheckCircle2 } from "lucide-react";
+import AddressSelector from "@/components/marketplace/AddressSelector";
 
 const Checkout = () => {
   const { user, loading: authLoading } = useAuth();
@@ -303,7 +304,10 @@ const Checkout = () => {
         {/* Delivery Info */}
         <Card className="border-white/10 bg-white/5">
           <CardContent className="p-4 space-y-3">
-            <h3 className="font-display text-sm font-semibold text-white">Delivery Details</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-sm font-semibold text-white">Delivery Details</h3>
+              <AddressSelector onSelect={({ name: n, phone: p, address: a }) => { setName(n); setPhone(p); setAddress(a); }} />
+            </div>
             <div className="space-y-2">
               <div>
                 <Label className="text-white/60 text-xs">Full Name</Label>
