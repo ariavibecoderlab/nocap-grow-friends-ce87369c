@@ -16,6 +16,7 @@ import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload,
 import MerchantFlashSales from "@/components/merchant/MerchantFlashSales";
 import MerchantReviews from "@/components/merchant/MerchantReviews";
 import { Json } from "@/integrations/supabase/types";
+import ProductVariantEditor from "@/components/merchant/ProductVariantEditor";
 import { compressImage } from "@/lib/compressImage";
 import { generateBulkSalesOrderPdf, type SalesOrderData } from "@/lib/generateSalesOrderPdf";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -1079,6 +1080,10 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
                 </SelectContent>
               </Select>
             </div>
+            {/* Variant Editor - only for existing products */}
+            {editProduct && (
+              <ProductVariantEditor productId={editProduct.id} />
+            )}
             <Button className="w-full bg-secondary text-primary" onClick={saveProduct} disabled={savingProd}>
               {savingProd ? <Loader2 className="h-4 w-4 animate-spin" /> : editProduct ? "Save Changes" : "Add Product"}
             </Button>
