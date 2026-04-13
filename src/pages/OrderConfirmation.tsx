@@ -9,6 +9,7 @@ import ReviewForm from "@/components/marketplace/ReviewForm";
 import BottomNav from "@/components/BottomNav";
 import { ArrowLeft, Store, Package, Truck, Star } from "lucide-react";
 import OrderStatusTimeline from "@/components/marketplace/OrderStatusTimeline";
+import ReturnRequestForm from "@/components/marketplace/ReturnRequestForm";
 
 interface OrderData {
   id: string;
@@ -237,6 +238,17 @@ const OrderConfirmation = () => {
               ))}
             </CardContent>
           </Card>
+        )}
+
+        {/* Return/Refund - for delivered or shipped orders */}
+        {(order.status === "delivered" || order.status === "shipped") && (
+          <div className="flex justify-center">
+            <ReturnRequestForm
+              orderId={order.id}
+              storeId={order.store_id}
+              totalAmount={order.total_amount}
+            />
+          </div>
         )}
 
         <p className="text-center text-[10px] text-white/30 pb-4">
