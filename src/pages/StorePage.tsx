@@ -22,6 +22,8 @@ interface StoreData {
   theme: string;
   shipping_flat_rate: number;
   free_shipping_min: number | null;
+  page_layout: Json;
+  seo: Json;
 }
 
 interface ProductRow {
@@ -41,6 +43,21 @@ interface CategoryRow {
   sort_order: number;
 }
 
+interface MenuItem {
+  id: string;
+  label: string;
+  url: string;
+  position: string;
+}
+
+interface PageSection {
+  id: string;
+  type: string;
+  title: string;
+  content: string;
+  imageUrl: string;
+}
+
 const StorePage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -48,6 +65,7 @@ const StorePage = () => {
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [ratings, setRatings] = useState<Record<string, number>>({});
+  const [menus, setMenus] = useState<MenuItem[]>([]);
   const [selectedCat, setSelectedCat] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -57,15 +75,20 @@ const StorePage = () => {
     const fetch = async () => {
       const { data: storeData } = await supabase
         .from("marketplace_stores")
-        .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min")
+        .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo")
         .eq("slug", slug)
         .eq("status", "live")
         .maybeSingle();
 
       if (!storeData) { setLoading(false); return; }
-      setStore(storeData as StoreData);
+      setStore(storeData as unknown as StoreData);
 
-      const [prodRes, catRes] = await Promise.all([
+      // Set SEO
+      const seo = storeData.seo as Record<string, string> | null;
+      if (seo?.meta_title) document.title = seo.meta_title;
+      else document.title = storeData.store_name;
+
+      const [prodRes, catRes, menuRes] = await Promise.all([
         supabase.from("marketplace_products")
           .select("id, store_id, name, price, images, stock_quantity, is_featured, category_id")
           .eq("store_id", storeData.id)
@@ -75,13 +98,17 @@ const StorePage = () => {
           .select("id, name, sort_order")
           .eq("store_id", storeData.id)
           .order("sort_order"),
+        supabase.from("marketplace_store_menus")
+          .select("id, label, url, position")
+          .eq("store_id", storeData.id)
+          .order("sort_order"),
       ]);
 
       const prods = (prodRes.data as ProductRow[]) || [];
       setProducts(prods);
       setCategories((catRes.data as CategoryRow[]) || []);
+      setMenus((menuRes.data as unknown as MenuItem[]) || []);
 
-      // Fetch average ratings for all products
       if (prods.length > 0) {
         const productIds = prods.map(p => p.id);
         const { data: reviewData } = await supabase
@@ -113,6 +140,10 @@ const StorePage = () => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
   });
+
+  const headerMenus = menus.filter(m => m.position === "header");
+  const footerMenus = menus.filter(m => m.position === "footer");
+  const sections = (store?.page_layout && Array.isArray(store.page_layout) ? store.page_layout : []) as unknown as PageSection[];
 
   if (loading) {
     return (
@@ -183,6 +214,18 @@ const StorePage = () => {
           <p className="text-xs text-white/40 mt-3">{store.description}</p>
         )}
 
+        {/* Header Navigation */}
+        {headerMenus.length > 0 && (
+          <div className="flex gap-3 mt-3 overflow-x-auto pb-1 scrollbar-none">
+            {headerMenus.map(m => (
+              <button key={m.id} onClick={() => navigate(m.url)}
+                className="shrink-0 text-xs text-secondary/80 hover:text-secondary font-medium transition-colors">
+                {m.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Shipping info */}
         <div className="mt-3 text-[11px] text-white/40">
           {store.free_shipping_min ? (
@@ -191,6 +234,54 @@ const StorePage = () => {
             <span>Shipping: RM {store.shipping_flat_rate.toFixed(2)}</span>
           )}
         </div>
+
+        {/* Page Layout Sections */}
+        {sections.length > 0 && (
+          <div className="mt-4 space-y-4">
+            {sections.map(section => (
+              <div key={section.id}>
+                {section.type === "hero_banner" && (
+                  <div className="relative rounded-xl overflow-hidden">
+                    {section.imageUrl && (
+                      <img src={section.imageUrl} alt={section.title} className="w-full h-32 object-cover" />
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center p-4">
+                      <h2 className="font-display text-lg font-bold text-white">{section.title}</h2>
+                      {section.content && <p className="text-xs text-white/70 mt-1">{section.content}</p>}
+                    </div>
+                  </div>
+                )}
+                {section.type === "image_banner" && section.imageUrl && (
+                  <img src={section.imageUrl} alt={section.title} className="w-full rounded-xl object-cover" />
+                )}
+                {(section.type === "text_block" || section.type === "about") && (
+                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                    <h3 className="font-display text-sm font-semibold text-white mb-2">{section.title}</h3>
+                    <p className="text-xs text-white/60 whitespace-pre-wrap leading-relaxed">{section.content}</p>
+                  </div>
+                )}
+                {section.type === "testimonials" && (
+                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                    <h3 className="font-display text-sm font-semibold text-white mb-2">{section.title}</h3>
+                    <p className="text-xs text-white/60 italic">"{section.content}"</p>
+                  </div>
+                )}
+                {section.type === "featured_products" && (
+                  <div>
+                    <h3 className="font-display text-sm font-semibold text-white mb-2">{section.title}</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {products.filter(p => p.is_featured).slice(0, 4).map(p => (
+                        <ProductCard key={p.id} id={p.id} storeId={p.store_id} name={p.name} price={p.price}
+                          images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
+                          storeSlug={store.slug} rating={ratings[p.id]} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Search + Categories */}
         <div className="mt-4 relative">
@@ -248,6 +339,20 @@ const StorePage = () => {
           <div className="flex flex-col items-center py-16 text-white/40">
             <Store className="h-8 w-8 mb-2 opacity-40" />
             <p className="text-sm">No products found</p>
+          </div>
+        )}
+
+        {/* Footer Navigation */}
+        {footerMenus.length > 0 && (
+          <div className="mt-8 pt-4 border-t border-white/10">
+            <div className="flex flex-wrap gap-3 justify-center">
+              {footerMenus.map(m => (
+                <button key={m.id} onClick={() => navigate(m.url)}
+                  className="text-[11px] text-white/40 hover:text-white/60 transition-colors">
+                  {m.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>

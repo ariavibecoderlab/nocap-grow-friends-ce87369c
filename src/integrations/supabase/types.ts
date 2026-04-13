@@ -1065,6 +1065,91 @@ export type Database = {
           },
         ]
       }
+      marketplace_store_menus: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          position: string
+          sort_order: number
+          store_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          position?: string
+          sort_order?: number
+          store_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          position?: string
+          sort_order?: number
+          store_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_store_menus_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_store_pages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_published: boolean
+          seo: Json
+          slug: string
+          sort_order: number
+          store_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          seo?: Json
+          slug: string
+          sort_order?: number
+          store_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          seo?: Json
+          slug?: string
+          sort_order?: number
+          store_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_store_pages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_stores: {
         Row: {
           banner_url: string | null
@@ -1076,7 +1161,9 @@ export type Database = {
           id: string
           logo_url: string | null
           merchant_user_id: string
+          page_layout: Json
           primary_color: string
+          seo: Json
           settings: Json
           shipping_flat_rate: number
           slug: string
@@ -1097,7 +1184,9 @@ export type Database = {
           id?: string
           logo_url?: string | null
           merchant_user_id: string
+          page_layout?: Json
           primary_color?: string
+          seo?: Json
           settings?: Json
           shipping_flat_rate?: number
           slug: string
@@ -1118,7 +1207,9 @@ export type Database = {
           id?: string
           logo_url?: string | null
           merchant_user_id?: string
+          page_layout?: Json
           primary_color?: string
+          seo?: Json
           settings?: Json
           shipping_flat_rate?: number
           slug?: string

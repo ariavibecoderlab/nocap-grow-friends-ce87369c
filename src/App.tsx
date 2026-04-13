@@ -38,6 +38,7 @@ import UserManual from "./pages/UserManual";
 import UatScripts from "./pages/UatScripts";
 import Marketplace from "./pages/Marketplace";
 import StorePage from "./pages/StorePage";
+import StoreCustomPage from "./pages/StoreCustomPage";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
@@ -93,6 +94,7 @@ const App = () => (
               <Route path="/uat-scripts" element={<UatScripts />} />
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/store/:slug" element={<StorePage />} />
+              <Route path="/store/:slug/page/:pageSlug" element={<StoreCustomPage />} />
               <Route path="/store/:slug/product/:productId" element={<ProductDetail />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/order/:orderId" element={<OrderConfirmation />} />

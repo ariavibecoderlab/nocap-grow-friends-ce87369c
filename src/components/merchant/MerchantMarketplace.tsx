@@ -12,12 +12,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
 import MerchantOrderDetail from "@/components/merchant/MerchantOrderDetail";
-import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star, Printer, Zap, BarChart3, FileUp, RotateCcw } from "lucide-react";
+import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star, Printer, Zap, BarChart3, FileUp, RotateCcw, Layout, FileText, Menu, Globe } from "lucide-react";
 import MerchantFlashSales from "@/components/merchant/MerchantFlashSales";
 import BulkProductUpload from "@/components/merchant/BulkProductUpload";
 import StoreAnalytics from "@/components/merchant/StoreAnalytics";
 import MerchantReviews from "@/components/merchant/MerchantReviews";
 import MerchantReturns from "@/components/merchant/MerchantReturns";
+import StorePageBuilder from "@/components/merchant/StorePageBuilder";
+import MerchantStorePages from "@/components/merchant/MerchantStorePages";
+import MerchantStoreMenus from "@/components/merchant/MerchantStoreMenus";
+import StoreSeoSettings from "@/components/merchant/StoreSeoSettings";
 import { Json } from "@/integrations/supabase/types";
 import ProductVariantEditor from "@/components/merchant/ProductVariantEditor";
 import { compressImage } from "@/lib/compressImage";
@@ -711,16 +715,48 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
           <TabsTrigger value="analytics" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
             <BarChart3 className="h-3 w-3 mr-0.5" />Stats
           </TabsTrigger>
+          <TabsTrigger value="builder" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+            <Layout className="h-3 w-3 mr-0.5" />Builder
+          </TabsTrigger>
+          <TabsTrigger value="pages" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+            <FileText className="h-3 w-3 mr-0.5" />Pages
+          </TabsTrigger>
+          <TabsTrigger value="menus" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+            <Menu className="h-3 w-3 mr-0.5" />Menus
+          </TabsTrigger>
+          <TabsTrigger value="seo" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+            <Globe className="h-3 w-3 mr-0.5" />SEO
+          </TabsTrigger>
           <TabsTrigger value="settings" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Settings</TabsTrigger>
         </TabsList>
 
-        {/* ANALYTICS TAB */}
+        {/* RETURNS TAB */}
         <TabsContent value="returns" className="mt-3">
           <MerchantReturns storeId={store.id} />
         </TabsContent>
 
         <TabsContent value="analytics" className="mt-3">
           <StoreAnalytics storeId={store.id} />
+        </TabsContent>
+
+        {/* BUILDER TAB */}
+        <TabsContent value="builder" className="mt-3">
+          <StorePageBuilder storeId={store.id} />
+        </TabsContent>
+
+        {/* PAGES TAB */}
+        <TabsContent value="pages" className="mt-3">
+          <MerchantStorePages storeId={store.id} storeSlug={store.slug} />
+        </TabsContent>
+
+        {/* MENUS TAB */}
+        <TabsContent value="menus" className="mt-3">
+          <MerchantStoreMenus storeId={store.id} />
+        </TabsContent>
+
+        {/* SEO TAB */}
+        <TabsContent value="seo" className="mt-3">
+          <StoreSeoSettings storeId={store.id} />
         </TabsContent>
 
         {/* PRODUCTS TAB */}
