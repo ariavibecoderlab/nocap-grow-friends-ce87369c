@@ -12,11 +12,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
 import MerchantOrderDetail from "@/components/merchant/MerchantOrderDetail";
-import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star, Printer, Zap, BarChart3, FileUp } from "lucide-react";
+import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star, Printer, Zap, BarChart3, FileUp, RotateCcw } from "lucide-react";
 import MerchantFlashSales from "@/components/merchant/MerchantFlashSales";
 import BulkProductUpload from "@/components/merchant/BulkProductUpload";
 import StoreAnalytics from "@/components/merchant/StoreAnalytics";
 import MerchantReviews from "@/components/merchant/MerchantReviews";
+import MerchantReturns from "@/components/merchant/MerchantReturns";
 import { Json } from "@/integrations/supabase/types";
 import ProductVariantEditor from "@/components/merchant/ProductVariantEditor";
 import { compressImage } from "@/lib/compressImage";
@@ -704,6 +705,9 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
             <Zap className="h-3 w-3 mr-0.5" />Flash
           </TabsTrigger>
           <TabsTrigger value="discounts" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Discounts</TabsTrigger>
+          <TabsTrigger value="returns" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+            <RotateCcw className="h-3 w-3 mr-0.5" />Returns
+          </TabsTrigger>
           <TabsTrigger value="analytics" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
             <BarChart3 className="h-3 w-3 mr-0.5" />Stats
           </TabsTrigger>
@@ -711,6 +715,10 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
         </TabsList>
 
         {/* ANALYTICS TAB */}
+        <TabsContent value="returns" className="mt-3">
+          <MerchantReturns storeId={store.id} />
+        </TabsContent>
+
         <TabsContent value="analytics" className="mt-3">
           <StoreAnalytics storeId={store.id} />
         </TabsContent>
