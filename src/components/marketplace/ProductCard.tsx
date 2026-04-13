@@ -17,9 +17,10 @@ interface ProductCardProps {
   storeName?: string;
   rating?: number;
   compact?: boolean;
+  soldCount?: number;
 }
 
-export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, rating, compact }: ProductCardProps) {
+export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, rating, compact, soldCount }: ProductCardProps) {
   const { addItem } = useCart();
   const { toggle, isWishlisted } = useWishlist();
   const { toast } = useToast();
@@ -87,12 +88,17 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
         )}
         <div className={`flex items-center justify-between ${compact ? "mt-1" : "mt-1.5"}`}>
           <p className={`font-display font-bold text-secondary ${compact ? "text-sm" : "text-base"}`}>RM {price.toFixed(2)}</p>
-          {rating !== undefined && rating > 0 && (
-            <div className="flex items-center gap-0.5 text-secondary">
-              <Star className="h-3 w-3 fill-secondary" />
-              <span className="text-[10px] font-medium">{rating.toFixed(1)}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-1.5">
+            {soldCount !== undefined && soldCount > 0 && (
+              <span className="text-[9px] text-white/30">{soldCount > 999 ? `${(soldCount / 1000).toFixed(1)}k` : soldCount} sold</span>
+            )}
+            {rating !== undefined && rating > 0 && (
+              <div className="flex items-center gap-0.5 text-secondary">
+                <Star className="h-3 w-3 fill-secondary" />
+                <span className="text-[10px] font-medium">{rating.toFixed(1)}</span>
+              </div>
+            )}
+          </div>
         </div>
         {!compact && (
           <button

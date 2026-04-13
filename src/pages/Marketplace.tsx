@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
+import CategoryChips from "@/components/marketplace/CategoryChips";
+import FlashSaleSection from "@/components/marketplace/FlashSaleSection";
 
 interface ProductRow {
   id: string;
@@ -27,6 +29,7 @@ interface ProductRow {
   stock_quantity: number;
   is_featured: boolean;
   category_id: string | null;
+  sold_count: number;
 }
 
 interface StoreInfo {
@@ -42,7 +45,7 @@ interface CategoryInfo {
   store_id: string;
 }
 
-type SortOption = "featured" | "price_low" | "price_high" | "rating" | "newest";
+type SortOption = "featured" | "price_low" | "price_high" | "rating" | "newest" | "best_selling";
 
 const PAGE_SIZE = 12;
 
@@ -105,7 +108,7 @@ const Marketplace = () => {
           .order("store_name"),
         supabase
           .from("marketplace_products")
-          .select("id, store_id, name, price, images, stock_quantity, is_featured, category_id")
+          .select("id, store_id, name, price, images, stock_quantity, is_featured, category_id, sold_count")
           .eq("status", "active")
           .order("is_featured", { ascending: false }),
         supabase
@@ -218,6 +221,9 @@ const Marketplace = () => {
         break;
       case "newest":
         result = [...result].reverse();
+        break;
+      case "best_selling":
+        result = [...result].sort((a, b) => (b.sold_count || 0) - (a.sold_count || 0));
         break;
       case "featured":
       default:
@@ -411,6 +417,7 @@ const Marketplace = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="featured">Featured</SelectItem>
+                  <SelectItem value="best_selling">Best Selling</SelectItem>
                   <SelectItem value="price_low">Price: Low to High</SelectItem>
                   <SelectItem value="price_high">Price: High to Low</SelectItem>
                   <SelectItem value="rating">Highest Rated</SelectItem>
@@ -463,7 +470,7 @@ const Marketplace = () => {
             )}
             {sortBy !== "featured" && (
               <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer" onClick={() => setSortBy("featured")}>
-                {sortBy === "price_low" ? "Price ↑" : sortBy === "price_high" ? "Price ↓" : sortBy === "rating" ? "Top Rated" : "Newest"} <X className="h-2.5 w-2.5" />
+                {sortBy === "price_low" ? "Price ↑" : sortBy === "price_high" ? "Price ↓" : sortBy === "rating" ? "Top Rated" : sortBy === "best_selling" ? "Best Selling" : "Newest"} <X className="h-2.5 w-2.5" />
               </Badge>
             )}
             {priceFilterActive && (
@@ -478,6 +485,16 @@ const Marketplace = () => {
             )}
           </div>
         )}
+
+        {/* Category Chips */}
+        <CategoryChips
+          categories={visibleCategories}
+          selected={selectedCategory}
+          onSelect={setSelectedCategory}
+        />
+
+        {/* Flash Sales */}
+        <FlashSaleSection />
 
         {/* Results count */}
         <p className="text-[10px] text-white/30 mb-3">
@@ -509,6 +526,7 @@ const Marketplace = () => {
                       stockQuantity={p.stock_quantity}
                       storeSlug={storeMap[p.store_id]?.slug || ""}
                       rating={ratings[p.id]}
+                      soldCount={p.sold_count}
                       compact
                     />
                   </div>
@@ -548,6 +566,7 @@ const Marketplace = () => {
                   storeSlug={storeMap[p.store_id]?.slug || ""}
                   storeName={storeMap[p.store_id]?.store_name}
                   rating={ratings[p.id]}
+                  soldCount={p.sold_count}
                   compact
                 />
               ))}

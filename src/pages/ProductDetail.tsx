@@ -11,6 +11,7 @@ import { ArrowLeft, ShoppingCart, Star, Minus, Plus } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import ProductChat from "@/components/marketplace/ProductChat";
+import VariantSelector, { type Variant } from "@/components/marketplace/VariantSelector";
 
 interface Product {
   id: string;
@@ -44,6 +45,7 @@ const ProductDetail = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [qty, setQty] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
 
   const cartItem = items.find(i => i.productId === productId);
 
@@ -104,17 +106,20 @@ const ProductDetail = () => {
 
   const images = (product.images as string[]) || [];
   const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+  const effectivePrice = product.price + (selectedVariant?.price_adjustment || 0);
+  const effectiveStock = selectedVariant ? selectedVariant.stock_quantity : product.stock_quantity;
+  const variantLabel = selectedVariant ? ` (${selectedVariant.variant_value})` : "";
 
   const handleAddToCart = () => {
     addItem({
       productId: product.id,
       storeId: product.store_id,
-      name: product.name,
-      price: product.price,
+      name: product.name + variantLabel,
+      price: effectivePrice,
       image: images[0] || "",
-      stock: product.stock_quantity,
+      stock: effectiveStock,
     });
-    toast({ title: "Added to cart", description: `${qty}× ${product.name}` });
+    toast({ title: "Added to cart", description: `${qty}× ${product.name}${variantLabel}` });
   };
 
   return (
@@ -159,7 +164,10 @@ const ProductDetail = () => {
         <h1 className="font-display text-2xl font-bold text-white">{product.name}</h1>
 
         <div className="flex items-center gap-3 mt-2">
-          <p className="font-display text-2xl font-bold text-secondary">RM {product.price.toFixed(2)}</p>
+          <p className="font-display text-2xl font-bold text-secondary">RM {effectivePrice.toFixed(2)}</p>
+          {selectedVariant && selectedVariant.price_adjustment !== 0 && (
+            <p className="text-sm text-white/30 line-through">RM {product.price.toFixed(2)}</p>
+          )}
           {avgRating > 0 && (
             <div className="flex items-center gap-1 text-secondary">
               <Star className="h-4 w-4 fill-secondary" />
@@ -170,8 +178,11 @@ const ProductDetail = () => {
         </div>
 
         <p className="text-xs text-white/40 mt-1">
-          {product.stock_quantity > 0 ? `${product.stock_quantity} in stock` : "Out of stock"}
+          {effectiveStock > 0 ? `${effectiveStock} in stock` : "Out of stock"}
         </p>
+
+        {/* Variant Selector */}
+        <VariantSelector productId={product.id} onVariantSelect={setSelectedVariant} />
 
         {product.description && (
           <p className="text-sm text-white/60 mt-4 leading-relaxed">{product.description}</p>
@@ -211,17 +222,17 @@ const ProductDetail = () => {
               <Minus className="h-4 w-4" />
             </button>
             <span className="text-sm font-medium text-white w-6 text-center">{qty}</span>
-            <button onClick={() => setQty(Math.min(product.stock_quantity, qty + 1))} className="p-1.5 text-white/60 hover:text-white">
+            <button onClick={() => setQty(Math.min(effectiveStock, qty + 1))} className="p-1.5 text-white/60 hover:text-white">
               <Plus className="h-4 w-4" />
             </button>
           </div>
           <Button
             className="flex-1 bg-secondary text-primary hover:bg-secondary/90 font-semibold"
-            disabled={product.stock_quantity <= 0}
+            disabled={effectiveStock <= 0}
             onClick={handleAddToCart}
           >
             <ShoppingCart className="h-4 w-4 mr-2" />
-            Add to Cart · RM {(product.price * qty).toFixed(2)}
+            Add to Cart · RM {(effectivePrice * qty).toFixed(2)}
           </Button>
         </div>
       </div>
