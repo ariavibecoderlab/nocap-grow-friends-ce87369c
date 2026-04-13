@@ -715,10 +715,22 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
           <TabsTrigger value="analytics" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
             <BarChart3 className="h-3 w-3 mr-0.5" />Stats
           </TabsTrigger>
+          <TabsTrigger value="builder" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+            <Layout className="h-3 w-3 mr-0.5" />Builder
+          </TabsTrigger>
+          <TabsTrigger value="pages" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+            <FileText className="h-3 w-3 mr-0.5" />Pages
+          </TabsTrigger>
+          <TabsTrigger value="menus" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+            <Menu className="h-3 w-3 mr-0.5" />Menus
+          </TabsTrigger>
+          <TabsTrigger value="seo" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+            <Globe className="h-3 w-3 mr-0.5" />SEO
+          </TabsTrigger>
           <TabsTrigger value="settings" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Settings</TabsTrigger>
         </TabsList>
 
-        {/* ANALYTICS TAB */}
+        {/* RETURNS TAB */}
         <TabsContent value="returns" className="mt-3">
           <MerchantReturns storeId={store.id} />
         </TabsContent>
