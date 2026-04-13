@@ -164,7 +164,10 @@ const ProductDetail = () => {
         <h1 className="font-display text-2xl font-bold text-white">{product.name}</h1>
 
         <div className="flex items-center gap-3 mt-2">
-          <p className="font-display text-2xl font-bold text-secondary">RM {product.price.toFixed(2)}</p>
+          <p className="font-display text-2xl font-bold text-secondary">RM {effectivePrice.toFixed(2)}</p>
+          {selectedVariant && selectedVariant.price_adjustment !== 0 && (
+            <p className="text-sm text-white/30 line-through">RM {product.price.toFixed(2)}</p>
+          )}
           {avgRating > 0 && (
             <div className="flex items-center gap-1 text-secondary">
               <Star className="h-4 w-4 fill-secondary" />
@@ -175,8 +178,11 @@ const ProductDetail = () => {
         </div>
 
         <p className="text-xs text-white/40 mt-1">
-          {product.stock_quantity > 0 ? `${product.stock_quantity} in stock` : "Out of stock"}
+          {effectiveStock > 0 ? `${effectiveStock} in stock` : "Out of stock"}
         </p>
+
+        {/* Variant Selector */}
+        <VariantSelector productId={product.id} onVariantSelect={setSelectedVariant} />
 
         {product.description && (
           <p className="text-sm text-white/60 mt-4 leading-relaxed">{product.description}</p>
