@@ -68,18 +68,24 @@ const Checkout = () => {
   }, [user]);
 
   const [storeShipping, setStoreShipping] = useState<Record<string, { flat: number; freeMin: number | null }>>({});
+  const [storeNames, setStoreNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (storeIds.length === 0) return;
     const fetchStores = async () => {
       const { data } = await supabase
         .from("marketplace_stores")
-        .select("id, shipping_flat_rate, free_shipping_min")
+        .select("id, store_name, shipping_flat_rate, free_shipping_min")
         .in("id", storeIds);
       if (data) {
         const map: Record<string, { flat: number; freeMin: number | null }> = {};
-        data.forEach(s => { map[s.id] = { flat: s.shipping_flat_rate, freeMin: s.free_shipping_min }; });
+        const names: Record<string, string> = {};
+        data.forEach(s => {
+          map[s.id] = { flat: s.shipping_flat_rate, freeMin: s.free_shipping_min };
+          names[s.id] = s.store_name;
+        });
         setStoreShipping(map);
+        setStoreNames(names);
       }
     };
     fetchStores();
