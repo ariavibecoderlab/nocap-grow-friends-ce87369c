@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
+import CategoryChips from "@/components/marketplace/CategoryChips";
+import FlashSaleSection from "@/components/marketplace/FlashSaleSection";
 
 interface ProductRow {
   id: string;
