@@ -739,6 +739,26 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
           <StoreAnalytics storeId={store.id} />
         </TabsContent>
 
+        {/* BUILDER TAB */}
+        <TabsContent value="builder" className="mt-3">
+          <StorePageBuilder storeId={store.id} />
+        </TabsContent>
+
+        {/* PAGES TAB */}
+        <TabsContent value="pages" className="mt-3">
+          <MerchantStorePages storeId={store.id} storeSlug={store.slug} />
+        </TabsContent>
+
+        {/* MENUS TAB */}
+        <TabsContent value="menus" className="mt-3">
+          <MerchantStoreMenus storeId={store.id} />
+        </TabsContent>
+
+        {/* SEO TAB */}
+        <TabsContent value="seo" className="mt-3">
+          <StoreSeoSettings storeId={store.id} />
+        </TabsContent>
+
         {/* PRODUCTS TAB */}
         <TabsContent value="products" className="space-y-3 mt-3">
           <BulkProductUpload storeId={store.id} onComplete={() => fetchProducts(store.id)} />

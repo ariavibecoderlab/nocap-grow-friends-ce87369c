@@ -38,6 +38,7 @@ import UserManual from "./pages/UserManual";
 import UatScripts from "./pages/UatScripts";
 import Marketplace from "./pages/Marketplace";
 import StorePage from "./pages/StorePage";
+import StoreCustomPage from "./pages/StoreCustomPage";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
