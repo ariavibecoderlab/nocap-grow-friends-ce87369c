@@ -94,6 +94,7 @@ const App = () => (
               <Route path="/uat-scripts" element={<UatScripts />} />
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/store/:slug" element={<StorePage />} />
+              <Route path="/store/:slug/page/:pageSlug" element={<StoreCustomPage />} />
               <Route path="/store/:slug/product/:productId" element={<ProductDetail />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/order/:orderId" element={<OrderConfirmation />} />
