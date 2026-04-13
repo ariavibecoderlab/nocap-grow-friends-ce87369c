@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
-import { ArrowLeft, ShoppingCart, Tag, Loader2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Tag, Loader2, CheckCircle2, Store } from "lucide-react";
 import AddressSelector from "@/components/marketplace/AddressSelector";
+import CourierSelector from "@/components/marketplace/CourierSelector";
 
 const Checkout = () => {
   const { user, loading: authLoading } = useAuth();
@@ -239,35 +240,53 @@ const Checkout = () => {
       </div>
 
       <div className="mx-auto max-w-md px-4 space-y-4">
-        {/* Order Summary */}
-        <Card className="border-white/10 bg-white/5">
-          <CardContent className="p-4 space-y-2">
-            <h3 className="font-display text-sm font-semibold text-white">Order Summary</h3>
-            {items.map(item => (
-              <div key={item.productId} className="flex items-center justify-between text-sm">
-                <span className="text-white/70 truncate flex-1">{item.name} × {item.quantity}</span>
-                <span className="text-white font-medium ml-2">RM {(item.price * item.quantity).toFixed(2)}</span>
-              </div>
-            ))}
-            <div className="border-t border-white/10 pt-2 space-y-1">
-              <div className="flex justify-between text-sm">
-                <span className="text-white/50">Subtotal</span>
-                <span className="text-white">RM {total.toFixed(2)}</span>
-              </div>
-              {discountAmount > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-green-400">Discount ({appliedCode})</span>
-                  <span className="text-green-400">-RM {discountAmount.toFixed(2)}</span>
+        {/* Order Summary - grouped by store */}
+        {Object.entries(storeGroups).map(([storeId, storeItems]) => {
+          const storeTotal = storeItems.reduce((s, i) => s + i.price * i.quantity, 0);
+          const info = storeShipping[storeId];
+          const storeName = storeNames[storeId] || "Store";
+          return (
+            <Card key={storeId} className="border-white/10 bg-white/5">
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <Store className="h-3.5 w-3.5 text-secondary" />
+                  <h3 className="font-display text-sm font-semibold text-white">{storeName}</h3>
                 </div>
-              )}
+                {storeItems.map(item => (
+                  <div key={item.productId} className="flex items-center justify-between text-sm">
+                    <span className="text-white/70 truncate flex-1">{item.name} × {item.quantity}</span>
+                    <span className="text-white font-medium ml-2">RM {(item.price * item.quantity).toFixed(2)}</span>
+                  </div>
+                ))}
+                <div className="border-t border-white/10 pt-1.5 flex justify-between text-xs">
+                  <span className="text-white/40">Store subtotal</span>
+                  <span className="text-white/60">RM {storeTotal.toFixed(2)}</span>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+
+        {/* Totals Card */}
+        <Card className="border-white/10 bg-white/5">
+          <CardContent className="p-4 space-y-1">
+            <div className="flex justify-between text-sm">
+              <span className="text-white/50">Subtotal</span>
+              <span className="text-white">RM {total.toFixed(2)}</span>
+            </div>
+            {discountAmount > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-white/50">Shipping</span>
-                <span className="text-white">{shipping === 0 ? "Free" : `RM ${shipping.toFixed(2)}`}</span>
+                <span className="text-green-400">Discount ({appliedCode})</span>
+                <span className="text-green-400">-RM {discountAmount.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-base font-bold border-t border-white/10 pt-2">
-                <span className="text-white">Total</span>
-                <span className="text-secondary">RM {grandTotal.toFixed(2)}</span>
-              </div>
+            )}
+            <div className="flex justify-between text-sm">
+              <span className="text-white/50">Shipping ({storeIds.length} store{storeIds.length > 1 ? "s" : ""})</span>
+              <span className="text-white">{shipping === 0 ? "Free" : `RM ${shipping.toFixed(2)}`}</span>
+            </div>
+            <div className="flex justify-between text-base font-bold border-t border-white/10 pt-2">
+              <span className="text-white">Total</span>
+              <span className="text-secondary">RM {grandTotal.toFixed(2)}</span>
             </div>
           </CardContent>
         </Card>
