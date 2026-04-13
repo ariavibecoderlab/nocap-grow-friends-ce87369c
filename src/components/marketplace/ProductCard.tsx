@@ -17,9 +17,10 @@ interface ProductCardProps {
   storeName?: string;
   rating?: number;
   compact?: boolean;
+  soldCount?: number;
 }
 
-export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, rating, compact }: ProductCardProps) {
+export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, rating, compact, soldCount }: ProductCardProps) {
   const { addItem } = useCart();
   const { toggle, isWishlisted } = useWishlist();
   const { toast } = useToast();
