@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
 import MerchantOrderDetail from "@/components/merchant/MerchantOrderDetail";
-import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star, Printer } from "lucide-react";
+import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star, Printer, Zap } from "lucide-react";
+import MerchantFlashSales from "@/components/merchant/MerchantFlashSales";
 import MerchantReviews from "@/components/merchant/MerchantReviews";
 import { Json } from "@/integrations/supabase/types";
 import { compressImage } from "@/lib/compressImage";
@@ -692,10 +693,13 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full bg-white/5 border border-white/10">
+        <TabsList className="w-full bg-white/5 border border-white/10 flex-wrap h-auto gap-0">
           <TabsTrigger value="products" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Products</TabsTrigger>
           <TabsTrigger value="orders" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Orders</TabsTrigger>
           <TabsTrigger value="reviews" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Reviews</TabsTrigger>
+          <TabsTrigger value="flash" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+            <Zap className="h-3 w-3 mr-0.5" />Flash
+          </TabsTrigger>
           <TabsTrigger value="discounts" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Discounts</TabsTrigger>
           <TabsTrigger value="settings" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Settings</TabsTrigger>
         </TabsList>
@@ -818,6 +822,11 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
         {/* REVIEWS TAB */}
         <TabsContent value="reviews" className="mt-3">
           <MerchantReviews storeId={store.id} />
+        </TabsContent>
+
+        {/* FLASH SALES TAB */}
+        <TabsContent value="flash" className="mt-3">
+          <MerchantFlashSales storeId={store.id} />
         </TabsContent>
 
         {/* DISCOUNTS TAB */}
