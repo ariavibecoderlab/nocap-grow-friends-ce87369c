@@ -222,6 +222,9 @@ const Marketplace = () => {
       case "newest":
         result = [...result].reverse();
         break;
+      case "best_selling":
+        result = [...result].sort((a, b) => (b.sold_count || 0) - (a.sold_count || 0));
+        break;
       case "featured":
       default:
         // already sorted by is_featured desc from query
