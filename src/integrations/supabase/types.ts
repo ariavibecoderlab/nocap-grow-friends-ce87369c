@@ -417,6 +417,66 @@ export type Database = {
           },
         ]
       }
+      marketplace_flash_sales: {
+        Row: {
+          created_at: string
+          ends_at: string
+          flash_price: number
+          id: string
+          is_active: boolean
+          max_quantity: number
+          original_price: number
+          product_id: string
+          sold_quantity: number
+          starts_at: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          flash_price: number
+          id?: string
+          is_active?: boolean
+          max_quantity?: number
+          original_price: number
+          product_id: string
+          sold_quantity?: number
+          starts_at: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          flash_price?: number
+          id?: string
+          is_active?: boolean
+          max_quantity?: number
+          original_price?: number
+          product_id?: string
+          sold_quantity?: number
+          starts_at?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_flash_sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_flash_sales_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_order_items: {
         Row: {
           created_at: string
@@ -548,6 +608,50 @@ export type Database = {
           },
         ]
       }
+      marketplace_product_variants: {
+        Row: {
+          created_at: string
+          id: string
+          price_adjustment: number
+          product_id: string
+          sku: string | null
+          sort_order: number
+          stock_quantity: number
+          variant_name: string
+          variant_value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          price_adjustment?: number
+          product_id: string
+          sku?: string | null
+          sort_order?: number
+          stock_quantity?: number
+          variant_name: string
+          variant_value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          price_adjustment?: number
+          product_id?: string
+          sku?: string | null
+          sort_order?: number
+          stock_quantity?: number
+          variant_name?: string
+          variant_value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_products: {
         Row: {
           category_id: string | null
@@ -559,6 +663,7 @@ export type Database = {
           name: string
           price: number
           sku: string | null
+          sold_count: number
           status: string
           stock_quantity: number
           store_id: string
@@ -575,6 +680,7 @@ export type Database = {
           name: string
           price?: number
           sku?: string | null
+          sold_count?: number
           status?: string
           stock_quantity?: number
           store_id: string
@@ -591,6 +697,7 @@ export type Database = {
           name?: string
           price?: number
           sku?: string | null
+          sold_count?: number
           status?: string
           stock_quantity?: number
           store_id?: string
