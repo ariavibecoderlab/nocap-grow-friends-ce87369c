@@ -29,6 +29,7 @@ interface ProductRow {
   stock_quantity: number;
   is_featured: boolean;
   category_id: string | null;
+  sold_count: number;
 }
 
 interface StoreInfo {
