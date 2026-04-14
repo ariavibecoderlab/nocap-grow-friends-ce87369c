@@ -191,11 +191,11 @@ const StorePage = () => {
       <StoreAnnouncement announcement={store.announcement} />
 
       {/* Banner */}
-      <div className="relative h-40 bg-white/5 overflow-hidden">
+      <div className="relative h-40 overflow-hidden" style={{ backgroundColor: "var(--store-surface)" }}>
         {store.banner_url ? (
           <img src={getOptimizedImageUrl(store.banner_url, 800, 320)} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-secondary/20 to-secondary/5" />
+          <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${resolvedTheme?.colors.accent}33, ${resolvedTheme?.colors.accent}0D)` }} />
         )}
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
           <button onClick={() => navigate("/marketplace")} className="rounded-full bg-black/40 p-2 text-white hover:bg-black/60 backdrop-blur-sm">
