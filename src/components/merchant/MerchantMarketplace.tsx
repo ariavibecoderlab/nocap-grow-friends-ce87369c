@@ -1010,19 +1010,12 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
                   placeholder="Tell customers about your store"
                   className="bg-white/5 border-white/10 text-white mt-1 min-h-[60px]" />
               </div>
-              <div>
-                <Label className="text-white/60 text-xs">Store Theme</Label>
-                <Select value={settingsTheme} onValueChange={setSettingsTheme}>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-primary border-white/10 text-white">
-                    <SelectItem value="classic">Classic</SelectItem>
-                    <SelectItem value="bold">Bold</SelectItem>
-                    <SelectItem value="minimal">Minimal</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <StoreThemePicker
+                currentTheme={settingsTheme}
+                overrides={themeOverrides}
+                onThemeChange={setSettingsTheme}
+                onOverridesChange={setThemeOverrides}
+              />
             </CardContent>
           </Card>
 
