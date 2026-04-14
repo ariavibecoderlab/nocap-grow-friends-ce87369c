@@ -84,13 +84,14 @@ const MerchantChatTab = ({ branchId }: { branchId: string }) => {
   return <MerchantChat storeId={storeId} />;
 };
 
-const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread, renderQr, renderSettings }: {
+const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread, renderQr, renderSettings, topContent }: {
   selectedBranch: Branch;
   branches: Branch[];
   user: { id: string };
   chatUnread: number;
   renderQr: () => React.ReactNode;
   renderSettings: () => React.ReactNode;
+  topContent?: React.ReactNode;
 }) => {
   const [activeTab, setActiveTab] = useState("qr");
   const isMobile = useIsMobile();
@@ -132,6 +133,7 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread,
   if (isMobile) {
     return (
       <div className="mt-4 space-y-4">
+        {topContent}
         <MerchantNavigation activeTab={activeTab} onTabChange={setActiveTab} chatUnread={chatUnread} />
         <div className="mt-3">
           {renderContent()}
@@ -140,26 +142,25 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread,
     );
   }
 
-  // Desktop: sidebar layout
+  // Desktop: full-page sidebar layout
   return (
-    <div className="mt-4">
-      <SidebarProvider defaultOpen={true}>
-        <div className="flex w-full min-h-[600px] rounded-xl border border-white/10 overflow-hidden bg-white/[0.02]">
-          <MerchantSidebar activeTab={activeTab} onTabChange={setActiveTab} chatUnread={chatUnread} />
-          <div className="flex-1 flex flex-col min-w-0">
-            <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2">
-              <SidebarTrigger className="text-white/40 hover:text-white" />
-              <span className="text-xs text-white/30 truncate">
-                {getMerchantSections(chatUnread).flatMap(s => s.items).find(i => i.value === activeTab)?.label || "Dashboard"}
-              </span>
-            </div>
-            <div className="flex-1 p-4 overflow-auto">
-              {renderContent()}
-            </div>
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex w-full min-h-screen">
+        <MerchantSidebar activeTab={activeTab} onTabChange={setActiveTab} chatUnread={chatUnread} />
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2 bg-primary">
+            <SidebarTrigger className="text-white/40 hover:text-white" />
+            <span className="text-xs text-white/30 truncate">
+              {getMerchantSections(chatUnread).flatMap(s => s.items).find(i => i.value === activeTab)?.label || "Dashboard"}
+            </span>
+          </div>
+          <div className="flex-1 overflow-auto p-4 md:p-6 space-y-4">
+            {topContent}
+            {renderContent()}
           </div>
         </div>
-      </SidebarProvider>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 };
 
