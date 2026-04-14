@@ -29,35 +29,16 @@ import MerchantDistributions from "@/components/merchant/MerchantDistributions";
 import MerchantDomainManager from "@/components/merchant/MerchantDomainManager";
 import MerchantCheckoutSettings from "@/components/merchant/MerchantCheckoutSettings";
 import MerchantAnnouncement from "@/components/merchant/MerchantAnnouncement";
+import MerchantAbandonedCarts from "@/components/merchant/MerchantAbandonedCarts";
+import MerchantProductBundles from "@/components/merchant/MerchantProductBundles";
+import MerchantDiscountRules from "@/components/merchant/MerchantDiscountRules";
+import MerchantStoreCRM from "@/components/merchant/MerchantStoreCRM";
 import {
-  ArrowLeft,
-  Plus,
-  Store,
-  QrCode,
-  MapPin,
-  BarChart3,
-  Loader2,
-  Trash2,
-  Download,
-  Share2,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  FileText,
-  Wallet,
-  Pencil,
-  Check,
-  X,
-  MessageCircle,
-  ArrowLeftRight,
-  CreditCard,
-  Globe,
-  ShoppingBag,
-  Megaphone,
-  Code,
-  ScrollText,
-  Settings2,
-  TrendingUp,
+  ArrowLeft, Plus, Store, QrCode, MapPin, BarChart3, Loader2, Trash2,
+  Download, Share2, Clock, CheckCircle2, XCircle, FileText, Wallet,
+  Pencil, Check, X, MessageCircle, ArrowLeftRight, CreditCard, Globe,
+  ShoppingBag, Megaphone, Code, ScrollText, Settings2, TrendingUp,
+  Package, Percent, Users,
 } from "lucide-react";
 
 const MerchantStoreTabWrapper = ({ branchId, children }: { branchId: string; children: (storeId: string) => React.ReactNode }) => {
@@ -616,6 +597,10 @@ const MerchantDashboard = () => {
                   { value: "dist", icon: TrendingUp, label: "Dist" },
                   { value: "reports", icon: FileText, label: "Reports" },
                   { value: "analytics", icon: BarChart3, label: "Analytics" },
+                  { value: "carts", icon: ShoppingBag, label: "Carts" },
+                  { value: "bundles", icon: Package, label: "Bundles" },
+                  { value: "discounts", icon: Percent, label: "Discounts" },
+                  { value: "crm", icon: Users, label: "CRM" },
                   { value: "domain", icon: Globe, label: "Domain" },
                   { value: "checkout", icon: CreditCard, label: "Checkout" },
                   { value: "announce", icon: Megaphone, label: "Announce" },
@@ -777,6 +762,30 @@ const MerchantDashboard = () => {
             <TabsContent value="announce" className="mt-4">
               <MerchantStoreTabWrapper branchId={selectedBranch.id}>
                 {(storeId) => <MerchantAnnouncement storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="carts" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantAbandonedCarts storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="bundles" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantProductBundles storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="discounts" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantDiscountRules storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="crm" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantStoreCRM storeId={storeId} />}
               </MerchantStoreTabWrapper>
             </TabsContent>
 

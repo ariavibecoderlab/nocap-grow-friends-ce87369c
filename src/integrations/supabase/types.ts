@@ -290,6 +290,59 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_abandoned_carts: {
+        Row: {
+          buyer_email: string | null
+          buyer_name: string | null
+          buyer_user_id: string | null
+          created_at: string
+          id: string
+          items: Json
+          recovered_at: string | null
+          recovery_status: string
+          reminded_at: string | null
+          store_id: string
+          subtotal: number
+          updated_at: string
+        }
+        Insert: {
+          buyer_email?: string | null
+          buyer_name?: string | null
+          buyer_user_id?: string | null
+          created_at?: string
+          id?: string
+          items?: Json
+          recovered_at?: string | null
+          recovery_status?: string
+          reminded_at?: string | null
+          store_id: string
+          subtotal?: number
+          updated_at?: string
+        }
+        Update: {
+          buyer_email?: string | null
+          buyer_name?: string | null
+          buyer_user_id?: string | null
+          created_at?: string
+          id?: string
+          items?: Json
+          recovered_at?: string | null
+          recovery_status?: string
+          reminded_at?: string | null
+          store_id?: string
+          subtotal?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_abandoned_carts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_banners: {
         Row: {
           created_at: string
@@ -327,6 +380,45 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_bundle_items: {
+        Row: {
+          bundle_id: string
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+        }
+        Insert: {
+          bundle_id: string
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity?: number
+        }
+        Update: {
+          bundle_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_bundle_items_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_product_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_bundle_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
             referencedColumns: ["id"]
           },
         ]
@@ -451,6 +543,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "marketplace_discount_codes_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_discount_rules: {
+        Row: {
+          conditions: Json
+          created_at: string
+          discount_type: string
+          discount_value: number
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          name: string
+          priority: number
+          rule_type: string
+          starts_at: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          conditions?: Json
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          priority?: number
+          rule_type?: string
+          starts_at?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          conditions?: Json
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          priority?: number
+          rule_type?: string
+          starts_at?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_discount_rules_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "marketplace_stores"
@@ -680,6 +828,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "marketplace_orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_product_bundles: {
+        Row: {
+          bundle_price: number
+          compare_price: number
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          bundle_price?: number
+          compare_price?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          bundle_price?: number
+          compare_price?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_product_bundles_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "marketplace_stores"
@@ -997,6 +1192,62 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_store_customers: {
+        Row: {
+          buyer_email: string
+          buyer_name: string
+          buyer_phone: string | null
+          buyer_user_id: string | null
+          created_at: string
+          id: string
+          last_order_at: string | null
+          notes: string | null
+          store_id: string
+          tags: string[]
+          total_orders: number
+          total_spent: number
+          updated_at: string
+        }
+        Insert: {
+          buyer_email: string
+          buyer_name: string
+          buyer_phone?: string | null
+          buyer_user_id?: string | null
+          created_at?: string
+          id?: string
+          last_order_at?: string | null
+          notes?: string | null
+          store_id: string
+          tags?: string[]
+          total_orders?: number
+          total_spent?: number
+          updated_at?: string
+        }
+        Update: {
+          buyer_email?: string
+          buyer_name?: string
+          buyer_phone?: string | null
+          buyer_user_id?: string | null
+          created_at?: string
+          id?: string
+          last_order_at?: string | null
+          notes?: string | null
+          store_id?: string
+          tags?: string[]
+          total_orders?: number
+          total_spent?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_store_customers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
             referencedColumns: ["id"]
           },
         ]
