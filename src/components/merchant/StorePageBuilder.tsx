@@ -29,6 +29,56 @@ const SECTION_TYPES = [
   { value: "cta_banner", label: "CTA Banner", icon: Megaphone, desc: "Promotional call-to-action" },
 ] as const;
 
+interface SlideData {
+  imageUrl: string;
+  title: string;
+  subtitle: string;
+  ctaText: string;
+  ctaUrl: string;
+}
+
+function SlideshowEditor({ slides, onChange }: { slides: SlideData[]; onChange: (slides: SlideData[]) => void }) {
+  const addSlide = () => onChange([...slides, { imageUrl: "", title: "", subtitle: "", ctaText: "", ctaUrl: "" }]);
+  const removeSlide = (idx: number) => onChange(slides.filter((_, i) => i !== idx));
+  const updateSlide = (idx: number, field: keyof SlideData, value: string) => {
+    const next = slides.map((s, i) => i === idx ? { ...s, [field]: value } : s);
+    onChange(next);
+  };
+
+  return (
+    <div className="space-y-3">
+      <Label className="text-white/60 text-[10px]">Slides ({slides.length})</Label>
+      {slides.map((slide, idx) => (
+        <div key={idx} className="p-2.5 rounded-lg border border-white/10 bg-white/[0.02] space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-white/40 font-medium">Slide {idx + 1}</span>
+            <button onClick={() => removeSlide(idx)} className="text-red-400/60 hover:text-red-400 p-0.5">
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </div>
+          <Input value={slide.imageUrl} onChange={e => updateSlide(idx, "imageUrl", e.target.value)}
+            placeholder="Image URL" className="bg-white/5 border-white/10 text-white h-7 text-[11px]" />
+          <div className="grid grid-cols-2 gap-1.5">
+            <Input value={slide.title} onChange={e => updateSlide(idx, "title", e.target.value)}
+              placeholder="Headline" className="bg-white/5 border-white/10 text-white h-7 text-[11px]" />
+            <Input value={slide.subtitle} onChange={e => updateSlide(idx, "subtitle", e.target.value)}
+              placeholder="Subtitle" className="bg-white/5 border-white/10 text-white h-7 text-[11px]" />
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <Input value={slide.ctaText} onChange={e => updateSlide(idx, "ctaText", e.target.value)}
+              placeholder="Button text" className="bg-white/5 border-white/10 text-white h-7 text-[11px]" />
+            <Input value={slide.ctaUrl} onChange={e => updateSlide(idx, "ctaUrl", e.target.value)}
+              placeholder="Button URL" className="bg-white/5 border-white/10 text-white h-7 text-[11px]" />
+          </div>
+        </div>
+      ))}
+      <button onClick={addSlide} className="w-full py-1.5 text-[11px] text-secondary border border-dashed border-white/10 rounded-lg hover:bg-white/5 transition-colors flex items-center justify-center gap-1">
+        <Plus className="h-3 w-3" /> Add Slide
+      </button>
+    </div>
+  );
+}
+
 export default function StorePageBuilder({ storeId }: { storeId: string }) {
   const { toast } = useToast();
   const [sections, setSections] = useState<Section[]>([]);
