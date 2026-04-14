@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
@@ -17,6 +17,7 @@ import StoreTrustStrip from "@/components/marketplace/StoreTrustStrip";
 import StoreCategoryGrid from "@/components/marketplace/StoreCategoryGrid";
 import StoreReviewsCarousel from "@/components/marketplace/StoreReviewsCarousel";
 import StoreFooter from "@/components/marketplace/StoreFooter";
+import ProductQuickView from "@/components/marketplace/ProductQuickView";
 
 interface StoreData {
   id: string;
