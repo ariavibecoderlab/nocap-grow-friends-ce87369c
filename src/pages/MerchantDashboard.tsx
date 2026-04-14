@@ -81,7 +81,60 @@ const MerchantChatTab = ({ branchId }: { branchId: string }) => {
   return <MerchantChat storeId={storeId} />;
 };
 
-interface Branch {
+const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread }: {
+  selectedBranch: Branch;
+  branches: Branch[];
+  user: { id: string };
+  chatUnread: number;
+}) => {
+  const [activeTab, setActiveTab] = useState("qr");
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "qr": return null; // QR content is handled inline below
+      case "shop": return <MerchantMarketplace branches={branches.map(b => ({ id: b.id, branch_name: b.branch_name }))} selectedBranchId={selectedBranch.id} />;
+      case "chat": return <MerchantChatTab branchId={selectedBranch.id} />;
+      case "txns": return <MerchantTransactions userId={user.id} branchId={selectedBranch.id} />;
+      case "withdraw": return <MerchantWithdrawals userId={user.id} />;
+      case "dist": return <MerchantDistributions userId={user.id} branchId={selectedBranch.id} />;
+      case "reports": return <MerchantSettlement userId={user.id} branches={branches} />;
+      case "analytics": return <MerchantAnalytics userId={user.id} branches={branches} />;
+      case "sales": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantSalesReports storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "inventory": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantInventoryAlerts storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "crm": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantStoreCRM storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "kanban": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantOrderKanban storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "discounts": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantDiscountRules storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "bundles": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantProductBundles storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "collections": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantCollections storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "giftcards": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantGiftCards storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "carts": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantAbandonedCarts storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "announce": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantAnnouncement storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "domain": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantDomainManager storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "checkout": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantCheckoutSettings storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "seo": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantProductSeo storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "blog": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantStoreBlog storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "import": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantProductImportExport storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "staff": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantStaffPermissions storeId={storeId} />}</MerchantStoreTabWrapper>;
+      case "api": return <MerchantApiApps branches={branches} />;
+      case "logs": return <MerchantApiLogs />;
+      case "settings": return null; // Settings handled inline below
+      default: return null;
+    }
+  };
+
+  return (
+    <div className="mt-4 space-y-4">
+      <MerchantNavigation activeTab={activeTab} onTabChange={setActiveTab} chatUnread={chatUnread} />
+      <div className="mt-3">
+        {activeTab === "qr" && <QrTabContent selectedBranch={selectedBranch} />}
+        {activeTab === "settings" && <SettingsTabContent selectedBranch={selectedBranch} branches={branches} user={user} />}
+        {activeTab !== "qr" && activeTab !== "settings" && renderContent()}
+      </div>
+    </div>
+  );
+};
+
+
   id: string;
   branch_name: string;
   branch_address: string | null;
