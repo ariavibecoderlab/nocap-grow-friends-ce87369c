@@ -302,12 +302,13 @@ const StorePage = () => {
 
         {/* Search + Categories */}
         <div className="mt-4 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
-          <Input
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--store-text-muted)" }} />
+          <input
             placeholder="Search products..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-9 text-sm"
+            className="w-full pl-10 h-9 text-sm border outline-none focus:ring-2"
+            style={{ backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)", color: "var(--store-text)", borderRadius: "var(--store-radius)", "--tw-ring-color": "var(--store-accent)" } as React.CSSProperties}
           />
         </div>
 
@@ -315,9 +316,12 @@ const StorePage = () => {
           <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none">
             <button
               onClick={() => setSelectedCat("all")}
-              className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                selectedCat === "all" ? "bg-secondary text-primary" : "bg-white/5 text-white/60 hover:bg-white/10"
-              }`}
+              className="shrink-0 px-3 py-1 text-xs font-medium transition-colors"
+              style={{
+                borderRadius: "var(--store-btn-radius)",
+                backgroundColor: selectedCat === "all" ? "var(--store-primary)" : "var(--store-surface)",
+                color: selectedCat === "all" ? "var(--store-primary-fg)" : "var(--store-text-muted)",
+              }}
             >
               All
             </button>
@@ -325,9 +329,12 @@ const StorePage = () => {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCat(cat.id)}
-                className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  selectedCat === cat.id ? "bg-secondary text-primary" : "bg-white/5 text-white/60 hover:bg-white/10"
-                }`}
+                className="shrink-0 px-3 py-1 text-xs font-medium transition-colors"
+                style={{
+                  borderRadius: "var(--store-btn-radius)",
+                  backgroundColor: selectedCat === cat.id ? "var(--store-primary)" : "var(--store-surface)",
+                  color: selectedCat === cat.id ? "var(--store-primary-fg)" : "var(--store-text-muted)",
+                }}
               >
                 {cat.name}
               </button>
