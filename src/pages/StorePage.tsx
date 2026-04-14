@@ -186,7 +186,7 @@ const StorePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-primary pb-20">
+    <div className="min-h-screen pb-20" style={{ ...themeCSSVars, backgroundColor: "var(--store-bg, hsl(var(--primary)))", color: "var(--store-text, white)", fontFamily: "var(--store-font-body, inherit)" } as React.CSSProperties}>
       {/* Announcement Bar */}
       <StoreAnnouncement announcement={store.announcement} />
 
