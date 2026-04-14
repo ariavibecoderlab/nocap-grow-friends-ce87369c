@@ -1,17 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import CartDrawer from "@/components/marketplace/CartDrawer";
 import ProductCard from "@/components/marketplace/ProductCard";
-import { ArrowLeft, Store, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { ArrowLeft, Store, Search, ChevronRight } from "lucide-react";
 import StoreAnnouncement from "@/components/marketplace/StoreAnnouncement";
 import { Json } from "@/integrations/supabase/types";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import StoreFollowButton from "@/components/marketplace/StoreFollowButton";
 import StoreScoreBadge from "@/components/marketplace/StoreScoreBadge";
 import { resolveTheme, themeToCSS, ThemeOverrides } from "@/lib/storeThemes";
+import StoreHeroCarousel from "@/components/marketplace/StoreHeroCarousel";
+import StoreStickyHeader from "@/components/marketplace/StoreStickyHeader";
+import StoreTrustStrip from "@/components/marketplace/StoreTrustStrip";
+import StoreCategoryGrid from "@/components/marketplace/StoreCategoryGrid";
+import StoreReviewsCarousel from "@/components/marketplace/StoreReviewsCarousel";
+import StoreFooter from "@/components/marketplace/StoreFooter";
 
 interface StoreData {
   id: string;
@@ -40,12 +45,15 @@ interface ProductRow {
   stock_quantity: number;
   is_featured: boolean;
   category_id: string | null;
+  sold_count: number;
+  created_at: string;
 }
 
 interface CategoryRow {
   id: string;
   name: string;
   sort_order: number;
+  image_url: string | null;
 }
 
 interface MenuItem {
@@ -61,7 +69,10 @@ interface PageSection {
   title: string;
   content: string;
   imageUrl: string;
+  settings?: Record<string, string>;
 }
+
+const PRODUCTS_PER_PAGE = 12;
 
 const StorePage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -74,10 +85,14 @@ const StorePage = () => {
   const [selectedCat, setSelectedCat] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showSearch, setShowSearch] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
+  const [followerCount, setFollowerCount] = useState(0);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!slug) return;
-    const fetch = async () => {
+    const fetchData = async () => {
       const { data: storeData } = await supabase
         .from("marketplace_stores")
         .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo, announcement, settings")
@@ -88,31 +103,34 @@ const StorePage = () => {
       if (!storeData) { setLoading(false); return; }
       setStore(storeData as unknown as StoreData);
 
-      // Set SEO
       const seo = storeData.seo as Record<string, string> | null;
       if (seo?.meta_title) document.title = seo.meta_title;
       else document.title = storeData.store_name;
 
-      const [prodRes, catRes, menuRes] = await Promise.all([
+      const [prodRes, catRes, menuRes, followRes] = await Promise.all([
         supabase.from("marketplace_products")
-          .select("id, store_id, name, price, images, stock_quantity, is_featured, category_id")
+          .select("id, store_id, name, price, images, stock_quantity, is_featured, category_id, sold_count, created_at")
           .eq("store_id", storeData.id)
           .eq("status", "active")
           .order("is_featured", { ascending: false }),
         supabase.from("marketplace_categories")
-          .select("id, name, sort_order")
+          .select("id, name, sort_order, image_url")
           .eq("store_id", storeData.id)
           .order("sort_order"),
         supabase.from("marketplace_store_menus")
           .select("id, label, url, position")
           .eq("store_id", storeData.id)
           .order("sort_order"),
+        supabase.from("marketplace_store_follows")
+          .select("id", { count: "exact", head: true })
+          .eq("store_id", storeData.id),
       ]);
 
-      const prods = (prodRes.data as ProductRow[]) || [];
+      const prods = (prodRes.data as unknown as ProductRow[]) || [];
       setProducts(prods);
-      setCategories((catRes.data as CategoryRow[]) || []);
+      setCategories((catRes.data as unknown as CategoryRow[]) || []);
       setMenus((menuRes.data as unknown as MenuItem[]) || []);
+      setFollowerCount(followRes.count || 0);
 
       if (prods.length > 0) {
         const productIds = prods.map(p => p.id);
@@ -137,8 +155,12 @@ const StorePage = () => {
 
       setLoading(false);
     };
-    fetch();
+    fetchData();
   }, [slug]);
+
+  useEffect(() => {
+    if (showSearch && searchRef.current) searchRef.current.focus();
+  }, [showSearch]);
 
   const filtered = products.filter(p => {
     const matchCat = selectedCat === "all" || p.category_id === selectedCat;
@@ -150,14 +172,34 @@ const StorePage = () => {
   const footerMenus = menus.filter(m => m.position === "footer");
   const sections = (store?.page_layout && Array.isArray(store.page_layout) ? store.page_layout : []) as unknown as PageSection[];
 
-  // Resolve theme with overrides
+  const featuredProducts = products.filter(p => p.is_featured);
+  const newArrivals = [...products].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 8);
+
+  // Compute average store rating
+  const allRatings = Object.values(ratings);
+  const avgStoreRating = allRatings.length > 0 ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length : 0;
+
+  // Resolve hero slides from page_layout
+  const heroSection = sections.find(s => s.type === "hero_slideshow" || s.type === "hero_banner");
+  const heroSlides = heroSection?.type === "hero_slideshow" && heroSection.settings
+    ? JSON.parse(heroSection.content || "[]").map((s: any) => ({
+        imageUrl: s.imageUrl || "",
+        title: s.title || "",
+        subtitle: s.subtitle || "",
+        ctaText: s.ctaText || "",
+        ctaUrl: s.ctaUrl || "",
+      }))
+    : heroSection?.type === "hero_banner"
+      ? [{ imageUrl: heroSection.imageUrl || "", title: heroSection.title || "", subtitle: heroSection.content || "" }]
+      : [];
+
+  // Resolve theme
   const storeSettings = store?.settings && typeof store.settings === "object" && !Array.isArray(store.settings)
     ? (store.settings as Record<string, unknown>)
     : {};
   const overrides = (storeSettings.theme_overrides || {}) as ThemeOverrides;
   const resolvedTheme = store ? resolveTheme(store.theme, overrides) : null;
   const themeCSSVars = resolvedTheme ? themeToCSS(resolvedTheme) : {};
-  const isLightTheme = resolvedTheme?.id === "minimal";
 
   if (loading) {
     return (
@@ -186,19 +228,30 @@ const StorePage = () => {
     );
   }
 
+  const ctaSections = sections.filter(s => s.type === "cta_banner");
+  const otherSections = sections.filter(s => s.type !== "hero_banner" && s.type !== "hero_slideshow" && s.type !== "featured_products" && s.type !== "cta_banner");
+
   return (
     <div className="min-h-screen pb-20" style={{ ...themeCSSVars, backgroundColor: "var(--store-bg, hsl(var(--primary)))", color: "var(--store-text, white)", fontFamily: "var(--store-font-body, inherit)" } as React.CSSProperties}>
+      {/* Sticky header */}
+      <StoreStickyHeader
+        storeName={store.store_name}
+        logoUrl={store.logo_url}
+        onSearchToggle={() => setShowSearch(p => !p)}
+      />
+
       {/* Announcement Bar */}
       <StoreAnnouncement announcement={store.announcement} />
 
-      {/* Banner */}
-      <div className="relative h-40 overflow-hidden" style={{ backgroundColor: "var(--store-surface)" }}>
-        {store.banner_url ? (
-          <img src={getOptimizedImageUrl(store.banner_url, 800, 320)} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${resolvedTheme?.colors.accent}33, ${resolvedTheme?.colors.accent}0D)` }} />
-        )}
-        <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+      {/* Hero Carousel */}
+      <div className="relative">
+        <StoreHeroCarousel
+          bannerUrl={store.banner_url}
+          slides={heroSlides.length > 0 ? heroSlides : undefined}
+          accentColor={resolvedTheme?.colors.accent}
+        />
+        {/* Navigation overlay on hero */}
+        <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
           <button onClick={() => navigate("/marketplace")} className="rounded-full bg-black/40 p-2 text-white hover:bg-black/60 backdrop-blur-sm">
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -206,8 +259,8 @@ const StorePage = () => {
         </div>
       </div>
 
+      {/* Store Info Bar */}
       <div className="mx-auto max-w-4xl px-4">
-        {/* Store Info */}
         <div className="flex items-end gap-3 -mt-8 relative z-10">
           <div className="h-16 w-16 overflow-hidden shadow-lg shrink-0 border-2" style={{ borderRadius: "var(--store-radius)", borderColor: "var(--store-bg)", backgroundColor: "var(--store-surface)" }}>
             {store.logo_url ? (
@@ -228,13 +281,9 @@ const StorePage = () => {
           </div>
         </div>
 
-        {store.description && (
-          <p className="text-xs mt-3" style={{ color: "var(--store-text-muted)" }}>{store.description}</p>
-        )}
-
         {/* Header Navigation */}
         {headerMenus.length > 0 && (
-          <div className="flex gap-3 mt-3 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex gap-4 mt-3 overflow-x-auto pb-1 scrollbar-none">
             {headerMenus.map(m => (
               <button key={m.id} onClick={() => navigate(m.url)}
                 className="shrink-0 text-xs font-medium transition-colors hover:opacity-80"
@@ -244,32 +293,87 @@ const StorePage = () => {
             ))}
           </div>
         )}
+      </div>
 
-        {/* Shipping info */}
-        <div className="mt-3 text-[11px]" style={{ color: "var(--store-text-muted)" }}>
-          {store.free_shipping_min ? (
-            <span>Free shipping above RM {store.free_shipping_min} · Flat rate: RM {store.shipping_flat_rate.toFixed(2)}</span>
-          ) : (
-            <span>Shipping: RM {store.shipping_flat_rate.toFixed(2)}</span>
-          )}
+      {/* Trust Strip */}
+      <div className="mt-4">
+        <StoreTrustStrip
+          productCount={products.length}
+          avgRating={avgStoreRating}
+          freeShippingMin={store.free_shipping_min}
+          followerCount={followerCount}
+        />
+      </div>
+
+      <div className="mx-auto max-w-4xl px-4">
+        {/* Featured Products Row */}
+        {featuredProducts.length > 0 && (
+          <div className="mt-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+                ⭐ Best Sellers
+              </h2>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+              {featuredProducts.slice(0, 8).map(p => (
+                <div key={p.id} className="flex-shrink-0 w-44 md:w-52">
+                  <ProductCard
+                    id={p.id} storeId={p.store_id} name={p.name} price={p.price}
+                    images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
+                    storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Category Grid */}
+        <div className="mt-6">
+          <StoreCategoryGrid
+            categories={categories}
+            selectedCat={selectedCat}
+            onSelect={setSelectedCat}
+            accentColor={resolvedTheme?.colors.accent}
+          />
         </div>
 
-        {/* Page Layout Sections */}
-        {sections.length > 0 && (
-          <div className="mt-4 space-y-4">
-            {sections.map(section => (
+        {/* CTA Banner sections */}
+        {ctaSections.map(section => (
+          <div
+            key={section.id}
+            className="mt-6 p-6 md:p-8 text-center"
+            style={{
+              borderRadius: "var(--store-radius)",
+              background: `linear-gradient(135deg, ${resolvedTheme?.colors.accent}33, ${resolvedTheme?.colors.accent}11)`,
+              border: `1px solid ${resolvedTheme?.colors.accent}22`,
+            }}
+          >
+            <h3 className="text-lg md:text-xl font-bold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+              {section.title}
+            </h3>
+            {section.content && <p className="text-xs mb-4" style={{ color: "var(--store-text-muted)" }}>{section.content}</p>}
+            {section.settings?.cta_text && (
+              <a
+                href={section.settings.cta_url || "#"}
+                className="inline-block px-5 py-2 text-sm font-semibold transition-transform hover:scale-105"
+                style={{
+                  backgroundColor: "var(--store-primary)",
+                  color: "var(--store-primary-fg)",
+                  borderRadius: "var(--store-btn-radius)",
+                }}
+              >
+                {section.settings.cta_text}
+              </a>
+            )}
+          </div>
+        ))}
+
+        {/* Page Layout Sections (text, about, testimonials, image_banner) */}
+        {otherSections.length > 0 && (
+          <div className="mt-6 space-y-4">
+            {otherSections.map(section => (
               <div key={section.id}>
-                {section.type === "hero_banner" && (
-                  <div className="relative overflow-hidden" style={{ borderRadius: "var(--store-radius)" }}>
-                    {section.imageUrl && (
-                      <img src={section.imageUrl} alt={section.title} className="w-full h-32 object-cover" />
-                    )}
-                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center p-4">
-                      <h2 className="text-lg font-bold text-white" style={{ fontFamily: "var(--store-font-heading)" }}>{section.title}</h2>
-                      {section.content && <p className="text-xs text-white/70 mt-1">{section.content}</p>}
-                    </div>
-                  </div>
-                )}
                 {section.type === "image_banner" && section.imageUrl && (
                   <img src={section.imageUrl} alt={section.title} className="w-full object-cover" style={{ borderRadius: "var(--store-radius)" }} />
                 )}
@@ -285,103 +389,139 @@ const StorePage = () => {
                     <p className="text-xs italic" style={{ color: "var(--store-text-muted)" }}>"{section.content}"</p>
                   </div>
                 )}
-                {section.type === "featured_products" && (
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {products.filter(p => p.is_featured).slice(0, 4).map(p => (
-                        <ProductCard key={p.id} id={p.id} storeId={p.store_id} name={p.name} price={p.price}
-                          images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
-                          storeSlug={store.slug} rating={ratings[p.id]} />
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             ))}
           </div>
         )}
 
-        {/* Search + Categories */}
-        <div className="mt-4 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--store-text-muted)" }} />
-          <input
-            placeholder="Search products..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 h-9 text-sm border outline-none focus:ring-2"
-            style={{ backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)", color: "var(--store-text)", borderRadius: "var(--store-radius)", "--tw-ring-color": "var(--store-accent)" } as React.CSSProperties}
-          />
-        </div>
-
-        {categories.length > 0 && (
-          <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none">
-            <button
-              onClick={() => setSelectedCat("all")}
-              className="shrink-0 px-3 py-1 text-xs font-medium transition-colors"
-              style={{
-                borderRadius: "var(--store-btn-radius)",
-                backgroundColor: selectedCat === "all" ? "var(--store-primary)" : "var(--store-surface)",
-                color: selectedCat === "all" ? "var(--store-primary-fg)" : "var(--store-text-muted)",
-              }}
-            >
-              All
-            </button>
-            {categories.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCat(cat.id)}
-                className="shrink-0 px-3 py-1 text-xs font-medium transition-colors"
-                style={{
-                  borderRadius: "var(--store-btn-radius)",
-                  backgroundColor: selectedCat === cat.id ? "var(--store-primary)" : "var(--store-surface)",
-                  color: selectedCat === cat.id ? "var(--store-primary-fg)" : "var(--store-text-muted)",
-                }}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Products Grid */}
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {filtered.map(p => (
-            <ProductCard
-              key={p.id}
-              id={p.id}
-              storeId={p.store_id}
-              name={p.name}
-              price={p.price}
-              images={(p.images as string[]) || []}
-              stockQuantity={p.stock_quantity}
-              storeSlug={store.slug}
-              rating={ratings[p.id]}
-            />
-          ))}
-        </div>
-
-        {filtered.length === 0 && (
-          <div className="flex flex-col items-center py-16" style={{ color: "var(--store-text-muted)" }}>
-            <Store className="h-8 w-8 mb-2 opacity-40" />
-            <p className="text-sm">No products found</p>
-          </div>
-        )}
-
-        {/* Footer Navigation */}
-        {footerMenus.length > 0 && (
-          <div className="mt-8 pt-4 border-t" style={{ borderColor: "var(--store-surface-border)" }}>
-            <div className="flex flex-wrap gap-3 justify-center">
-              {footerMenus.map(m => (
-                <button key={m.id} onClick={() => navigate(m.url)}
-                  className="text-[11px] transition-colors hover:opacity-80" style={{ color: "var(--store-text-muted)" }}>
-                  {m.label}
-                </button>
+        {/* New Arrivals */}
+        {newArrivals.length > 0 && (
+          <div className="mt-6 space-y-3">
+            <h2 className="text-sm font-semibold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+              🆕 New Arrivals
+            </h2>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+              {newArrivals.map(p => (
+                <div key={p.id} className="flex-shrink-0 w-40 md:w-48">
+                  <ProductCard
+                    id={p.id} storeId={p.store_id} name={p.name} price={p.price}
+                    images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
+                    storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count} compact
+                  />
+                </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Reviews Carousel */}
+        <div className="mt-6">
+          <StoreReviewsCarousel storeId={store.id} />
+        </div>
+
+        {/* Search + All Products */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+              All Products
+            </h2>
+            <button onClick={() => setShowSearch(p => !p)} className="flex items-center gap-1 text-xs hover:opacity-80"
+              style={{ color: "var(--store-accent)" }}>
+              <Search className="h-3.5 w-3.5" /> Search
+            </button>
+          </div>
+
+          {showSearch && (
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--store-text-muted)" }} />
+              <input
+                ref={searchRef}
+                placeholder="Search products..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 h-9 text-sm border outline-none focus:ring-2"
+                style={{ backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)", color: "var(--store-text)", borderRadius: "var(--store-radius)", "--tw-ring-color": "var(--store-accent)" } as React.CSSProperties}
+              />
+            </div>
+          )}
+
+          {/* Category Filter Chips */}
+          {categories.length > 0 && (
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
+              <button
+                onClick={() => setSelectedCat("all")}
+                className="shrink-0 px-3 py-1 text-xs font-medium transition-colors"
+                style={{
+                  borderRadius: "var(--store-btn-radius)",
+                  backgroundColor: selectedCat === "all" ? "var(--store-primary)" : "var(--store-surface)",
+                  color: selectedCat === "all" ? "var(--store-primary-fg)" : "var(--store-text-muted)",
+                }}
+              >
+                All
+              </button>
+              {categories.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCat(cat.id)}
+                  className="shrink-0 px-3 py-1 text-xs font-medium transition-colors"
+                  style={{
+                    borderRadius: "var(--store-btn-radius)",
+                    backgroundColor: selectedCat === cat.id ? "var(--store-primary)" : "var(--store-surface)",
+                    color: selectedCat === cat.id ? "var(--store-primary-fg)" : "var(--store-text-muted)",
+                  }}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Products Grid — 2 cols mobile, 3 cols desktop */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {filtered.slice(0, visibleCount).map(p => (
+              <ProductCard
+                key={p.id} id={p.id} storeId={p.store_id} name={p.name} price={p.price}
+                images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
+                storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
+              />
+            ))}
+          </div>
+
+          {filtered.length === 0 && (
+            <div className="flex flex-col items-center py-16" style={{ color: "var(--store-text-muted)" }}>
+              <Store className="h-8 w-8 mb-2 opacity-40" />
+              <p className="text-sm">No products found</p>
+            </div>
+          )}
+
+          {/* Load More */}
+          {visibleCount < filtered.length && (
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={() => setVisibleCount(v => v + PRODUCTS_PER_PAGE)}
+                className="px-6 py-2 text-sm font-medium transition-colors hover:opacity-90"
+                style={{
+                  backgroundColor: "var(--store-surface)",
+                  color: "var(--store-text)",
+                  border: "1px solid var(--store-surface-border)",
+                  borderRadius: "var(--store-btn-radius)",
+                }}
+              >
+                Load More ({filtered.length - visibleCount} remaining)
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Footer */}
+      <StoreFooter
+        storeName={store.store_name}
+        description={store.description}
+        logoUrl={store.logo_url}
+        footerMenus={footerMenus}
+      />
+
       <BottomNav />
     </div>
   );
