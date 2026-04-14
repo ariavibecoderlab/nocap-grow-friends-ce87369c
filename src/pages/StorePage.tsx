@@ -90,7 +90,9 @@ const StorePage = () => {
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const [followerCount, setFollowerCount] = useState(0);
   const [flashPrices, setFlashPrices] = useState<Record<string, number>>({});
+  const [quickViewId, setQuickViewId] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!slug) return;
