@@ -180,6 +180,22 @@ const StorePage = () => {
     if (showSearch && searchRef.current) searchRef.current.focus();
   }, [showSearch]);
 
+  // Infinite scroll observer
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(v => v + PRODUCTS_PER_PAGE);
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loading]);
+
   const filtered = products.filter(p => {
     const matchCat = selectedCat === "all" || p.category_id === selectedCat;
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
