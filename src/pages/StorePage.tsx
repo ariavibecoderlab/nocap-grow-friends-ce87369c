@@ -10,6 +10,7 @@ import StoreAnnouncement from "@/components/marketplace/StoreAnnouncement";
 import { Json } from "@/integrations/supabase/types";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import StoreFollowButton from "@/components/marketplace/StoreFollowButton";
+import StoreScoreBadge from "@/components/marketplace/StoreScoreBadge";
 import { resolveTheme, themeToCSS, ThemeOverrides } from "@/lib/storeThemes";
 
 interface StoreData {
@@ -220,8 +221,9 @@ const StorePage = () => {
           <div className="pb-1 flex-1 min-w-0">
             <h1 className="text-xl font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{store.store_name}</h1>
             {store.tagline && <p className="text-xs" style={{ color: "var(--store-text-muted)" }}>{store.tagline}</p>}
-            <div className="mt-1.5">
+            <div className="mt-1.5 flex items-center gap-3">
               <StoreFollowButton storeId={store.id} />
+              <StoreScoreBadge storeId={store.id} />
             </div>
           </div>
         </div>
