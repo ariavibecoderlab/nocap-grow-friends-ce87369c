@@ -208,18 +208,18 @@ const StorePage = () => {
       <div className="mx-auto max-w-md px-4">
         {/* Store Info */}
         <div className="flex items-end gap-3 -mt-8 relative z-10">
-          <div className="h-16 w-16 rounded-xl border-2 border-primary bg-white/10 overflow-hidden shadow-lg shrink-0">
+          <div className="h-16 w-16 overflow-hidden shadow-lg shrink-0 border-2" style={{ borderRadius: "var(--store-radius)", borderColor: "var(--store-bg)", backgroundColor: "var(--store-surface)" }}>
             {store.logo_url ? (
               <img src={getOptimizedImageUrl(store.logo_url, 128, 128)} alt={store.store_name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-secondary/20">
-                <Store className="h-6 w-6 text-secondary" />
+              <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: resolvedTheme?.colors.accent + "33" }}>
+                <Store className="h-6 w-6" style={{ color: "var(--store-accent)" }} />
               </div>
             )}
           </div>
           <div className="pb-1 flex-1 min-w-0">
-            <h1 className="font-display text-xl font-bold text-white">{store.store_name}</h1>
-            {store.tagline && <p className="text-xs text-white/50">{store.tagline}</p>}
+            <h1 className="text-xl font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{store.store_name}</h1>
+            {store.tagline && <p className="text-xs" style={{ color: "var(--store-text-muted)" }}>{store.tagline}</p>}
             <div className="mt-1.5">
               <StoreFollowButton storeId={store.id} />
             </div>
@@ -227,7 +227,7 @@ const StorePage = () => {
         </div>
 
         {store.description && (
-          <p className="text-xs text-white/40 mt-3">{store.description}</p>
+          <p className="text-xs mt-3" style={{ color: "var(--store-text-muted)" }}>{store.description}</p>
         )}
 
         {/* Header Navigation */}
@@ -235,7 +235,8 @@ const StorePage = () => {
           <div className="flex gap-3 mt-3 overflow-x-auto pb-1 scrollbar-none">
             {headerMenus.map(m => (
               <button key={m.id} onClick={() => navigate(m.url)}
-                className="shrink-0 text-xs text-secondary/80 hover:text-secondary font-medium transition-colors">
+                className="shrink-0 text-xs font-medium transition-colors hover:opacity-80"
+                style={{ color: "var(--store-accent)" }}>
                 {m.label}
               </button>
             ))}
@@ -243,7 +244,7 @@ const StorePage = () => {
         )}
 
         {/* Shipping info */}
-        <div className="mt-3 text-[11px] text-white/40">
+        <div className="mt-3 text-[11px]" style={{ color: "var(--store-text-muted)" }}>
           {store.free_shipping_min ? (
             <span>Free shipping above RM {store.free_shipping_min} · Flat rate: RM {store.shipping_flat_rate.toFixed(2)}</span>
           ) : (
