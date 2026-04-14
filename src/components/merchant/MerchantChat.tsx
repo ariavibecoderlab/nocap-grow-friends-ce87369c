@@ -335,9 +335,16 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
                   <p className="text-[10px] font-medium text-secondary/80 mb-0.5">{thread?.sender_name || "Customer"}</p>
                 )}
                 <p>{msg.message}</p>
-                <p className={`text-[9px] mt-1 ${isMine ? "text-primary/50" : "text-white/30"}`}>
-                  {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </p>
+                <div className={`flex items-center gap-1 mt-1 ${isMine ? "justify-end" : ""}`}>
+                  <span className={`text-[9px] ${isMine ? "text-primary/50" : "text-white/30"}`}>
+                    {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  {isMine && (
+                    msg.is_read
+                      ? <CheckCheck className="h-3 w-3 text-blue-400" />
+                      : <Check className="h-3 w-3 text-primary/40" />
+                  )}
+                </div>
               </div>
             </div>
           );
