@@ -261,7 +261,7 @@ const Marketplace = () => {
     return () => observer.disconnect();
   }, [hasMore, filtered.length]);
 
-  // Search suggestions
+  // Search suggestions (kept for client-side fallback filtering)
   const suggestions = useMemo(() => {
     if (search.length < 2) return [];
     const q = search.toLowerCase();
@@ -270,7 +270,7 @@ const Marketplace = () => {
       .slice(0, 5);
   }, [search, products]);
 
-  const showSuggestions = searchFocused && suggestions.length > 0;
+  const showSuggestions = false; // replaced by SearchAutocomplete component
 
   const clearFilters = () => {
     setSelectedStore("all");
