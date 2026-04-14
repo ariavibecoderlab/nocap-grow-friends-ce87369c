@@ -554,6 +554,13 @@ const StorePage = () => {
         </div>
       </div>
 
+      {/* Quick View Modal */}
+      <ProductQuickView
+        productId={quickViewId}
+        storeSlug={store.slug}
+        onClose={() => setQuickViewId(null)}
+      />
+
       {/* Footer */}
       <StoreFooter
         storeName={store.store_name}
