@@ -10,6 +10,7 @@ import StoreAnnouncement from "@/components/marketplace/StoreAnnouncement";
 import { Json } from "@/integrations/supabase/types";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import StoreFollowButton from "@/components/marketplace/StoreFollowButton";
+import { resolveTheme, themeToCSS, ThemeOverrides } from "@/lib/storeThemes";
 
 interface StoreData {
   id: string;
