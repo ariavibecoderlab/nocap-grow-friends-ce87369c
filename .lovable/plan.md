@@ -1,54 +1,65 @@
 
 
-# Update Marketplace Enhancement Plan & Regenerate PDF — Phase 11-15
+# Store Design Upgrade — Shopify-Grade Storefront
 
-## What
-Update `.lovable/plans/001-marketplace-enhancement.md` to append Phase 11-15 (Enhancement Features, items #44-58), then regenerate the PDF progress report combining all 15 phases (58 total features).
+## Current State
+The StorePage is functional but minimal: a single banner image, store info, flat product grid, and basic search. It lacks the visual richness and conversion-optimized layout of modern Shopify stores.
 
-## Changes
+## Proposed Improvements
 
-### 1. Update `.lovable/plans/001-marketplace-enhancement.md`
-- Update status from "KIV" to "In Progress — Phase 11-15 Planned"
-- Append after Phase 10 (line 104), before the `---` separator:
+### 1. Hero Carousel / Slideshow
+Replace the static 160px banner with a full-width hero carousel (280px mobile, 400px desktop) supporting multiple slides. Each slide has a headline, subtitle, and CTA button. Merchants configure slides via their existing `page_layout` JSONB (new section type: `hero_slideshow`). Auto-advances with dots and swipe support.
 
-**Phase 11 — Smart Search & Discovery (Enhancement)**
-- #44 Search Autocomplete — real-time typeahead, debounced queries, `tsvector` indexing
-- #45 Product Comparison — side-by-side up to 3 products, specs table
-- #46 Full-Text Search Indexing — GIN index on `marketplace_products`, weighted ranking
+### 2. Featured Collection Row
+A horizontal scrollable section below the hero showing featured products in a larger card format with "Shop Now" CTAs. Uses the existing `is_featured` flag. Title like "Best Sellers" or configurable via page_layout.
 
-**Phase 12 — Buyer Retention & Loyalty (Enhancement)**
-- #47 Order Status Notifications — in-app push on state changes, `marketplace_notifications` table
-- #48 Buyer Loyalty Points — points per purchase, redeemable, `marketplace_loyalty_points` table
-- #49 Verified Purchase Badges — "Verified Buyer" on reviews from confirmed orders
+### 3. Category Grid with Images
+Replace the plain text category chips with a visual grid (2-3 columns) showing category name over a background image. Requires adding an optional `image_url` column to `marketplace_categories`. Falls back to accent-colored cards if no image.
 
-**Phase 13 — Seller Onboarding & UX (Enhancement)**
-- #50 Merchant Onboarding Wizard — step-by-step setup guide with progress tracker
-- #51 Collapsible Sidebar Navigation — desktop sidebar replacing dropdown+sub-tabs
-- #52 Bulk Order Status Updates — multi-select on Kanban, batch transitions
+### 4. Trust/Social Proof Strip
+A horizontal bar below the hero showing key metrics: "500+ Products", "4.8★ Rating", "Free Shipping over RM50", store follower count. Builds buyer confidence.
 
-**Phase 14 — Advanced Analytics & Intelligence (Enhancement)**
-- #53 Revenue Forecasting — trend projections, moving averages on sales dashboard
-- #54 Composite Store Score — aggregate merchant performance (rating + fulfillment + response time)
-- #55 Enhanced Live Chat — typing indicators, quick replies, read receipts
+### 5. "New Arrivals" Section
+Auto-generated section showing the 4-8 most recently added products, sorted by `created_at DESC`. No merchant configuration needed.
 
-**Phase 15 — Platform Quality & Scale (Enhancement)**
-- #56 Image Optimization Pipeline — WebP conversion, responsive srcset, blur placeholders
-- #57 Multi-Currency Support — currency selector, `marketplace_exchange_rates` table
-- #58 Automated Low-Stock Alerts — push notification on threshold breach, daily summary
+### 6. Testimonials / Reviews Carousel
+Pull top-rated reviews from the store's products and display them in a horizontal carousel with star ratings, buyer names, and product thumbnails.
 
-### 2. Update Technical Summary
-- Add new tables: `marketplace_notifications`, `marketplace_loyalty_points`, `marketplace_loyalty_transactions`, `marketplace_exchange_rates`
-- Add new edge functions: search indexing, notification dispatcher, loyalty engine
-- Update feature count from 43 to 58
+### 7. Newsletter / CTA Banner
+A mid-page promotional banner (configurable via page_layout) with gradient background, heading, and action button — e.g., "Join our community" or "Shop the Sale".
 
-### 3. Regenerate PDF
-- Use Python `reportlab` to regenerate `NOcap-Marketplace-Progress-Report.pdf` with all 15 phases
-- Phases 1-7: marked Complete, Phase 8: 4/5 In Progress, Phase 9-10: Pending, Phase 11-15: Planned
-- Updated overall stats: 58 total features, 32 complete, 11 pending, 15 planned
-- Same branded styling (Black/Yellow theme, TOC, headers/footers)
-- QA all pages visually before delivery
+### 8. Improved Product Grid
+- Add hover overlay with quick-view button
+- Show discount badges ("20% OFF") for products with flash sale prices
+- Larger cards on desktop (3-col instead of 4-col for store pages)
+- "Load more" or infinite scroll instead of showing everything
 
-## Files Modified
-- `.lovable/plans/001-marketplace-enhancement.md`
-- `/mnt/documents/NOcap-Marketplace-Progress-Report.pdf` (regenerated)
+### 9. Sticky Header on Scroll
+When scrolling past the hero, show a compact sticky header with store logo, name, search icon, and cart — similar to Shopify's Dawn theme.
+
+### 10. Enhanced Footer
+Structured footer with store description, quick links (from existing menu system), social media icons, and "Powered by NoCap" branding.
+
+## Technical Approach
+
+| Change | Files | DB Migration |
+|--------|-------|-------------|
+| Hero Carousel | New `StoreHeroCarousel.tsx`, update `StorePage.tsx` | No (uses existing `page_layout` JSONB) |
+| Category Grid | New `StoreCategoryGrid.tsx`, update `StorePage.tsx` | Add `image_url` to `marketplace_categories` |
+| Trust Strip | New `StoreTrustStrip.tsx` | No |
+| New Arrivals | Inline in `StorePage.tsx` | No |
+| Reviews Carousel | New `StoreReviewsCarousel.tsx` | No |
+| CTA Banner | New section type in `StorePage.tsx` | No |
+| Sticky Header | New `StoreHeader.tsx` | No |
+| Enhanced Footer | New `StoreFooter.tsx` | No |
+| Product Grid upgrades | Update `ProductCard.tsx`, `StorePage.tsx` | No |
+| Merchant page builder | Update `StorePageBuilder.tsx` to support new section types | No |
+
+All new components will respect the existing theme CSS variable system (`--store-bg`, `--store-accent`, etc.) so they work across all 5 theme presets.
+
+## Priority Order
+1. Hero Carousel + Sticky Header (biggest visual impact)
+2. Category Grid + Trust Strip + New Arrivals
+3. Reviews Carousel + CTA Banner + Footer
+4. Product Card hover effects + pagination
 
