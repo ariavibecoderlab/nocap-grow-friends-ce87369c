@@ -20,9 +20,10 @@ interface ProductCardProps {
   compact?: boolean;
   soldCount?: number;
   flashPrice?: number;
+  onQuickView?: (id: string) => void;
 }
 
-export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, rating, compact, soldCount, flashPrice }: ProductCardProps) {
+export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, rating, compact, soldCount, flashPrice, onQuickView }: ProductCardProps) {
   const { addItem } = useCart();
   const { toggle, isWishlisted } = useWishlist();
   const { toast } = useToast();
