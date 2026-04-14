@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { ArrowLeft, Mail, Shield, Save, Pencil, X, Camera, User } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -284,6 +285,8 @@ const MyProfile = () => {
             )}
           </CardContent>
         </Card>
+
+        <PushNotificationToggle />
       </div>
 
       <BottomNav />
