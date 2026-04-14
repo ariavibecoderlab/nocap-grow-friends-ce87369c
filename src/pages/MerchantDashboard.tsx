@@ -33,12 +33,18 @@ import MerchantAbandonedCarts from "@/components/merchant/MerchantAbandonedCarts
 import MerchantProductBundles from "@/components/merchant/MerchantProductBundles";
 import MerchantDiscountRules from "@/components/merchant/MerchantDiscountRules";
 import MerchantStoreCRM from "@/components/merchant/MerchantStoreCRM";
+import MerchantSalesReports from "@/components/merchant/MerchantSalesReports";
+import MerchantInventoryAlerts from "@/components/merchant/MerchantInventoryAlerts";
+import MerchantOrderKanban from "@/components/merchant/MerchantOrderKanban";
+import MerchantStaffPermissions from "@/components/merchant/MerchantStaffPermissions";
+import MerchantProductSeo from "@/components/merchant/MerchantProductSeo";
 import {
   ArrowLeft, Plus, Store, QrCode, MapPin, BarChart3, Loader2, Trash2,
   Download, Share2, Clock, CheckCircle2, XCircle, FileText, Wallet,
   Pencil, Check, X, MessageCircle, ArrowLeftRight, CreditCard, Globe,
   ShoppingBag, Megaphone, Code, ScrollText, Settings2, TrendingUp,
-  Package, Percent, Users,
+  Package, Percent, Users, ClipboardList, AlertTriangle, Shield, Search,
+  DollarSign,
 } from "lucide-react";
 
 const MerchantStoreTabWrapper = ({ branchId, children }: { branchId: string; children: (storeId: string) => React.ReactNode }) => {
@@ -597,6 +603,11 @@ const MerchantDashboard = () => {
                   { value: "dist", icon: TrendingUp, label: "Dist" },
                   { value: "reports", icon: FileText, label: "Reports" },
                   { value: "analytics", icon: BarChart3, label: "Analytics" },
+                  { value: "sales", icon: DollarSign, label: "Sales" },
+                  { value: "inventory", icon: AlertTriangle, label: "Inventory" },
+                  { value: "kanban", icon: ClipboardList, label: "Fulfill" },
+                  { value: "staff", icon: Shield, label: "Staff" },
+                  { value: "seo", icon: Search, label: "SEO" },
                   { value: "carts", icon: ShoppingBag, label: "Carts" },
                   { value: "bundles", icon: Package, label: "Bundles" },
                   { value: "discounts", icon: Percent, label: "Discounts" },
@@ -786,6 +797,36 @@ const MerchantDashboard = () => {
             <TabsContent value="crm" className="mt-4">
               <MerchantStoreTabWrapper branchId={selectedBranch.id}>
                 {(storeId) => <MerchantStoreCRM storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="sales" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantSalesReports storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="inventory" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantInventoryAlerts storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="kanban" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantOrderKanban storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="staff" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantStaffPermissions storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="seo" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantProductSeo storeId={storeId} />}
               </MerchantStoreTabWrapper>
             </TabsContent>
 

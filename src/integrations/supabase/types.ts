@@ -666,6 +666,83 @@ export type Database = {
           },
         ]
       }
+      marketplace_inventory_alerts: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          last_alerted_at: string | null
+          product_id: string
+          store_id: string
+          threshold: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_alerted_at?: string | null
+          product_id: string
+          store_id: string
+          threshold?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_alerted_at?: string | null
+          product_id?: string
+          store_id?: string
+          threshold?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_inventory_alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_inventory_alerts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_manager_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          manager_id: string
+          permission: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          manager_id: string
+          permission: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          manager_id?: string
+          permission?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_manager_permissions_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_store_managers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_order_items: {
         Row: {
           created_at: string
@@ -1016,6 +1093,7 @@ export type Database = {
           is_featured: boolean
           name: string
           price: number
+          seo: Json
           sku: string | null
           sold_count: number
           status: string
@@ -1033,6 +1111,7 @@ export type Database = {
           is_featured?: boolean
           name: string
           price?: number
+          seo?: Json
           sku?: string | null
           sold_count?: number
           status?: string
@@ -1050,6 +1129,7 @@ export type Database = {
           is_featured?: boolean
           name?: string
           price?: number
+          seo?: Json
           sku?: string | null
           sold_count?: number
           status?: string
