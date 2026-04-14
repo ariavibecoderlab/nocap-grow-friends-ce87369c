@@ -149,6 +149,15 @@ const StorePage = () => {
   const footerMenus = menus.filter(m => m.position === "footer");
   const sections = (store?.page_layout && Array.isArray(store.page_layout) ? store.page_layout : []) as unknown as PageSection[];
 
+  // Resolve theme with overrides
+  const storeSettings = store?.settings && typeof store.settings === "object" && !Array.isArray(store.settings)
+    ? (store.settings as Record<string, unknown>)
+    : {};
+  const overrides = (storeSettings.theme_overrides || {}) as ThemeOverrides;
+  const resolvedTheme = store ? resolveTheme(store.theme, overrides) : null;
+  const themeCSSVars = resolvedTheme ? themeToCSS(resolvedTheme) : {};
+  const isLightTheme = resolvedTheme?.id === "minimal";
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-primary">
