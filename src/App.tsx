@@ -92,6 +92,7 @@ const App = () => (
               <Route path="/set-pin" element={<SetPin />} />
               <Route path="/reset-pin" element={<ResetPin />} />
               <Route path="/user-manual" element={<UserManual />} />
+              <Route path="/seller-manual" element={<SellerManual />} />
               <Route path="/uat-scripts" element={<UatScripts />} />
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/store/:slug" element={<StorePage />} />
