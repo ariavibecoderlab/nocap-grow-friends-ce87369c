@@ -348,7 +348,7 @@ const StorePage = () => {
         )}
 
         {/* Category Grid */}
-        <div className="mt-6">
+        <div className="mt-8 animate-fade-in">
           <StoreCategoryGrid
             categories={categories}
             selectedCat={selectedCat}
