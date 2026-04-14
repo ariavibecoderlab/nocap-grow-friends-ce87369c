@@ -38,13 +38,17 @@ import MerchantInventoryAlerts from "@/components/merchant/MerchantInventoryAler
 import MerchantOrderKanban from "@/components/merchant/MerchantOrderKanban";
 import MerchantStaffPermissions from "@/components/merchant/MerchantStaffPermissions";
 import MerchantProductSeo from "@/components/merchant/MerchantProductSeo";
+import MerchantCollections from "@/components/merchant/MerchantCollections";
+import MerchantGiftCards from "@/components/merchant/MerchantGiftCards";
+import MerchantProductImportExport from "@/components/merchant/MerchantProductImportExport";
+import MerchantStoreBlog from "@/components/merchant/MerchantStoreBlog";
 import {
   ArrowLeft, Plus, Store, QrCode, MapPin, BarChart3, Loader2, Trash2,
   Download, Share2, Clock, CheckCircle2, XCircle, FileText, Wallet,
   Pencil, Check, X, MessageCircle, ArrowLeftRight, CreditCard, Globe,
   ShoppingBag, Megaphone, Code, ScrollText, Settings2, TrendingUp,
   Package, Percent, Users, ClipboardList, AlertTriangle, Shield, Search,
-  DollarSign,
+  DollarSign, Layers, Gift, Upload, BookOpen,
 } from "lucide-react";
 
 const MerchantStoreTabWrapper = ({ branchId, children }: { branchId: string; children: (storeId: string) => React.ReactNode }) => {
