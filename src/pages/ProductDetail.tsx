@@ -15,6 +15,8 @@ import VariantSelector, { type Variant } from "@/components/marketplace/VariantS
 import ProductShareButton from "@/components/marketplace/ProductShareButton";
 import RelatedProducts from "@/components/marketplace/RelatedProducts";
 import ProductQA from "@/components/marketplace/ProductQA";
+import LoyaltyPointsBadge from "@/components/marketplace/LoyaltyPointsBadge";
+import VerifiedBadge from "@/components/marketplace/VerifiedBadge";
 
 interface Product {
   id: string;
@@ -36,6 +38,8 @@ interface Review {
   merchant_reply: string | null;
   replied_at: string | null;
   created_at: string;
+  order_id?: string;
+  buyer_user_id?: string | null;
 }
 
 const ProductDetail = () => {
@@ -63,7 +67,7 @@ const ProductDetail = () => {
           .eq("id", productId)
           .maybeSingle(),
         supabase.from("marketplace_reviews")
-          .select("id, rating, comment, review_images, merchant_reply, replied_at, created_at")
+          .select("id, rating, comment, review_images, merchant_reply, replied_at, created_at, order_id, buyer_user_id")
           .eq("product_id", productId)
           .order("created_at", { ascending: false })
           .limit(10),
@@ -213,6 +217,9 @@ const ProductDetail = () => {
           <p className="text-sm text-white/60 mt-4 leading-relaxed">{product.description}</p>
         )}
 
+        {/* Loyalty Points */}
+        {product && <LoyaltyPointsBadge storeId={product.store_id} />}
+
         {/* Reviews */}
         {reviews.length > 0 && (
           <div className="mt-6">
@@ -222,10 +229,13 @@ const ProductDetail = () => {
                 const reviewImgs = (r.review_images as string[]) || [];
                 return (
                   <div key={r.id} className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`h-3 w-3 ${i < r.rating ? "fill-secondary text-secondary" : "text-white/20"}`} />
-                      ))}
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className={`h-3 w-3 ${i < r.rating ? "fill-secondary text-secondary" : "text-white/20"}`} />
+                        ))}
+                      </div>
+                      {r.buyer_user_id && r.order_id && <VerifiedBadge />}
                     </div>
                     {r.comment && <p className="text-xs text-white/60">{r.comment}</p>}
                     {/* Review Photos */}
