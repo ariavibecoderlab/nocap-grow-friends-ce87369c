@@ -59,7 +59,7 @@ const StoreCustomPage = () => {
   if (!page) {
     return (
       <div className="min-h-screen bg-primary pb-20">
-        <div className="px-4 pt-8 mx-auto max-w-md">
+        <div className="px-4 pt-8 mx-auto max-w-4xl">
           <button onClick={() => navigate(`/store/${slug}`)} className="rounded-full p-1 hover:bg-white/10 text-white">
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -75,7 +75,7 @@ const StoreCustomPage = () => {
 
   return (
     <div className="min-h-screen bg-primary pb-20">
-      <div className="px-4 pt-6 mx-auto max-w-md">
+      <div className="px-4 pt-6 mx-auto max-w-4xl">
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => navigate(`/store/${slug}`)} className="rounded-full p-1.5 hover:bg-white/10 text-white">
             <ArrowLeft className="h-5 w-5" />

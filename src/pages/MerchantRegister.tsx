@@ -255,14 +255,14 @@ const MerchantRegister = () => {
     return (
       <div className="min-h-screen bg-background pb-20">
         <div className="bg-primary px-4 pb-6 pt-8 text-primary-foreground">
-          <div className="mx-auto max-w-md flex items-center gap-3">
+          <div className="mx-auto max-w-2xl flex items-center gap-3">
             <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-primary-foreground/10 transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <h1 className="font-display text-xl font-bold">Merchant Application</h1>
           </div>
         </div>
-        <div className="mx-auto max-w-md px-4 pt-8">
+        <div className="mx-auto max-w-2xl px-4 pt-8">
           <Card className="border-0 shadow-lg">
             <CardContent className="flex flex-col items-center py-12">
               {existingApp.status === "pending" && (
@@ -303,7 +303,7 @@ const MerchantRegister = () => {
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="bg-primary px-4 pb-6 pt-8 text-primary-foreground">
-        <div className="mx-auto max-w-md flex items-center gap-3">
+        <div className="mx-auto max-w-2xl flex items-center gap-3">
           <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-primary-foreground/10 transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -311,7 +311,7 @@ const MerchantRegister = () => {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 pt-4 space-y-4">
+      <div className="mx-auto max-w-2xl px-4 pt-4 space-y-4">
         {/* Rejection notice */}
         {existingApp?.status === "rejected" && (
           <Card className="border-destructive/30 bg-destructive/5">
