@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, Download, TrendingUp, TrendingDown, ShoppingCart, Users, DollarSign } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+import RevenueForecast from "./RevenueForecast";
 
 interface Props { storeId: string; }
 
@@ -136,6 +137,9 @@ const MerchantSalesReports = ({ storeId }: Props) => {
           </CardContent>
         </Card>
       )}
+
+      {/* Revenue Forecast */}
+      <RevenueForecast dailyData={dailyData} />
 
       {/* Order status breakdown */}
       {statusData.length > 0 && (
