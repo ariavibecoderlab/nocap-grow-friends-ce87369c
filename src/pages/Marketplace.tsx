@@ -20,6 +20,8 @@ import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import CategoryChips from "@/components/marketplace/CategoryChips";
 import FlashSaleSection from "@/components/marketplace/FlashSaleSection";
 import BannerCarousel from "@/components/marketplace/BannerCarousel";
+import SearchAutocomplete from "@/components/marketplace/SearchAutocomplete";
+import { CompareBar } from "@/components/marketplace/ProductComparison";
 
 interface ProductRow {
   id: string;
@@ -63,7 +65,7 @@ const Marketplace = () => {
 
   // Filters
   const [search, setSearch] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchFocused] = useState(false); // kept for compat, replaced by SearchAutocomplete
   const [selectedStore, setSelectedStore] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("featured");
@@ -259,7 +261,7 @@ const Marketplace = () => {
     return () => observer.disconnect();
   }, [hasMore, filtered.length]);
 
-  // Search suggestions
+  // Search suggestions (kept for client-side fallback filtering)
   const suggestions = useMemo(() => {
     if (search.length < 2) return [];
     const q = search.toLowerCase();
@@ -268,7 +270,7 @@ const Marketplace = () => {
       .slice(0, 5);
   }, [search, products]);
 
-  const showSuggestions = searchFocused && suggestions.length > 0;
+  const showSuggestions = false; // replaced by SearchAutocomplete component
 
   const clearFilters = () => {
     setSelectedStore("all");
@@ -314,40 +316,7 @@ const Marketplace = () => {
 
         {/* Search + Filter Toggle */}
         <div className="flex gap-2 mb-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
-            <Input
-              placeholder="Search products..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
-              className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-9 text-sm"
-            />
-            {showSuggestions && (
-              <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border border-white/10 bg-primary shadow-xl overflow-hidden">
-                {suggestions.map(p => {
-                  const img = (p.images as string[])?.[0];
-                  return (
-                    <button
-                      key={p.id}
-                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-white/10 transition-colors"
-                      onMouseDown={() => navigate(`/store/${storeMap[p.store_id]?.slug || ""}/product/${p.id}`)}
-                    >
-                      <div className="h-8 w-8 shrink-0 rounded bg-white/5 overflow-hidden">
-                        {img ? <img src={getOptimizedImageUrl(img, 64, 64)} alt="" className="h-full w-full object-cover" /> : <ShoppingBag className="h-4 w-4 m-2 text-white/20" />}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-white truncate">{p.name}</p>
-                        <p className="text-[10px] text-white/40">{storeMap[p.store_id]?.store_name}</p>
-                      </div>
-                      <p className="text-xs font-bold text-secondary shrink-0">RM {p.price.toFixed(2)}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <SearchAutocomplete search={search} onSearchChange={setSearch} />
           <Button
             variant="outline"
             size="sm"
@@ -595,6 +564,7 @@ const Marketplace = () => {
           <ArrowUp className="h-5 w-5" />
         </button>
       )}
+      <CompareBar />
       <BottomNav />
     </div>
   );
