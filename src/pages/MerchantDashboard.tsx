@@ -50,7 +50,20 @@ import {
   X,
 } from "lucide-react";
 
-const MerchantChatTab = ({ branchId }: { branchId: string }) => {
+const MerchantStoreTabWrapper = ({ branchId, children }: { branchId: string; children: (storeId: string) => React.ReactNode }) => {
+  const [storeId, setStoreId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase
+      .from("marketplace_stores")
+      .select("id")
+      .eq("branch_id", branchId)
+      .maybeSingle()
+      .then(({ data }) => setStoreId(data?.id || null));
+  }, [branchId]);
+  if (!storeId) return <div className="text-center text-white/40 py-12 text-sm">No store found for this branch. Create a store in the Shop tab first.</div>;
+  return <>{children(storeId)}</>;
+};
+
   const [storeId, setStoreId] = useState<string | null>(null);
   useEffect(() => {
     supabase
