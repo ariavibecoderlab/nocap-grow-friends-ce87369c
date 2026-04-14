@@ -44,6 +44,7 @@ import {
   Pencil, Check, X, MessageCircle, ArrowLeftRight, CreditCard, Globe,
   ShoppingBag, Megaphone, Code, ScrollText, Settings2, TrendingUp,
   Package, Percent, Users, ClipboardList, AlertTriangle, Shield, Search,
+  DollarSign,
 } from "lucide-react";
 
 const MerchantStoreTabWrapper = ({ branchId, children }: { branchId: string; children: (storeId: string) => React.ReactNode }) => {
@@ -799,7 +800,36 @@ const MerchantDashboard = () => {
               </MerchantStoreTabWrapper>
             </TabsContent>
 
-            <TabsContent value="settings" className="mt-4 space-y-3">
+            <TabsContent value="sales" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantSalesReports storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="inventory" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantInventoryAlerts storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="kanban" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantOrderKanban storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="staff" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantStaffPermissions storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="seo" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantProductSeo storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
               <Card className="border-white/10 bg-white/5">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex justify-between text-sm">
