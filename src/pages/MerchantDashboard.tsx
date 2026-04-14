@@ -84,13 +84,14 @@ const MerchantChatTab = ({ branchId }: { branchId: string }) => {
   return <MerchantChat storeId={storeId} />;
 };
 
-const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread, renderQr, renderSettings }: {
+const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread, renderQr, renderSettings, topContent }: {
   selectedBranch: Branch;
   branches: Branch[];
   user: { id: string };
   chatUnread: number;
   renderQr: () => React.ReactNode;
   renderSettings: () => React.ReactNode;
+  topContent?: React.ReactNode;
 }) => {
   const [activeTab, setActiveTab] = useState("qr");
   const isMobile = useIsMobile();
@@ -132,6 +133,7 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread,
   if (isMobile) {
     return (
       <div className="mt-4 space-y-4">
+        {topContent}
         <MerchantNavigation activeTab={activeTab} onTabChange={setActiveTab} chatUnread={chatUnread} />
         <div className="mt-3">
           {renderContent()}
@@ -140,26 +142,25 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread,
     );
   }
 
-  // Desktop: sidebar layout
+  // Desktop: full-page sidebar layout
   return (
-    <div className="mt-4">
-      <SidebarProvider defaultOpen={true}>
-        <div className="flex w-full min-h-[600px] rounded-xl border border-white/10 overflow-hidden bg-white/[0.02]">
-          <MerchantSidebar activeTab={activeTab} onTabChange={setActiveTab} chatUnread={chatUnread} />
-          <div className="flex-1 flex flex-col min-w-0">
-            <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2">
-              <SidebarTrigger className="text-white/40 hover:text-white" />
-              <span className="text-xs text-white/30 truncate">
-                {getMerchantSections(chatUnread).flatMap(s => s.items).find(i => i.value === activeTab)?.label || "Dashboard"}
-              </span>
-            </div>
-            <div className="flex-1 p-4 overflow-auto">
-              {renderContent()}
-            </div>
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex w-full min-h-screen">
+        <MerchantSidebar activeTab={activeTab} onTabChange={setActiveTab} chatUnread={chatUnread} />
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2 bg-primary">
+            <SidebarTrigger className="text-white/40 hover:text-white" />
+            <span className="text-xs text-white/30 truncate">
+              {getMerchantSections(chatUnread).flatMap(s => s.items).find(i => i.value === activeTab)?.label || "Dashboard"}
+            </span>
+          </div>
+          <div className="flex-1 overflow-auto p-4 md:p-6 space-y-4">
+            {topContent}
+            {renderContent()}
           </div>
         </div>
-      </SidebarProvider>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 };
 
@@ -582,460 +583,202 @@ const MerchantDashboard = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-primary pb-20">
-      {/* Header */}
-      <div className="px-4 pb-6 pt-8">
-        <div className="mx-auto max-w-5xl">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors text-white">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <NocapLogo size="sm" />
-            <h1 className="font-display text-xl font-bold flex-1 text-white">Merchant Dashboard</h1>
-            <NotificationBell className="text-white" />
-          </div>
-        </div>
+  const isMobileView = useIsMobile();
+
+  const headerBlock = (
+    <div className="flex items-center gap-3">
+      <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors text-white">
+        <ArrowLeft className="h-5 w-5" />
+      </button>
+      <NocapLogo size="sm" />
+      <h1 className="font-display text-xl font-bold flex-1 text-white">Merchant Dashboard</h1>
+      <NotificationBell className="text-white" />
+    </div>
+  );
+
+  const statsBlock = (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <Card className="border-white/10 bg-white/5"><CardContent className="p-4 text-center"><BarChart3 className="mx-auto h-4 w-4 text-secondary" /><p className="mt-1 font-display text-xl font-bold text-white">RM {todaySales.toFixed(0)}</p><p className="text-[10px] text-white/40">Today's Sales</p></CardContent></Card>
+      <Card className="border-white/10 bg-white/5"><CardContent className="p-4 text-center"><BarChart3 className="mx-auto h-4 w-4 text-secondary" /><p className="mt-1 font-display text-xl font-bold text-white">RM {totalSales.toFixed(0)}</p><p className="text-[10px] text-white/40">Total Sales</p></CardContent></Card>
+      <Card className="border-white/10 bg-white/5"><CardContent className="p-4 text-center"><Wallet className="mx-auto h-4 w-4 text-secondary" /><p className="mt-1 font-display text-xl font-bold text-white">RM {Number((selectedBranch as any)?.balance || 0).toFixed(0)}</p><p className="text-[10px] text-white/40">Branch Balance</p></CardContent></Card>
+      <Card className="border-white/10 bg-white/5"><CardContent className="p-4 text-center"><Store className="mx-auto h-4 w-4 text-secondary" /><p className="mt-1 font-display text-xl font-bold text-white">{branches.length}</p><p className="text-[10px] text-white/40">Branches</p></CardContent></Card>
+    </div>
+  );
+
+  const onboardingBlock = selectedBranch && !onboardingDismissed && showOnboarding ? (
+    <MerchantOnboardingWizard branchId={selectedBranch.id} userId={user!.id}
+      onComplete={() => { setShowOnboarding(false); setOnboardingDismissed(true); sessionStorage.setItem("merchant-onboarding-dismissed", "true"); }}
+      onSkip={() => { setShowOnboarding(false); setOnboardingDismissed(true); sessionStorage.setItem("merchant-onboarding-dismissed", "true"); }}
+    />
+  ) : null;
+
+  const apiGuideBlock = (
+    <Card className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate("/api-docs")}>
+      <CardContent className="flex items-center gap-3 p-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary/20"><FileText className="h-4 w-4 text-secondary" /></div>
+        <div className="flex-1 min-w-0"><p className="text-sm font-medium text-white">API Integration Guide</p><p className="text-[10px] text-white/40">View docs & download PDF</p></div>
+        <ArrowLeft className="h-4 w-4 text-white/30 rotate-180" />
+      </CardContent>
+    </Card>
+  );
+
+  const branchesBlock = (
+    <>
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-lg font-semibold text-white">Branches</h2>
+        <Button size="sm" variant="outline" onClick={() => setShowAddBranch(true)} className="gap-1 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"><Plus className="h-3.5 w-3.5" /> Add</Button>
       </div>
-
-      <div className="mx-auto max-w-5xl px-4 pt-4 space-y-4">
-        {/* Sales Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card className="border-white/10 bg-white/5">
-            <CardContent className="p-4 text-center">
-              <BarChart3 className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-1 font-display text-xl font-bold text-white">RM {todaySales.toFixed(0)}</p>
-              <p className="text-[10px] text-white/40">Today's Sales</p>
-            </CardContent>
-          </Card>
-          <Card className="border-white/10 bg-white/5">
-            <CardContent className="p-4 text-center">
-              <BarChart3 className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-1 font-display text-xl font-bold text-white">RM {totalSales.toFixed(0)}</p>
-              <p className="text-[10px] text-white/40">Total Sales</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Onboarding Wizard — shown for new merchants */}
-        {selectedBranch && !onboardingDismissed && showOnboarding && (
-          <MerchantOnboardingWizard
-            branchId={selectedBranch.id}
-            userId={user!.id}
-            onComplete={() => {
-              setShowOnboarding(false);
-              setOnboardingDismissed(true);
-              sessionStorage.setItem("merchant-onboarding-dismissed", "true");
-            }}
-            onSkip={() => {
-              setShowOnboarding(false);
-              setOnboardingDismissed(true);
-              sessionStorage.setItem("merchant-onboarding-dismissed", "true");
-            }}
-          />
-        )}
-
-        {/* API Integration Guide */}
-        <Card className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate("/api-docs")}>
-          <CardContent className="flex items-center gap-3 p-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary/20">
-              <FileText className="h-4 w-4 text-secondary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white">API Integration Guide</p>
-              <p className="text-[10px] text-white/40">View docs & download PDF</p>
-            </div>
-            <ArrowLeft className="h-4 w-4 text-white/30 rotate-180" />
-          </CardContent>
-        </Card>
-
-        {/* Branches */}
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg font-semibold text-white">Branches</h2>
-          <Button size="sm" variant="outline" onClick={() => setShowAddBranch(true)} className="gap-1 border-white/10 text-white/70 hover:bg-white/10 hover:text-white">
-            <Plus className="h-3.5 w-3.5" /> Add
-          </Button>
-        </div>
-
-        {branches.length === 0 ? (
-          <Card className="border-white/10 bg-white/5">
-            <CardContent className="flex flex-col items-center py-8 text-white/40">
-              <Store className="h-8 w-8 mb-2 opacity-40" />
-              <p className="text-sm font-medium">No branches yet</p>
-              <p className="text-xs mt-1">Add your first branch to start receiving payments</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {branches.map((b) => (
-              <Card
-                key={b.id}
-                className={`border-white/10 bg-white/5 cursor-pointer transition-all ${selectedBranch?.id === b.id ? 'ring-2 ring-secondary' : ''}`}
-                onClick={() => setSelectedBranch(b)}
-              >
-                <CardContent className="flex items-center justify-between p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary/20">
-                      <Store className="h-4 w-4 text-secondary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-white">{b.branch_name}</p>
-                      {b.branch_address && (
-                        <p className="text-[10px] text-white/40 flex items-center gap-1">
-                          <MapPin className="h-3 w-3" /> {b.branch_address}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <Button size="sm" variant="ghost" className="text-white/50 hover:text-white hover:bg-white/10" onClick={(e) => { e.stopPropagation(); showStaticQr(b); }}>
-                    <QrCode className="h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Selected Branch Details */}
-        {selectedBranch && (
-          <MerchantNavigationWrapper
-            selectedBranch={selectedBranch}
-            branches={branches}
-            user={user!}
-            chatUnread={chatUnread}
-            renderQr={() => (
-              <div className="space-y-3">
-                {/* Static QR */}
-                <Card className="border-secondary/20 bg-secondary/10">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-white">Static QR Code</p>
-                        <p className="text-[11px] text-white/40">Customer enters the amount</p>
-                      </div>
-                      <Button size="sm" onClick={() => showStaticQr(selectedBranch)} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90 font-semibold">
-                        <QrCode className="h-3.5 w-3.5" /> Show
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Dynamic QRs */}
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-white">Dynamic QR Codes</p>
-                  <Button size="sm" variant="outline" onClick={() => setShowAddQr(true)} className="gap-1 border-white/10 text-white/70 hover:bg-white/10 hover:text-white">
-                    <Plus className="h-3.5 w-3.5" /> Create
-                  </Button>
+      {branches.length === 0 ? (
+        <Card className="border-white/10 bg-white/5"><CardContent className="flex flex-col items-center py-8 text-white/40"><Store className="h-8 w-8 mb-2 opacity-40" /><p className="text-sm font-medium">No branches yet</p><p className="text-xs mt-1">Add your first branch to start receiving payments</p></CardContent></Card>
+      ) : (
+        <div className={isMobileView ? "space-y-2" : "grid grid-cols-1 md:grid-cols-2 gap-3"}>
+          {branches.map((b) => (
+            <Card key={b.id} className={`border-white/10 bg-white/5 cursor-pointer transition-all ${selectedBranch?.id === b.id ? 'ring-2 ring-secondary' : ''}`} onClick={() => setSelectedBranch(b)}>
+              <CardContent className="flex items-center justify-between p-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary/20"><Store className="h-4 w-4 text-secondary" /></div>
+                  <div><p className="text-sm font-medium text-white">{b.branch_name}</p>{b.branch_address && <p className="text-[10px] text-white/40 flex items-center gap-1"><MapPin className="h-3 w-3" /> {b.branch_address}</p>}</div>
                 </div>
+                <Button size="sm" variant="ghost" className="text-white/50 hover:text-white hover:bg-white/10" onClick={(e) => { e.stopPropagation(); showStaticQr(b); }}><QrCode className="h-4 w-4" /></Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </>
+  );
 
-                {dynamicQrs.length === 0 ? (
-                  <p className="text-xs text-white/40 text-center py-4">No dynamic QR codes yet. Create one with a pre-filled amount.</p>
-                ) : (
-                  dynamicQrs.map((qr) => {
-                    const status = getQrStatus(qr);
-                    return (
-                      <Card key={qr.id} className={`border-white/10 bg-white/5 ${status !== "active" ? 'opacity-60' : ''}`}>
-                        <CardContent className="flex items-center justify-between p-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-white">RM {Number(qr.amount).toFixed(2)}</p>
-                            {qr.description && <p className="text-[10px] text-white/40 truncate">{qr.description}</p>}
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              {status === "used" && (
-                                <span className="text-[10px] text-secondary flex items-center gap-0.5">
-                                  <CheckCircle2 className="h-3 w-3" /> Paid
-                                </span>
-                              )}
-                              {status === "expired" && (
-                                <span className="text-[10px] text-destructive flex items-center gap-0.5">
-                                  <XCircle className="h-3 w-3" /> Expired
-                                </span>
-                              )}
-                              {status === "active" && qr.expires_at && (
-                                <span className="text-[10px] text-amber-500 flex items-center gap-0.5">
-                                  <Clock className="h-3 w-3" /> {formatTimeLeft(qr.expires_at)}
-                                </span>
-                              )}
-                              {status === "active" && !qr.expires_at && (
-                                <span className="text-[10px] text-white/40">Active</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {status === "active" && (
-                              <Button size="sm" variant="ghost" className="text-white/50 hover:text-white hover:bg-white/10" onClick={() => showDynamicQrCode(qr)}>
-                                <QrCode className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {!qr.is_used && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => deleteQr(qr.id)}
-                                disabled={deletingQr === qr.id}
-                              >
-                                {deletingQr === qr.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
-                              </Button>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
-                )}
-              </div>
-            )}
-            renderSettings={() => (
-              <div className="space-y-3">
-                <Card className="border-white/10 bg-white/5">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-white/40">Branch Name</span>
-                      <span className="font-medium text-white">{selectedBranch?.branch_name}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-white/40">Commission Rate</span>
-                      {editingCommission ? (
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            min={0}
-                            max={20}
-                            step={0.5}
-                            value={commissionValue}
-                            onChange={(e) => setCommissionValue(e.target.value)}
-                            className="w-20 h-7 text-xs bg-white/10 border-white/20 text-white"
-                          />
-                          <span className="text-white/60 text-xs">%</span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-secondary hover:text-secondary"
-                            disabled={savingCommission}
-                            onClick={() => {
-                              const val = parseFloat(commissionValue);
-                              if (isNaN(val) || val < 0 || val > 20) {
-                                toast({ title: "Invalid value", description: "Commission must be between 0% and 20%", variant: "destructive" });
-                                return;
-                              }
-                              setShowCommissionConfirm(true);
-                            }}
-                          >
-                            {savingCommission ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-white/40 hover:text-white"
-                            onClick={() => setEditingCommission(false)}
-                            disabled={savingCommission}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-white">{selectedBranch?.commission_percent}%</span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 text-white/40 hover:text-white"
-                            onClick={() => {
-                              setCommissionValue(String(selectedBranch?.commission_percent ?? 5));
-                              setEditingCommission(true);
-                            }}
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-white/40">Status</span>
-                      <span className={`font-medium ${selectedBranch.is_active ? 'text-secondary' : 'text-destructive'}`}>
-                        {selectedBranch.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-white/40">Branch Balance</span>
-                      <span className="font-medium text-white">RM {Number((selectedBranch as any).balance || 0).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-white/40">QR Code ID</span>
-                      <span className="font-mono text-xs text-white/70">{selectedBranch.qr_code_id.slice(0, 8)}...</span>
-                    </div>
-                  </CardContent>
-                </Card>
+  const topContent = (<>{statsBlock}{onboardingBlock}{apiGuideBlock}{branchesBlock}</>);
 
-                <AlertDialog open={showCommissionConfirm} onOpenChange={setShowCommissionConfirm}>
-                  <AlertDialogContent className="bg-background border-white/10">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Confirm Commission Rate Change</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to change the commission rate from{" "}
-                        <strong>{selectedBranch?.commission_percent}%</strong> to{" "}
-                        <strong>{commissionValue}%</strong>? This will affect all future transactions.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel disabled={savingCommission}>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        disabled={savingCommission}
-                        onClick={async () => {
-                          const val = parseFloat(commissionValue);
-                          setSavingCommission(true);
-                          const { error } = await supabase
-                            .from("merchant_branches")
-                            .update({ commission_percent: val })
-                            .eq("id", selectedBranch!.id)
-                            .eq("merchant_user_id", user!.id);
-                          setSavingCommission(false);
-                          if (error) {
-                            toast({ title: "Error", description: error.message, variant: "destructive" });
-                            return;
-                          }
-                          setBranches((prev) => prev.map((b) => b.id === selectedBranch!.id ? { ...b, commission_percent: val } : b));
-                          setSelectedBranch((prev) => prev ? { ...prev, commission_percent: val } : prev);
-                          setEditingCommission(false);
-                          setShowCommissionConfirm(false);
-                          toast({ title: "Updated", description: `Commission rate set to ${val}%` });
-                        }}
-                      >
-                        {savingCommission ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                        Confirm
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+  const renderQrContent = () => (
+    <div className="space-y-3">
+      <Card className="border-secondary/20 bg-secondary/10"><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-sm font-semibold text-white">Static QR Code</p><p className="text-[11px] text-white/40">Customer enters the amount</p></div><Button size="sm" onClick={() => showStaticQr(selectedBranch!)} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90 font-semibold"><QrCode className="h-3.5 w-3.5" /> Show</Button></div></CardContent></Card>
+      <div className="flex items-center justify-between"><p className="text-sm font-semibold text-white">Dynamic QR Codes</p><Button size="sm" variant="outline" onClick={() => setShowAddQr(true)} className="gap-1 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"><Plus className="h-3.5 w-3.5" /> Create</Button></div>
+      {dynamicQrs.length === 0 ? (
+        <p className="text-xs text-white/40 text-center py-4">No dynamic QR codes yet.</p>
+      ) : (
+        <div className={isMobileView ? "space-y-2" : "grid grid-cols-1 md:grid-cols-2 gap-3"}>
+          {dynamicQrs.map((qr) => { const status = getQrStatus(qr); return (
+            <Card key={qr.id} className={`border-white/10 bg-white/5 ${status !== "active" ? 'opacity-60' : ''}`}><CardContent className="flex items-center justify-between p-3">
+              <div className="min-w-0"><p className="text-sm font-semibold text-white">RM {Number(qr.amount).toFixed(2)}</p>{qr.description && <p className="text-[10px] text-white/40 truncate">{qr.description}</p>}<div className="flex items-center gap-1.5 mt-0.5">{status === "used" && <span className="text-[10px] text-secondary flex items-center gap-0.5"><CheckCircle2 className="h-3 w-3" /> Paid</span>}{status === "expired" && <span className="text-[10px] text-destructive flex items-center gap-0.5"><XCircle className="h-3 w-3" /> Expired</span>}{status === "active" && qr.expires_at && <span className="text-[10px] text-amber-500 flex items-center gap-0.5"><Clock className="h-3 w-3" /> {formatTimeLeft(qr.expires_at)}</span>}{status === "active" && !qr.expires_at && <span className="text-[10px] text-white/40">Active</span>}</div></div>
+              <div className="flex items-center gap-1">{status === "active" && <Button size="sm" variant="ghost" className="text-white/50 hover:text-white hover:bg-white/10" onClick={() => showDynamicQrCode(qr)}><QrCode className="h-4 w-4" /></Button>}{!qr.is_used && <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => deleteQr(qr.id)} disabled={deletingQr === qr.id}>{deletingQr === qr.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button>}</div>
+            </CardContent></Card>
+          ); })}
+        </div>
+      )}
+    </div>
+  );
 
-                <MerchantNotificationPrefs
-                  branchId={selectedBranch.id}
-                  branchName={selectedBranch.branch_name}
-                />
+  const renderSettingsContent = () => (
+    <div className="space-y-3">
+      <Card className="border-white/10 bg-white/5"><CardContent className="p-4 space-y-3">
+        <div className="flex justify-between text-sm"><span className="text-white/40">Branch Name</span><span className="font-medium text-white">{selectedBranch?.branch_name}</span></div>
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-white/40">Commission Rate</span>
+          {editingCommission ? (
+            <div className="flex items-center gap-2">
+              <Input type="number" min={0} max={20} step={0.5} value={commissionValue} onChange={(e) => setCommissionValue(e.target.value)} className="w-20 h-7 text-xs bg-white/10 border-white/20 text-white" />
+              <span className="text-white/60 text-xs">%</span>
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-secondary hover:text-secondary" disabled={savingCommission} onClick={() => { const val = parseFloat(commissionValue); if (isNaN(val) || val < 0 || val > 20) { toast({ title: "Invalid value", description: "Commission must be between 0% and 20%", variant: "destructive" }); return; } setShowCommissionConfirm(true); }}>{savingCommission ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}</Button>
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-white/40 hover:text-white" onClick={() => setEditingCommission(false)} disabled={savingCommission}><X className="h-4 w-4" /></Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2"><span className="font-medium text-white">{selectedBranch?.commission_percent}%</span><Button size="icon" variant="ghost" className="h-6 w-6 text-white/40 hover:text-white" onClick={() => { setCommissionValue(String(selectedBranch?.commission_percent ?? 5)); setEditingCommission(true); }}><Pencil className="h-3 w-3" /></Button></div>
+          )}
+        </div>
+        <div className="flex justify-between text-sm"><span className="text-white/40">Status</span><span className={`font-medium ${selectedBranch?.is_active ? 'text-secondary' : 'text-destructive'}`}>{selectedBranch?.is_active ? "Active" : "Inactive"}</span></div>
+        <div className="flex justify-between text-sm"><span className="text-white/40">Branch Balance</span><span className="font-medium text-white">RM {Number((selectedBranch as any)?.balance || 0).toFixed(2)}</span></div>
+        <div className="flex justify-between text-sm"><span className="text-white/40">QR Code ID</span><span className="font-mono text-xs text-white/70">{selectedBranch?.qr_code_id.slice(0, 8)}...</span></div>
+      </CardContent></Card>
+      <AlertDialog open={showCommissionConfirm} onOpenChange={setShowCommissionConfirm}>
+        <AlertDialogContent className="bg-background border-white/10"><AlertDialogHeader><AlertDialogTitle>Confirm Commission Rate Change</AlertDialogTitle><AlertDialogDescription>Are you sure you want to change from <strong>{selectedBranch?.commission_percent}%</strong> to <strong>{commissionValue}%</strong>?</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel disabled={savingCommission}>Cancel</AlertDialogCancel><AlertDialogAction disabled={savingCommission} onClick={async () => {
+            const val = parseFloat(commissionValue); setSavingCommission(true);
+            const { error } = await supabase.from("merchant_branches").update({ commission_percent: val }).eq("id", selectedBranch!.id).eq("merchant_user_id", user!.id);
+            setSavingCommission(false); if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+            setBranches((prev) => prev.map((b) => b.id === selectedBranch!.id ? { ...b, commission_percent: val } : b));
+            setSelectedBranch((prev) => prev ? { ...prev, commission_percent: val } : prev);
+            setEditingCommission(false); setShowCommissionConfirm(false); toast({ title: "Updated", description: `Commission rate set to ${val}%` });
+          }}>{savingCommission ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Confirm</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {selectedBranch && <MerchantNotificationPrefs branchId={selectedBranch.id} branchName={selectedBranch.branch_name} />}
+      {selectedBranch && <BranchOwnerAssignment branchId={selectedBranch.id} currentOwnerId={(selectedBranch as any).owner_user_id} onAssigned={() => {
+        supabase.from("merchant_branches").select("*").eq("merchant_user_id", user!.id).order("created_at", { ascending: true }).then(({ data }) => {
+          if (data) { setBranches(data as Branch[]); const updated = data.find((b: any) => b.id === selectedBranch.id); if (updated) setSelectedBranch(updated as Branch); }
+        });
+      }} />}
+    </div>
+  );
 
-                <BranchOwnerAssignment
-                  branchId={selectedBranch.id}
-                  currentOwnerId={(selectedBranch as any).owner_user_id}
-                  onAssigned={() => {
-                    supabase
-                      .from("merchant_branches")
-                      .select("*")
-                      .eq("merchant_user_id", user!.id)
-                      .order("created_at", { ascending: true })
-                      .then(({ data }) => {
-                        if (data) {
-                          setBranches(data as Branch[]);
-                          const updated = data.find((b: any) => b.id === selectedBranch.id);
-                          if (updated) setSelectedBranch(updated as Branch);
-                        }
-                      });
-                  }}
-                />
-              </div>
-            )}
-          />
-        )}
-      </div>
-
-      {/* Add Branch Dialog */}
+  const dialogsBlock = (
+    <>
       <Dialog open={showAddBranch} onOpenChange={setShowAddBranch}>
         <DialogContent className="max-w-sm bg-primary border-white/10">
-          <DialogHeader>
-            <DialogTitle className="font-display text-white">Add Branch</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="font-display text-white">Add Branch</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-white/70">Branch Name *</Label>
-              <Input placeholder="e.g. Main Outlet" value={newBranchName} onChange={(e) => setNewBranchName(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-white/70">Address</Label>
-              <Input placeholder="Branch address" value={newBranchAddress} onChange={(e) => setNewBranchAddress(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
-            </div>
-            <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={addBranch} disabled={addingBranch || !newBranchName.trim()}>
-              {addingBranch ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Add Branch
-            </Button>
+            <div className="space-y-1"><Label className="text-white/70">Branch Name *</Label><Input placeholder="e.g. Main Outlet" value={newBranchName} onChange={(e) => setNewBranchName(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" /></div>
+            <div className="space-y-1"><Label className="text-white/70">Address</Label><Input placeholder="Branch address" value={newBranchAddress} onChange={(e) => setNewBranchAddress(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" /></div>
+            <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={addBranch} disabled={addingBranch || !newBranchName.trim()}>{addingBranch ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Add Branch</Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Create Dynamic QR Dialog */}
       <Dialog open={showAddQr} onOpenChange={setShowAddQr}>
         <DialogContent className="max-w-sm bg-primary border-white/10">
-          <DialogHeader>
-            <DialogTitle className="font-display text-white">Create Dynamic QR</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="font-display text-white">Create Dynamic QR</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-white/70">Amount (RM) *</Label>
-              <Input type="number" inputMode="decimal" placeholder="0.00" value={qrAmount} onChange={(e) => setQrAmount(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-white/70">Description</Label>
-              <Input placeholder="e.g. Table 5 order" value={qrDescription} onChange={(e) => setQrDescription(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-white/70">Expiry</Label>
-              <Select value={qrExpiry} onValueChange={setQrExpiry}>
-                <SelectTrigger className="border-white/10 bg-white/5 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-primary border-white/10 text-white">
-                  <SelectItem value="none">No expiry</SelectItem>
-                  <SelectItem value="15">15 minutes</SelectItem>
-                  <SelectItem value="30">30 minutes</SelectItem>
-                  <SelectItem value="60">1 hour</SelectItem>
-                  <SelectItem value="1440">24 hours</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={createDynamicQr} disabled={creatingQr || !qrAmount}>
-              {creatingQr ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Create QR Code
-            </Button>
+            <div className="space-y-1"><Label className="text-white/70">Amount (RM) *</Label><Input type="number" inputMode="decimal" placeholder="0.00" value={qrAmount} onChange={(e) => setQrAmount(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" /></div>
+            <div className="space-y-1"><Label className="text-white/70">Description</Label><Input placeholder="e.g. Table 5 order" value={qrDescription} onChange={(e) => setQrDescription(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" /></div>
+            <div className="space-y-1"><Label className="text-white/70">Expiry</Label><Select value={qrExpiry} onValueChange={setQrExpiry}><SelectTrigger className="border-white/10 bg-white/5 text-white"><SelectValue /></SelectTrigger><SelectContent className="bg-primary border-white/10 text-white"><SelectItem value="none">No expiry</SelectItem><SelectItem value="15">15 minutes</SelectItem><SelectItem value="30">30 minutes</SelectItem><SelectItem value="60">1 hour</SelectItem><SelectItem value="1440">24 hours</SelectItem></SelectContent></Select></div>
+            <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={createDynamicQr} disabled={creatingQr || !qrAmount}>{creatingQr ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Create QR Code</Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* QR Display Dialog */}
       <Dialog open={!!showQrDisplay} onOpenChange={() => setShowQrDisplay(null)}>
         <DialogContent className="max-w-xs bg-primary border-white/10">
-          <DialogHeader>
-            <DialogTitle className="font-display text-center text-white">
-              {showQrDisplay?.type === "static" ? "Static QR" : "Dynamic QR"}
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="font-display text-center text-white">{showQrDisplay?.type === "static" ? "Static QR" : "Dynamic QR"}</DialogTitle></DialogHeader>
           <div className="flex flex-col items-center py-4">
-            <div ref={qrRef} className="rounded-xl bg-white p-4 shadow-sm">
-              <QRCodeSVG
-                value={showQrDisplay?.data || ""}
-                size={200}
-                level="M"
-                fgColor="hsl(157, 72%, 40%)"
-              />
-            </div>
+            <div ref={qrRef} className="rounded-xl bg-white p-4 shadow-sm"><QRCodeSVG value={showQrDisplay?.data || ""} size={200} level="M" fgColor="hsl(157, 72%, 40%)" /></div>
             <p className="mt-3 font-display text-lg font-bold text-secondary">{showQrDisplay?.label}</p>
-            <p className="text-xs text-white/40 mt-1">
-              {showQrDisplay?.type === "static" ? "Customer scans and enters amount" : "Amount is pre-filled for customer"}
-            </p>
+            <p className="text-xs text-white/40 mt-1">{showQrDisplay?.type === "static" ? "Customer scans and enters amount" : "Amount is pre-filled for customer"}</p>
             <div className="flex gap-2 mt-4">
-              <Button size="sm" variant="outline" onClick={downloadQr} className="gap-1.5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white">
-                <Download className="h-3.5 w-3.5" /> Download
-              </Button>
-              <Button size="sm" variant="outline" onClick={shareQr} className="gap-1.5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white">
-                <Share2 className="h-3.5 w-3.5" /> Share
-              </Button>
+              <Button size="sm" variant="outline" onClick={downloadQr} className="gap-1.5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"><Download className="h-3.5 w-3.5" /> Download</Button>
+              <Button size="sm" variant="outline" onClick={shareQr} className="gap-1.5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"><Share2 className="h-3.5 w-3.5" /> Share</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+    </>
+  );
 
-      <BottomNav />
+  // ── MOBILE ──
+  if (isMobileView) {
+    return (
+      <div className="min-h-screen bg-primary pb-20">
+        <div className="px-4 pb-4 pt-8">{headerBlock}</div>
+        <div className="px-4 space-y-4 pb-4">
+          {selectedBranch ? (
+            <MerchantNavigationWrapper selectedBranch={selectedBranch} branches={branches} user={user!} chatUnread={chatUnread} topContent={topContent} renderQr={renderQrContent} renderSettings={renderSettingsContent} />
+          ) : topContent}
+        </div>
+        {dialogsBlock}
+        <BottomNav />
+      </div>
+    );
+  }
+
+  // ── DESKTOP ──
+  return (
+    <div className="min-h-screen bg-primary">
+      {selectedBranch ? (
+        <MerchantNavigationWrapper selectedBranch={selectedBranch} branches={branches} user={user!} chatUnread={chatUnread}
+          topContent={<>{headerBlock}<div className="mt-4" />{topContent}</>}
+          renderQr={renderQrContent} renderSettings={renderSettingsContent}
+        />
+      ) : (
+        <div className="max-w-5xl mx-auto p-6 space-y-4">{headerBlock}{topContent}</div>
+      )}
+      {dialogsBlock}
     </div>
   );
 };
