@@ -121,13 +121,23 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
     const load = async () => {
       const { data } = await supabase
         .from("marketplace_chat_messages")
-        .select("id, sender_id, sender_type, message, created_at, product_id")
+        .select("id, sender_id, sender_type, message, created_at, product_id, is_read, read_at")
         .eq("store_id", storeId)
         .eq("product_id", selectedThread.productId)
         .or(`sender_id.eq.${selectedThread.senderId},sender_id.eq.${user.id}`)
         .order("created_at", { ascending: true })
         .limit(100);
-      if (data) setMessages(data as ChatMessage[]);
+      if (data) {
+        setMessages(data as ChatMessage[]);
+        // Mark unread buyer messages as read
+        const unreadIds = data.filter(m => m.sender_type === "buyer" && !m.is_read).map(m => m.id);
+        if (unreadIds.length > 0) {
+          supabase.from("marketplace_chat_messages")
+            .update({ is_read: true, read_at: new Date().toISOString() })
+            .in("id", unreadIds)
+            .then(() => {});
+        }
+      }
     };
     load();
   }, [selectedThread, storeId, user]);
