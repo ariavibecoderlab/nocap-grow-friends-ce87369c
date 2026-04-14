@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
 import BottomNav from "@/components/BottomNav";
 import { ArrowLeft, Package, ShoppingCart } from "lucide-react";
+import PushNotificationToggle from "@/components/PushNotificationToggle";
 
 interface OrderRow {
   id: string;
@@ -71,7 +72,8 @@ const MyOrders = () => {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4">
+      <div className="mx-auto max-w-md px-4 space-y-4">
+        <PushNotificationToggle />
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-secondary border-t-transparent" />
