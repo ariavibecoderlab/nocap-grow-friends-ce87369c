@@ -30,7 +30,7 @@ export default function MerchantSidebar({ activeTab, onTabChange, chatUnread }: 
           const hasActive = section.items.some((i) => i.value === activeTab);
 
           return (
-            <SidebarGroup key={section.id} defaultOpen={hasActive}>
+            <SidebarGroup key={section.id}>
               <SidebarGroupLabel className="text-white/40 text-[10px] uppercase tracking-wider px-3 mb-1">
                 {collapsed ? section.label.slice(0, 2) : section.label}
               </SidebarGroupLabel>
