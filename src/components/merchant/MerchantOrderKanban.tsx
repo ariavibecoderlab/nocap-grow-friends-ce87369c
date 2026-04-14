@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, Package, Truck, CheckCircle2, Clock, RefreshCw, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,6 +26,7 @@ const MerchantOrderKanban = ({ storeId }: Props) => {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [moving, setMoving] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => { loadOrders(); }, [storeId]);
@@ -40,6 +41,7 @@ const MerchantOrderKanban = ({ storeId }: Props) => {
       .order("created_at", { ascending: false })
       .limit(200);
     setOrders(data || []);
+    setSelected(new Set());
     setLoading(false);
   };
 
@@ -53,6 +55,7 @@ const MerchantOrderKanban = ({ storeId }: Props) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      setSelected(prev => { const n = new Set(prev); n.delete(orderId); return n; });
       toast({ title: `Order moved to ${newStatus}` });
     }
     setMoving(null);
@@ -71,8 +74,57 @@ const MerchantOrderKanban = ({ storeId }: Props) => {
 
     if (!error) {
       setOrders(prev => prev.map(o => ids.includes(o.id) ? { ...o, status: next } : o));
+      setSelected(new Set());
       toast({ title: `${ids.length} orders moved to ${next}` });
     }
+  };
+
+  const bulkMoveSelected = async () => {
+    if (selected.size === 0) return;
+    const selectedOrders = orders.filter(o => selected.has(o.id));
+    // Group by status
+    const byStatus = new Map<string, string[]>();
+    selectedOrders.forEach(o => {
+      const next = NEXT_STATUS[o.status];
+      if (next) {
+        const list = byStatus.get(o.status) || [];
+        list.push(o.id);
+        byStatus.set(o.status, list);
+      }
+    });
+
+    let movedTotal = 0;
+    for (const [fromStatus, ids] of byStatus) {
+      const next = NEXT_STATUS[fromStatus];
+      const { error } = await supabase
+        .from("marketplace_orders")
+        .update({ status: next })
+        .in("id", ids);
+      if (!error) {
+        setOrders(prev => prev.map(o => ids.includes(o.id) ? { ...o, status: next } : o));
+        movedTotal += ids.length;
+      }
+    }
+    setSelected(new Set());
+    if (movedTotal > 0) toast({ title: `${movedTotal} orders advanced` });
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const selectAllInStage = (stageKey: string) => {
+    const ids = orders.filter(o => o.status === stageKey && NEXT_STATUS[stageKey]).map(o => o.id);
+    setSelected(prev => {
+      const n = new Set(prev);
+      const allSelected = ids.every(id => n.has(id));
+      ids.forEach(id => allSelected ? n.delete(id) : n.add(id));
+      return n;
+    });
   };
 
   if (loading) {
@@ -94,9 +146,17 @@ const MerchantOrderKanban = ({ storeId }: Props) => {
             </div>
           ))}
         </div>
-        <Button size="sm" variant="ghost" onClick={loadOrders} className="h-7 text-white/40 hover:text-white">
-          <RefreshCw className="h-3 w-3" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {selected.size > 0 && (
+            <Button size="sm" onClick={bulkMoveSelected}
+              className="h-7 text-[10px] bg-secondary text-primary hover:bg-secondary/90">
+              Move {selected.size} selected <ArrowRight className="h-3 w-3 ml-0.5" />
+            </Button>
+          )}
+          <Button size="sm" variant="ghost" onClick={loadOrders} className="h-7 text-white/40 hover:text-white">
+            <RefreshCw className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
 
       {/* Kanban columns */}
@@ -104,11 +164,20 @@ const MerchantOrderKanban = ({ storeId }: Props) => {
         {STAGES.map(stage => {
           const stageOrders = orders.filter(o => o.status === stage.key);
           const nextStatus = NEXT_STATUS[stage.key];
+          const selectableIds = stageOrders.filter(o => nextStatus).map(o => o.id);
+          const allSelected = selectableIds.length > 0 && selectableIds.every(id => selected.has(id));
 
           return (
             <div key={stage.key}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
+                  {nextStatus && stageOrders.length > 0 && (
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={() => selectAllInStage(stage.key)}
+                      className="h-3.5 w-3.5 border-white/20"
+                    />
+                  )}
                   <stage.icon className={`h-4 w-4 ${stage.color}`} />
                   <p className="text-xs font-semibold text-white">{stage.label}</p>
                   <span className="text-[10px] text-white/30">({stageOrders.length})</span>
@@ -128,8 +197,15 @@ const MerchantOrderKanban = ({ storeId }: Props) => {
               ) : (
                 <div className="space-y-1.5">
                   {stageOrders.map(order => (
-                    <Card key={order.id} className={`border ${stage.bg}`}>
+                    <Card key={order.id} className={`border ${stage.bg} ${selected.has(order.id) ? "ring-1 ring-secondary/50" : ""}`}>
                       <CardContent className="p-2.5 flex items-center justify-between gap-2">
+                        {nextStatus && (
+                          <Checkbox
+                            checked={selected.has(order.id)}
+                            onCheckedChange={() => toggleSelect(order.id)}
+                            className="h-3.5 w-3.5 border-white/20 shrink-0"
+                          />
+                        )}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <p className="text-xs font-medium text-white">#{order.order_number}</p>
