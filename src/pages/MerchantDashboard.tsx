@@ -765,6 +765,30 @@ const MerchantDashboard = () => {
               </MerchantStoreTabWrapper>
             </TabsContent>
 
+            <TabsContent value="carts" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantAbandonedCarts storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="bundles" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantProductBundles storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="discounts" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantDiscountRules storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="crm" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantStoreCRM storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
             <TabsContent value="settings" className="mt-4 space-y-3">
               <Card className="border-white/10 bg-white/5">
                 <CardContent className="p-4 space-y-3">
