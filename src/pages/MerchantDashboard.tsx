@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,9 @@ import MerchantMarketplace from "@/components/merchant/MerchantMarketplace";
 import MerchantNotificationPrefs from "@/components/merchant/MerchantNotificationPrefs";
 import MerchantChat from "@/components/merchant/MerchantChat";
 import MerchantDistributions from "@/components/merchant/MerchantDistributions";
+import MerchantDomainManager from "@/components/merchant/MerchantDomainManager";
+import MerchantCheckoutSettings from "@/components/merchant/MerchantCheckoutSettings";
+import MerchantAnnouncement from "@/components/merchant/MerchantAnnouncement";
 import {
   ArrowLeft,
   Plus,
@@ -46,6 +49,20 @@ import {
   Check,
   X,
 } from "lucide-react";
+
+const MerchantStoreTabWrapper = ({ branchId, children }: { branchId: string; children: (storeId: string) => React.ReactNode }) => {
+  const [storeId, setStoreId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase
+      .from("marketplace_stores")
+      .select("id")
+      .eq("branch_id", branchId)
+      .maybeSingle()
+      .then(({ data }) => setStoreId(data?.id || null));
+  }, [branchId]);
+  if (!storeId) return <div className="text-center text-white/40 py-12 text-sm">No store found for this branch. Create a store in the Shop tab first.</div>;
+  return <>{children(storeId)}</>;
+};
 
 const MerchantChatTab = ({ branchId }: { branchId: string }) => {
   const [storeId, setStoreId] = useState<string | null>(null);
@@ -578,46 +595,57 @@ const MerchantDashboard = () => {
         {/* Selected Branch Details */}
         {selectedBranch && (
           <Tabs defaultValue="qr" className="mt-4">
-            <TabsList className="w-full grid grid-cols-11 bg-white/5 border border-white/10">
-              <TabsTrigger value="qr" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                <QrCode className="h-3 w-3" /> QR
-              </TabsTrigger>
-              <TabsTrigger value="shop" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                Shop
-              </TabsTrigger>
-              <TabsTrigger value="chat" className="relative gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                Chat
-                {chatUnread > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
-                    {chatUnread > 99 ? "99+" : chatUnread}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="txns" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                Txns
-              </TabsTrigger>
-              <TabsTrigger value="dist" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                Dist
-              </TabsTrigger>
-              <TabsTrigger value="analytics" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                Analytics
-              </TabsTrigger>
-              <TabsTrigger value="reports" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                Reports
-              </TabsTrigger>
-              <TabsTrigger value="withdraw" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                Withdraw
-              </TabsTrigger>
-              <TabsTrigger value="api" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                API
-              </TabsTrigger>
-              <TabsTrigger value="logs" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                Logs
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                Settings
-              </TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto scrollbar-none -mx-4 px-4">
+              <TabsList className="inline-flex w-max bg-white/5 border border-white/10">
+                <TabsTrigger value="qr" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <QrCode className="h-3 w-3" /> QR
+                </TabsTrigger>
+                <TabsTrigger value="shop" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  Shop
+                </TabsTrigger>
+                <TabsTrigger value="chat" className="relative gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  Chat
+                  {chatUnread > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                      {chatUnread > 99 ? "99+" : chatUnread}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="txns" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  Txns
+                </TabsTrigger>
+                <TabsTrigger value="dist" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  Dist
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  Analytics
+                </TabsTrigger>
+                <TabsTrigger value="reports" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  Reports
+                </TabsTrigger>
+                <TabsTrigger value="withdraw" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  Withdraw
+                </TabsTrigger>
+                <TabsTrigger value="api" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  API
+                </TabsTrigger>
+                <TabsTrigger value="logs" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  Logs
+                </TabsTrigger>
+                <TabsTrigger value="domain" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  Domain
+                </TabsTrigger>
+                <TabsTrigger value="checkout" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  Checkout
+                </TabsTrigger>
+                <TabsTrigger value="announce" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  Announce
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  Settings
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="qr" className="mt-4 space-y-3">
               {/* Static QR */}
@@ -738,6 +766,24 @@ const MerchantDashboard = () => {
 
             <TabsContent value="logs" className="mt-4">
               <MerchantApiLogs />
+            </TabsContent>
+
+            <TabsContent value="domain" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantDomainManager storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="checkout" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantCheckoutSettings storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="announce" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantAnnouncement storeId={storeId} />}
+              </MerchantStoreTabWrapper>
             </TabsContent>
 
             <TabsContent value="settings" className="mt-4 space-y-3">

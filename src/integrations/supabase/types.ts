@@ -1001,6 +1001,53 @@ export type Database = {
           },
         ]
       }
+      marketplace_store_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          is_primary: boolean
+          ssl_status: string
+          store_id: string
+          updated_at: string
+          verification_status: string
+          verification_token: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          is_primary?: boolean
+          ssl_status?: string
+          store_id: string
+          updated_at?: string
+          verification_status?: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          is_primary?: boolean
+          ssl_status?: string
+          store_id?: string
+          updated_at?: string
+          verification_status?: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_store_domains_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_store_follows: {
         Row: {
           created_at: string
@@ -1152,8 +1199,10 @@ export type Database = {
       }
       marketplace_stores: {
         Row: {
+          announcement: Json
           banner_url: string | null
           branch_id: string
+          checkout_settings: Json
           created_at: string
           description: string | null
           email: string | null
@@ -1175,8 +1224,10 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          announcement?: Json
           banner_url?: string | null
           branch_id: string
+          checkout_settings?: Json
           created_at?: string
           description?: string | null
           email?: string | null
@@ -1198,8 +1249,10 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          announcement?: Json
           banner_url?: string | null
           branch_id?: string
+          checkout_settings?: Json
           created_at?: string
           description?: string | null
           email?: string | null
