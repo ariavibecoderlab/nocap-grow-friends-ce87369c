@@ -1,10 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, ShoppingCart, Star, Store } from "lucide-react";
+import { GitCompareArrows, Heart, ShoppingCart, Star, Store } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { addToCompare, removeFromCompare, isInCompare, useCompareList } from "./ProductComparison";
 
 interface ProductCardProps {
   id: string;
@@ -65,6 +66,19 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
           className="absolute top-1 right-1 rounded-full bg-black/30 p-1.5 hover:bg-black/50 transition-colors"
         >
           <Heart className={`h-3.5 w-3.5 ${wishlisted ? "fill-red-500 text-red-500" : "text-white/70"}`} />
+        </button>
+        {/* Compare button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isInCompare(id)) removeFromCompare(id);
+            else addToCompare(id);
+          }}
+          className={`absolute top-1 left-1 rounded-full p-1.5 transition-colors ${
+            isInCompare(id) ? "bg-secondary text-primary" : "bg-black/30 text-white/70 hover:bg-black/50"
+          }`}
+        >
+          <GitCompareArrows className="h-3.5 w-3.5" />
         </button>
         {/* Quick add button overlay */}
         {compact && stockQuantity > 0 && (
