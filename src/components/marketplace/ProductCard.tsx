@@ -26,6 +26,7 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
   const { toggle, isWishlisted } = useWishlist();
   const { toast } = useToast();
   const navigate = useNavigate();
+  useCompareList(); // subscribe to compare state changes for re-render
   const mainImage = images?.[0] || "";
   const optimizedImage = mainImage ? getOptimizedImageUrl(mainImage, compact ? 300 : 400, compact ? 225 : 400) : "";
   const wishlisted = isWishlisted(id);
