@@ -38,13 +38,17 @@ import MerchantInventoryAlerts from "@/components/merchant/MerchantInventoryAler
 import MerchantOrderKanban from "@/components/merchant/MerchantOrderKanban";
 import MerchantStaffPermissions from "@/components/merchant/MerchantStaffPermissions";
 import MerchantProductSeo from "@/components/merchant/MerchantProductSeo";
+import MerchantCollections from "@/components/merchant/MerchantCollections";
+import MerchantGiftCards from "@/components/merchant/MerchantGiftCards";
+import MerchantProductImportExport from "@/components/merchant/MerchantProductImportExport";
+import MerchantStoreBlog from "@/components/merchant/MerchantStoreBlog";
 import {
   ArrowLeft, Plus, Store, QrCode, MapPin, BarChart3, Loader2, Trash2,
   Download, Share2, Clock, CheckCircle2, XCircle, FileText, Wallet,
   Pencil, Check, X, MessageCircle, ArrowLeftRight, CreditCard, Globe,
   ShoppingBag, Megaphone, Code, ScrollText, Settings2, TrendingUp,
   Package, Percent, Users, ClipboardList, AlertTriangle, Shield, Search,
-  DollarSign,
+  DollarSign, Layers, Gift, Upload, BookOpen,
 } from "lucide-react";
 
 const MerchantStoreTabWrapper = ({ branchId, children }: { branchId: string; children: (storeId: string) => React.ReactNode }) => {
@@ -612,6 +616,10 @@ const MerchantDashboard = () => {
                   { value: "bundles", icon: Package, label: "Bundles" },
                   { value: "discounts", icon: Percent, label: "Discounts" },
                   { value: "crm", icon: Users, label: "CRM" },
+                  { value: "collections", icon: Layers, label: "Collections" },
+                  { value: "giftcards", icon: Gift, label: "Gift Cards" },
+                  { value: "import", icon: Upload, label: "Import" },
+                  { value: "blog", icon: BookOpen, label: "Blog" },
                   { value: "domain", icon: Globe, label: "Domain" },
                   { value: "checkout", icon: CreditCard, label: "Checkout" },
                   { value: "announce", icon: Megaphone, label: "Announce" },
@@ -827,6 +835,30 @@ const MerchantDashboard = () => {
             <TabsContent value="seo" className="mt-4">
               <MerchantStoreTabWrapper branchId={selectedBranch.id}>
                 {(storeId) => <MerchantProductSeo storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="collections" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantCollections storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="giftcards" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantGiftCards storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="import" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantProductImportExport storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="blog" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantStoreBlog storeId={storeId} />}
               </MerchantStoreTabWrapper>
             </TabsContent>
 
