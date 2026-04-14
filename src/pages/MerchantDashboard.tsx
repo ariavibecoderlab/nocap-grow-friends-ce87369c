@@ -134,7 +134,7 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread 
   );
 };
 
-
+interface Branch {
   id: string;
   branch_name: string;
   branch_address: string | null;
