@@ -349,6 +349,18 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
             </div>
           );
         })}
+        {/* Typing indicator */}
+        {typing && (
+          <div className="flex justify-start">
+            <div className="bg-white/10 rounded-2xl rounded-bl-md px-3 py-2">
+              <div className="flex gap-1">
+                <div className="h-1.5 w-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <div className="h-1.5 w-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: "150ms" }} />
+                <div className="h-1.5 w-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Input */}
