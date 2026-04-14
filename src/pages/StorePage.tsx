@@ -545,21 +545,10 @@ const StorePage = () => {
             </div>
           )}
 
-          {/* Load More */}
+          {/* Infinite scroll sentinel */}
           {visibleCount < filtered.length && (
-            <div className="mt-4 flex justify-center">
-              <button
-                onClick={() => setVisibleCount(v => v + PRODUCTS_PER_PAGE)}
-                className="px-6 py-2 text-sm font-medium transition-colors hover:opacity-90"
-                style={{
-                  backgroundColor: "var(--store-surface)",
-                  color: "var(--store-text)",
-                  border: "1px solid var(--store-surface-border)",
-                  borderRadius: "var(--store-btn-radius)",
-                }}
-              >
-                Load More ({filtered.length - visibleCount} remaining)
-              </button>
+            <div ref={loadMoreRef} className="mt-6 flex justify-center py-4">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: "var(--store-accent)", borderTopColor: "transparent" }} />
             </div>
           )}
         </div>
