@@ -23,6 +23,7 @@ import MerchantStorePages from "@/components/merchant/MerchantStorePages";
 import MerchantStoreMenus from "@/components/merchant/MerchantStoreMenus";
 import StoreSeoSettings from "@/components/merchant/StoreSeoSettings";
 import { Json } from "@/integrations/supabase/types";
+import { ThemeOverrides } from "@/lib/storeThemes";
 import ProductVariantEditor from "@/components/merchant/ProductVariantEditor";
 import { compressImage } from "@/lib/compressImage";
 import { generateBulkSalesOrderPdf, type SalesOrderData } from "@/lib/generateSalesOrderPdf";
