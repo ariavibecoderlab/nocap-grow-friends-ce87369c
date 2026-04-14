@@ -64,6 +64,7 @@ const MerchantStoreTabWrapper = ({ branchId, children }: { branchId: string; chi
   return <>{children(storeId)}</>;
 };
 
+const MerchantChatTab = ({ branchId }: { branchId: string }) => {
   const [storeId, setStoreId] = useState<string | null>(null);
   useEffect(() => {
     supabase
