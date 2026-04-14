@@ -589,6 +589,24 @@ const MerchantDashboard = () => {
           </Card>
         </div>
 
+        {/* Onboarding Wizard — shown for new merchants */}
+        {selectedBranch && !onboardingDismissed && showOnboarding && (
+          <MerchantOnboardingWizard
+            branchId={selectedBranch.id}
+            userId={user!.id}
+            onComplete={() => {
+              setShowOnboarding(false);
+              setOnboardingDismissed(true);
+              sessionStorage.setItem("merchant-onboarding-dismissed", "true");
+            }}
+            onSkip={() => {
+              setShowOnboarding(false);
+              setOnboardingDismissed(true);
+              sessionStorage.setItem("merchant-onboarding-dismissed", "true");
+            }}
+          />
+        )}
+
         {/* API Integration Guide */}
         <Card className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate("/api-docs")}>
           <CardContent className="flex items-center gap-3 p-3">
