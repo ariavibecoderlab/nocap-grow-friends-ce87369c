@@ -243,6 +243,8 @@ const MerchantDashboard = () => {
   // Deleting state
   const [deletingQr, setDeletingQr] = useState<string | null>(null);
 
+  const isMobileView = useIsMobile();
+
   // Timer tick for expiry countdowns
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -582,8 +584,6 @@ const MerchantDashboard = () => {
       </div>
     );
   }
-
-  const isMobileView = useIsMobile();
 
   const headerBlock = (
     <div className="flex items-center gap-3">
