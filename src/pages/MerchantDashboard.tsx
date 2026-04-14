@@ -605,76 +605,39 @@ const MerchantDashboard = () => {
         {/* Selected Branch Details */}
         {selectedBranch && (
           <Tabs defaultValue="qr" className="mt-4">
-            <div className="overflow-x-auto scrollbar-none -mx-4 px-4">
-              <TabsList className="inline-flex w-max bg-white/5 border border-white/10 gap-0.5 p-1">
-                {/* ── Operations ── */}
-                <TabsTrigger value="qr" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <QrCode className="h-3.5 w-3.5" /> QR
-                </TabsTrigger>
-                <TabsTrigger value="shop" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <Store className="h-3.5 w-3.5" /> Shop
-                </TabsTrigger>
-                <TabsTrigger value="chat" className="relative gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <MessageCircle className="h-3.5 w-3.5" /> Chat
-                  {chatUnread > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
-                      {chatUnread > 99 ? "99+" : chatUnread}
-                    </span>
-                  )}
-                </TabsTrigger>
-
-                <div className="w-px h-5 bg-white/10 mx-1 self-center shrink-0" />
-
-                {/* ── Finance ── */}
-                <TabsTrigger value="txns" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <ArrowLeftRight className="h-3.5 w-3.5" /> Txns
-                </TabsTrigger>
-                <TabsTrigger value="withdraw" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <Wallet className="h-3.5 w-3.5" /> Withdraw
-                </TabsTrigger>
-                <TabsTrigger value="dist" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <TrendingUp className="h-3.5 w-3.5" /> Dist
-                </TabsTrigger>
-                <TabsTrigger value="reports" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <FileText className="h-3.5 w-3.5" /> Reports
-                </TabsTrigger>
-
-                <div className="w-px h-5 bg-white/10 mx-1 self-center shrink-0" />
-
-                {/* ── Insights ── */}
-                <TabsTrigger value="analytics" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <BarChart3 className="h-3.5 w-3.5" /> Analytics
-                </TabsTrigger>
-
-                <div className="w-px h-5 bg-white/10 mx-1 self-center shrink-0" />
-
-                {/* ── Storefront ── */}
-                <TabsTrigger value="domain" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <Globe className="h-3.5 w-3.5" /> Domain
-                </TabsTrigger>
-                <TabsTrigger value="checkout" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <CreditCard className="h-3.5 w-3.5" /> Checkout
-                </TabsTrigger>
-                <TabsTrigger value="announce" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <Megaphone className="h-3.5 w-3.5" /> Announce
-                </TabsTrigger>
-
-                <div className="w-px h-5 bg-white/10 mx-1 self-center shrink-0" />
-
-                {/* ── Developer ── */}
-                <TabsTrigger value="api" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <Code className="h-3.5 w-3.5" /> API
-                </TabsTrigger>
-                <TabsTrigger value="logs" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <ScrollText className="h-3.5 w-3.5" /> Logs
-                </TabsTrigger>
-
-                <div className="w-px h-5 bg-white/10 mx-1 self-center shrink-0" />
-
-                {/* ── Config ── */}
-                <TabsTrigger value="settings" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <Settings2 className="h-3.5 w-3.5" /> Settings
-                </TabsTrigger>
+            <div>
+              <TabsList className="flex flex-wrap gap-1 bg-white/5 border border-white/10 p-1.5 h-auto">
+                {[
+                  { value: "qr", icon: QrCode, label: "QR" },
+                  { value: "shop", icon: Store, label: "Shop" },
+                  { value: "chat", icon: MessageCircle, label: "Chat", badge: chatUnread },
+                  { value: "txns", icon: ArrowLeftRight, label: "Txns" },
+                  { value: "withdraw", icon: Wallet, label: "Withdraw" },
+                  { value: "dist", icon: TrendingUp, label: "Dist" },
+                  { value: "reports", icon: FileText, label: "Reports" },
+                  { value: "analytics", icon: BarChart3, label: "Analytics" },
+                  { value: "domain", icon: Globe, label: "Domain" },
+                  { value: "checkout", icon: CreditCard, label: "Checkout" },
+                  { value: "announce", icon: Megaphone, label: "Announce" },
+                  { value: "api", icon: Code, label: "API" },
+                  { value: "logs", icon: ScrollText, label: "Logs" },
+                  { value: "settings", icon: Settings2, label: "Settings" },
+                ].map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="relative gap-1 text-[10px] px-2 py-1.5 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50 min-w-0"
+                    title={tab.label}
+                  >
+                    <tab.icon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{tab.label}</span>
+                    {tab.badge && tab.badge > 0 ? (
+                      <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                        {tab.badge > 99 ? "99+" : tab.badge}
+                      </span>
+                    ) : null}
+                  </TabsTrigger>
+                ))}
               </TabsList>
             </div>
 
