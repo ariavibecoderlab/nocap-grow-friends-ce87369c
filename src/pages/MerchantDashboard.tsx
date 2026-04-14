@@ -43,6 +43,7 @@ import MerchantGiftCards from "@/components/merchant/MerchantGiftCards";
 import MerchantProductImportExport from "@/components/merchant/MerchantProductImportExport";
 import MerchantStoreBlog from "@/components/merchant/MerchantStoreBlog";
 import MerchantNavigation from "@/components/merchant/MerchantNavigation";
+import MerchantOnboardingWizard from "@/components/merchant/MerchantOnboardingWizard";
 import {
   ArrowLeft, Plus, Store, QrCode, MapPin, BarChart3, Loader2, Trash2,
   Download, Share2, Clock, CheckCircle2, XCircle, FileText, Wallet,
@@ -181,6 +182,8 @@ const MerchantDashboard = () => {
   const [loadingData, setLoadingData] = useState(true);
   const [isMerchant, setIsMerchant] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(() => sessionStorage.getItem("merchant-onboarding-dismissed") === "true");
 
   // Add branch dialog
   const [showAddBranch, setShowAddBranch] = useState(false);
@@ -585,6 +588,24 @@ const MerchantDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Onboarding Wizard — shown for new merchants */}
+        {selectedBranch && !onboardingDismissed && showOnboarding && (
+          <MerchantOnboardingWizard
+            branchId={selectedBranch.id}
+            userId={user!.id}
+            onComplete={() => {
+              setShowOnboarding(false);
+              setOnboardingDismissed(true);
+              sessionStorage.setItem("merchant-onboarding-dismissed", "true");
+            }}
+            onSkip={() => {
+              setShowOnboarding(false);
+              setOnboardingDismissed(true);
+              sessionStorage.setItem("merchant-onboarding-dismissed", "true");
+            }}
+          />
+        )}
 
         {/* API Integration Guide */}
         <Card className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate("/api-docs")}>
