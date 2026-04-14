@@ -20,6 +20,8 @@ import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import CategoryChips from "@/components/marketplace/CategoryChips";
 import FlashSaleSection from "@/components/marketplace/FlashSaleSection";
 import BannerCarousel from "@/components/marketplace/BannerCarousel";
+import SearchAutocomplete from "@/components/marketplace/SearchAutocomplete";
+import { CompareBar } from "@/components/marketplace/ProductComparison";
 
 interface ProductRow {
   id: string;
