@@ -258,34 +258,34 @@ const StorePage = () => {
             {sections.map(section => (
               <div key={section.id}>
                 {section.type === "hero_banner" && (
-                  <div className="relative rounded-xl overflow-hidden">
+                  <div className="relative overflow-hidden" style={{ borderRadius: "var(--store-radius)" }}>
                     {section.imageUrl && (
                       <img src={section.imageUrl} alt={section.title} className="w-full h-32 object-cover" />
                     )}
                     <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center p-4">
-                      <h2 className="font-display text-lg font-bold text-white">{section.title}</h2>
+                      <h2 className="text-lg font-bold text-white" style={{ fontFamily: "var(--store-font-heading)" }}>{section.title}</h2>
                       {section.content && <p className="text-xs text-white/70 mt-1">{section.content}</p>}
                     </div>
                   </div>
                 )}
                 {section.type === "image_banner" && section.imageUrl && (
-                  <img src={section.imageUrl} alt={section.title} className="w-full rounded-xl object-cover" />
+                  <img src={section.imageUrl} alt={section.title} className="w-full object-cover" style={{ borderRadius: "var(--store-radius)" }} />
                 )}
                 {(section.type === "text_block" || section.type === "about") && (
-                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-                    <h3 className="font-display text-sm font-semibold text-white mb-2">{section.title}</h3>
-                    <p className="text-xs text-white/60 whitespace-pre-wrap leading-relaxed">{section.content}</p>
+                  <div className="p-4 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
+                    <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
+                    <p className="text-xs whitespace-pre-wrap leading-relaxed" style={{ color: "var(--store-text-muted)" }}>{section.content}</p>
                   </div>
                 )}
                 {section.type === "testimonials" && (
-                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-                    <h3 className="font-display text-sm font-semibold text-white mb-2">{section.title}</h3>
-                    <p className="text-xs text-white/60 italic">"{section.content}"</p>
+                  <div className="p-4 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
+                    <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
+                    <p className="text-xs italic" style={{ color: "var(--store-text-muted)" }}>"{section.content}"</p>
                   </div>
                 )}
                 {section.type === "featured_products" && (
                   <div>
-                    <h3 className="font-display text-sm font-semibold text-white mb-2">{section.title}</h3>
+                    <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
                     <div className="grid grid-cols-2 gap-3">
                       {products.filter(p => p.is_featured).slice(0, 4).map(p => (
                         <ProductCard key={p.id} id={p.id} storeId={p.store_id} name={p.name} price={p.price}
