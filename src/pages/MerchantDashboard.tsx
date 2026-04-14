@@ -654,6 +654,240 @@ const MerchantDashboard = () => {
             branches={branches}
             user={user!}
             chatUnread={chatUnread}
+            renderQr={() => (
+              <div className="space-y-3">
+                {/* Static QR */}
+                <Card className="border-secondary/20 bg-secondary/10">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-white">Static QR Code</p>
+                        <p className="text-[11px] text-white/40">Customer enters the amount</p>
+                      </div>
+                      <Button size="sm" onClick={() => showStaticQr(selectedBranch)} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90 font-semibold">
+                        <QrCode className="h-3.5 w-3.5" /> Show
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Dynamic QRs */}
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-white">Dynamic QR Codes</p>
+                  <Button size="sm" variant="outline" onClick={() => setShowAddQr(true)} className="gap-1 border-white/10 text-white/70 hover:bg-white/10 hover:text-white">
+                    <Plus className="h-3.5 w-3.5" /> Create
+                  </Button>
+                </div>
+
+                {dynamicQrs.length === 0 ? (
+                  <p className="text-xs text-white/40 text-center py-4">No dynamic QR codes yet. Create one with a pre-filled amount.</p>
+                ) : (
+                  dynamicQrs.map((qr) => {
+                    const status = getQrStatus(qr);
+                    return (
+                      <Card key={qr.id} className={`border-white/10 bg-white/5 ${status !== "active" ? 'opacity-60' : ''}`}>
+                        <CardContent className="flex items-center justify-between p-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-white">RM {Number(qr.amount).toFixed(2)}</p>
+                            {qr.description && <p className="text-[10px] text-white/40 truncate">{qr.description}</p>}
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              {status === "used" && (
+                                <span className="text-[10px] text-secondary flex items-center gap-0.5">
+                                  <CheckCircle2 className="h-3 w-3" /> Paid
+                                </span>
+                              )}
+                              {status === "expired" && (
+                                <span className="text-[10px] text-destructive flex items-center gap-0.5">
+                                  <XCircle className="h-3 w-3" /> Expired
+                                </span>
+                              )}
+                              {status === "active" && qr.expires_at && (
+                                <span className="text-[10px] text-amber-500 flex items-center gap-0.5">
+                                  <Clock className="h-3 w-3" /> {formatTimeLeft(qr.expires_at)}
+                                </span>
+                              )}
+                              {status === "active" && !qr.expires_at && (
+                                <span className="text-[10px] text-white/40">Active</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {status === "active" && (
+                              <Button size="sm" variant="ghost" className="text-white/50 hover:text-white hover:bg-white/10" onClick={() => showDynamicQrCode(qr)}>
+                                <QrCode className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {!qr.is_used && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => deleteQr(qr.id)}
+                                disabled={deletingQr === qr.id}
+                              >
+                                {deletingQr === qr.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                )}
+              </div>
+            )}
+            renderSettings={() => (
+              <div className="space-y-3">
+                <Card className="border-white/10 bg-white/5">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white/40">Branch Name</span>
+                      <span className="font-medium text-white">{selectedBranch?.branch_name}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-white/40">Commission Rate</span>
+                      {editingCommission ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={20}
+                            step={0.5}
+                            value={commissionValue}
+                            onChange={(e) => setCommissionValue(e.target.value)}
+                            className="w-20 h-7 text-xs bg-white/10 border-white/20 text-white"
+                          />
+                          <span className="text-white/60 text-xs">%</span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-secondary hover:text-secondary"
+                            disabled={savingCommission}
+                            onClick={() => {
+                              const val = parseFloat(commissionValue);
+                              if (isNaN(val) || val < 0 || val > 20) {
+                                toast({ title: "Invalid value", description: "Commission must be between 0% and 20%", variant: "destructive" });
+                                return;
+                              }
+                              setShowCommissionConfirm(true);
+                            }}
+                          >
+                            {savingCommission ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-white/40 hover:text-white"
+                            onClick={() => setEditingCommission(false)}
+                            disabled={savingCommission}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-white">{selectedBranch?.commission_percent}%</span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 text-white/40 hover:text-white"
+                            onClick={() => {
+                              setCommissionValue(String(selectedBranch?.commission_percent ?? 5));
+                              setEditingCommission(true);
+                            }}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white/40">Status</span>
+                      <span className={`font-medium ${selectedBranch.is_active ? 'text-secondary' : 'text-destructive'}`}>
+                        {selectedBranch.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white/40">Branch Balance</span>
+                      <span className="font-medium text-white">RM {Number((selectedBranch as any).balance || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white/40">QR Code ID</span>
+                      <span className="font-mono text-xs text-white/70">{selectedBranch.qr_code_id.slice(0, 8)}...</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <AlertDialog open={showCommissionConfirm} onOpenChange={setShowCommissionConfirm}>
+                  <AlertDialogContent className="bg-background border-white/10">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirm Commission Rate Change</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to change the commission rate from{" "}
+                        <strong>{selectedBranch?.commission_percent}%</strong> to{" "}
+                        <strong>{commissionValue}%</strong>? This will affect all future transactions.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={savingCommission}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        disabled={savingCommission}
+                        onClick={async () => {
+                          const val = parseFloat(commissionValue);
+                          setSavingCommission(true);
+                          const { error } = await supabase
+                            .from("merchant_branches")
+                            .update({ commission_percent: val })
+                            .eq("id", selectedBranch!.id)
+                            .eq("merchant_user_id", user!.id);
+                          setSavingCommission(false);
+                          if (error) {
+                            toast({ title: "Error", description: error.message, variant: "destructive" });
+                            return;
+                          }
+                          setBranches((prev) => prev.map((b) => b.id === selectedBranch!.id ? { ...b, commission_percent: val } : b));
+                          setSelectedBranch((prev) => prev ? { ...prev, commission_percent: val } : prev);
+                          setEditingCommission(false);
+                          setShowCommissionConfirm(false);
+                          toast({ title: "Updated", description: `Commission rate set to ${val}%` });
+                        }}
+                      >
+                        {savingCommission ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Confirm
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <MerchantNotificationPrefs
+                  branchId={selectedBranch.id}
+                  branchName={selectedBranch.branch_name}
+                />
+
+                <BranchOwnerAssignment
+                  branchId={selectedBranch.id}
+                  currentOwnerId={(selectedBranch as any).owner_user_id}
+                  onAssigned={() => {
+                    supabase
+                      .from("merchant_branches")
+                      .select("*")
+                      .eq("merchant_user_id", user!.id)
+                      .order("created_at", { ascending: true })
+                      .then(({ data }) => {
+                        if (data) {
+                          setBranches(data as Branch[]);
+                          const updated = data.find((b: any) => b.id === selectedBranch.id);
+                          if (updated) setSelectedBranch(updated as Branch);
+                        }
+                      });
+                  }}
+                />
+              </div>
+            )}
           />
         )}
       </div>
