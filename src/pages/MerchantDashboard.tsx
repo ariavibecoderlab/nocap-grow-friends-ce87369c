@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-// Tabs still imported for potential future use
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -42,15 +41,18 @@ import MerchantCollections from "@/components/merchant/MerchantCollections";
 import MerchantGiftCards from "@/components/merchant/MerchantGiftCards";
 import MerchantProductImportExport from "@/components/merchant/MerchantProductImportExport";
 import MerchantStoreBlog from "@/components/merchant/MerchantStoreBlog";
-import MerchantNavigation from "@/components/merchant/MerchantNavigation";
+import MerchantNavigation, { getMerchantSections } from "@/components/merchant/MerchantNavigation";
+import MerchantSidebar from "@/components/merchant/MerchantSidebar";
 import MerchantOnboardingWizard from "@/components/merchant/MerchantOnboardingWizard";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   ArrowLeft, Plus, Store, QrCode, MapPin, BarChart3, Loader2, Trash2,
   Download, Share2, Clock, CheckCircle2, XCircle, FileText, Wallet,
   Pencil, Check, X, MessageCircle, ArrowLeftRight, CreditCard, Globe,
   ShoppingBag, Megaphone, Code, ScrollText, Settings2, TrendingUp,
   Package, Percent, Users, ClipboardList, AlertTriangle, Shield, Search,
-  DollarSign, Layers, Gift, Upload, BookOpen,
+  DollarSign, Layers, Gift, Upload, BookOpen, PanelLeft,
 } from "lucide-react";
 
 const MerchantStoreTabWrapper = ({ branchId, children }: { branchId: string; children: (storeId: string) => React.ReactNode }) => {
@@ -91,6 +93,7 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread,
   renderSettings: () => React.ReactNode;
 }) => {
   const [activeTab, setActiveTab] = useState("qr");
+  const isMobile = useIsMobile();
 
   const renderContent = () => {
     switch (activeTab) {
@@ -125,12 +128,37 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread,
     }
   };
 
-  return (
-    <div className="mt-4 space-y-4">
-      <MerchantNavigation activeTab={activeTab} onTabChange={setActiveTab} chatUnread={chatUnread} />
-      <div className="mt-3">
-        {renderContent()}
+  // Mobile: keep existing dropdown + sub-tabs
+  if (isMobile) {
+    return (
+      <div className="mt-4 space-y-4">
+        <MerchantNavigation activeTab={activeTab} onTabChange={setActiveTab} chatUnread={chatUnread} />
+        <div className="mt-3">
+          {renderContent()}
+        </div>
       </div>
+    );
+  }
+
+  // Desktop: sidebar layout
+  return (
+    <div className="mt-4">
+      <SidebarProvider defaultOpen={true}>
+        <div className="flex w-full min-h-[600px] rounded-xl border border-white/10 overflow-hidden bg-white/[0.02]">
+          <MerchantSidebar activeTab={activeTab} onTabChange={setActiveTab} chatUnread={chatUnread} />
+          <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2">
+              <SidebarTrigger className="text-white/40 hover:text-white" />
+              <span className="text-xs text-white/30 truncate">
+                {getMerchantSections(chatUnread).flatMap(s => s.items).find(i => i.value === activeTab)?.label || "Dashboard"}
+              </span>
+            </div>
+            <div className="flex-1 p-4 overflow-auto">
+              {renderContent()}
+            </div>
+          </div>
+        </div>
+      </SidebarProvider>
     </div>
   );
 };
