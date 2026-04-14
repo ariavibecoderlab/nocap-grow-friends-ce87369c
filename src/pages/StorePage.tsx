@@ -6,6 +6,7 @@ import CartDrawer from "@/components/marketplace/CartDrawer";
 import ProductCard from "@/components/marketplace/ProductCard";
 import { ArrowLeft, Store, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import StoreAnnouncement from "@/components/marketplace/StoreAnnouncement";
 import { Json } from "@/integrations/supabase/types";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import StoreFollowButton from "@/components/marketplace/StoreFollowButton";
@@ -24,6 +25,7 @@ interface StoreData {
   free_shipping_min: number | null;
   page_layout: Json;
   seo: Json;
+  announcement: Json;
 }
 
 interface ProductRow {
@@ -75,7 +77,7 @@ const StorePage = () => {
     const fetch = async () => {
       const { data: storeData } = await supabase
         .from("marketplace_stores")
-        .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo")
+        .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo, announcement")
         .eq("slug", slug)
         .eq("status", "live")
         .maybeSingle();
@@ -174,6 +176,9 @@ const StorePage = () => {
 
   return (
     <div className="min-h-screen bg-primary pb-20">
+      {/* Announcement Bar */}
+      <StoreAnnouncement announcement={store.announcement} />
+
       {/* Banner */}
       <div className="relative h-40 bg-white/5 overflow-hidden">
         {store.banner_url ? (
