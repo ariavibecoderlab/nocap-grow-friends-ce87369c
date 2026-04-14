@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
 import MerchantOrderDetail from "@/components/merchant/MerchantOrderDetail";
 import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star, Printer, Zap, BarChart3, FileUp, RotateCcw, Layout, FileText, Menu, Globe } from "lucide-react";
+import StoreThemePicker from "@/components/merchant/StoreThemePicker";
 import MerchantFlashSales from "@/components/merchant/MerchantFlashSales";
 import BulkProductUpload from "@/components/merchant/BulkProductUpload";
 import StoreAnalytics from "@/components/merchant/StoreAnalytics";
@@ -23,6 +24,7 @@ import MerchantStorePages from "@/components/merchant/MerchantStorePages";
 import MerchantStoreMenus from "@/components/merchant/MerchantStoreMenus";
 import StoreSeoSettings from "@/components/merchant/StoreSeoSettings";
 import { Json } from "@/integrations/supabase/types";
+import { ThemeOverrides } from "@/lib/storeThemes";
 import ProductVariantEditor from "@/components/merchant/ProductVariantEditor";
 import { compressImage } from "@/lib/compressImage";
 import { generateBulkSalesOrderPdf, type SalesOrderData } from "@/lib/generateSalesOrderPdf";
@@ -143,6 +145,7 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
   const [settingsFreeMin, setSettingsFreeMin] = useState("");
   const [settingsTheme, setSettingsTheme] = useState("classic");
   const [settingsStoreName, setSettingsStoreName] = useState("");
+  const [themeOverrides, setThemeOverrides] = useState<ThemeOverrides>({});
   const [savingSettings, setSavingSettings] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -178,6 +181,13 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
       setSettingsShipping(String(s.shipping_flat_rate || 0));
       setSettingsFreeMin(s.free_shipping_min ? String(s.free_shipping_min) : "");
       setSettingsTheme(s.theme || "classic");
+      // Load theme overrides from settings JSONB
+      const storeSettings = (data as any).settings;
+      if (storeSettings && typeof storeSettings === "object" && storeSettings.theme_overrides) {
+        setThemeOverrides(storeSettings.theme_overrides as ThemeOverrides);
+      } else {
+        setThemeOverrides({});
+      }
       await Promise.all([fetchProducts(data.id), fetchOrders(data.id), fetchDiscounts(data.id)]);
     }
     setLoading(false);
@@ -518,6 +528,7 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
   const saveSettings = async () => {
     if (!store) return;
     setSavingSettings(true);
+    const currentSettings = (store as any).settings || {};
     const { error } = await supabase.from('marketplace_stores').update({
       store_name: settingsStoreName.trim(),
       tagline: settingsTagline.trim() || null,
@@ -527,6 +538,7 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
       shipping_flat_rate: Number(settingsShipping) || 0,
       free_shipping_min: settingsFreeMin ? Number(settingsFreeMin) : null,
       theme: settingsTheme,
+      settings: { ...currentSettings, theme_overrides: themeOverrides } as any,
     }).eq('id', store.id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -998,19 +1010,12 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
                   placeholder="Tell customers about your store"
                   className="bg-white/5 border-white/10 text-white mt-1 min-h-[60px]" />
               </div>
-              <div>
-                <Label className="text-white/60 text-xs">Store Theme</Label>
-                <Select value={settingsTheme} onValueChange={setSettingsTheme}>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-primary border-white/10 text-white">
-                    <SelectItem value="classic">Classic</SelectItem>
-                    <SelectItem value="bold">Bold</SelectItem>
-                    <SelectItem value="minimal">Minimal</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <StoreThemePicker
+                currentTheme={settingsTheme}
+                overrides={themeOverrides}
+                onThemeChange={setSettingsTheme}
+                onOverridesChange={setThemeOverrides}
+              />
             </CardContent>
           </Card>
 

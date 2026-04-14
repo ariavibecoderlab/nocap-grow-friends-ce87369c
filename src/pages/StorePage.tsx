@@ -10,6 +10,7 @@ import StoreAnnouncement from "@/components/marketplace/StoreAnnouncement";
 import { Json } from "@/integrations/supabase/types";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import StoreFollowButton from "@/components/marketplace/StoreFollowButton";
+import { resolveTheme, themeToCSS, ThemeOverrides } from "@/lib/storeThemes";
 
 interface StoreData {
   id: string;
@@ -26,6 +27,7 @@ interface StoreData {
   page_layout: Json;
   seo: Json;
   announcement: Json;
+  settings: Json;
 }
 
 interface ProductRow {
@@ -77,7 +79,7 @@ const StorePage = () => {
     const fetch = async () => {
       const { data: storeData } = await supabase
         .from("marketplace_stores")
-        .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo, announcement")
+        .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo, announcement, settings")
         .eq("slug", slug)
         .eq("status", "live")
         .maybeSingle();
@@ -147,6 +149,15 @@ const StorePage = () => {
   const footerMenus = menus.filter(m => m.position === "footer");
   const sections = (store?.page_layout && Array.isArray(store.page_layout) ? store.page_layout : []) as unknown as PageSection[];
 
+  // Resolve theme with overrides
+  const storeSettings = store?.settings && typeof store.settings === "object" && !Array.isArray(store.settings)
+    ? (store.settings as Record<string, unknown>)
+    : {};
+  const overrides = (storeSettings.theme_overrides || {}) as ThemeOverrides;
+  const resolvedTheme = store ? resolveTheme(store.theme, overrides) : null;
+  const themeCSSVars = resolvedTheme ? themeToCSS(resolvedTheme) : {};
+  const isLightTheme = resolvedTheme?.id === "minimal";
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-primary">
@@ -175,16 +186,16 @@ const StorePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-primary pb-20">
+    <div className="min-h-screen pb-20" style={{ ...themeCSSVars, backgroundColor: "var(--store-bg, hsl(var(--primary)))", color: "var(--store-text, white)", fontFamily: "var(--store-font-body, inherit)" } as React.CSSProperties}>
       {/* Announcement Bar */}
       <StoreAnnouncement announcement={store.announcement} />
 
       {/* Banner */}
-      <div className="relative h-40 bg-white/5 overflow-hidden">
+      <div className="relative h-40 overflow-hidden" style={{ backgroundColor: "var(--store-surface)" }}>
         {store.banner_url ? (
           <img src={getOptimizedImageUrl(store.banner_url, 800, 320)} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-secondary/20 to-secondary/5" />
+          <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${resolvedTheme?.colors.accent}33, ${resolvedTheme?.colors.accent}0D)` }} />
         )}
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
           <button onClick={() => navigate("/marketplace")} className="rounded-full bg-black/40 p-2 text-white hover:bg-black/60 backdrop-blur-sm">
@@ -197,18 +208,18 @@ const StorePage = () => {
       <div className="mx-auto max-w-md px-4">
         {/* Store Info */}
         <div className="flex items-end gap-3 -mt-8 relative z-10">
-          <div className="h-16 w-16 rounded-xl border-2 border-primary bg-white/10 overflow-hidden shadow-lg shrink-0">
+          <div className="h-16 w-16 overflow-hidden shadow-lg shrink-0 border-2" style={{ borderRadius: "var(--store-radius)", borderColor: "var(--store-bg)", backgroundColor: "var(--store-surface)" }}>
             {store.logo_url ? (
               <img src={getOptimizedImageUrl(store.logo_url, 128, 128)} alt={store.store_name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-secondary/20">
-                <Store className="h-6 w-6 text-secondary" />
+              <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: resolvedTheme?.colors.accent + "33" }}>
+                <Store className="h-6 w-6" style={{ color: "var(--store-accent)" }} />
               </div>
             )}
           </div>
           <div className="pb-1 flex-1 min-w-0">
-            <h1 className="font-display text-xl font-bold text-white">{store.store_name}</h1>
-            {store.tagline && <p className="text-xs text-white/50">{store.tagline}</p>}
+            <h1 className="text-xl font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{store.store_name}</h1>
+            {store.tagline && <p className="text-xs" style={{ color: "var(--store-text-muted)" }}>{store.tagline}</p>}
             <div className="mt-1.5">
               <StoreFollowButton storeId={store.id} />
             </div>
@@ -216,7 +227,7 @@ const StorePage = () => {
         </div>
 
         {store.description && (
-          <p className="text-xs text-white/40 mt-3">{store.description}</p>
+          <p className="text-xs mt-3" style={{ color: "var(--store-text-muted)" }}>{store.description}</p>
         )}
 
         {/* Header Navigation */}
@@ -224,7 +235,8 @@ const StorePage = () => {
           <div className="flex gap-3 mt-3 overflow-x-auto pb-1 scrollbar-none">
             {headerMenus.map(m => (
               <button key={m.id} onClick={() => navigate(m.url)}
-                className="shrink-0 text-xs text-secondary/80 hover:text-secondary font-medium transition-colors">
+                className="shrink-0 text-xs font-medium transition-colors hover:opacity-80"
+                style={{ color: "var(--store-accent)" }}>
                 {m.label}
               </button>
             ))}
@@ -232,7 +244,7 @@ const StorePage = () => {
         )}
 
         {/* Shipping info */}
-        <div className="mt-3 text-[11px] text-white/40">
+        <div className="mt-3 text-[11px]" style={{ color: "var(--store-text-muted)" }}>
           {store.free_shipping_min ? (
             <span>Free shipping above RM {store.free_shipping_min} · Flat rate: RM {store.shipping_flat_rate.toFixed(2)}</span>
           ) : (
@@ -246,34 +258,34 @@ const StorePage = () => {
             {sections.map(section => (
               <div key={section.id}>
                 {section.type === "hero_banner" && (
-                  <div className="relative rounded-xl overflow-hidden">
+                  <div className="relative overflow-hidden" style={{ borderRadius: "var(--store-radius)" }}>
                     {section.imageUrl && (
                       <img src={section.imageUrl} alt={section.title} className="w-full h-32 object-cover" />
                     )}
                     <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center p-4">
-                      <h2 className="font-display text-lg font-bold text-white">{section.title}</h2>
+                      <h2 className="text-lg font-bold text-white" style={{ fontFamily: "var(--store-font-heading)" }}>{section.title}</h2>
                       {section.content && <p className="text-xs text-white/70 mt-1">{section.content}</p>}
                     </div>
                   </div>
                 )}
                 {section.type === "image_banner" && section.imageUrl && (
-                  <img src={section.imageUrl} alt={section.title} className="w-full rounded-xl object-cover" />
+                  <img src={section.imageUrl} alt={section.title} className="w-full object-cover" style={{ borderRadius: "var(--store-radius)" }} />
                 )}
                 {(section.type === "text_block" || section.type === "about") && (
-                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-                    <h3 className="font-display text-sm font-semibold text-white mb-2">{section.title}</h3>
-                    <p className="text-xs text-white/60 whitespace-pre-wrap leading-relaxed">{section.content}</p>
+                  <div className="p-4 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
+                    <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
+                    <p className="text-xs whitespace-pre-wrap leading-relaxed" style={{ color: "var(--store-text-muted)" }}>{section.content}</p>
                   </div>
                 )}
                 {section.type === "testimonials" && (
-                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-                    <h3 className="font-display text-sm font-semibold text-white mb-2">{section.title}</h3>
-                    <p className="text-xs text-white/60 italic">"{section.content}"</p>
+                  <div className="p-4 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
+                    <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
+                    <p className="text-xs italic" style={{ color: "var(--store-text-muted)" }}>"{section.content}"</p>
                   </div>
                 )}
                 {section.type === "featured_products" && (
                   <div>
-                    <h3 className="font-display text-sm font-semibold text-white mb-2">{section.title}</h3>
+                    <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
                     <div className="grid grid-cols-2 gap-3">
                       {products.filter(p => p.is_featured).slice(0, 4).map(p => (
                         <ProductCard key={p.id} id={p.id} storeId={p.store_id} name={p.name} price={p.price}
@@ -290,12 +302,13 @@ const StorePage = () => {
 
         {/* Search + Categories */}
         <div className="mt-4 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
-          <Input
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--store-text-muted)" }} />
+          <input
             placeholder="Search products..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 h-9 text-sm"
+            className="w-full pl-10 h-9 text-sm border outline-none focus:ring-2"
+            style={{ backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)", color: "var(--store-text)", borderRadius: "var(--store-radius)", "--tw-ring-color": "var(--store-accent)" } as React.CSSProperties}
           />
         </div>
 
@@ -303,9 +316,12 @@ const StorePage = () => {
           <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none">
             <button
               onClick={() => setSelectedCat("all")}
-              className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                selectedCat === "all" ? "bg-secondary text-primary" : "bg-white/5 text-white/60 hover:bg-white/10"
-              }`}
+              className="shrink-0 px-3 py-1 text-xs font-medium transition-colors"
+              style={{
+                borderRadius: "var(--store-btn-radius)",
+                backgroundColor: selectedCat === "all" ? "var(--store-primary)" : "var(--store-surface)",
+                color: selectedCat === "all" ? "var(--store-primary-fg)" : "var(--store-text-muted)",
+              }}
             >
               All
             </button>
@@ -313,9 +329,12 @@ const StorePage = () => {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCat(cat.id)}
-                className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  selectedCat === cat.id ? "bg-secondary text-primary" : "bg-white/5 text-white/60 hover:bg-white/10"
-                }`}
+                className="shrink-0 px-3 py-1 text-xs font-medium transition-colors"
+                style={{
+                  borderRadius: "var(--store-btn-radius)",
+                  backgroundColor: selectedCat === cat.id ? "var(--store-primary)" : "var(--store-surface)",
+                  color: selectedCat === cat.id ? "var(--store-primary-fg)" : "var(--store-text-muted)",
+                }}
               >
                 {cat.name}
               </button>
@@ -341,7 +360,7 @@ const StorePage = () => {
         </div>
 
         {filtered.length === 0 && (
-          <div className="flex flex-col items-center py-16 text-white/40">
+          <div className="flex flex-col items-center py-16" style={{ color: "var(--store-text-muted)" }}>
             <Store className="h-8 w-8 mb-2 opacity-40" />
             <p className="text-sm">No products found</p>
           </div>
@@ -349,11 +368,11 @@ const StorePage = () => {
 
         {/* Footer Navigation */}
         {footerMenus.length > 0 && (
-          <div className="mt-8 pt-4 border-t border-white/10">
+          <div className="mt-8 pt-4 border-t" style={{ borderColor: "var(--store-surface-border)" }}>
             <div className="flex flex-wrap gap-3 justify-center">
               {footerMenus.map(m => (
                 <button key={m.id} onClick={() => navigate(m.url)}
-                  className="text-[11px] text-white/40 hover:text-white/60 transition-colors">
+                  className="text-[11px] transition-colors hover:opacity-80" style={{ color: "var(--store-text-muted)" }}>
                   {m.label}
                 </button>
               ))}
