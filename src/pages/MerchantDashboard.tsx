@@ -81,17 +81,20 @@ const MerchantChatTab = ({ branchId }: { branchId: string }) => {
   return <MerchantChat storeId={storeId} />;
 };
 
-const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread }: {
+const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread, renderQr, renderSettings }: {
   selectedBranch: Branch;
   branches: Branch[];
   user: { id: string };
   chatUnread: number;
+  renderQr: () => React.ReactNode;
+  renderSettings: () => React.ReactNode;
 }) => {
   const [activeTab, setActiveTab] = useState("qr");
 
   const renderContent = () => {
     switch (activeTab) {
-      case "qr": return null; // QR content is handled inline below
+      case "qr": return renderQr();
+      case "settings": return renderSettings();
       case "shop": return <MerchantMarketplace branches={branches.map(b => ({ id: b.id, branch_name: b.branch_name }))} selectedBranchId={selectedBranch.id} />;
       case "chat": return <MerchantChatTab branchId={selectedBranch.id} />;
       case "txns": return <MerchantTransactions userId={user.id} branchId={selectedBranch.id} />;
@@ -117,7 +120,6 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread 
       case "staff": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantStaffPermissions storeId={storeId} />}</MerchantStoreTabWrapper>;
       case "api": return <MerchantApiApps branches={branches} />;
       case "logs": return <MerchantApiLogs />;
-      case "settings": return null; // Settings handled inline below
       default: return null;
     }
   };
@@ -126,9 +128,7 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread 
     <div className="mt-4 space-y-4">
       <MerchantNavigation activeTab={activeTab} onTabChange={setActiveTab} chatUnread={chatUnread} />
       <div className="mt-3">
-        {activeTab === "qr" && <QrTabContent selectedBranch={selectedBranch} />}
-        {activeTab === "settings" && <SettingsTabContent selectedBranch={selectedBranch} branches={branches} user={user} />}
-        {activeTab !== "qr" && activeTab !== "settings" && renderContent()}
+        {renderContent()}
       </div>
     </div>
   );
