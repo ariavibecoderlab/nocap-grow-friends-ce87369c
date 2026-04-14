@@ -35,6 +35,7 @@ import Authorize from "./pages/Authorize";
 import NotFound from "./pages/NotFound";
 import SessionManager from "./components/SessionManager";
 import UserManual from "./pages/UserManual";
+import SellerManual from "./pages/SellerManual";
 import UatScripts from "./pages/UatScripts";
 import Marketplace from "./pages/Marketplace";
 import StorePage from "./pages/StorePage";
@@ -91,6 +92,7 @@ const App = () => (
               <Route path="/set-pin" element={<SetPin />} />
               <Route path="/reset-pin" element={<ResetPin />} />
               <Route path="/user-manual" element={<UserManual />} />
+              <Route path="/seller-manual" element={<SellerManual />} />
               <Route path="/uat-scripts" element={<UatScripts />} />
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/store/:slug" element={<StorePage />} />
