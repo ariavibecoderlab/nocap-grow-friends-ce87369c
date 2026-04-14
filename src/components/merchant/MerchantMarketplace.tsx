@@ -528,6 +528,7 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
   const saveSettings = async () => {
     if (!store) return;
     setSavingSettings(true);
+    const currentSettings = (store as any).settings || {};
     const { error } = await supabase.from('marketplace_stores').update({
       store_name: settingsStoreName.trim(),
       tagline: settingsTagline.trim() || null,
@@ -537,6 +538,7 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
       shipping_flat_rate: Number(settingsShipping) || 0,
       free_shipping_min: settingsFreeMin ? Number(settingsFreeMin) : null,
       theme: settingsTheme,
+      settings: { ...currentSettings, theme_overrides: themeOverrides } as any,
     }).eq('id', store.id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
