@@ -48,6 +48,16 @@ import {
   Pencil,
   Check,
   X,
+  MessageCircle,
+  ArrowLeftRight,
+  CreditCard,
+  Globe,
+  ShoppingBag,
+  Megaphone,
+  Code,
+  ScrollText,
+  Settings2,
+  TrendingUp,
 } from "lucide-react";
 
 const MerchantStoreTabWrapper = ({ branchId, children }: { branchId: string; children: (storeId: string) => React.ReactNode }) => {
