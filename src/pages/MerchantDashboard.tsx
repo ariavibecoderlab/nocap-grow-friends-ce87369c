@@ -754,6 +754,24 @@ const MerchantDashboard = () => {
               <MerchantApiLogs />
             </TabsContent>
 
+            <TabsContent value="domain" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantDomainManager storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="checkout" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantCheckoutSettings storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="announce" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantAnnouncement storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
             <TabsContent value="settings" className="mt-4 space-y-3">
               <Card className="border-white/10 bg-white/5">
                 <CardContent className="p-4 space-y-3">
