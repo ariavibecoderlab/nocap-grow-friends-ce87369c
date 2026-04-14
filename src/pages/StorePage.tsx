@@ -323,13 +323,16 @@ const StorePage = () => {
       <div className="mx-auto max-w-4xl px-4">
         {/* Featured Products Row */}
         {featuredProducts.length > 0 && (
-          <div className="mt-6 space-y-3">
+          <div className="mt-8 space-y-3 animate-fade-in">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+              <h2 className="text-base font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
                 ⭐ Best Sellers
               </h2>
+              <span className="text-[11px] font-medium" style={{ color: "var(--store-accent)" }}>
+                {featuredProducts.length} items
+              </span>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
               {featuredProducts.slice(0, 8).map(p => (
                 <div key={p.id} className="flex-shrink-0 w-44 md:w-52">
                   <ProductCard
