@@ -336,6 +336,7 @@ const StorePage = () => {
                     id={p.id} storeId={p.store_id} name={p.name} price={p.price}
                     images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
                     storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
+                    flashPrice={flashPrices[p.id]}
                   />
                 </div>
               ))}
@@ -421,7 +422,8 @@ const StorePage = () => {
                   <ProductCard
                     id={p.id} storeId={p.store_id} name={p.name} price={p.price}
                     images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
-                    storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count} compact
+                    storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
+                    flashPrice={flashPrices[p.id]} compact
                   />
                 </div>
               ))}
@@ -498,6 +500,7 @@ const StorePage = () => {
                 key={p.id} id={p.id} storeId={p.store_id} name={p.name} price={p.price}
                 images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
                 storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
+                flashPrice={flashPrices[p.id]}
               />
             ))}
           </div>
