@@ -1,39 +1,54 @@
 
 
-# Make Seller Pages Desktop-Friendly (Responsive Layout)
+# Update Marketplace Enhancement Plan & Regenerate PDF — Phase 11-15
 
-## Pages & Menus Affected
+## What
+Update `.lovable/plans/001-marketplace-enhancement.md` to append Phase 11-15 (Enhancement Features, items #44-58), then regenerate the PDF progress report combining all 15 phases (58 total features).
 
-| # | File | Page/Component | Current Width | New Width | What Changes |
-|---|------|---------------|---------------|-----------|--------------|
-| 1 | `src/pages/MerchantDashboard.tsx` | Merchant Dashboard (main seller hub) | `max-w-md` (448px) | `max-w-5xl` (1024px) | Header, stats grid, navigation, and all tab content areas widen; stats grid becomes `grid-cols-2 md:grid-cols-4` |
-| 2 | `src/pages/MerchantRegister.tsx` | Merchant Registration form | `max-w-md` (448px) | `max-w-2xl` (672px) | Header and multi-step form container widen for comfortable desktop form layout |
-| 3 | `src/pages/StorePage.tsx` | Public Store Page (buyer-facing) | `max-w-md` (448px) | `max-w-4xl` (896px) | Store header, product grid, tabs, and announcement area widen; product grid becomes responsive columns |
-| 4 | `src/pages/StoreCustomPage.tsx` | Custom Store Pages | `max-w-md` (448px) | `max-w-4xl` (896px) | Custom page content and header widen |
+## Changes
 
-### Components Inside MerchantDashboard (indirectly affected — they inherit the wider container)
+### 1. Update `.lovable/plans/001-marketplace-enhancement.md`
+- Update status from "KIV" to "In Progress — Phase 11-15 Planned"
+- Append after Phase 10 (line 104), before the `---` separator:
 
-These sub-components render inside the dashboard tabs and will automatically benefit from the wider parent container without code changes:
+**Phase 11 — Smart Search & Discovery (Enhancement)**
+- #44 Search Autocomplete — real-time typeahead, debounced queries, `tsvector` indexing
+- #45 Product Comparison — side-by-side up to 3 products, specs table
+- #46 Full-Text Search Indexing — GIN index on `marketplace_products`, weighted ranking
 
-- **Operations**: QR Code, Shop/Products, Chat, Orders Kanban, Reviews, Returns
-- **Finance**: Transactions, Withdrawals, Distributions, Sales Reports, Settlement
-- **Marketing**: Discounts, Flash Sales, Gift Cards, Bundles, Collections, Abandoned Carts
-- **Insights**: Analytics, Store Analytics, CRM, Blog
-- **Storefront**: Domain, Pages, Menus, Page Builder, SEO, Checkout Settings, Announcements, Theme
-- **Settings & Dev**: API Apps, API Logs, Inventory Alerts, Staff Permissions, Import/Export, Notification Prefs
+**Phase 12 — Buyer Retention & Loyalty (Enhancement)**
+- #47 Order Status Notifications — in-app push on state changes, `marketplace_notifications` table
+- #48 Buyer Loyalty Points — points per purchase, redeemable, `marketplace_loyalty_points` table
+- #49 Verified Purchase Badges — "Verified Buyer" on reviews from confirmed orders
 
-### NOT Changed (already desktop-friendly or intentionally narrow)
+**Phase 13 — Seller Onboarding & UX (Enhancement)**
+- #50 Merchant Onboarding Wizard — step-by-step setup guide with progress tracker
+- #51 Collapsible Sidebar Navigation — desktop sidebar replacing dropdown+sub-tabs
+- #52 Bulk Order Status Updates — multi-select on Kanban, batch transitions
 
-- `src/pages/SellerManual.tsx` — already `max-w-6xl` with sidebar layout
-- `src/components/merchant/MerchantNavigation.tsx` — flex-wrap adapts automatically
-- Dialog modals in `MerchantDiscountRules.tsx` and `MerchantProductBundles.tsx` — `max-w-md` is correct for modal overlays
+**Phase 14 — Advanced Analytics & Intelligence (Enhancement)**
+- #53 Revenue Forecasting — trend projections, moving averages on sales dashboard
+- #54 Composite Store Score — aggregate merchant performance (rating + fulfillment + response time)
+- #55 Enhanced Live Chat — typing indicators, quick replies, read receipts
 
-## Implementation Steps
+**Phase 15 — Platform Quality & Scale (Enhancement)**
+- #56 Image Optimization Pipeline — WebP conversion, responsive srcset, blur placeholders
+- #57 Multi-Currency Support — currency selector, `marketplace_exchange_rates` table
+- #58 Automated Low-Stock Alerts — push notification on threshold breach, daily summary
 
-1. **MerchantDashboard.tsx** — Replace ~5 instances of `max-w-md` with `max-w-5xl`; update stats grid to `grid-cols-2 md:grid-cols-4`
-2. **MerchantRegister.tsx** — Replace ~4 instances of `max-w-md` with `max-w-2xl`
-3. **StorePage.tsx** — Replace ~2 instances of `max-w-md` with `max-w-4xl`; make product grid responsive
-4. **StoreCustomPage.tsx** — Replace ~2 instances of `max-w-md` with `max-w-4xl`
+### 2. Update Technical Summary
+- Add new tables: `marketplace_notifications`, `marketplace_loyalty_points`, `marketplace_loyalty_transactions`, `marketplace_exchange_rates`
+- Add new edge functions: search indexing, notification dispatcher, loyalty engine
+- Update feature count from 43 to 58
 
-No new dependencies, no database changes, no new files needed.
+### 3. Regenerate PDF
+- Use Python `reportlab` to regenerate `NOcap-Marketplace-Progress-Report.pdf` with all 15 phases
+- Phases 1-7: marked Complete, Phase 8: 4/5 In Progress, Phase 9-10: Pending, Phase 11-15: Planned
+- Updated overall stats: 58 total features, 32 complete, 11 pending, 15 planned
+- Same branded styling (Black/Yellow theme, TOC, headers/footers)
+- QA all pages visually before delivery
+
+## Files Modified
+- `.lovable/plans/001-marketplace-enhancement.md`
+- `/mnt/documents/NOcap-Marketplace-Progress-Report.pdf` (regenerated)
 
