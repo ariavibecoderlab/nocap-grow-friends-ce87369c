@@ -564,6 +564,7 @@ const Marketplace = () => {
           <ArrowUp className="h-5 w-5" />
         </button>
       )}
+      <CompareBar />
       <BottomNav />
     </div>
   );
