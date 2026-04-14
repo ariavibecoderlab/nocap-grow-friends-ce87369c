@@ -448,14 +448,14 @@ const StorePage = () => {
         </div>
 
         {/* Search + All Products */}
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+        <div className="mt-10" id="store-all-products">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
               All Products
             </h2>
-            <button onClick={() => setShowSearch(p => !p)} className="flex items-center gap-1 text-xs hover:opacity-80"
+            <button onClick={() => setShowSearch(p => !p)} className="flex items-center gap-1.5 text-xs font-medium hover:opacity-80 transition-opacity"
               style={{ color: "var(--store-accent)" }}>
-              <Search className="h-3.5 w-3.5" /> Search
+              <Search className="h-3.5 w-3.5" /> {showSearch ? "Hide" : "Search"}
             </button>
           </div>
 
