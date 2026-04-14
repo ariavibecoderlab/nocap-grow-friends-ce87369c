@@ -181,6 +181,13 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
       setSettingsShipping(String(s.shipping_flat_rate || 0));
       setSettingsFreeMin(s.free_shipping_min ? String(s.free_shipping_min) : "");
       setSettingsTheme(s.theme || "classic");
+      // Load theme overrides from settings JSONB
+      const storeSettings = (data as any).settings;
+      if (storeSettings && typeof storeSettings === "object" && storeSettings.theme_overrides) {
+        setThemeOverrides(storeSettings.theme_overrides as ThemeOverrides);
+      } else {
+        setThemeOverrides({});
+      }
       await Promise.all([fetchProducts(data.id), fetchOrders(data.id), fetchDiscounts(data.id)]);
     }
     setLoading(false);
