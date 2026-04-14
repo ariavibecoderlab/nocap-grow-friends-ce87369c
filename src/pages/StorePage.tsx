@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
@@ -17,6 +17,7 @@ import StoreTrustStrip from "@/components/marketplace/StoreTrustStrip";
 import StoreCategoryGrid from "@/components/marketplace/StoreCategoryGrid";
 import StoreReviewsCarousel from "@/components/marketplace/StoreReviewsCarousel";
 import StoreFooter from "@/components/marketplace/StoreFooter";
+import ProductQuickView from "@/components/marketplace/ProductQuickView";
 
 interface StoreData {
   id: string;
@@ -89,7 +90,9 @@ const StorePage = () => {
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const [followerCount, setFollowerCount] = useState(0);
   const [flashPrices, setFlashPrices] = useState<Record<string, number>>({});
+  const [quickViewId, setQuickViewId] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -176,6 +179,22 @@ const StorePage = () => {
   useEffect(() => {
     if (showSearch && searchRef.current) searchRef.current.focus();
   }, [showSearch]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(v => v + PRODUCTS_PER_PAGE);
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loading]);
 
   const filtered = products.filter(p => {
     const matchCat = selectedCat === "all" || p.category_id === selectedCat;
@@ -340,6 +359,7 @@ const StorePage = () => {
                     images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
                     storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
                     flashPrice={flashPrices[p.id]}
+                    onQuickView={setQuickViewId}
                   />
                 </div>
               ))}
@@ -435,6 +455,7 @@ const StorePage = () => {
                     images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
                     storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
                     flashPrice={flashPrices[p.id]} compact
+                    onQuickView={setQuickViewId}
                   />
                 </div>
               ))}
@@ -512,6 +533,7 @@ const StorePage = () => {
                 images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
                 storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
                 flashPrice={flashPrices[p.id]}
+                onQuickView={setQuickViewId}
               />
             ))}
           </div>
@@ -523,25 +545,21 @@ const StorePage = () => {
             </div>
           )}
 
-          {/* Load More */}
+          {/* Infinite scroll sentinel */}
           {visibleCount < filtered.length && (
-            <div className="mt-4 flex justify-center">
-              <button
-                onClick={() => setVisibleCount(v => v + PRODUCTS_PER_PAGE)}
-                className="px-6 py-2 text-sm font-medium transition-colors hover:opacity-90"
-                style={{
-                  backgroundColor: "var(--store-surface)",
-                  color: "var(--store-text)",
-                  border: "1px solid var(--store-surface-border)",
-                  borderRadius: "var(--store-btn-radius)",
-                }}
-              >
-                Load More ({filtered.length - visibleCount} remaining)
-              </button>
+            <div ref={loadMoreRef} className="mt-6 flex justify-center py-4">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: "var(--store-accent)", borderTopColor: "transparent" }} />
             </div>
           )}
         </div>
       </div>
+
+      {/* Quick View Modal */}
+      <ProductQuickView
+        productId={quickViewId}
+        storeSlug={store.slug}
+        onClose={() => setQuickViewId(null)}
+      />
 
       {/* Footer */}
       <StoreFooter
