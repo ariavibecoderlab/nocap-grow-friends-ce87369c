@@ -27,17 +27,13 @@ export default function StoreTrustStrip({ productCount, avgRating, freeShippingM
     >
       {items.map((item, idx) => (
         <div key={idx} className="flex items-center gap-1.5 shrink-0">
-          <div
-            className="flex items-center justify-center h-6 w-6 rounded-full"
-            style={{ backgroundColor: "var(--store-primary)", opacity: 0.15 }}
-          />
-          <item.icon
-            className="h-3.5 w-3.5 absolute"
-            style={{ color: "var(--store-accent)", marginLeft: "0.3125rem" }}
-          />
-          <span className="text-[11px] font-medium whitespace-nowrap ml-1" style={{ color: "var(--store-text-muted)" }}>
+          <item.icon className="h-4 w-4" style={{ color: "var(--store-accent)" }} />
+          <span className="text-[11px] font-medium whitespace-nowrap" style={{ color: "var(--store-text-muted)" }}>
             {item.label}
           </span>
+          {idx < items.length - 1 && (
+            <span className="ml-1.5 text-[8px]" style={{ color: "var(--store-surface-border)" }}>•</span>
+          )}
         </div>
       ))}
     </div>
