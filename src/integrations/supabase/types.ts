@@ -1238,6 +1238,7 @@ export type Database = {
           is_featured: boolean
           name: string
           price: number
+          search_vector: unknown
           seo: Json
           sku: string | null
           sold_count: number
@@ -1256,6 +1257,7 @@ export type Database = {
           is_featured?: boolean
           name: string
           price?: number
+          search_vector?: unknown
           seo?: Json
           sku?: string | null
           sold_count?: number
@@ -1274,6 +1276,7 @@ export type Database = {
           is_featured?: boolean
           name?: string
           price?: number
+          search_vector?: unknown
           seo?: Json
           sku?: string | null
           sold_count?: number
@@ -2599,6 +2602,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      autocomplete_marketplace: {
+        Args: { max_results?: number; search_term: string }
+        Returns: {
+          item_id: string
+          item_image: string
+          item_name: string
+          item_price: number
+          item_slug: string
+          item_type: string
+        }[]
+      }
       check_rate_limit: {
         Args: {
           p_endpoint: string
@@ -2691,6 +2705,25 @@ export type Database = {
           user_id: string
           wallet_balance: number
           wallet_type: string
+        }[]
+      }
+      search_marketplace_products: {
+        Args: {
+          result_limit?: number
+          result_offset?: number
+          search_query: string
+        }
+        Returns: {
+          description: string
+          id: string
+          images: Json
+          name: string
+          price: number
+          rank: number
+          sold_count: number
+          store_id: string
+          store_name: string
+          store_slug: string
         }[]
       }
     }
