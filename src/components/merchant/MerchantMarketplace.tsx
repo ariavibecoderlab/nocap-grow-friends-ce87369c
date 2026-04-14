@@ -145,6 +145,7 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
   const [settingsFreeMin, setSettingsFreeMin] = useState("");
   const [settingsTheme, setSettingsTheme] = useState("classic");
   const [settingsStoreName, setSettingsStoreName] = useState("");
+  const [themeOverrides, setThemeOverrides] = useState<ThemeOverrides>({});
   const [savingSettings, setSavingSettings] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
