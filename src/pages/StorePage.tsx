@@ -88,6 +88,7 @@ const StorePage = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const [followerCount, setFollowerCount] = useState(0);
+  const [flashPrices, setFlashPrices] = useState<Record<string, number>>({});
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -134,13 +135,21 @@ const StorePage = () => {
 
       if (prods.length > 0) {
         const productIds = prods.map(p => p.id);
-        const { data: reviewData } = await supabase
-          .from("marketplace_reviews")
-          .select("product_id, rating")
-          .in("product_id", productIds);
-        if (reviewData && reviewData.length > 0) {
+        const [reviewRes, flashRes] = await Promise.all([
+          supabase.from("marketplace_reviews")
+            .select("product_id, rating")
+            .in("product_id", productIds),
+          supabase.from("marketplace_flash_sales")
+            .select("product_id, flash_price")
+            .eq("store_id", storeData.id)
+            .eq("is_active", true)
+            .lte("starts_at", new Date().toISOString())
+            .gte("ends_at", new Date().toISOString()),
+        ]);
+
+        if (reviewRes.data && reviewRes.data.length > 0) {
           const ratingMap: Record<string, { sum: number; count: number }> = {};
-          reviewData.forEach((r: any) => {
+          reviewRes.data.forEach((r: any) => {
             if (!ratingMap[r.product_id]) ratingMap[r.product_id] = { sum: 0, count: 0 };
             ratingMap[r.product_id].sum += r.rating;
             ratingMap[r.product_id].count += 1;
@@ -150,6 +159,12 @@ const StorePage = () => {
             avgMap[id] = sum / count;
           });
           setRatings(avgMap);
+        }
+
+        if (flashRes.data && flashRes.data.length > 0) {
+          const fp: Record<string, number> = {};
+          flashRes.data.forEach((f: any) => { fp[f.product_id] = f.flash_price; });
+          setFlashPrices(fp);
         }
       }
 
@@ -321,6 +336,7 @@ const StorePage = () => {
                     id={p.id} storeId={p.store_id} name={p.name} price={p.price}
                     images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
                     storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
+                    flashPrice={flashPrices[p.id]}
                   />
                 </div>
               ))}
@@ -406,7 +422,8 @@ const StorePage = () => {
                   <ProductCard
                     id={p.id} storeId={p.store_id} name={p.name} price={p.price}
                     images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
-                    storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count} compact
+                    storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
+                    flashPrice={flashPrices[p.id]} compact
                   />
                 </div>
               ))}
@@ -483,6 +500,7 @@ const StorePage = () => {
                 key={p.id} id={p.id} storeId={p.store_id} name={p.name} price={p.price}
                 images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
                 storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
+                flashPrice={flashPrices[p.id]}
               />
             ))}
           </div>
