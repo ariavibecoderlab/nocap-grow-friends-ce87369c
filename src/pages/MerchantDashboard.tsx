@@ -29,6 +29,10 @@ import MerchantDistributions from "@/components/merchant/MerchantDistributions";
 import MerchantDomainManager from "@/components/merchant/MerchantDomainManager";
 import MerchantCheckoutSettings from "@/components/merchant/MerchantCheckoutSettings";
 import MerchantAnnouncement from "@/components/merchant/MerchantAnnouncement";
+import MerchantAbandonedCarts from "@/components/merchant/MerchantAbandonedCarts";
+import MerchantProductBundles from "@/components/merchant/MerchantProductBundles";
+import MerchantDiscountRules from "@/components/merchant/MerchantDiscountRules";
+import MerchantStoreCRM from "@/components/merchant/MerchantStoreCRM";
 import {
   ArrowLeft,
   Plus,
