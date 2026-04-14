@@ -64,7 +64,7 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
         {/* Hover overlay */}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">
           <button
-            onClick={(e) => { e.stopPropagation(); navigate(`/store/${storeSlug}/product/${id}`); }}
+            onClick={(e) => { e.stopPropagation(); onQuickView ? onQuickView(id) : navigate(`/store/${storeSlug}/product/${id}`); }}
             className="opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 rounded-full bg-white/90 text-black px-4 py-2 text-xs font-medium flex items-center gap-1.5 shadow-lg hover:bg-white"
           >
             <Eye className="h-3.5 w-3.5" /> Quick View
