@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Slide {
@@ -16,7 +16,6 @@ interface StoreHeroCarouselProps {
 }
 
 export default function StoreHeroCarousel({ bannerUrl, slides = [], accentColor = "#FFC800" }: StoreHeroCarouselProps) {
-  // Build effective slides: use provided slides, or fallback to single banner
   const effectiveSlides: Slide[] = slides.length > 0
     ? slides
     : bannerUrl
@@ -25,10 +24,26 @@ export default function StoreHeroCarousel({ bannerUrl, slides = [], accentColor 
 
   const [current, setCurrent] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [textVisible, setTextVisible] = useState(true);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
   const count = effectiveSlides.length;
 
-  const next = useCallback(() => setCurrent(i => (i + 1) % count), [count]);
-  const prev = useCallback(() => setCurrent(i => (i - 1 + count) % count), [count]);
+  const next = useCallback(() => {
+    setTextVisible(false);
+    setTimeout(() => {
+      setCurrent(i => (i + 1) % count);
+      setTextVisible(true);
+    }, 150);
+  }, [count]);
+
+  const prev = useCallback(() => {
+    setTextVisible(false);
+    setTimeout(() => {
+      setCurrent(i => (i - 1 + count) % count);
+      setTextVisible(true);
+    }, 150);
+  }, [count]);
 
   useEffect(() => {
     if (count <= 1 || isHovered) return;
@@ -36,16 +51,33 @@ export default function StoreHeroCarousel({ bannerUrl, slides = [], accentColor 
     return () => clearInterval(timer);
   }, [count, next, isHovered]);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) next();
+      else prev();
+    }
+  };
+
   return (
     <div
       className="relative w-full overflow-hidden"
-      style={{ height: "clamp(240px, 40vw, 420px)" }}
+      style={{ height: "clamp(260px, 42vw, 450px)" }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Slides */}
       <div
-        className="flex h-full transition-transform duration-700 ease-in-out"
+        className="flex h-full transition-transform duration-700 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
         style={{ transform: `translateX(-${current * 100}%)` }}
       >
         {effectiveSlides.map((slide, idx) => (
@@ -55,6 +87,7 @@ export default function StoreHeroCarousel({ bannerUrl, slides = [], accentColor 
                 src={slide.imageUrl}
                 alt={slide.title || `Slide ${idx + 1}`}
                 className="h-full w-full object-cover"
+                style={{ transition: "transform 8s ease-out", transform: idx === current ? "scale(1.05)" : "scale(1)" }}
               />
             ) : (
               <div
@@ -62,24 +95,29 @@ export default function StoreHeroCarousel({ bannerUrl, slides = [], accentColor 
                 style={{ background: `linear-gradient(135deg, ${accentColor}44, ${accentColor}11)` }}
               />
             )}
-            {/* Overlay */}
+            {/* Gradient overlay — always show */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/20" />
+            {/* Text overlay */}
             {(slide.title || slide.subtitle || slide.ctaText) && (
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex flex-col items-center justify-end pb-12 md:pb-16 px-6 text-center">
+              <div
+                className="absolute inset-0 flex flex-col items-center justify-end pb-14 md:pb-20 px-6 text-center transition-all duration-500"
+                style={{ opacity: idx === current && textVisible ? 1 : 0, transform: idx === current && textVisible ? "translateY(0)" : "translateY(12px)" }}
+              >
                 {slide.title && (
                   <h2
-                    className="text-2xl md:text-4xl font-bold text-white drop-shadow-lg mb-2"
+                    className="text-2xl md:text-5xl font-bold text-white drop-shadow-lg mb-2 tracking-tight"
                     style={{ fontFamily: "var(--store-font-heading)" }}
                   >
                     {slide.title}
                   </h2>
                 )}
                 {slide.subtitle && (
-                  <p className="text-sm md:text-base text-white/80 max-w-xl mb-4">{slide.subtitle}</p>
+                  <p className="text-sm md:text-lg text-white/80 max-w-xl mb-5 font-light">{slide.subtitle}</p>
                 )}
                 {slide.ctaText && (
                   <a
                     href={slide.ctaUrl || "#"}
-                    className="px-6 py-2.5 text-sm font-semibold transition-transform hover:scale-105 shadow-lg"
+                    className="px-7 py-3 text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg"
                     style={{
                       backgroundColor: accentColor,
                       color: "var(--store-primary-fg, #000)",
@@ -95,18 +133,18 @@ export default function StoreHeroCarousel({ bannerUrl, slides = [], accentColor 
         ))}
       </div>
 
-      {/* Arrows */}
+      {/* Arrows — desktop only */}
       {count > 1 && (
         <>
           <button
             onClick={prev}
-            className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white/80 hover:bg-black/60 backdrop-blur-sm transition-all"
+            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/30 p-2.5 text-white/80 hover:bg-black/50 backdrop-blur-md transition-all hidden md:flex items-center justify-center"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             onClick={next}
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white/80 hover:bg-black/60 backdrop-blur-sm transition-all"
+            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/30 p-2.5 text-white/80 hover:bg-black/50 backdrop-blur-md transition-all hidden md:flex items-center justify-center"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
@@ -115,15 +153,18 @@ export default function StoreHeroCarousel({ bannerUrl, slides = [], accentColor 
 
       {/* Dots */}
       {count > 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2">
           {effectiveSlides.map((_, idx) => (
             <button
               key={idx}
-              onClick={() => setCurrent(idx)}
-              className="h-2 rounded-full transition-all duration-300"
+              onClick={() => {
+                setTextVisible(false);
+                setTimeout(() => { setCurrent(idx); setTextVisible(true); }, 150);
+              }}
+              className="h-2.5 rounded-full transition-all duration-400 shadow-sm"
               style={{
-                width: idx === current ? "1.5rem" : "0.5rem",
-                backgroundColor: idx === current ? accentColor : "rgba(255,255,255,0.4)",
+                width: idx === current ? "2rem" : "0.625rem",
+                backgroundColor: idx === current ? accentColor : "rgba(255,255,255,0.35)",
               }}
             />
           ))}
