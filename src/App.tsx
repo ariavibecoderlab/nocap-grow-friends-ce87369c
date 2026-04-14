@@ -116,6 +116,7 @@ const App = () => (
             <AiHelpChat />
           </BrowserRouter>
         </TooltipProvider>
+        </CurrencyProvider>
         </WishlistProvider>
       </CartProvider>
     </AuthProvider>
