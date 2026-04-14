@@ -865,10 +865,7 @@ export default function SellerManual() {
       if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
         return (
           <li key={i} className="ml-4 text-muted-foreground text-sm leading-relaxed">
-            {rendered.slice(0).map((r, idx) => {
-              if (typeof r === "string") return r.replace(/^[-•]\s*/, "");
-              return r;
-            })}
+            {rendered}
           </li>
         );
       }
