@@ -65,7 +65,7 @@ const Marketplace = () => {
 
   // Filters
   const [search, setSearch] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchFocused] = useState(false); // kept for compat, replaced by SearchAutocomplete
   const [selectedStore, setSelectedStore] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("featured");
