@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { MessageCircle, Send, User, Package } from "lucide-react";
+import { MessageCircle, Send, User, Package, Check, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -23,6 +23,8 @@ interface ChatMessage {
   message: string;
   created_at: string;
   product_id: string;
+  is_read: boolean;
+  read_at: string | null;
 }
 
 interface MerchantChatProps {
@@ -37,6 +39,8 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [typing, setTyping] = useState(false);
+  const typingTimeout = useRef<NodeJS.Timeout>();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Load all chat threads for this store
@@ -117,13 +121,23 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
     const load = async () => {
       const { data } = await supabase
         .from("marketplace_chat_messages")
-        .select("id, sender_id, sender_type, message, created_at, product_id")
+        .select("id, sender_id, sender_type, message, created_at, product_id, is_read, read_at")
         .eq("store_id", storeId)
         .eq("product_id", selectedThread.productId)
         .or(`sender_id.eq.${selectedThread.senderId},sender_id.eq.${user.id}`)
         .order("created_at", { ascending: true })
         .limit(100);
-      if (data) setMessages(data as ChatMessage[]);
+      if (data) {
+        setMessages(data as ChatMessage[]);
+        // Mark unread buyer messages as read
+        const unreadIds = data.filter(m => m.sender_type === "buyer" && !m.is_read).map(m => m.id);
+        if (unreadIds.length > 0) {
+          supabase.from("marketplace_chat_messages")
+            .update({ is_read: true, read_at: new Date().toISOString() })
+            .in("id", unreadIds)
+            .then(() => {});
+        }
+      }
     };
     load();
   }, [selectedThread, storeId, user]);
@@ -321,13 +335,32 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
                   <p className="text-[10px] font-medium text-secondary/80 mb-0.5">{thread?.sender_name || "Customer"}</p>
                 )}
                 <p>{msg.message}</p>
-                <p className={`text-[9px] mt-1 ${isMine ? "text-primary/50" : "text-white/30"}`}>
-                  {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </p>
+                <div className={`flex items-center gap-1 mt-1 ${isMine ? "justify-end" : ""}`}>
+                  <span className={`text-[9px] ${isMine ? "text-primary/50" : "text-white/30"}`}>
+                    {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  {isMine && (
+                    msg.is_read
+                      ? <CheckCheck className="h-3 w-3 text-blue-400" />
+                      : <Check className="h-3 w-3 text-primary/40" />
+                  )}
+                </div>
               </div>
             </div>
           );
         })}
+        {/* Typing indicator */}
+        {typing && (
+          <div className="flex justify-start">
+            <div className="bg-white/10 rounded-2xl rounded-bl-md px-3 py-2">
+              <div className="flex gap-1">
+                <div className="h-1.5 w-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <div className="h-1.5 w-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: "150ms" }} />
+                <div className="h-1.5 w-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Input */}

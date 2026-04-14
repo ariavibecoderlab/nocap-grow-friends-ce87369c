@@ -459,8 +459,10 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_read: boolean
           message: string
           product_id: string
+          read_at: string | null
           sender_id: string
           sender_type: string
           store_id: string
@@ -468,8 +470,10 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_read?: boolean
           message: string
           product_id: string
+          read_at?: string | null
           sender_id: string
           sender_type?: string
           store_id: string
@@ -477,8 +481,10 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_read?: boolean
           message?: string
           product_id?: string
+          read_at?: string | null
           sender_id?: string
           sender_type?: string
           store_id?: string
@@ -689,6 +695,30 @@ export type Database = {
           },
         ]
       }
+      marketplace_exchange_rates: {
+        Row: {
+          from_currency: string
+          id: string
+          rate: number
+          to_currency: string
+          updated_at: string
+        }
+        Insert: {
+          from_currency?: string
+          id?: string
+          rate?: number
+          to_currency: string
+          updated_at?: string
+        }
+        Update: {
+          from_currency?: string
+          id?: string
+          rate?: number
+          to_currency?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       marketplace_flash_sales: {
         Row: {
           created_at: string
@@ -852,6 +882,95 @@ export type Database = {
           },
           {
             foreignKeyName: "marketplace_inventory_alerts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_loyalty_points: {
+        Row: {
+          created_at: string
+          id: string
+          points_balance: number
+          store_id: string
+          total_earned: number
+          total_redeemed: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          points_balance?: number
+          store_id: string
+          total_earned?: number
+          total_redeemed?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          points_balance?: number
+          store_id?: string
+          total_earned?: number
+          total_redeemed?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_loyalty_points_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_loyalty_transactions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          order_id: string | null
+          points: number
+          store_id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          points?: number
+          store_id: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          points?: number
+          store_id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_loyalty_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_loyalty_transactions_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "marketplace_stores"
@@ -1747,6 +1866,7 @@ export type Database = {
           slug: string
           status: string
           store_name: string
+          store_score: number | null
           tagline: string | null
           theme: string
           updated_at: string
@@ -1772,6 +1892,7 @@ export type Database = {
           slug: string
           status?: string
           store_name: string
+          store_score?: number | null
           tagline?: string | null
           theme?: string
           updated_at?: string
@@ -1797,6 +1918,7 @@ export type Database = {
           slug?: string
           status?: string
           store_name?: string
+          store_score?: number | null
           tagline?: string | null
           theme?: string
           updated_at?: string

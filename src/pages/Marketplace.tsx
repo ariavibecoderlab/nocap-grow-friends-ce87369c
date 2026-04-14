@@ -22,6 +22,7 @@ import FlashSaleSection from "@/components/marketplace/FlashSaleSection";
 import BannerCarousel from "@/components/marketplace/BannerCarousel";
 import SearchAutocomplete from "@/components/marketplace/SearchAutocomplete";
 import { CompareBar } from "@/components/marketplace/ProductComparison";
+import { CurrencySelectorWidget } from "@/components/marketplace/CurrencySelector";
 
 interface ProductRow {
   id: string;
@@ -292,6 +293,7 @@ const Marketplace = () => {
             </button>
             <NocapLogo size="sm" />
             <h1 className="font-display text-xl font-bold flex-1 text-white">Shop</h1>
+            <CurrencySelectorWidget />
             <CartDrawer />
           </div>
         </div>
