@@ -27,6 +27,7 @@ interface StoreData {
   page_layout: Json;
   seo: Json;
   announcement: Json;
+  settings: Json;
 }
 
 interface ProductRow {
