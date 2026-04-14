@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { GitCompareArrows, Heart, ShoppingCart, Star, Store } from "lucide-react";
+import { GitCompareArrows, Heart, ShoppingCart, Star, Store, Eye } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
@@ -19,17 +19,20 @@ interface ProductCardProps {
   rating?: number;
   compact?: boolean;
   soldCount?: number;
+  flashPrice?: number;
 }
 
-export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, rating, compact, soldCount }: ProductCardProps) {
+export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, rating, compact, soldCount, flashPrice }: ProductCardProps) {
   const { addItem } = useCart();
   const { toggle, isWishlisted } = useWishlist();
   const { toast } = useToast();
   const navigate = useNavigate();
-  useCompareList(); // subscribe to compare state changes for re-render
+  useCompareList();
   const mainImage = images?.[0] || "";
   const optimizedImage = mainImage ? getOptimizedImageUrl(mainImage, compact ? 300 : 400, compact ? 225 : 400) : "";
   const wishlisted = isWishlisted(id);
+  const hasDiscount = flashPrice !== undefined && flashPrice < price;
+  const discountPct = hasDiscount ? Math.round((1 - flashPrice / price) * 100) : 0;
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -39,28 +42,47 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (stockQuantity <= 0) return;
-    addItem({ productId: id, storeId, name, price, image: mainImage, stock: stockQuantity });
+    addItem({ productId: id, storeId, name, price: hasDiscount ? flashPrice : price, image: mainImage, stock: stockQuantity });
     toast({ title: "Added to cart", description: name });
   };
 
   return (
     <Card
-      className="border-white/10 bg-white/5 overflow-hidden cursor-pointer hover:bg-white/10 transition-all active:scale-[0.98]"
+      className="group border-white/10 bg-white/5 overflow-hidden cursor-pointer hover:bg-white/10 transition-all active:scale-[0.98]"
       onClick={() => navigate(`/store/${storeSlug}/product/${id}`)}
     >
       <div className={`${compact ? "aspect-[4/3]" : "aspect-square"} bg-white/5 relative overflow-hidden`}>
         {mainImage ? (
-          <img src={optimizedImage} alt={name} className="w-full h-full object-cover" loading="lazy" />
+          <img src={optimizedImage} alt={name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white/20">
             <ShoppingCart className={compact ? "h-5 w-5" : "h-8 w-8"} />
           </div>
         )}
+
+        {/* Hover overlay */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">
+          <button
+            onClick={(e) => { e.stopPropagation(); navigate(`/store/${storeSlug}/product/${id}`); }}
+            className="opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 rounded-full bg-white/90 text-black px-4 py-2 text-xs font-medium flex items-center gap-1.5 shadow-lg hover:bg-white"
+          >
+            <Eye className="h-3.5 w-3.5" /> Quick View
+          </button>
+        </div>
+
         {stockQuantity <= 0 && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
             <span className="text-[10px] font-semibold text-white/80 bg-black/50 px-2 py-0.5 rounded-full">Out of Stock</span>
           </div>
         )}
+
+        {/* Discount badge */}
+        {hasDiscount && (
+          <div className="absolute top-1 left-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm">
+            -{discountPct}%
+          </div>
+        )}
+
         {/* Wishlist heart */}
         <button
           onClick={handleWishlist}
@@ -68,6 +90,7 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
         >
           <Heart className={`h-3.5 w-3.5 ${wishlisted ? "fill-red-500 text-red-500" : "text-white/70"}`} />
         </button>
+
         {/* Compare button */}
         <button
           onClick={(e) => {
@@ -75,13 +98,14 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
             if (isInCompare(id)) removeFromCompare(id);
             else addToCompare(id);
           }}
-          className={`absolute top-1 left-1 rounded-full p-1.5 transition-colors ${
+          className={`absolute top-8 right-1 rounded-full p-1.5 transition-colors ${
             isInCompare(id) ? "bg-secondary text-primary" : "bg-black/30 text-white/70 hover:bg-black/50"
           }`}
         >
           <GitCompareArrows className="h-3.5 w-3.5" />
         </button>
-        {/* Quick add button overlay */}
+
+        {/* Quick add button overlay for compact */}
         {compact && stockQuantity > 0 && (
           <button
             onClick={handleAdd}
@@ -102,7 +126,14 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
           </button>
         )}
         <div className={`flex items-center justify-between ${compact ? "mt-1" : "mt-1.5"}`}>
-          <p className={`font-display font-bold text-secondary ${compact ? "text-sm" : "text-base"}`}>RM {price.toFixed(2)}</p>
+          <div className="flex items-center gap-1.5">
+            <p className={`font-display font-bold text-secondary ${compact ? "text-sm" : "text-base"}`}>
+              RM {(hasDiscount ? flashPrice : price).toFixed(2)}
+            </p>
+            {hasDiscount && (
+              <p className="text-[10px] text-white/30 line-through">RM {price.toFixed(2)}</p>
+            )}
+          </div>
           <div className="flex items-center gap-1.5">
             {soldCount !== undefined && soldCount > 0 && (
               <span className="text-[9px] text-white/30">{soldCount > 999 ? `${(soldCount / 1000).toFixed(1)}k` : soldCount} sold</span>

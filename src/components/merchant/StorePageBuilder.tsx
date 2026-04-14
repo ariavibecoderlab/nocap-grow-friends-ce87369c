@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, GripVertical, Loader2, ArrowUp, ArrowDown, Image, Type, ShoppingBag, Star, Info } from "lucide-react";
+import { Plus, Trash2, GripVertical, Loader2, ArrowUp, ArrowDown, Image, Type, ShoppingBag, Star, Info, Megaphone, SlidersHorizontal } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 
 interface Section {
   id: string;
-  type: "hero_banner" | "featured_products" | "text_block" | "image_banner" | "testimonials" | "about";
+  type: "hero_banner" | "hero_slideshow" | "featured_products" | "text_block" | "image_banner" | "testimonials" | "about" | "cta_banner";
   title: string;
   content: string;
   imageUrl: string;
@@ -20,11 +20,13 @@ interface Section {
 
 const SECTION_TYPES = [
   { value: "hero_banner", label: "Hero Banner", icon: Image, desc: "Large banner image with text overlay" },
+  { value: "hero_slideshow", label: "Hero Slideshow", icon: SlidersHorizontal, desc: "Multiple slides with CTA buttons" },
   { value: "featured_products", label: "Featured Products", icon: ShoppingBag, desc: "Showcase your best products" },
   { value: "text_block", label: "Text Block", icon: Type, desc: "Custom text content" },
   { value: "image_banner", label: "Image Banner", icon: Image, desc: "Full-width image section" },
   { value: "testimonials", label: "Testimonials", icon: Star, desc: "Customer testimonials" },
   { value: "about", label: "About Us", icon: Info, desc: "Tell your store's story" },
+  { value: "cta_banner", label: "CTA Banner", icon: Megaphone, desc: "Promotional call-to-action" },
 ] as const;
 
 export default function StorePageBuilder({ storeId }: { storeId: string }) {
@@ -156,6 +158,42 @@ export default function StorePageBuilder({ storeId }: { storeId: string }) {
                   <Input value={section.content} onChange={e => updateSection(section.id, { content: e.target.value })}
                     className="bg-white/5 border-white/10 text-white mt-0.5 h-8 text-xs" />
                 </div>
+              )}
+
+              {section.type === "hero_slideshow" && (
+                <div>
+                  <Label className="text-white/60 text-[10px]">Slides (JSON array)</Label>
+                  <Textarea
+                    value={section.content}
+                    onChange={e => updateSection(section.id, { content: e.target.value })}
+                    placeholder='[{"imageUrl":"https://...","title":"Sale","subtitle":"Up to 50%","ctaText":"Shop Now","ctaUrl":"#"}]'
+                    className="bg-white/5 border-white/10 text-white mt-0.5 text-xs min-h-[80px] font-mono"
+                  />
+                </div>
+              )}
+
+              {section.type === "cta_banner" && (
+                <>
+                  <div>
+                    <Label className="text-white/60 text-[10px]">Description</Label>
+                    <Input value={section.content} onChange={e => updateSection(section.id, { content: e.target.value })}
+                      className="bg-white/5 border-white/10 text-white mt-0.5 h-8 text-xs" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-white/60 text-[10px]">Button Text</Label>
+                      <Input value={section.settings?.cta_text || ""} onChange={e => updateSection(section.id, { settings: { ...section.settings, cta_text: e.target.value } })}
+                        placeholder="Shop Now"
+                        className="bg-white/5 border-white/10 text-white mt-0.5 h-8 text-xs" />
+                    </div>
+                    <div>
+                      <Label className="text-white/60 text-[10px]">Button URL</Label>
+                      <Input value={section.settings?.cta_url || ""} onChange={e => updateSection(section.id, { settings: { ...section.settings, cta_url: e.target.value } })}
+                        placeholder="#"
+                        className="bg-white/5 border-white/10 text-white mt-0.5 h-8 text-xs" />
+                    </div>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
