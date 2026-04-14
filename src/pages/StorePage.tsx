@@ -359,6 +359,7 @@ const StorePage = () => {
                     images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
                     storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
                     flashPrice={flashPrices[p.id]}
+                    onQuickView={setQuickViewId}
                   />
                 </div>
               ))}
@@ -454,6 +455,7 @@ const StorePage = () => {
                     images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
                     storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
                     flashPrice={flashPrices[p.id]} compact
+                    onQuickView={setQuickViewId}
                   />
                 </div>
               ))}
@@ -531,6 +533,7 @@ const StorePage = () => {
                 images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
                 storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
                 flashPrice={flashPrices[p.id]}
+                onQuickView={setQuickViewId}
               />
             ))}
           </div>
