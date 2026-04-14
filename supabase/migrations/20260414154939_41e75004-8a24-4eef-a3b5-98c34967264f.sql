@@ -1,0 +1,1 @@
+ALTER TABLE public.marketplace_categories ADD COLUMN image_url text;
