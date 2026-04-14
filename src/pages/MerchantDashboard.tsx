@@ -26,6 +26,9 @@ import MerchantMarketplace from "@/components/merchant/MerchantMarketplace";
 import MerchantNotificationPrefs from "@/components/merchant/MerchantNotificationPrefs";
 import MerchantChat from "@/components/merchant/MerchantChat";
 import MerchantDistributions from "@/components/merchant/MerchantDistributions";
+import MerchantDomainManager from "@/components/merchant/MerchantDomainManager";
+import MerchantCheckoutSettings from "@/components/merchant/MerchantCheckoutSettings";
+import MerchantAnnouncement from "@/components/merchant/MerchantAnnouncement";
 import {
   ArrowLeft,
   Plus,
