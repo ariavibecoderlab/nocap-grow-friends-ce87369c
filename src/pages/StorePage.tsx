@@ -170,7 +170,7 @@ const StorePage = () => {
     return (
       <div className="min-h-screen bg-primary pb-20">
         <div className="px-4 pt-8">
-          <div className="mx-auto max-w-md">
+          <div className="mx-auto max-w-4xl">
             <button onClick={() => navigate("/marketplace")} className="rounded-full p-1 hover:bg-white/10 text-white">
               <ArrowLeft className="h-5 w-5" />
             </button>
@@ -205,7 +205,7 @@ const StorePage = () => {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4">
+      <div className="mx-auto max-w-4xl px-4">
         {/* Store Info */}
         <div className="flex items-end gap-3 -mt-8 relative z-10">
           <div className="h-16 w-16 overflow-hidden shadow-lg shrink-0 border-2" style={{ borderRadius: "var(--store-radius)", borderColor: "var(--store-bg)", backgroundColor: "var(--store-surface)" }}>
@@ -286,7 +286,7 @@ const StorePage = () => {
                 {section.type === "featured_products" && (
                   <div>
                     <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                       {products.filter(p => p.is_featured).slice(0, 4).map(p => (
                         <ProductCard key={p.id} id={p.id} storeId={p.store_id} name={p.name} price={p.price}
                           images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
@@ -343,7 +343,7 @@ const StorePage = () => {
         )}
 
         {/* Products Grid */}
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {filtered.map(p => (
             <ProductCard
               key={p.id}
