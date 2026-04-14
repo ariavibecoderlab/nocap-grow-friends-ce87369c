@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
+import { CurrencyProvider } from "@/components/marketplace/CurrencySelector";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -59,6 +60,7 @@ const App = () => (
     <AuthProvider>
       <CartProvider>
         <WishlistProvider>
+        <CurrencyProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
