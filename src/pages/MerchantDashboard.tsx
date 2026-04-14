@@ -838,6 +838,30 @@ const MerchantDashboard = () => {
               </MerchantStoreTabWrapper>
             </TabsContent>
 
+            <TabsContent value="collections" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantCollections storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="giftcards" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantGiftCards storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="import" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantProductImportExport storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
+            <TabsContent value="blog" className="mt-4">
+              <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+                {(storeId) => <MerchantStoreBlog storeId={storeId} />}
+              </MerchantStoreTabWrapper>
+            </TabsContent>
+
             <TabsContent value="settings" className="mt-4 space-y-3">
               <Card className="border-white/10 bg-white/5">
                 <CardContent className="p-4 space-y-3">
