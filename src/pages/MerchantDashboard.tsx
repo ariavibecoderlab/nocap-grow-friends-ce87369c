@@ -41,7 +41,7 @@ import MerchantCollections from "@/components/merchant/MerchantCollections";
 import MerchantGiftCards from "@/components/merchant/MerchantGiftCards";
 import MerchantProductImportExport from "@/components/merchant/MerchantProductImportExport";
 import MerchantStoreBlog from "@/components/merchant/MerchantStoreBlog";
-import MerchantNavigation from "@/components/merchant/MerchantNavigation";
+import MerchantNavigation, { getMerchantSections } from "@/components/merchant/MerchantNavigation";
 import MerchantSidebar from "@/components/merchant/MerchantSidebar";
 import MerchantOnboardingWizard from "@/components/merchant/MerchantOnboardingWizard";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
