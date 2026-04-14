@@ -79,7 +79,7 @@ const StorePage = () => {
     const fetch = async () => {
       const { data: storeData } = await supabase
         .from("marketplace_stores")
-        .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo, announcement")
+        .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo, announcement, settings")
         .eq("slug", slug)
         .eq("status", "live")
         .maybeSingle();
