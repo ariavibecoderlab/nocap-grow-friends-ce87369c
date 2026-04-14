@@ -48,6 +48,16 @@ import {
   Pencil,
   Check,
   X,
+  MessageCircle,
+  ArrowLeftRight,
+  CreditCard,
+  Globe,
+  ShoppingBag,
+  Megaphone,
+  Code,
+  ScrollText,
+  Settings2,
+  TrendingUp,
 } from "lucide-react";
 
 const MerchantStoreTabWrapper = ({ branchId, children }: { branchId: string; children: (storeId: string) => React.ReactNode }) => {
@@ -596,53 +606,74 @@ const MerchantDashboard = () => {
         {selectedBranch && (
           <Tabs defaultValue="qr" className="mt-4">
             <div className="overflow-x-auto scrollbar-none -mx-4 px-4">
-              <TabsList className="inline-flex w-max bg-white/5 border border-white/10">
-                <TabsTrigger value="qr" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  <QrCode className="h-3 w-3" /> QR
+              <TabsList className="inline-flex w-max bg-white/5 border border-white/10 gap-0.5 p-1">
+                {/* ── Operations ── */}
+                <TabsTrigger value="qr" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <QrCode className="h-3.5 w-3.5" /> QR
                 </TabsTrigger>
-                <TabsTrigger value="shop" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  Shop
+                <TabsTrigger value="shop" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <Store className="h-3.5 w-3.5" /> Shop
                 </TabsTrigger>
-                <TabsTrigger value="chat" className="relative gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  Chat
+                <TabsTrigger value="chat" className="relative gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <MessageCircle className="h-3.5 w-3.5" /> Chat
                   {chatUnread > 0 && (
                     <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
                       {chatUnread > 99 ? "99+" : chatUnread}
                     </span>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="txns" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  Txns
+
+                <div className="w-px h-5 bg-white/10 mx-1 self-center shrink-0" />
+
+                {/* ── Finance ── */}
+                <TabsTrigger value="txns" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <ArrowLeftRight className="h-3.5 w-3.5" /> Txns
                 </TabsTrigger>
-                <TabsTrigger value="dist" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  Dist
+                <TabsTrigger value="withdraw" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <Wallet className="h-3.5 w-3.5" /> Withdraw
                 </TabsTrigger>
-                <TabsTrigger value="analytics" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  Analytics
+                <TabsTrigger value="dist" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <TrendingUp className="h-3.5 w-3.5" /> Dist
                 </TabsTrigger>
-                <TabsTrigger value="reports" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  Reports
+                <TabsTrigger value="reports" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <FileText className="h-3.5 w-3.5" /> Reports
                 </TabsTrigger>
-                <TabsTrigger value="withdraw" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  Withdraw
+
+                <div className="w-px h-5 bg-white/10 mx-1 self-center shrink-0" />
+
+                {/* ── Insights ── */}
+                <TabsTrigger value="analytics" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <BarChart3 className="h-3.5 w-3.5" /> Analytics
                 </TabsTrigger>
-                <TabsTrigger value="api" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  API
+
+                <div className="w-px h-5 bg-white/10 mx-1 self-center shrink-0" />
+
+                {/* ── Storefront ── */}
+                <TabsTrigger value="domain" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <Globe className="h-3.5 w-3.5" /> Domain
                 </TabsTrigger>
-                <TabsTrigger value="logs" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  Logs
+                <TabsTrigger value="checkout" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <CreditCard className="h-3.5 w-3.5" /> Checkout
                 </TabsTrigger>
-                <TabsTrigger value="domain" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  Domain
+                <TabsTrigger value="announce" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <Megaphone className="h-3.5 w-3.5" /> Announce
                 </TabsTrigger>
-                <TabsTrigger value="checkout" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  Checkout
+
+                <div className="w-px h-5 bg-white/10 mx-1 self-center shrink-0" />
+
+                {/* ── Developer ── */}
+                <TabsTrigger value="api" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <Code className="h-3.5 w-3.5" /> API
                 </TabsTrigger>
-                <TabsTrigger value="announce" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  Announce
+                <TabsTrigger value="logs" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <ScrollText className="h-3.5 w-3.5" /> Logs
                 </TabsTrigger>
-                <TabsTrigger value="settings" className="gap-1 text-[10px] data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-                  Settings
+
+                <div className="w-px h-5 bg-white/10 mx-1 self-center shrink-0" />
+
+                {/* ── Config ── */}
+                <TabsTrigger value="settings" className="gap-1.5 text-[11px] px-3 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+                  <Settings2 className="h-3.5 w-3.5" /> Settings
                 </TabsTrigger>
               </TabsList>
             </div>
