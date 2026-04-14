@@ -43,6 +43,7 @@ import MerchantGiftCards from "@/components/merchant/MerchantGiftCards";
 import MerchantProductImportExport from "@/components/merchant/MerchantProductImportExport";
 import MerchantStoreBlog from "@/components/merchant/MerchantStoreBlog";
 import MerchantNavigation from "@/components/merchant/MerchantNavigation";
+import MerchantOnboardingWizard from "@/components/merchant/MerchantOnboardingWizard";
 import {
   ArrowLeft, Plus, Store, QrCode, MapPin, BarChart3, Loader2, Trash2,
   Download, Share2, Clock, CheckCircle2, XCircle, FileText, Wallet,
