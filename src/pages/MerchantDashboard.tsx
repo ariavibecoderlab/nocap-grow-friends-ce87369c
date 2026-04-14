@@ -182,6 +182,8 @@ const MerchantDashboard = () => {
   const [loadingData, setLoadingData] = useState(true);
   const [isMerchant, setIsMerchant] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(() => sessionStorage.getItem("merchant-onboarding-dismissed") === "true");
 
   // Add branch dialog
   const [showAddBranch, setShowAddBranch] = useState(false);
