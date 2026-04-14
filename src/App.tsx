@@ -35,6 +35,7 @@ import Authorize from "./pages/Authorize";
 import NotFound from "./pages/NotFound";
 import SessionManager from "./components/SessionManager";
 import UserManual from "./pages/UserManual";
+import SellerManual from "./pages/SellerManual";
 import UatScripts from "./pages/UatScripts";
 import Marketplace from "./pages/Marketplace";
 import StorePage from "./pages/StorePage";
