@@ -1,6 +1,6 @@
 # Plan #001 — Shopee + Shopify-Inspired Marketplace Enhancement (Revised)
 
-**Status:** KIV (Keep In View) | **Created:** 2026-04-09 | **Revised:** 2026-04-13
+**Status:** In Progress — Phase 11-15 Planned | **Created:** 2026-04-09 | **Revised:** 2026-04-14
 
 ## Current State
 
@@ -103,6 +103,46 @@ Marketplace has: product browsing with filters/sort, wishlist, infinite scroll, 
 | 42 | **Product Import/Export** | Full product data export (JSON/CSV). Import from other platforms with field mapping. Bulk edit via spreadsheet re-upload. |
 | 43 | **Store Blog / Content Pages** | Simple blog engine for merchants. `marketplace_store_blog_posts` table. Rich text editor with image upload. Blog section on storefront. SEO-optimized URLs. |
 
+## Phase 11 — Smart Search & Discovery (Enhancement)
+
+| # | Feature | Key Work |
+|---|---------|----------|
+| 44 | **Search Autocomplete** | Real-time typeahead with product/store suggestions, debounced queries, PostgreSQL `tsvector` full-text indexing on product name/description |
+| 45 | **Product Comparison** | Side-by-side comparison tool (up to 3 products), specs table, price/rating diff highlights |
+| 46 | **Full-Text Search Indexing** | Add `tsvector` GIN index on `marketplace_products`, weighted search (name > description > category), search ranking |
+
+## Phase 12 — Buyer Retention & Loyalty (Enhancement)
+
+| # | Feature | Key Work |
+|---|---------|----------|
+| 47 | **Order Status Notifications** | In-app push notifications on order state changes (confirmed, shipped, delivered), `marketplace_notifications` table, notification bell integration |
+| 48 | **Buyer Loyalty Points** | Points earned per purchase, redeemable at checkout, `marketplace_loyalty_points` and `marketplace_loyalty_transactions` tables, points balance display |
+| 49 | **Verified Purchase Badges** | "Verified Buyer" badge on reviews from confirmed orders, trust signal on product pages |
+
+## Phase 13 — Seller Onboarding & UX (Enhancement)
+
+| # | Feature | Key Work |
+|---|---------|----------|
+| 50 | **Merchant Onboarding Wizard** | Step-by-step guided setup (store info → first product → shipping → go live), progress tracker, skip/resume capability |
+| 51 | **Collapsible Sidebar Navigation** | Replace dropdown+sub-tabs with a collapsible sidebar for desktop merchant dashboard, icon-only collapsed state, section grouping |
+| 52 | **Bulk Order Status Updates** | Multi-select orders on Kanban board, batch status transition, bulk print packing slips |
+
+## Phase 14 — Advanced Analytics & Intelligence (Enhancement)
+
+| # | Feature | Key Work |
+|---|---------|----------|
+| 53 | **Revenue Forecasting** | Trend-based revenue projection charts, moving averages, growth rate indicators on sales dashboard |
+| 54 | **Composite Store Score** | Aggregate merchant performance score (response time + rating + fulfillment speed + return rate), displayed on store page |
+| 55 | **Enhanced Live Chat** | Typing indicators, quick reply buttons, read receipts, chat history persistence for buyer-merchant conversations |
+
+## Phase 15 — Platform Quality & Scale (Enhancement)
+
+| # | Feature | Key Work |
+|---|---------|----------|
+| 56 | **Image Optimization Pipeline** | WebP conversion, responsive `srcset` generation, lazy loading with blur placeholders, CDN-optimized thumbnails |
+| 57 | **Multi-Currency Support** | Currency selector (MYR/USD/SGD), exchange rate table, price display conversion, stored in `marketplace_exchange_rates` table |
+| 58 | **Automated Low-Stock Alerts** | Push notification to merchant when product stock falls below configured threshold, daily stock summary email |
+
 ---
 
 ## Technical Summary
@@ -110,9 +150,9 @@ Marketplace has: product browsing with filters/sort, wishlist, infinite scroll, 
 ### Existing (no changes needed)
 - Product CRUD, image uploads, store branding, discount codes, order management, reviews, chat, wallet payment, store managers
 
-### New Database Objects (~18-22 new tables/columns)
+### New Database Objects (~22-26 new tables/columns)
 
-**Tables:**
+**Tables (Phase 1-10):**
 - `marketplace_flash_sales`, `marketplace_product_variants`
 - `marketplace_order_status_history`, `user_addresses`
 - `marketplace_banners`, `marketplace_product_qa`, `marketplace_store_follows`
@@ -125,23 +165,35 @@ Marketplace has: product browsing with filters/sort, wishlist, infinite scroll, 
 - `marketplace_gift_cards`, `marketplace_store_blog_posts`
 - `marketplace_manager_permissions`
 
+**Tables (Phase 11-15 — Planned):**
+- `marketplace_notifications`
+- `marketplace_loyalty_points`, `marketplace_loyalty_transactions`
+- `marketplace_exchange_rates`
+
 **Column additions:**
-- `marketplace_products`: `sold_count`, `seo` jsonb
+- `marketplace_products`: `sold_count`, `seo` jsonb, `tsvector` GIN index (Phase 11)
 - `marketplace_stores`: `page_layout` jsonb, `seo` jsonb, `checkout_settings` jsonb, `announcement` jsonb
 - `marketplace_reviews`: `review_images` jsonb
-- `marketplace_store_pages`: `seo` jsonb
 
-### Edge Functions (new)
+### Edge Functions (existing)
 - Flash sale engine, CSV bulk import, return/refund processing
 - Abandoned cart notification scheduler
 - Domain verification checker
 - Campaign email sender
+
+### Edge Functions (Phase 11-15 — Planned)
+- Search indexing / autocomplete engine
+- Notification dispatcher (order status push)
+- Loyalty points engine (earn/redeem)
+- Low-stock alert scheduler
 
 ### Key Architecture Decisions
 - Store page builder uses JSON-based layout (sections + blocks pattern, similar to Shopify's approach) — no code editor needed
 - Custom domain routing resolved at edge function or routing middleware level
 - Standalone storefront mode is a rendering flag — same React app, conditionally hiding marketplace chrome
 - All enhancements are additive (no breaking changes to existing flows)
+- Full-text search uses PostgreSQL native `tsvector` with GIN index for performance
+- Loyalty system is wallet-adjacent but store-scoped (points per store, not platform-wide)
 
 ### Recommended Implementation Order
-Phase 1-5 first (Shopee quick wins, ~4-6 weeks), then Phase 6-7 (Store Builder + Custom Domain, ~3-4 weeks), then Phase 8-10 based on merchant demand.
+Phase 1-10 (complete/in-progress), then Phase 11-13 (search + loyalty + seller UX, ~3-4 weeks), then Phase 14-15 (analytics + scale, ~2-3 weeks) based on demand.
