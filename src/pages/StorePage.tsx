@@ -323,13 +323,16 @@ const StorePage = () => {
       <div className="mx-auto max-w-4xl px-4">
         {/* Featured Products Row */}
         {featuredProducts.length > 0 && (
-          <div className="mt-6 space-y-3">
+          <div className="mt-8 space-y-3 animate-fade-in">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+              <h2 className="text-base font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
                 ⭐ Best Sellers
               </h2>
+              <span className="text-[11px] font-medium" style={{ color: "var(--store-accent)" }}>
+                {featuredProducts.length} items
+              </span>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
               {featuredProducts.slice(0, 8).map(p => (
                 <div key={p.id} className="flex-shrink-0 w-44 md:w-52">
                   <ProductCard
@@ -345,7 +348,7 @@ const StorePage = () => {
         )}
 
         {/* Category Grid */}
-        <div className="mt-6">
+        <div className="mt-8 animate-fade-in">
           <StoreCategoryGrid
             categories={categories}
             selectedCat={selectedCat}
@@ -358,21 +361,24 @@ const StorePage = () => {
         {ctaSections.map(section => (
           <div
             key={section.id}
-            className="mt-6 p-6 md:p-8 text-center"
+            className="mt-8 p-6 md:p-10 text-center animate-fade-in relative overflow-hidden"
             style={{
               borderRadius: "var(--store-radius)",
               background: `linear-gradient(135deg, ${resolvedTheme?.colors.accent}33, ${resolvedTheme?.colors.accent}11)`,
               border: `1px solid ${resolvedTheme?.colors.accent}22`,
             }}
           >
-            <h3 className="text-lg md:text-xl font-bold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+            {/* Decorative circles */}
+            <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-10" style={{ backgroundColor: "var(--store-accent)" }} />
+            <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full opacity-10" style={{ backgroundColor: "var(--store-accent)" }} />
+            <h3 className="text-lg md:text-2xl font-bold mb-2 relative" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
               {section.title}
             </h3>
-            {section.content && <p className="text-xs mb-4" style={{ color: "var(--store-text-muted)" }}>{section.content}</p>}
+            {section.content && <p className="text-xs md:text-sm mb-5 relative" style={{ color: "var(--store-text-muted)" }}>{section.content}</p>}
             {section.settings?.cta_text && (
               <a
                 href={section.settings.cta_url || "#"}
-                className="inline-block px-5 py-2 text-sm font-semibold transition-transform hover:scale-105"
+                className="relative inline-block px-6 py-2.5 text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg shadow-md"
                 style={{
                   backgroundColor: "var(--store-primary)",
                   color: "var(--store-primary-fg)",
@@ -387,22 +393,22 @@ const StorePage = () => {
 
         {/* Page Layout Sections (text, about, testimonials, image_banner) */}
         {otherSections.length > 0 && (
-          <div className="mt-6 space-y-4">
+          <div className="mt-8 space-y-4">
             {otherSections.map(section => (
-              <div key={section.id}>
+              <div key={section.id} className="animate-fade-in">
                 {section.type === "image_banner" && section.imageUrl && (
-                  <img src={section.imageUrl} alt={section.title} className="w-full object-cover" style={{ borderRadius: "var(--store-radius)" }} />
+                  <img src={section.imageUrl} alt={section.title} className="w-full object-cover shadow-sm" style={{ borderRadius: "var(--store-radius)" }} />
                 )}
                 {(section.type === "text_block" || section.type === "about") && (
-                  <div className="p-4 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
-                    <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
+                  <div className="p-5 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
+                    <h3 className="text-sm font-bold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
                     <p className="text-xs whitespace-pre-wrap leading-relaxed" style={{ color: "var(--store-text-muted)" }}>{section.content}</p>
                   </div>
                 )}
                 {section.type === "testimonials" && (
-                  <div className="p-4 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
-                    <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
-                    <p className="text-xs italic" style={{ color: "var(--store-text-muted)" }}>"{section.content}"</p>
+                  <div className="p-5 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
+                    <h3 className="text-sm font-bold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
+                    <p className="text-xs italic leading-relaxed" style={{ color: "var(--store-text-muted)" }}>"{section.content}"</p>
                   </div>
                 )}
               </div>
@@ -412,11 +418,16 @@ const StorePage = () => {
 
         {/* New Arrivals */}
         {newArrivals.length > 0 && (
-          <div className="mt-6 space-y-3">
-            <h2 className="text-sm font-semibold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
-              🆕 New Arrivals
-            </h2>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+          <div className="mt-8 space-y-3 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+                🆕 New Arrivals
+              </h2>
+              <span className="text-[11px] font-medium" style={{ color: "var(--store-accent)" }}>
+                Just added
+              </span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
               {newArrivals.map(p => (
                 <div key={p.id} className="flex-shrink-0 w-40 md:w-48">
                   <ProductCard
@@ -432,19 +443,19 @@ const StorePage = () => {
         )}
 
         {/* Reviews Carousel */}
-        <div className="mt-6">
+        <div className="mt-8 animate-fade-in">
           <StoreReviewsCarousel storeId={store.id} />
         </div>
 
         {/* Search + All Products */}
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+        <div className="mt-10" id="store-all-products">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
               All Products
             </h2>
-            <button onClick={() => setShowSearch(p => !p)} className="flex items-center gap-1 text-xs hover:opacity-80"
+            <button onClick={() => setShowSearch(p => !p)} className="flex items-center gap-1.5 text-xs font-medium hover:opacity-80 transition-opacity"
               style={{ color: "var(--store-accent)" }}>
-              <Search className="h-3.5 w-3.5" /> Search
+              <Search className="h-3.5 w-3.5" /> {showSearch ? "Hide" : "Search"}
             </button>
           </div>
 
