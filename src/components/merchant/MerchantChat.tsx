@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { MessageCircle, Send, User, Package } from "lucide-react";
+import { MessageCircle, Send, User, Package, Check, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -23,6 +23,8 @@ interface ChatMessage {
   message: string;
   created_at: string;
   product_id: string;
+  is_read: boolean;
+  read_at: string | null;
 }
 
 interface MerchantChatProps {
@@ -37,6 +39,8 @@ const MerchantChat = ({ storeId }: MerchantChatProps) => {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [typing, setTyping] = useState(false);
+  const typingTimeout = useRef<NodeJS.Timeout>();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Load all chat threads for this store
