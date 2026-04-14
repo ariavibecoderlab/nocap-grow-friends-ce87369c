@@ -19,30 +19,30 @@ export default function StoreFooter({ storeName, description, logoUrl, footerMen
 
   return (
     <footer
-      className="mt-12 border-t pt-8 pb-6 px-4"
+      className="mt-16 border-t pt-10 pb-8 px-4"
       style={{ borderColor: "var(--store-surface-border)" }}
     >
       <div className="mx-auto max-w-4xl">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2.5">
               {logoUrl ? (
-                <img src={logoUrl} alt={storeName} className="h-8 w-8 rounded-lg object-cover" />
+                <img src={logoUrl} alt={storeName} className="h-10 w-10 rounded-xl object-cover shadow-sm" />
               ) : (
                 <div
-                  className="h-8 w-8 rounded-lg flex items-center justify-center"
+                  className="h-10 w-10 rounded-xl flex items-center justify-center"
                   style={{ backgroundColor: "var(--store-surface)" }}
                 >
-                  <Store className="h-4 w-4" style={{ color: "var(--store-accent)" }} />
+                  <Store className="h-5 w-5" style={{ color: "var(--store-accent)" }} />
                 </div>
               )}
-              <span className="font-semibold text-sm" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+              <span className="font-bold text-sm" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
                 {storeName}
               </span>
             </div>
             {description && (
-              <p className="text-[11px] leading-relaxed" style={{ color: "var(--store-text-muted)" }}>
+              <p className="text-[11px] leading-relaxed max-w-xs" style={{ color: "var(--store-text-muted)" }}>
                 {description}
               </p>
             )}
@@ -50,14 +50,14 @@ export default function StoreFooter({ storeName, description, logoUrl, footerMen
 
           {/* Quick Links */}
           {footerMenus.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-semibold" style={{ color: "var(--store-text)" }}>Quick Links</h4>
-              <div className="flex flex-col gap-1.5">
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--store-text-muted)" }}>Quick Links</h4>
+              <div className="flex flex-col gap-2">
                 {footerMenus.map(m => (
                   <button
                     key={m.id}
                     onClick={() => navigate(m.url)}
-                    className="text-[11px] text-left hover:opacity-80 transition-colors"
+                    className="text-xs text-left hover:opacity-80 transition-colors"
                     style={{ color: "var(--store-text-muted)" }}
                   >
                     {m.label}
@@ -69,9 +69,14 @@ export default function StoreFooter({ storeName, description, logoUrl, footerMen
 
           {/* Powered By */}
           <div className="flex items-end md:justify-end">
-            <p className="text-[10px]" style={{ color: "var(--store-text-muted)", opacity: 0.5 }}>
-              Powered by NoCap
-            </p>
+            <div className="text-center md:text-right">
+              <p className="text-[10px] mb-1" style={{ color: "var(--store-text-muted)", opacity: 0.4 }}>
+                Powered by
+              </p>
+              <p className="text-xs font-bold" style={{ color: "var(--store-text-muted)", opacity: 0.5 }}>
+                NoCap
+              </p>
+            </div>
           </div>
         </div>
       </div>
