@@ -161,15 +161,10 @@ export default function StorePageBuilder({ storeId }: { storeId: string }) {
               )}
 
               {section.type === "hero_slideshow" && (
-                <div>
-                  <Label className="text-white/60 text-[10px]">Slides (JSON array)</Label>
-                  <Textarea
-                    value={section.content}
-                    onChange={e => updateSection(section.id, { content: e.target.value })}
-                    placeholder='[{"imageUrl":"https://...","title":"Sale","subtitle":"Up to 50%","ctaText":"Shop Now","ctaUrl":"#"}]'
-                    className="bg-white/5 border-white/10 text-white mt-0.5 text-xs min-h-[80px] font-mono"
-                  />
-                </div>
+                <SlideshowEditor
+                  slides={(() => { try { return JSON.parse(section.content || "[]"); } catch { return []; } })()}
+                  onChange={(slides) => updateSection(section.id, { content: JSON.stringify(slides) })}
+                />
               )}
 
               {section.type === "cta_banner" && (
