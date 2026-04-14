@@ -88,6 +88,7 @@ const StorePage = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const [followerCount, setFollowerCount] = useState(0);
+  const [flashPrices, setFlashPrices] = useState<Record<string, number>>({});
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
