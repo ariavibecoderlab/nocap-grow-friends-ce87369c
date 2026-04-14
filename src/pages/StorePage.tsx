@@ -360,7 +360,7 @@ const StorePage = () => {
         </div>
 
         {filtered.length === 0 && (
-          <div className="flex flex-col items-center py-16 text-white/40">
+          <div className="flex flex-col items-center py-16" style={{ color: "var(--store-text-muted)" }}>
             <Store className="h-8 w-8 mb-2 opacity-40" />
             <p className="text-sm">No products found</p>
           </div>
@@ -368,11 +368,11 @@ const StorePage = () => {
 
         {/* Footer Navigation */}
         {footerMenus.length > 0 && (
-          <div className="mt-8 pt-4 border-t border-white/10">
+          <div className="mt-8 pt-4 border-t" style={{ borderColor: "var(--store-surface-border)" }}>
             <div className="flex flex-wrap gap-3 justify-center">
               {footerMenus.map(m => (
                 <button key={m.id} onClick={() => navigate(m.url)}
-                  className="text-[11px] text-white/40 hover:text-white/60 transition-colors">
+                  className="text-[11px] transition-colors hover:opacity-80" style={{ color: "var(--store-text-muted)" }}>
                   {m.label}
                 </button>
               ))}
