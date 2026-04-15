@@ -33,6 +33,8 @@ const UserManagement = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const [pendingAction, setPendingAction] = useState<{
     targetUserId: string;
     role: AppRole;
