@@ -199,12 +199,12 @@ export default function StorePageBuilder({ storeId }: { storeId: string }) {
               )}
 
               {(section.type === "hero_banner" || section.type === "image_banner") && (
-                <div>
-                  <Label className="text-white/60 text-[10px]">Image URL</Label>
-                  <Input value={section.imageUrl} onChange={e => updateSection(section.id, { imageUrl: e.target.value })}
-                    placeholder="https://..."
-                    className="bg-white/5 border-white/10 text-white mt-0.5 h-8 text-xs" />
-                </div>
+                <ImageUploadField
+                  label="Image"
+                  value={section.imageUrl}
+                  onChange={(url) => updateSection(section.id, { imageUrl: url })}
+                  folder={`builder/${storeId}`}
+                />
               )}
 
               {section.type === "hero_banner" && (
