@@ -53,7 +53,7 @@ export default function GuideContent({ guideId, completedGuides, onMarkComplete,
             <p className="text-muted-foreground mt-1">{guide.subtitle}</p>
           </div>
           {isComplete && (
-            <Badge className="bg-green-500/15 text-green-500 border-green-500/30 shrink-0">
+            <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shrink-0">
               <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Completed
             </Badge>
           )}

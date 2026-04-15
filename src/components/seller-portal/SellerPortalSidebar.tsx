@@ -79,7 +79,7 @@ export default function SellerPortalSidebar({ activeGuide, onSelectGuide, comple
                         )}
                       >
                         {isComplete ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                          <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
                         ) : (
                           <guide.icon className="h-4 w-4 shrink-0" />
                         )}
