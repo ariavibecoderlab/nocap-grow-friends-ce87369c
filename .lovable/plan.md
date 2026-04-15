@@ -1,42 +1,61 @@
 
 
-# Sync API Guide PDF with Web Version
+# Build a Perfect Demo Store in the Marketplace
 
-## Problem
-The downloadable PDF (`generateApiGuidePdf.ts`) is out of sync with the live web docs (`ApiDocs.tsx`). Several endpoints, fields, and sections present on the web are missing from the PDF.
+## Overview
+Create a fully-featured example store called **"NoCap Demo Store"** under the test merchant account (azarul@brainybunch.com) to showcase every marketplace capability. The store will be accessible at `/store/nocap-demo-store`.
 
-## Gaps Identified
+## What Gets Created (via database migration)
 
-| Missing in PDF | Present in Web |
+### 1. Store Record
+- **Name**: NoCap Demo Store
+- **Slug**: `nocap-demo-store`
+- **Theme**: `boutique` (the most visually rich preset)
+- **Tagline**: "Your One-Stop Lifestyle Shop"
+- **Description**: Full paragraph about the store
+- **Announcement bar**: Active with promotional text
+- **SEO metadata**: meta_title, meta_description
+- **Shipping**: RM 5 flat rate, free shipping above RM 50
+- **Store score**: 85
+- **Page layout**: Hero slideshow (3 slides with titles/CTAs), CTA banner section, About section, Testimonial
+- **Theme overrides**: Custom accent color, pill buttons
+- **Status**: `live`
+
+### 2. Categories (5)
+- Fashion, Electronics, Home & Living, Food & Beverages, Beauty
+
+### 3. Products (12)
+A diverse catalog across all categories with:
+- Realistic names, descriptions, prices (RM 10-250 range)
+- Stock quantities, SKUs
+- Mix of `is_featured` flags (4 featured)
+- Varied `sold_count` values for social proof
+- Placeholder images using Unsplash URLs (free, no API key needed)
+- Active status
+
+### 4. Store Menus (6)
+- Header: Shop All, New Arrivals, About Us
+- Footer: FAQ, Shipping Policy, Contact Us
+
+### 5. Banners (2)
+- Store-level promotional banners with Unsplash images
+
+### 6. Flash Sale (1)
+- One product with a discount to demo the flash sale badge
+
+## Technical Details
+
+| Item | Approach |
 |---|---|
-| `/api-distribute` endpoint (Path D) | Full endpoint with params, example, response |
-| Payment Flow Comparison (Path A vs D) | Side-by-side visual comparison |
-| `phone` field in `/api-referral-register` | Added recently — body param + curl example |
-| `topup` scope in OAuth scope list | Listed in authorize URL |
-| `distribution.completed` webhook event | Documented in distribute endpoint |
-| `user.registered` webhook event | Mentioned in referral-register |
-| `/api-distribute` in rate limits table | 60 req/min |
-| `/api-topup` in rate limits table | 30 req/min (present in web, inconsistent in PDF) |
-| Path D integration prompts (13-15) | Distribution prompts in IntegrationRoadmap |
-| Version date outdated | Says "Version 1.1 — February 2026" |
+| Data insertion | Single SQL migration with all INSERTs |
+| Merchant account | azarul@brainybunch.com (`59dfea5c-...`) |
+| Branch ID | `c75b84c6-b809-483e-a557-c92f4acc33d6` |
+| Images | Unsplash direct URLs (no upload needed) |
+| No code changes | Pure data — all UI components already exist |
 
-## Changes to `src/lib/generateApiGuidePdf.ts`
+## Result
+After migration, the store will be live at:
+**`/store/nocap-demo-store`**
 
-1. **Update version** to "1.2 — April 2026"
-2. **Add `phone` field** to section 4.2 (referral-register) — add to table row and curl example
-3. **Add `topup` scope** to OAuth scope parameter description (section 2)
-4. **Add `/api-distribute` endpoint** as new section 3d after top-up — include body params table, curl example, response, negative balance note
-5. **Add Payment Flow Comparison** summary (Path A wallet vs Path D cash/card) as a new section after distribute
-6. **Add webhook events**: `distribution.completed`, `user.registered`, `topup.completed`, `topup.failed` (some already present, ensure complete)
-7. **Update rate limits table** to include `/api-distribute` (60/min) and `/api-topup` (30/min)
-8. **Update Prompt 4** in integration roadmap section to include `phone` field
-9. **Add Path D prompts** (13-15) for distribution integration if present in web roadmap
-
-## Files to Edit
-
-| File | Change |
-|---|---|
-| `src/lib/generateApiGuidePdf.ts` | Full sync — add missing endpoints, fields, events, update version |
-
-Single file change, no database or edge function modifications needed.
+Featuring: hero carousel, announcement bar, trust strip, category grid, featured products, new arrivals, all products grid, flash sale badges, store footer, sticky header, follow button, and store score badge — all working out of the box.
 
