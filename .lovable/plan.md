@@ -1,48 +1,62 @@
 
 
-# Fix Demo Store Checkout Errors
+# Plan: Update OAuth Authorize Page to Password-Based Flow
 
-## Issues Found
+## Current State
+The `/authorize` page (used by Brainy Bunch Wallet, DRE Coffee, AhmadsOS) currently uses an **OTP-based** login flow:
+1. User enters email → system sends OTP → user verifies OTP → consent screen
 
-### 1. Wrong `merchant_user_id` on Demo Store (Critical)
-The demo store was created with `merchant_user_id = '59dfea5c-f9d7-4da3-973e-a0078480930f'` — a UUID that **does not exist** in the system. The correct merchant (azarul@brainybunch.com) has user ID `59dfea5c-75c7-42a7-90ed-d4b511c87474`. This causes failures when the edge function tries to send notifications or credit wallets for the non-existent merchant.
+The main NoCap login page (`/auth`) uses a **password-based** flow:
+1. User enters email → system checks if account exists
+2. **Existing user with password** → password login dialog
+3. **Existing user without password** → set password dialog
+4. **New user** → show referral code + password fields → register
 
-### 2. "Cannot buy from your own store" Block
-If testing as azarul (the merchant), the self-purchase check would block checkout — but only once the `merchant_user_id` is corrected. The current wrong ID accidentally bypasses this check.
+## Proposed Changes
 
-### 3. Low Test Wallet Balance
-The test member wallet (azarul) has only RM 51.63. Many products plus RM 5 shipping exceed this. Orders >= RM 100 also require a PIN.
+### File: `src/pages/Authorize.tsx`
+Replace the OTP-based authentication with the same password-first flow used in `Auth.tsx`:
 
-## Plan
+1. **Remove** OTP-related logic (`sendOtpViaEdgeFunction`, `handleSendOtp`, `handleVerifyOtp`, OTP step UI)
+2. **Remove** imports for `verifyOtp`, `signUp` with random password pattern
+3. **Add** imports for `signInWithPassword`, `signUp` (with user-chosen password), and `checkHasPassword` edge function call
+4. **Update step type** from `"login" | "register" | "otp" | "consent"` to `"login" | "register" | "consent"` (password entry handled inline/dialog like Auth.tsx)
+5. **Add password fields** to the login step — after email submission, show password input for existing users
+6. **Add set-password dialog** for existing users who haven't set a password yet
+7. **Add registration fields** (referral code + password + confirm password + PasswordStrengthIndicator) for new users
+8. **Add forgot password** button that triggers `resetPasswordForEmail`
 
-### Step 1: Fix Demo Store `merchant_user_id` (SQL Migration)
-Update the store record to use the correct merchant user ID:
-```sql
-UPDATE marketplace_stores 
-SET merchant_user_id = '59dfea5c-75c7-42a7-90ed-d4b511c87474'
-WHERE id = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+### Flow After Changes
+```text
+User enters email → "Continue"
+  ├─ User exists + has password → Show password field → Sign in → Consent
+  ├─ User exists + no password → Show "Set Password" dialog → Set → Sign in → Consent
+  └─ User not found → Show referral code + password + confirm password → Register → Sign in → Consent
 ```
 
-### Step 2: Top Up Test Wallet
-Credit the test member wallet with enough balance for testing:
-```sql
-SELECT credit_wallet(
-  '59dfea5c-75c7-42a7-90ed-d4b511c87474'::uuid, 
-  'member', 
-  500.00
-);
-INSERT INTO transactions (user_id, type, amount, status, description)
-VALUES ('59dfea5c-75c7-42a7-90ed-d4b511c87474', 'top_up', 500.00, 'completed', 'Test balance top-up');
-```
+This exactly mirrors the `/auth` page behavior.
 
-### Step 3: Allow Merchant Self-Purchase for Testing (Optional)
-If you want to test checkout as azarul on the demo store, we'd need a different test account. Alternatively, we can skip the self-purchase check for now during testing.
+## Implications to Existing Integrations
 
-## Files Changed
-- **Database migration only** — no code file changes needed
+### No Breaking Changes for 3rd-Party Apps
+- **URL structure unchanged**: `/authorize?client_id=...&redirect_uri=...&scope=...` remains the same
+- **Token exchange unchanged**: The authorization code generation and redirect-back logic is untouched
+- **Consent screen unchanged**: Same permissions display and approve/deny flow
+- **All three apps** (Brainy Bunch, DRE Coffee, AhmadsOS) will work without any code changes on their end
 
-## Technical Notes
-- The edge function logic itself is correct; the issue is data-level
-- Once `merchant_user_id` is fixed, merchant notifications and wallet credits will work properly
-- The nightly test reset may overwrite the wallet balance — this is expected
+### Behavioral Changes
+- **Existing NoCap members** who previously logged in via OTP will now use their password instead. If they haven't set a password, they'll be prompted to create one (same as main login)
+- **New users** registering via OAuth will now create a proper password (instead of a random one), so they can also log in directly on nocap.life afterward
+- **OTP dependency removed** from OAuth flow — no more reliance on the `send-otp` edge function for authorization, reducing email delivery friction
+
+### Benefits
+- Consistent user experience across all entry points
+- New users get a usable password immediately (no "set password later" needed)
+- Reduces support confusion — one login method everywhere
+
+## Technical Details
+- Reuse `check-has-password` and `set-initial-password` edge functions (already deployed)
+- Import `PasswordStrengthIndicator` component (already exists)
+- Keep the `api-app-info` resolution logic and consent flow completely unchanged
+- Keep the `resolvedAppId` dual-format lookup (UUID/hex) intact
 
