@@ -1,61 +1,48 @@
 
 
-# Build a Perfect Demo Store in the Marketplace
+# Fix Demo Store Checkout Errors
 
-## Overview
-Create a fully-featured example store called **"NoCap Demo Store"** under the test merchant account (azarul@brainybunch.com) to showcase every marketplace capability. The store will be accessible at `/store/nocap-demo-store`.
+## Issues Found
 
-## What Gets Created (via database migration)
+### 1. Wrong `merchant_user_id` on Demo Store (Critical)
+The demo store was created with `merchant_user_id = '59dfea5c-f9d7-4da3-973e-a0078480930f'` — a UUID that **does not exist** in the system. The correct merchant (azarul@brainybunch.com) has user ID `59dfea5c-75c7-42a7-90ed-d4b511c87474`. This causes failures when the edge function tries to send notifications or credit wallets for the non-existent merchant.
 
-### 1. Store Record
-- **Name**: NoCap Demo Store
-- **Slug**: `nocap-demo-store`
-- **Theme**: `boutique` (the most visually rich preset)
-- **Tagline**: "Your One-Stop Lifestyle Shop"
-- **Description**: Full paragraph about the store
-- **Announcement bar**: Active with promotional text
-- **SEO metadata**: meta_title, meta_description
-- **Shipping**: RM 5 flat rate, free shipping above RM 50
-- **Store score**: 85
-- **Page layout**: Hero slideshow (3 slides with titles/CTAs), CTA banner section, About section, Testimonial
-- **Theme overrides**: Custom accent color, pill buttons
-- **Status**: `live`
+### 2. "Cannot buy from your own store" Block
+If testing as azarul (the merchant), the self-purchase check would block checkout — but only once the `merchant_user_id` is corrected. The current wrong ID accidentally bypasses this check.
 
-### 2. Categories (5)
-- Fashion, Electronics, Home & Living, Food & Beverages, Beauty
+### 3. Low Test Wallet Balance
+The test member wallet (azarul) has only RM 51.63. Many products plus RM 5 shipping exceed this. Orders >= RM 100 also require a PIN.
 
-### 3. Products (12)
-A diverse catalog across all categories with:
-- Realistic names, descriptions, prices (RM 10-250 range)
-- Stock quantities, SKUs
-- Mix of `is_featured` flags (4 featured)
-- Varied `sold_count` values for social proof
-- Placeholder images using Unsplash URLs (free, no API key needed)
-- Active status
+## Plan
 
-### 4. Store Menus (6)
-- Header: Shop All, New Arrivals, About Us
-- Footer: FAQ, Shipping Policy, Contact Us
+### Step 1: Fix Demo Store `merchant_user_id` (SQL Migration)
+Update the store record to use the correct merchant user ID:
+```sql
+UPDATE marketplace_stores 
+SET merchant_user_id = '59dfea5c-75c7-42a7-90ed-d4b511c87474'
+WHERE id = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+```
 
-### 5. Banners (2)
-- Store-level promotional banners with Unsplash images
+### Step 2: Top Up Test Wallet
+Credit the test member wallet with enough balance for testing:
+```sql
+SELECT credit_wallet(
+  '59dfea5c-75c7-42a7-90ed-d4b511c87474'::uuid, 
+  'member', 
+  500.00
+);
+INSERT INTO transactions (user_id, type, amount, status, description)
+VALUES ('59dfea5c-75c7-42a7-90ed-d4b511c87474', 'top_up', 500.00, 'completed', 'Test balance top-up');
+```
 
-### 6. Flash Sale (1)
-- One product with a discount to demo the flash sale badge
+### Step 3: Allow Merchant Self-Purchase for Testing (Optional)
+If you want to test checkout as azarul on the demo store, we'd need a different test account. Alternatively, we can skip the self-purchase check for now during testing.
 
-## Technical Details
+## Files Changed
+- **Database migration only** — no code file changes needed
 
-| Item | Approach |
-|---|---|
-| Data insertion | Single SQL migration with all INSERTs |
-| Merchant account | azarul@brainybunch.com (`59dfea5c-...`) |
-| Branch ID | `c75b84c6-b809-483e-a557-c92f4acc33d6` |
-| Images | Unsplash direct URLs (no upload needed) |
-| No code changes | Pure data — all UI components already exist |
-
-## Result
-After migration, the store will be live at:
-**`/store/nocap-demo-store`**
-
-Featuring: hero carousel, announcement bar, trust strip, category grid, featured products, new arrivals, all products grid, flash sale badges, store footer, sticky header, follow button, and store score badge — all working out of the box.
+## Technical Notes
+- The edge function logic itself is correct; the issue is data-level
+- Once `merchant_user_id` is fixed, merchant notifications and wallet credits will work properly
+- The nightly test reset may overwrite the wallet balance — this is expected
 
