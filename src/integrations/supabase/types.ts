@@ -2675,6 +2675,8 @@ export type Database = {
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          settled_at: string | null
+          settlement_ref: string | null
           status: string
           updated_at: string
           user_id: string
@@ -2691,6 +2693,8 @@ export type Database = {
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          settled_at?: string | null
+          settlement_ref?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -2707,6 +2711,8 @@ export type Database = {
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          settled_at?: string | null
+          settlement_ref?: string | null
           status?: string
           updated_at?: string
           user_id?: string
