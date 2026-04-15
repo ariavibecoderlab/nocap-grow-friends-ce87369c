@@ -367,8 +367,9 @@ Register a new NoCap account for a customer via API, automatically linked by ref
 
 **Body Parameters:**
 - \`email\` (string, required): New user's email address.
-- \`referral_code\` (string, optional): Referral code of the referring user.
 - \`full_name\` (string, optional): User's full name.
+- \`phone\` (string, optional): User's phone number in Malaysian format (\`+60xxxxxxxxx\` or \`01xxxxxxxxx\`).
+- \`referral_code\` (string, optional): Referral code of the referring user.
 
 **Request:**
 \`\`\`bash
@@ -378,8 +379,9 @@ curl -X POST "${BASE_URL}/api-referral-register" \\
   -H "Content-Type: application/json" \\
   -d '{
     "email": "newuser@example.com",
-    "referral_code": "A1B2C3D4",
-    "full_name": "Ahmad Bin Ali"
+    "full_name": "Ahmad Bin Ali",
+    "phone": "+60123456789",
+    "referral_code": "A1B2C3D4"
   }'
 \`\`\`
 

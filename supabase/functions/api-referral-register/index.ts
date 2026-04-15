@@ -61,12 +61,23 @@ serve(async (req) => {
       });
     }
 
-    const { email, referral_code, full_name } = body;
+    const { email, referral_code, full_name, phone } = body;
 
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return new Response(JSON.stringify({ error: 'Valid email is required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Validate phone format if provided (Malaysian: +60xxxxxxxxx or 01xxxxxxxxx)
+    if (phone) {
+      const phoneStr = String(phone).trim();
+      const validPhone = /^(\+60|60|01)\d{7,10}$/.test(phoneStr);
+      if (!validPhone) {
+        return new Response(JSON.stringify({ error: 'Invalid phone format. Use Malaysian format: +60xxxxxxxxx or 01xxxxxxxxx' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // Validate referral code if provided
@@ -93,6 +104,7 @@ serve(async (req) => {
       user_metadata: {
         full_name: full_name || '',
         referral_code: referral_code || '',
+        phone: phone ? String(phone).trim() : '',
       },
     });
 
@@ -159,6 +171,14 @@ serve(async (req) => {
 
     // Wait briefly for the handle_new_user trigger to create the profile
     await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Update phone on the profile if provided
+    if (phone) {
+      await supabase
+        .from('profiles')
+        .update({ phone: String(phone).trim() })
+        .eq('user_id', newUserId);
+    }
 
     // Get the new user's profile
     const { data: newProfile } = await supabase
@@ -233,6 +253,8 @@ serve(async (req) => {
           event: 'user.registered',
           user_id: newUserId,
           email: email.trim().toLowerCase(),
+          full_name: full_name || '',
+          phone: phone ? String(phone).trim() : '',
           referral_code: newProfile?.referral_code || '',
           referred_by: referral_code || null,
           timestamp: new Date().toISOString(),
