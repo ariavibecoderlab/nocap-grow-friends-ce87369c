@@ -27,7 +27,7 @@ const Authorize = () => {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
 
-  const appId = searchParams.get("app_id") || searchParams.get("client_id") || "";
+  const rawAppId = searchParams.get("app_id") || searchParams.get("client_id") || "";
   const redirectUri = searchParams.get("redirect_uri") || searchParams.get("callback_url") || "";
   const state = searchParams.get("state") || "";
   const scopeParam = searchParams.get("scope") || searchParams.get("scopes") || "balance,charge";
@@ -42,17 +42,19 @@ const Authorize = () => {
   const [appError, setAppError] = useState("");
   const [approving, setApproving] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
+  // Resolved UUID of the app (may differ from rawAppId if caller passed api_key)
+  const [resolvedAppId, setResolvedAppId] = useState("");
 
   // Validate required params
   useEffect(() => {
-    if (!appId || !redirectUri) {
+    if (!rawAppId || !redirectUri) {
       setAppError("Missing required parameters: app_id and redirect_uri are required.");
       return;
     }
-    // Fetch app info via edge function (bypasses RLS)
+    // Fetch app info via edge function (bypasses RLS, resolves api_key → UUID)
     const fetchApp = async () => {
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-app-info?app_id=${encodeURIComponent(appId)}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-app-info?app_id=${encodeURIComponent(rawAppId)}`,
         { headers: { "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
       );
       const result = await res.json();
@@ -60,10 +62,11 @@ const Authorize = () => {
         setAppError("Application not found or inactive.");
       } else {
         setAppName(result.name);
+        setResolvedAppId(result.id);
       }
     };
     fetchApp();
-  }, [appId, redirectUri]);
+  }, [rawAppId, redirectUri]);
 
   // If user is already logged in, skip to consent
   useEffect(() => {
