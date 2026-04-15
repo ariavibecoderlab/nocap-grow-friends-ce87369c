@@ -30,7 +30,7 @@ export default function ImageUploadField({ label, value, onChange, folder = "bui
 
     setUploading(true);
     try {
-      const compressed = await compressImageFile(file);
+      const compressed = await compressImage(file);
       const ext = file.name.split(".").pop() || "jpg";
       const path = `${folder}/${crypto.randomUUID()}.${ext}`;
 
