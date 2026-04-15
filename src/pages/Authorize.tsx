@@ -1,18 +1,16 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { signUp, verifyOtp } from "@/lib/auth";
-import { FunctionsHttpError } from "@supabase/supabase-js";
-import { Zap, Shield, Wallet, CreditCard, ArrowLeft, Loader2, CheckCircle2, XCircle, ArrowUpCircle, UserPlus } from "lucide-react";
-
-type Step = "login" | "register" | "otp" | "consent";
+import { signUp, signInWithPassword } from "@/lib/auth";
+import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
+import { Shield, Wallet, CreditCard, ArrowLeft, Loader2, CheckCircle2, XCircle, ArrowUpCircle, Zap } from "lucide-react";
 
 const SCOPE_LABELS: Record<string, { label: string; icon: React.ReactNode; description: string }> = {
   balance: { label: "View Balance", icon: <Wallet className="h-4 w-4" />, description: "Read your wallet balance" },
@@ -21,9 +19,10 @@ const SCOPE_LABELS: Record<string, { label: string; icon: React.ReactNode; descr
   topup: { label: "Wallet Top-Up", icon: <ArrowUpCircle className="h-4 w-4" />, description: "Initiate wallet top-ups via FPX bank transfer" },
 };
 
+type Step = "login" | "register" | "consent";
+
 const Authorize = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
 
@@ -35,23 +34,26 @@ const Authorize = () => {
 
   const [step, setStep] = useState<Step>("login");
   const [email, setEmail] = useState("");
-  const [otpCode, setOtpCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [appName, setAppName] = useState("");
   const [appError, setAppError] = useState("");
   const [approving, setApproving] = useState(false);
-  const [isNewUser, setIsNewUser] = useState(false);
-  // Resolved UUID of the app (may differ from rawAppId if caller passed api_key)
   const [resolvedAppId, setResolvedAppId] = useState("");
+  const [isNewEmail, setIsNewEmail] = useState(false);
 
-  // Validate required params
+  // Dialog states (matching Auth.tsx pattern)
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showSetPasswordDialog, setShowSetPasswordDialog] = useState(false);
+
+  // Validate required params & fetch app info
   useEffect(() => {
     if (!rawAppId || !redirectUri) {
       setAppError("Missing required parameters: app_id and redirect_uri are required.");
       return;
     }
-    // Fetch app info via edge function (bypasses RLS, resolves api_key → UUID)
     const fetchApp = async () => {
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-app-info?app_id=${encodeURIComponent(rawAppId)}`,
@@ -75,111 +77,167 @@ const Authorize = () => {
     }
   }, [user, authLoading, appError]);
 
-  const sendOtpViaEdgeFunction = async (targetEmail: string) => {
-    try {
-      const response = await supabase.functions.invoke('send-otp', {
-        body: { email: targetEmail },
-      });
-      let errorMessage: string | null = null;
-      if (response.error) {
-        if (response.error instanceof FunctionsHttpError) {
-          try {
-            const errorBody = await response.error.context.json();
-            errorMessage = errorBody?.error || response.error.message;
-          } catch {
-            errorMessage = response.error.message;
-          }
-        } else {
-          errorMessage = response.error.message || String(response.error);
-        }
-      } else if (response.data?.error) {
-        errorMessage = response.data.error;
-      }
-      return { ...response, errorMessage };
-    } catch (err) {
-      return { data: null, error: err, errorMessage: err instanceof Error ? err.message : String(err) };
-    }
+  const checkHasPassword = async (targetEmail: string) => {
+    const { data, error } = await supabase.functions.invoke('check-has-password', {
+      body: { email: targetEmail },
+    });
+    if (error) return null;
+    return data as { exists: boolean; has_password: boolean };
   };
 
-  const handleSendOtp = async () => {
+  const setInitialPassword = async (targetEmail: string, pwd: string) => {
+    const { data, error } = await supabase.functions.invoke('set-initial-password', {
+      body: { email: targetEmail, password: pwd },
+    });
+    if (error) return { success: false, error: error.message || 'Failed to set password' };
+    if (data?.error) return { success: false, error: data.error };
+    return { success: true, error: null };
+  };
+
+  const handleEmailSubmit = async () => {
     if (!email) return;
+
+    // Registration path
+    if (isNewEmail) {
+      if (!referralCode) {
+        toast({ title: "Referral code required", description: "Please enter a valid referral code to register.", variant: "destructive" });
+        return;
+      }
+      if (password.length < 6) {
+        toast({ title: "Password required", description: "Password must be at least 6 characters.", variant: "destructive" });
+        return;
+      }
+      if (password !== confirmPassword) {
+        toast({ title: "Error", description: "Passwords do not match.", variant: "destructive" });
+        return;
+      }
+
+      setLoading(true);
+
+      // Validate referral code
+      const { data: referrer } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("referral_code", referralCode.toUpperCase())
+        .maybeSingle();
+
+      if (!referrer) {
+        toast({ title: "Invalid referral code", description: "This referral code does not exist.", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+
+      const { error: signUpError } = await signUp(email, password, "", "", referralCode.toUpperCase());
+
+      if (signUpError) {
+        if (signUpError.message?.toLowerCase().includes("already registered")) {
+          toast({ title: "Email already registered", description: "Please sign in instead.", variant: "destructive" });
+          setIsNewEmail(false);
+        } else {
+          toast({ title: "Registration failed", description: signUpError.message, variant: "destructive" });
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Mark has_password
+      await supabase.functions.invoke('set-initial-password', {
+        body: { email, password },
+      });
+
+      // Sign out so user logs in fresh
+      await supabase.auth.signOut();
+
+      toast({ title: "Account created!", description: "Please login with your email and password." });
+      setPassword("");
+      setConfirmPassword("");
+      setReferralCode("");
+      setIsNewEmail(false);
+      setLoading(false);
+      return;
+    }
+
+    // Existing user path
     setLoading(true);
     try {
-      const { error, data, errorMessage } = await sendOtpViaEdgeFunction(email);
-      if (error || data?.error) {
-        if (errorMessage === 'User not found') {
-          setIsNewUser(true);
-          setStep("register");
-        } else {
-          toast({ title: "Error", description: errorMessage || "Could not send OTP. Please try again.", variant: "destructive" });
-        }
+      const result = await checkHasPassword(email);
+
+      if (!result) {
+        toast({ title: "Error", description: "Could not check account. Please try again.", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+
+      if (!result.exists) {
+        setIsNewEmail(true);
+        setLoading(false);
+        return;
+      }
+
+      if (result.has_password) {
+        setPassword("");
+        setShowPasswordDialog(true);
       } else {
-        toast({ title: "OTP Sent", description: "Check your email for the verification code." });
-        setStep("otp");
+        setPassword("");
+        setConfirmPassword("");
+        setShowSetPasswordDialog(true);
       }
     } catch {
-      toast({ title: "Error", description: "Failed to send OTP.", variant: "destructive" });
+      toast({ title: "Error", description: "Something went wrong. Please try again.", variant: "destructive" });
     }
     setLoading(false);
   };
 
-  const handleRegister = async () => {
-    if (!email || !referralCode) return;
+  const handlePasswordLogin = async () => {
     setLoading(true);
-
-    // Validate referral code
-    const { data: referrer } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("referral_code", referralCode.toUpperCase())
-      .maybeSingle();
-
-    if (!referrer) {
-      toast({ title: "Invalid referral code", description: "This referral code does not exist.", variant: "destructive" });
-      setLoading(false);
-      return;
-    }
-
-    // Sign up with random password
-    const randomPassword = crypto.randomUUID();
-    const { error: signUpError } = await signUp(email, randomPassword, "", "", referralCode.toUpperCase());
-
-    if (signUpError) {
-      if (signUpError.message?.toLowerCase().includes("already registered")) {
-        toast({ title: "Email already registered", description: "Please sign in instead.", variant: "destructive" });
-        setIsNewUser(false);
-        setStep("login");
-      } else {
-        toast({ title: "Registration failed", description: signUpError.message, variant: "destructive" });
-      }
-      setLoading(false);
-      return;
-    }
-
-    // Sign out so user verifies via OTP
-    await supabase.auth.signOut();
-
-    // Send OTP to newly created user
-    const { error: otpError, data: otpData } = await sendOtpViaEdgeFunction(email);
-    if (otpError || otpData?.error) {
-      toast({ title: "Account created", description: "Please try signing in again.", variant: "destructive" });
-      setIsNewUser(false);
-      setStep("login");
-      setLoading(false);
-      return;
-    }
-
-    toast({ title: "Account created!", description: "Check your email for the verification code." });
-    setStep("otp");
-    setLoading(false);
-  };
-  const handleVerifyOtp = async () => {
-    setLoading(true);
-    const { error } = await verifyOtp(email, otpCode);
+    const { error } = await signInWithPassword(email, password);
     if (error) {
-      toast({ title: "Invalid OTP", description: error.message, variant: "destructive" });
+      toast({ title: "Login failed", description: error.message, variant: "destructive" });
     } else {
+      setShowPasswordDialog(false);
       setStep("consent");
+    }
+    setLoading(false);
+  };
+
+  const handleSetPassword = async () => {
+    if (password.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+    const result = await setInitialPassword(email, password);
+
+    if (!result.success) {
+      toast({ title: "Error", description: result.error || "Failed to set password", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
+    setShowSetPasswordDialog(false);
+    toast({ title: "Password set!", description: "Please login with your new password." });
+    setPassword("");
+    setConfirmPassword("");
+    setIsNewEmail(false);
+    setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Email sent", description: "Check your email for the password reset link." });
+      setShowPasswordDialog(false);
     }
     setLoading(false);
   };
@@ -189,7 +247,6 @@ const Authorize = () => {
     setApproving(true);
 
     try {
-      // Generate auth code
       const codeBytes = new Uint8Array(32);
       crypto.getRandomValues(codeBytes);
       const code = Array.from(codeBytes).map(b => b.toString(16).padStart(2, "0")).join("");
@@ -215,7 +272,6 @@ const Authorize = () => {
         return;
       }
 
-      // Redirect back to 3rd party with code
       const separator = redirectUri.includes("?") ? "&" : "?";
       let callbackUrl = `${redirectUri}${separator}code=${code}`;
       if (state) callbackUrl += `&state=${encodeURIComponent(state)}`;
@@ -286,77 +342,52 @@ const Authorize = () => {
                     type="email"
                     placeholder="you@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
+                    onChange={(e) => { setEmail(e.target.value); setIsNewEmail(false); }}
+                    onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
                     className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
                   />
                 </div>
-                <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleSendOtp} disabled={loading || !email}>
-                  {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending...</> : "Send OTP"}
-                </Button>
-              </CardContent>
-            </>
-          )}
 
-          {/* Register step */}
-          {step === "register" && (
-            <>
-              <CardHeader className="text-center">
-                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-secondary/10">
-                  <UserPlus className="h-5 w-5 text-secondary" />
-                </div>
-                <CardTitle className="text-lg text-white">Create NoCap Account</CardTitle>
-                <CardDescription className="text-white/50">
-                  No account found for <span className="text-white font-medium">{email}</span>. Enter a referral code to register.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-white/70">Referral Code</Label>
-                  <Input
-                    type="text"
-                    placeholder="Enter referral code"
-                    value={referralCode}
-                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                    onKeyDown={(e) => e.key === "Enter" && handleRegister()}
-                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30 uppercase tracking-wider"
-                    autoFocus
-                  />
-                </div>
-                <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleRegister} disabled={loading || !referralCode}>
-                  {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating Account...</> : "Create Account & Send OTP"}
-                </Button>
-                <Button variant="ghost" className="w-full text-xs text-white/40 hover:text-white" onClick={() => { setStep("login"); setIsNewUser(false); }}>
-                  <ArrowLeft className="h-3 w-3 mr-1" /> Back to Sign In
-                </Button>
-              </CardContent>
-            </>
-          )}
+                {isNewEmail && (
+                  <>
+                    <div className="space-y-2">
+                      <Label className="text-white/70">Referral Code *</Label>
+                      <Input
+                        type="text"
+                        placeholder="Enter referral code"
+                        value={referralCode}
+                        onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                        className="uppercase border-white/10 bg-white/5 text-white placeholder:text-white/30 tracking-wider"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-white/70">Password *</Label>
+                      <Input
+                        type="password"
+                        placeholder="Min 6 characters"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                      />
+                      <PasswordStrengthIndicator password={password} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-white/70">Confirm Password *</Label>
+                      <Input
+                        type="password"
+                        placeholder="Re-enter password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
+                        className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                      />
+                    </div>
+                    <p className="text-xs text-white/40">No account found for this email. Fill in the details above to create one.</p>
+                  </>
+                )}
 
-          {/* OTP step */}
-          {step === "otp" && (
-            <>
-              <CardHeader className="text-center">
-                <CardTitle className="text-lg text-white">Verify OTP</CardTitle>
-                <CardDescription className="text-white/50">
-                  Enter the 6-digit code sent to {email}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Enter code"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                  className="text-center text-lg tracking-widest font-semibold border-white/10 bg-white/5 text-white placeholder:text-white/30"
-                  autoFocus
-                />
-                <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleVerifyOtp} disabled={loading || otpCode.length < 6}>
-                  {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Verifying...</> : "Verify"}
-                </Button>
-                <Button variant="ghost" className="w-full text-xs text-white/40 hover:text-white" onClick={() => setStep("login")}>
-                  <ArrowLeft className="h-3 w-3 mr-1" /> Back
+                <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleEmailSubmit} disabled={loading || !email}>
+                  {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Please wait...</> : isNewEmail ? "Create Account" : "Continue"}
                 </Button>
               </CardContent>
             </>
@@ -418,6 +449,77 @@ const Authorize = () => {
           )}
         </Card>
       </div>
+
+      {/* Password Login Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="border-white/10 bg-primary text-white sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-white">Enter Password</DialogTitle>
+            <DialogDescription className="text-white/50">Sign in to your NoCap account</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="loginPwd" className="text-white/70">Password</Label>
+              <Input
+                id="loginPwd"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
+                className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                autoFocus
+              />
+            </div>
+            <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handlePasswordLogin} disabled={loading}>
+              {loading ? "Signing in..." : "Sign In"}
+            </Button>
+            <Button variant="ghost" className="w-full text-sm text-white/40 hover:text-white hover:bg-white/10" onClick={handleForgotPassword} disabled={loading}>
+              Forgot Password?
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Set Password Dialog */}
+      <Dialog open={showSetPasswordDialog} onOpenChange={setShowSetPasswordDialog}>
+        <DialogContent className="border-white/10 bg-primary text-white sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-white">Set Your Password</DialogTitle>
+            <DialogDescription className="text-white/50">Create a password for your NoCap account</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPwd" className="text-white/70">New Password</Label>
+              <Input
+                id="newPwd"
+                type="password"
+                placeholder="Min 6 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                autoFocus
+              />
+              <PasswordStrengthIndicator password={password} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPwd" className="text-white/70">Confirm Password</Label>
+              <Input
+                id="confirmPwd"
+                type="password"
+                placeholder="Re-enter password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSetPassword()}
+                className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+              />
+            </div>
+            <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleSetPassword} disabled={loading}>
+              {loading ? "Setting password..." : "Set Password"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
