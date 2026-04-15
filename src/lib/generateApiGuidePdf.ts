@@ -8,21 +8,16 @@ export function generateApiGuidePdf() {
   let y = 20;
 
   // === BRANDED HEADER ===
-  // Black banner
   doc.setFillColor(15, 15, 15);
   doc.rect(0, 0, pageWidth, 44, "F");
-
-  // Yellow accent bar
-  doc.setFillColor(250, 204, 21); // secondary yellow
+  doc.setFillColor(250, 204, 21);
   doc.rect(0, 44, pageWidth, 2, "F");
 
-  // Zap icon (⚡ drawn as polygon)
   const zx = margin + 1, zy = 12;
   doc.setFillColor(250, 204, 21);
   doc.triangle(zx + 4, zy, zx, zy + 8, zx + 5, zy + 7, "F");
   doc.triangle(zx + 2, zy + 7, zx + 6, zy + 15, zx + 3, zy + 8, "F");
 
-  // "NOcap" text
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
   doc.setTextColor(255, 255, 255);
@@ -31,16 +26,14 @@ export function generateApiGuidePdf() {
   doc.setTextColor(250, 204, 21);
   doc.text("cap", margin + 12 + noWidth, 24);
 
-  // Subtitle
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(180, 180, 180);
   doc.text("API Integration Guide", margin + 12, 32);
 
-  // Version info right-aligned
   doc.setFontSize(8);
   doc.setTextColor(120, 120, 120);
-  doc.text("Version 1.1 — February 2026", pageWidth - margin, 32, { align: "right" });
+  doc.text("Version 1.2 — April 2026", pageWidth - margin, 32, { align: "right" });
 
   y = 54;
 
@@ -138,7 +131,7 @@ export function generateApiGuidePdf() {
 
   // --- Overview ---
   heading("1. Overview");
-  paragraph("NoCap provides a REST API that allows third-party applications to check user wallet balances, create charges from user wallets, process refunds, query charge history, initiate wallet top-ups via FPX, and access referral/affiliate features. All access is secured via OAuth 2.0 Authorization Code flow.");
+  paragraph("NoCap provides a REST API that allows third-party applications to check user wallet balances, create charges from user wallets, process refunds, query charge history, initiate wallet top-ups via FPX, trigger cashback & commission distributions, and access referral/affiliate features. All access is secured via OAuth 2.0 Authorization Code flow.");
 
   subheading("Credentials");
   tableRow(["Credential", "Purpose"], true);
@@ -249,6 +242,33 @@ export function generateApiGuidePdf() {
   tableRow(["403", "Access token does not have the required scope: topup", "Missing topup scope"]);
   tableRow(["409", "A top-up with this reference already exists", "Duplicate reference"]);
 
+  // --- Distribution ---
+  heading("3d. Cashback & Commission Distribution");
+  subheading("3.9 Distribute — POST /api-distribute");
+  paragraph("Server-to-server only. Auth: x-api-key + x-api-secret (no Bearer token needed). Triggers cashback for the purchasing member and tier commissions for up to 5 referral ancestors.");
+  tableRow(["Field", "Type", "Required", "Description"], true);
+  tableRow(["branch_id", "UUID", "Yes", "Branch where sale occurred"]);
+  tableRow(["member_referral_code", "string", "Conditional", "Member's referral code (or use user_id)"]);
+  tableRow(["user_id", "UUID", "Conditional", "Member's NoCap user ID (or use member_referral_code)"]);
+  tableRow(["amount", "number", "Yes", "Sale amount — commission pool calculated from branch commission_percent"]);
+  tableRow(["reference", "string", "Yes", "Unique idempotency key"]);
+  code(`curl -X POST ${BASE_URL}/api-distribute \\\n  -H "x-api-key: KEY" -H "x-api-secret: SECRET" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "branch_id": "BRANCH_UUID",\n    "member_referral_code": "A1B2C3D4",\n    "amount": 100.00,\n    "reference": "sale_20260415_001"\n  }'`);
+  paragraph("Response:");
+  code(`{\n  "success": true,\n  "distribution_id": "UUID",\n  "breakdown": {\n    "total_pool": 10.00,\n    "cashback": 1.67,\n    "tier_commissions": [\n      { "tier": 1, "amount": 1.67, "user_id": "..." },\n      { "tier": 2, "amount": 1.67, "user_id": "..." }\n    ],\n    "unclaimed_returned": 5.00,\n    "branch_debited": 10.00\n  }\n}`);
+  paragraph("The branch wallet is debited by the total pool amount (negative balances are allowed). Cashback (1/6 of pool) goes to the member, tier commissions (1/6 each) go to up to 5 referral ancestors, and unclaimed tiers are returned to the branch.");
+  subheading("Error Responses");
+  tableRow(["Status", "Error", "Meaning"], true);
+  tableRow(["400", "Validation error", "Missing or invalid fields"]);
+  tableRow(["401", "Invalid credentials", "Bad API key/secret"]);
+  tableRow(["404", "Branch or member not found", "Invalid branch_id or referral code"]);
+  tableRow(["409", "Duplicate reference", "Reference already used"]);
+
+  // --- Payment Flow Comparison ---
+  heading("3e. Payment Flow Comparison");
+  paragraph("Path A (Wallet Payment): Customer pays from their NoCap wallet via POST /api-charge. Requires OAuth connection with charge scope. Commission distribution is automatic — built into the charge flow.");
+  paragraph("Path D (Cash/Card + Distribution): Customer pays via cash, card, or other method outside NoCap. The 3rd party records the sale and calls POST /api-distribute to trigger cashback and commissions. No OAuth connection or wallet balance needed from the customer — only their referral code or user_id.");
+  paragraph("Key Difference: Path A moves money from the customer's wallet. Path D only distributes commissions from the branch wallet — no customer funds are touched.");
+
   // --- Referral / Affiliate Endpoints ---
   heading("4. Referral / Affiliate Endpoints");
   paragraph("These endpoints require the 'referral' OAuth scope. Existing connected users must re-authorize with scope=balance,charge,referral to access these endpoints.");
@@ -265,7 +285,8 @@ export function generateApiGuidePdf() {
   tableRow(["email", "string", "Yes", "New user's email"]);
   tableRow(["referral_code", "string", "Yes", "Referrer's code"]);
   tableRow(["full_name", "string", "No", "User's display name"]);
-  code(`curl -X POST ${BASE_URL}/api-referral-register \\\n  -H "x-api-key: KEY" -H "x-api-secret: SECRET" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "email": "newuser@example.com",\n    "referral_code": "A1B2C3D4",\n    "full_name": "Ahmad Bin Ali"\n  }'`);
+  tableRow(["phone", "string", "No", "Malaysian format (+60xxxxxxxxx)"]);
+  code(`curl -X POST ${BASE_URL}/api-referral-register \\\n  -H "x-api-key: KEY" -H "x-api-secret: SECRET" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "email": "newuser@example.com",\n    "referral_code": "A1B2C3D4",\n    "full_name": "Ahmad Bin Ali",\n    "phone": "+60123456789"\n  }'`);
   paragraph("Success response includes: user_id, referral_code (new user's own code), access_token, scopes.");
   paragraph("The new user's account is auto-confirmed. The referral tree and wallet are created automatically.");
 
@@ -286,7 +307,7 @@ export function generateApiGuidePdf() {
 
   // --- Webhooks ---
   heading("5. Webhooks");
-  paragraph("Configure your webhook URL in Merchant Dashboard > API Apps. NoCap sends POST requests with HMAC-SHA256 signed payloads for all charge events.");
+  paragraph("Configure your webhook URL in Merchant Dashboard > API Apps. NoCap sends POST requests with HMAC-SHA256 signed payloads for all events.");
 
   subheading("How Signing Works");
   paragraph("NoCap computes HMAC-SHA256 using your api_secret_hash (SHA-256 of your api_secret) as the key and the raw JSON payload as the message. Your server must verify this signature on every webhook.");
@@ -319,6 +340,8 @@ export function generateApiGuidePdf() {
   paragraph("charge.partial_refund — Partial refund processed.");
   paragraph("topup.completed — API-initiated wallet top-up successfully paid via FPX.");
   paragraph("topup.failed — API-initiated wallet top-up payment failed or cancelled.");
+  paragraph("distribution.completed — Cashback and commission distribution processed successfully. Payload includes full breakdown (cashback, tier commissions, unclaimed returned).");
+  paragraph("user.registered — New user account created via POST /api-referral-register. Payload includes user_id, email, and referral_code.");
 
   subheading("Retry Policy");
   paragraph("3 attempts with exponential backoff: immediate, 1s, 2s. Respond with 2xx to acknowledge. After 3 failures, webhook is logged as undelivered.");
@@ -337,11 +360,12 @@ export function generateApiGuidePdf() {
   tableRow(["/api-charges-list", "60/min per key"]);
   tableRow(["/api-refund", "20/min per key"]);
   tableRow(["/api-branches", "60/min per key"]);
+  tableRow(["/api-topup", "30/min per key"]);
+  tableRow(["/api-distribute", "60/min per key"]);
   tableRow(["/api-referral-info", "60/min per key"]);
   tableRow(["/api-referral-register", "10/min per app"]);
   tableRow(["/api-referral-network", "30/min per key"]);
   tableRow(["/api-cashback-history", "60/min per key"]);
-  tableRow(["/api-topup", "30/min per key"]);
 
   // --- Error Codes ---
   heading("7. Error Codes");
@@ -369,27 +393,28 @@ export function generateApiGuidePdf() {
 
   // --- 3rd Party Integration Roadmap ---
   heading("9. 3rd Party Integration Roadmap");
-  paragraph("This section provides a complete step-by-step guide for integrating NoCap into your system. Three paths are available:");
+  paragraph("This section provides a complete step-by-step guide for integrating NoCap into your system. Four paths are available:");
   paragraph("Path A (Prompts 1–9): New to NoCap — full integration from scratch.");
   paragraph("Path B (Prompts 6–9 only): Already have NoCap wallet — upgrade only.");
   paragraph("Path C (Prompts 10–12): Add wallet top-up to existing integration.");
+  paragraph("Path D (Prompt 13): Add cashback & commission distribution for cash/card sales.");
   paragraph("Important: Existing users do NOT need to disconnect. Wallet and payments continue working. Users only re-authorize once to unlock new features.");
-  paragraph("Important: Existing users do NOT need to disconnect. Wallet and payments continue working. Users only re-authorize once to unlock referral features.");
 
   subheading("Quick Reference");
-  tableRow(["Prompt", "New", "Upgrade", "Top-Up"], true);
-  tableRow(["1 — Credentials & DB", "Yes", "Skip", "Skip"]);
-  tableRow(["2 — API Service Layer", "Yes", "Skip", "Skip"]);
-  tableRow(["3 — OAuth Connection", "Yes", "Skip", "Skip"]);
-  tableRow(["4 — Registration + Referral", "Yes", "Skip", "Skip"]);
-  tableRow(["5 — Wallet Checkout", "Yes", "Skip", "Skip"]);
-  tableRow(["6 — Upgrade DB + APIs", "Yes", "Start here", "Skip"]);
-  tableRow(["7 — Re-auth for Referral", "Yes", "Yes", "Skip"]);
-  tableRow(["8 — Multi-Branch Routing", "Yes", "Yes", "Skip"]);
-  tableRow(["9 — Referral Dashboard", "Yes", "Yes", "Skip"]);
-  tableRow(["10 — Top-Up Service", "Skip", "Skip", "Start here"]);
-  tableRow(["11 — Re-auth for Top-Up", "Skip", "Skip", "Yes"]);
-  tableRow(["12 — Top-Up UI & Webhooks", "Skip", "Skip", "Yes"]);
+  tableRow(["Prompt", "New", "Upgrade", "Top-Up", "Dist"], true);
+  tableRow(["1 — Credentials & DB", "Yes", "Skip", "Skip", "Skip"]);
+  tableRow(["2 — API Service Layer", "Yes", "Skip", "Skip", "Skip"]);
+  tableRow(["3 — OAuth Connection", "Yes", "Skip", "Skip", "Skip"]);
+  tableRow(["4 — Registration + Referral", "Yes", "Skip", "Skip", "Skip"]);
+  tableRow(["5 — Wallet Checkout", "Yes", "Skip", "Skip", "Skip"]);
+  tableRow(["6 — Upgrade DB + APIs", "Yes", "Start here", "Skip", "Skip"]);
+  tableRow(["7 — Re-auth for Referral", "Yes", "Yes", "Skip", "Skip"]);
+  tableRow(["8 — Multi-Branch Routing", "Yes", "Yes", "Skip", "Skip"]);
+  tableRow(["9 — Referral Dashboard", "Yes", "Yes", "Skip", "Skip"]);
+  tableRow(["10 — Top-Up Service", "Skip", "Skip", "Start here", "Skip"]);
+  tableRow(["11 — Re-auth for Top-Up", "Skip", "Skip", "Yes", "Skip"]);
+  tableRow(["12 — Top-Up UI & Webhooks", "Skip", "Skip", "Yes", "Skip"]);
+  tableRow(["13 — Distribution", "Skip", "Skip", "Skip", "Start here"]);
 
   // --- Pre-Integration: NoCap Merchant Setup ---
   heading("10. Pre-Integration: NoCap Merchant Setup");
@@ -432,7 +457,7 @@ export function generateApiGuidePdf() {
   paragraph("5. No Disruption — Wallet balance, payment history, and all existing features remain intact throughout.");
 
   // --- Updated Prompts ---
-  heading("13. Integration Prompts (1–9)");
+  heading("13. Integration Prompts (1–13)");
 
   subheading("Prompt 1 — Store NoCap API Credentials");
   paragraph("(New integrators only) NoCap Merchant Action: Must have created a merchant-level API app and shared credentials.");
@@ -452,8 +477,8 @@ export function generateApiGuidePdf() {
   paragraph("Member Impact: Members see a consent screen and approve access.");
 
   subheading("Prompt 4 — Registration with Referral");
-  paragraph("(New integrators only) Add optional 'Referral Code' to signup. After account creation, call POST /api-referral-register. Store access_token, nocap_user_id, referral_code. Customer is auto-connected — no OAuth needed. If NoCap registration fails, don't block your signup.");
-  paragraph("Member Impact: New members get a NoCap wallet automatically if they enter a referral code.");
+  paragraph("(New integrators only) Add optional 'Referral Code' to signup. After account creation in your system, call POST /api-referral-register with { email, full_name, phone, referral_code }. Phone should be in Malaysian format (+60xxxxxxxxx). This creates the full NoCap account: auth user, profile, RM 0.00 wallet, member role, and referral tree links — all automatically. Store the returned user_id and referral_code for reference. If the call returns 409 (user already exists), skip silently. If NoCap registration fails for other reasons, don't block your signup — log and retry later.");
+  paragraph("Member Impact: New members get a full NoCap account (with wallet) created automatically when they register on the 3rd party system with a referral code.");
 
   subheading("Prompt 5 — Wallet Payment in Checkout");
   paragraph("(New integrators only) NoCap Merchant Action: Ensure sandbox mode is enabled for testing.");
@@ -493,6 +518,11 @@ export function generateApiGuidePdf() {
   paragraph("Build 'Top Up NoCap Wallet' button/page. Show balance via GET /api-balance. Enter amount (RM10–RM500). Call POST /api-topup. Open payment_url for FPX payment. Handle topup.completed and topup.failed webhooks (HMAC-SHA256, same pattern as charge webhooks). Update balance after success.");
   paragraph("Member Impact: Members can top up their NoCap wallet directly from the 3rd party app via FPX.");
 
+  subheading("Prompt 13 — 3rd Party Cashback & Commission Distribution");
+  paragraph("(Distribution upgrade — START HERE for Path D) Merchant Action: Ensure the API app has a webhook URL configured to receive distribution.completed events. Each branch must have commission_percent set.");
+  paragraph("Add a createDistribution service function that calls POST /api-distribute. Headers: x-api-key, x-api-secret (server-to-server, no Bearer token needed). Request body: { branch_id, member_referral_code (or user_id), amount (the sale amount), reference (unique idempotency key) }. The API calculates the commission pool automatically using the branch's commission_percent. Response: { success, distribution_id, breakdown: { total_pool, cashback, tier_commissions[], unclaimed_returned, branch_debited } }. The branch wallet is debited (negative balances allowed). Cashback (1/6 of pool) goes to the member, tier commissions (1/6 each) go to up to 5 referral ancestors, and unclaimed tiers are returned to the branch. Handle errors: 400 (validation/missing fields), 401 (invalid credentials), 404 (branch or member not found), 409 (duplicate reference). Set up webhook verification (HMAC-SHA256, same pattern as charge webhooks) for distribution.completed events. Build an admin/reporting page showing distribution history with breakdowns per branch.");
+  paragraph("Member Impact: Members automatically receive cashback when a 3rd party sale is recorded. Referral ancestors earn tier commissions.");
+
   // --- When a New Branch Opens ---
   heading("14. When a New Branch Opens");
   paragraph("When a merchant expands and opens a new branch/outlet, here's what needs to happen:");
@@ -524,6 +554,7 @@ export function generateApiGuidePdf() {
   paragraph("Q: What do I do when a new branch opens? A: Merchant creates the branch in the dashboard. 3rd party refreshes via GET /api-branches and maps the new branch. No credential changes needed.");
   paragraph("Q: Do I need a new API app for each branch? A: No. A single merchant-level app covers all current and future branches.");
   paragraph("Q: What if upgrading from branch-level to merchant-level? A: Create a new merchant-level app, complete Prompts 6–9, keep old app active during transition.");
+  paragraph("Q: What is Path D distribution? A: It allows 3rd parties to trigger cashback/commission for cash or card sales without requiring the customer to pay via NoCap wallet.");
 
   // Footer
   checkPage(20);
