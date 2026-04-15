@@ -198,7 +198,7 @@ const Authorize = () => {
         .from("api_authorization_codes")
         .insert({
           code,
-          app_id: appId,
+          app_id: resolvedAppId,
           user_id: user.id,
           scopes,
           redirect_uri: redirectUri,
