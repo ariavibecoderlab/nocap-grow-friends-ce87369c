@@ -1,44 +1,42 @@
 
 
-# Add Phone Number to API Referral Registration
+# Sync API Guide PDF with Web Version
 
-## Current State
-- `POST /api-referral-register` accepts `email` (required), `referral_code` (optional), `full_name` (optional)
-- The `profiles` table already has a `phone` column (text, nullable)
-- The edge function passes `full_name` via `user_metadata` but does NOT accept or store `phone`
-- After user creation, the `handle_new_user` trigger creates the profile but phone is left NULL
+## Problem
+The downloadable PDF (`generateApiGuidePdf.ts`) is out of sync with the live web docs (`ApiDocs.tsx`). Several endpoints, fields, and sections present on the web are missing from the PDF.
 
-## Changes Required
+## Gaps Identified
 
-### 1. Edge Function: `api-referral-register/index.ts`
-- Accept new `phone` field in the request body (optional, string)
-- Validate phone format (Malaysian format: starts with `+60` or `01`, 10-12 digits)
-- Pass phone into `user_metadata` on `createUser`
-- After profile is created by trigger, UPDATE `profiles` to set `phone` (the trigger won't set it from metadata)
+| Missing in PDF | Present in Web |
+|---|---|
+| `/api-distribute` endpoint (Path D) | Full endpoint with params, example, response |
+| Payment Flow Comparison (Path A vs D) | Side-by-side visual comparison |
+| `phone` field in `/api-referral-register` | Added recently — body param + curl example |
+| `topup` scope in OAuth scope list | Listed in authorize URL |
+| `distribution.completed` webhook event | Documented in distribute endpoint |
+| `user.registered` webhook event | Mentioned in referral-register |
+| `/api-distribute` in rate limits table | 60 req/min |
+| `/api-topup` in rate limits table | 30 req/min (present in web, inconsistent in PDF) |
+| Path D integration prompts (13-15) | Distribution prompts in IntegrationRoadmap |
+| Version date outdated | Says "Version 1.1 — February 2026" |
 
-### 2. API Docs: `api-docs/index.ts`
-- Add `phone` to the Body Parameters list
-- Update the curl example to include `"phone": "+60123456789"`
-- Update the request body description
+## Changes to `src/lib/generateApiGuidePdf.ts`
 
-### 3. Integration Roadmap: `IntegrationRoadmap.tsx`
-- Update Prompt 4 (Account Creation via Referral) to include `phone` in the request body: `{ email, full_name, phone, referral_code }`
-
-### 4. Webhook payload update
-- Include `phone` in the `user.registered` webhook event so 3rd parties get confirmation
+1. **Update version** to "1.2 — April 2026"
+2. **Add `phone` field** to section 4.2 (referral-register) — add to table row and curl example
+3. **Add `topup` scope** to OAuth scope parameter description (section 2)
+4. **Add `/api-distribute` endpoint** as new section 3d after top-up — include body params table, curl example, response, negative balance note
+5. **Add Payment Flow Comparison** summary (Path A wallet vs Path D cash/card) as a new section after distribute
+6. **Add webhook events**: `distribution.completed`, `user.registered`, `topup.completed`, `topup.failed` (some already present, ensure complete)
+7. **Update rate limits table** to include `/api-distribute` (60/min) and `/api-topup` (30/min)
+8. **Update Prompt 4** in integration roadmap section to include `phone` field
+9. **Add Path D prompts** (13-15) for distribution integration if present in web roadmap
 
 ## Files to Edit
 
 | File | Change |
-|------|--------|
-| `supabase/functions/api-referral-register/index.ts` | Accept `phone`, validate, store in profile |
-| `supabase/functions/api-docs/index.ts` | Document `phone` parameter |
-| `src/components/IntegrationRoadmap.tsx` | Update Prompt 4 text |
+|---|---|
+| `src/lib/generateApiGuidePdf.ts` | Full sync — add missing endpoints, fields, events, update version |
 
-No database migration needed — `profiles.phone` already exists.
-
-## What DreCoffee & Ahmad's Need to Do
-Their Prompt 4 will be updated to instruct them to send `phone` along with `email` and `full_name`. The updated prompt will read:
-
-> After account creation in your system, call `POST /api-referral-register` with `{ email, full_name, phone, referral_code }`. Phone should be in Malaysian format (+60xxxxxxxxx). This creates the full NoCap account automatically.
+Single file change, no database or edge function modifications needed.
 
