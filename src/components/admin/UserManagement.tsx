@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Mail, Phone, Calendar, Wallet } from "lucide-react";
+import { Search, Mail, Phone, Calendar, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
