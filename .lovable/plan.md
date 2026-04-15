@@ -1,45 +1,44 @@
 
 
-# Admin Withdrawal Page Redesign
+# Add Phone Number to API Referral Registration
 
 ## Current State
-- Single flat list showing only **pending** withdrawals
-- No separation between member and merchant withdrawals
-- No visibility into approved/completed history
-- `withdrawal_requests` table has `wallet_type` (member/merchant/branch) and `status` (pending/approved/rejected)
+- `POST /api-referral-register` accepts `email` (required), `referral_code` (optional), `full_name` (optional)
+- The `profiles` table already has a `phone` column (text, nullable)
+- The edge function passes `full_name` via `user_metadata` but does NOT accept or store `phone`
+- After user creation, the `handle_new_user` trigger creates the profile but phone is left NULL
 
-## Proposed Changes
+## Changes Required
 
-### 1. Two Main Tabs: Members | Merchants
-- **Members** tab: filters `wallet_type = 'member'`
-- **Merchants** tab: filters `wallet_type IN ('merchant', 'branch')` — branch withdrawals grouped under merchant since branches belong to merchants
+### 1. Edge Function: `api-referral-register/index.ts`
+- Accept new `phone` field in the request body (optional, string)
+- Validate phone format (Malaysian format: starts with `+60` or `01`, 10-12 digits)
+- Pass phone into `user_metadata` on `createUser`
+- After profile is created by trigger, UPDATE `profiles` to set `phone` (the trigger won't set it from metadata)
 
-### 2. Three Sub-Tabs per Main Tab: Pending | Approved | Settled
-- **Pending** — current approval/reject workflow (bulk actions, checkboxes)
-- **Approved** — withdrawals approved but not yet bank-transferred; admin can mark as "Settled"
-- **Settled** — completed withdrawals (read-only history with search/date filters)
+### 2. API Docs: `api-docs/index.ts`
+- Add `phone` to the Body Parameters list
+- Update the curl example to include `"phone": "+60123456789"`
+- Update the request body description
 
-Requires a **database migration** to add `settled` as a valid status and a `settled_at` timestamp column.
+### 3. Integration Roadmap: `IntegrationRoadmap.tsx`
+- Update Prompt 4 (Account Creation via Referral) to include `phone` in the request body: `{ email, full_name, phone, referral_code }`
 
-### 3. Suggested Operational Improvements
+### 4. Webhook payload update
+- Include `phone` in the `user.registered` webhook event so 3rd parties get confirmation
 
-| Feature | Description |
-|---------|-------------|
-| **Mark as Settled** button | On Approved tab, admin confirms bank transfer is done — moves to Settled |
-| **Bulk Settle** | Select multiple approved items and mark all as settled at once |
-| **Summary Cards** | Top-of-page stats: total pending amount, total approved (awaiting transfer), today's settled |
-| **Search & Date Filter** | Filter by name, bank, amount, or date range across all sub-tabs |
-| **Export CSV** | Download filtered list as CSV for bank batch upload |
-| **Settlement Reference** | Text field when marking settled to record bank reference/batch number |
-| **Withdrawal Count Badges** | Show count on each sub-tab (e.g., "Pending (5)") |
+## Files to Edit
 
-### Technical Plan
+| File | Change |
+|------|--------|
+| `supabase/functions/api-referral-register/index.ts` | Accept `phone`, validate, store in profile |
+| `supabase/functions/api-docs/index.ts` | Document `phone` parameter |
+| `src/components/IntegrationRoadmap.tsx` | Update Prompt 4 text |
 
-| Step | File | Detail |
-|------|------|--------|
-| Migration | SQL | Add `settled_at` timestamp column; allow `settled` status |
-| Rewrite component | `WithdrawalApprovals.tsx` | Add Tabs (Members/Merchants), sub-tabs (Pending/Approved/Settled), summary cards, search, date filter, CSV export, settle action |
-| Edge function update | `admin-actions/index.ts` | Add `settle_withdrawal` action that sets status to `settled` and `settled_at` |
+No database migration needed — `profiles.phone` already exists.
 
-No new pages or routes needed — this is a full rewrite of the existing `WithdrawalApprovals` component within the admin portal.
+## What DreCoffee & Ahmad's Need to Do
+Their Prompt 4 will be updated to instruct them to send `phone` along with `email` and `full_name`. The updated prompt will read:
+
+> After account creation in your system, call `POST /api-referral-register` with `{ email, full_name, phone, referral_code }`. Phone should be in Malaysian format (+60xxxxxxxxx). This creates the full NoCap account automatically.
 
