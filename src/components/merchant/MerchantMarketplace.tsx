@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import OrderStatusBadge from "@/components/marketplace/OrderStatusBadge";
 import MerchantOrderDetail from "@/components/merchant/MerchantOrderDetail";
-import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star, Printer, Zap, BarChart3, FileUp, RotateCcw, Layout, FileText, Menu, Globe } from "lucide-react";
+import { Store, Plus, Package, ShoppingCart, Tag, Loader2, Trash2, Edit, Upload, X, Settings, Truck, Star, Printer, Zap, BarChart3, FileUp, RotateCcw, Layout, FileText, Menu, Globe, Copy, ExternalLink } from "lucide-react";
 import StoreThemePicker from "@/components/merchant/StoreThemePicker";
 import MerchantFlashSales from "@/components/merchant/MerchantFlashSales";
 import BulkProductUpload from "@/components/merchant/BulkProductUpload";
@@ -708,6 +708,25 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
           <Button size="sm" variant="outline" onClick={toggleStoreLive}
             className={`text-xs ${store.status === "live" ? "border-red-500/30 text-red-400 hover:bg-red-500/10" : "border-green-500/30 text-green-400 hover:bg-green-500/10"}`}>
             {store.status === "live" ? "Take Offline" : "Go Live"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Store URL Banner */}
+      <Card className="border-secondary/20 bg-secondary/5">
+        <CardContent className="p-3 flex items-center gap-2">
+          <Globe className="h-4 w-4 text-secondary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] text-white/40 font-medium">Your Store URL</p>
+            <p className="text-xs text-white font-mono truncate">{`${window.location.origin}/store/${store.slug}`}</p>
+          </div>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/50 hover:text-white shrink-0"
+            onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/store/${store.slug}`); toast({ title: "Store URL copied!" }); }}>
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/50 hover:text-white shrink-0"
+            onClick={() => window.open(`/store/${store.slug}`, "_blank")}>
+            <ExternalLink className="h-3.5 w-3.5" />
           </Button>
         </CardContent>
       </Card>
