@@ -26,12 +26,24 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { data: app } = await supabase
+    // Try lookup by UUID id first
+    let { data: app } = await supabase
       .from('api_applications')
       .select('id, name, is_active')
       .eq('id', appId)
       .eq('is_active', true)
       .maybeSingle();
+
+    // Fallback: caller may have passed the api_key hex string instead of UUID
+    if (!app) {
+      const { data: appByKey } = await supabase
+        .from('api_applications')
+        .select('id, name, is_active')
+        .eq('api_key', appId)
+        .eq('is_active', true)
+        .maybeSingle();
+      app = appByKey;
+    }
 
     if (!app) {
       return new Response(JSON.stringify({ error: 'App not found or inactive' }), {
@@ -39,7 +51,7 @@ serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ name: app.name }), {
+    return new Response(JSON.stringify({ id: app.id, name: app.name }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
