@@ -1,65 +1,53 @@
 
 
-# Store Design Upgrade — Shopify-Grade Storefront
+# Seller Portal — Knowledge Base for Merchants
 
-## Current State
-The StorePage is functional but minimal: a single banner image, store info, flat product grid, and basic search. It lacks the visual richness and conversion-optimized layout of modern Shopify stores.
+## What Already Exists
+- `/seller-manual` — A 1,000+ line **reference manual** organized by feature (Products, Orders, Analytics, etc.)
+- The new Seller Portal will be different: **journey-based "How To" guides** with step-by-step walkthroughs, visual progress indicators, and practical tips
 
-## Proposed Improvements
+## Proposed Topics (12 Guides)
 
-### 1. Hero Carousel / Slideshow
-Replace the static 160px banner with a full-width hero carousel (280px mobile, 400px desktop) supporting multiple slides. Each slide has a headline, subtitle, and CTA button. Merchants configure slides via their existing `page_layout` JSONB (new section type: `hero_slideshow`). Auto-advances with dots and swipe support.
+### Journey 1: Getting Started (Your First Sale)
+1. **From Member to Merchant** — Register as merchant, submit documents, get approved
+2. **Setting Up Your Store** — Choose theme, add logo/banner, configure store info
+3. **Uploading Your First Products** — Add products, images, categories, variants
+4. **Getting Your First Sale** — Share store link, process first order, fulfill & ship
 
-### 2. Featured Collection Row
-A horizontal scrollable section below the hero showing featured products in a larger card format with "Shop Now" CTAs. Uses the existing `is_featured` flag. Title like "Best Sellers" or configurable via page_layout.
+### Journey 2: Marketing & Growth
+5. **Running Discount Campaigns** — Create discount rules, percentage/fixed, min purchase
+6. **Flash Sales & Collections** — Time-limited deals, curated product groups
+7. **Product Bundles & Gift Cards** — Bundle offers, digital gift cards
+8. **Recovering Abandoned Carts** — View abandoned carts, re-engage customers
 
-### 3. Category Grid with Images
-Replace the plain text category chips with a visual grid (2-3 columns) showing category name over a background image. Requires adding an optional `image_url` column to `marketplace_categories`. Falls back to accent-colored cards if no image.
+### Journey 3: Operations & Finance
+9. **Order Fulfillment Pipeline** — Kanban board, status updates, printing sales orders
+10. **Managing Withdrawals & Settlement** — Request payouts, track settlement reports
+11. **Customer Chat & Reviews** — Respond to inquiries, manage product reviews
 
-### 4. Trust/Social Proof Strip
-A horizontal bar below the hero showing key metrics: "500+ Products", "4.8★ Rating", "Free Shipping over RM50", store follower count. Builds buyer confidence.
+### Journey 4: Advanced Features
+12. **Store Customization & SEO** — Page builder, custom domain, blog, SEO settings
+13. **Analytics & Sales Reports** — Dashboard metrics, revenue forecasts, CRM
+14. **Staff Permissions & API Integration** — Multi-staff access, API apps, webhooks
 
-### 5. "New Arrivals" Section
-Auto-generated section showing the 4-8 most recently added products, sorted by `created_at DESC`. No merchant configuration needed.
+## Page Design
 
-### 6. Testimonials / Reviews Carousel
-Pull top-rated reviews from the store's products and display them in a horizontal carousel with star ratings, buyer names, and product thumbnails.
+- **Route**: `/seller-portal`
+- **Layout**: Sidebar navigation (journey groups) + main content area
+- Each guide has: numbered steps with icons, tip callouts, "Next Guide" navigation
+- Search bar to filter guides by keyword
+- Progress tracker showing which guides the user has read (localStorage)
+- Responsive: sidebar collapses to top tabs on mobile
+- Links back to the existing Seller Manual for detailed reference
 
-### 7. Newsletter / CTA Banner
-A mid-page promotional banner (configurable via page_layout) with gradient background, heading, and action button — e.g., "Join our community" or "Shop the Sale".
+## Technical Details
 
-### 8. Improved Product Grid
-- Add hover overlay with quick-view button
-- Show discount badges ("20% OFF") for products with flash sale prices
-- Larger cards on desktop (3-col instead of 4-col for store pages)
-- "Load more" or infinite scroll instead of showing everything
+| Action | File | Migration? |
+|--------|------|-----------|
+| Create Seller Portal page | `src/pages/SellerPortal.tsx` | No |
+| Create sidebar component | `src/components/seller-portal/SellerPortalSidebar.tsx` | No |
+| Create guide content components | `src/components/seller-portal/GuideContent.tsx` | No |
+| Add route `/seller-portal` | `src/App.tsx` | No |
 
-### 9. Sticky Header on Scroll
-When scrolling past the hero, show a compact sticky header with store logo, name, search icon, and cart — similar to Shopify's Dawn theme.
-
-### 10. Enhanced Footer
-Structured footer with store description, quick links (from existing menu system), social media icons, and "Powered by NoCap" branding.
-
-## Technical Approach
-
-| Change | Files | DB Migration |
-|--------|-------|-------------|
-| Hero Carousel | New `StoreHeroCarousel.tsx`, update `StorePage.tsx` | No (uses existing `page_layout` JSONB) |
-| Category Grid | New `StoreCategoryGrid.tsx`, update `StorePage.tsx` | Add `image_url` to `marketplace_categories` |
-| Trust Strip | New `StoreTrustStrip.tsx` | No |
-| New Arrivals | Inline in `StorePage.tsx` | No |
-| Reviews Carousel | New `StoreReviewsCarousel.tsx` | No |
-| CTA Banner | New section type in `StorePage.tsx` | No |
-| Sticky Header | New `StoreHeader.tsx` | No |
-| Enhanced Footer | New `StoreFooter.tsx` | No |
-| Product Grid upgrades | Update `ProductCard.tsx`, `StorePage.tsx` | No |
-| Merchant page builder | Update `StorePageBuilder.tsx` to support new section types | No |
-
-All new components will respect the existing theme CSS variable system (`--store-bg`, `--store-accent`, etc.) so they work across all 5 theme presets.
-
-## Priority Order
-1. Hero Carousel + Sticky Header (biggest visual impact)
-2. Category Grid + Trust Strip + New Arrivals
-3. Reviews Carousel + CTA Banner + Footer
-4. Product Card hover effects + pagination
+All content is static (no database needed). Uses existing UI components (Card, Collapsible, Badge, Sidebar). Dark theme consistent with the rest of the app.
 
