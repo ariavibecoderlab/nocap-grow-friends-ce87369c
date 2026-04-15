@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, GripVertical, Loader2, ArrowUp, ArrowDown, Image, Type, ShoppingBag, Star, Info, Megaphone, SlidersHorizontal } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
+import ImageUploadField from "./ImageUploadField";
 
 interface Section {
   id: string;
