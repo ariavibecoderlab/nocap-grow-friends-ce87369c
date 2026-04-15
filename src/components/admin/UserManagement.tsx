@@ -114,11 +114,46 @@ const UserManagement = () => {
     );
   });
 
+  // Reset page when search changes
+  const totalItems = filtered?.length ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedUsers = filtered?.slice((safePage - 1) * pageSize, safePage * pageSize);
+
   const formatDate = (d: string) => {
     const date = new Date(d);
     return date.toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" }) +
       " " + date.toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit" });
   };
+
+  const PaginationControls = () => (
+    <div className="flex items-center justify-between flex-wrap gap-3 pt-2">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">
+          Showing {totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, totalItems)} of {totalItems}
+        </span>
+        <select
+          value={pageSize}
+          onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+          className="bg-muted border border-border text-foreground text-xs rounded px-2 py-1"
+        >
+          <option value={25}>25 / page</option>
+          <option value={50}>50 / page</option>
+          <option value={100}>100 / page</option>
+          <option value={200}>200 / page</option>
+        </select>
+      </div>
+      <div className="flex items-center gap-1">
+        <Button variant="outline" size="sm" disabled={safePage <= 1} onClick={() => setCurrentPage(safePage - 1)} className="h-7 px-2">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-xs text-muted-foreground px-2">{safePage} / {totalPages}</span>
+        <Button variant="outline" size="sm" disabled={safePage >= totalPages} onClick={() => setCurrentPage(safePage + 1)} className="h-7 px-2">
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -129,20 +164,17 @@ const UserManagement = () => {
           <Input
             placeholder="Search by name, email, phone, or referral code..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
             className="pl-9 bg-card border-border"
           />
-        </div>
-
-        {/* Stats */}
-        <div className="text-xs text-muted-foreground">
-          {filtered?.length ?? 0} user{(filtered?.length ?? 0) !== 1 ? "s" : ""} found
         </div>
 
         {isLoading ? (
           <p className="text-muted-foreground text-sm">Loading...</p>
         ) : (
           <>
+            <PaginationControls />
+
             {/* Desktop table */}
             <div className="hidden md:block rounded-lg border border-border overflow-hidden">
               <Table>
@@ -157,7 +189,7 @@ const UserManagement = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered?.map((u) => (
+                  {paginatedUsers?.map((u) => (
                     <TableRow key={u.id} className="border-border">
                       <TableCell className="py-2">
                         <span className="font-medium text-sm">{u.full_name || "No name"}</span>
@@ -213,7 +245,7 @@ const UserManagement = () => {
 
             {/* Mobile cards */}
             <div className="md:hidden space-y-3">
-              {filtered?.map((u) => (
+              {paginatedUsers?.map((u) => (
                 <Card key={u.id} className="border-border bg-card">
                   <CardContent className="py-3 space-y-2">
                     <div className="flex items-center justify-between">
@@ -261,6 +293,8 @@ const UserManagement = () => {
                 </Card>
               ))}
             </div>
+
+            <PaginationControls />
           </>
         )}
       </div>
