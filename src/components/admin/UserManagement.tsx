@@ -43,24 +43,39 @@ const UserManagement = () => {
   const { data: users, isLoading } = useQuery({
     queryKey: ["admin_users"],
     queryFn: async () => {
-      const { data: profiles, error: pErr } = await supabase.from("profiles").select("*");
-      if (pErr) throw pErr;
-      const { data: roles, error: rErr } = await supabase.from("user_roles").select("*");
-      if (rErr) throw rErr;
-      const { data: wallets, error: wErr } = await supabase.from("wallets").select("*");
-      if (wErr) throw wErr;
+      // Batch-fetch all rows to avoid the 1000-row default limit
+      const fetchAll = async (table: string, select: string) => {
+        const PAGE = 1000;
+        let all: any[] = [];
+        let from = 0;
+        while (true) {
+          const { data, error } = await supabase.from(table as any).select(select).range(from, from + PAGE - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          all = all.concat(data);
+          if (data.length < PAGE) break;
+          from += PAGE;
+        }
+        return all;
+      };
 
-      // Get emails via the security-definer function
-      const { data: emails } = await supabase.rpc("get_all_user_emails");
+      const [profiles, roles, wallets, emailsRes] = await Promise.all([
+        fetchAll("profiles", "*"),
+        fetchAll("user_roles", "*"),
+        fetchAll("wallets", "*"),
+        supabase.rpc("get_all_user_emails"),
+      ]);
+
+      const emails = emailsRes.data || [];
 
       return profiles
-        .map((p) => ({
+        .map((p: any) => ({
           ...p,
-          roles: roles.filter((r) => r.user_id === p.user_id).map((r) => r.role),
-          balance: wallets.find((w) => w.user_id === p.user_id)?.balance ?? 0,
-          email: emails?.find((e: any) => e.user_id === p.user_id)?.email || "—",
+          roles: roles.filter((r: any) => r.user_id === p.user_id).map((r: any) => r.role),
+          balance: wallets.find((w: any) => w.user_id === p.user_id)?.balance ?? 0,
+          email: (emails as any[]).find((e: any) => e.user_id === p.user_id)?.email || "—",
         }))
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     },
   });
 
