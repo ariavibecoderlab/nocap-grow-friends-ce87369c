@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, GripVertical, Loader2, ArrowUp, ArrowDown, Image, Type, ShoppingBag, Star, Info, Megaphone, SlidersHorizontal } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
+import ImageUploadField from "./ImageUploadField";
 
 interface Section {
   id: string;
@@ -56,8 +57,12 @@ function SlideshowEditor({ slides, onChange }: { slides: SlideData[]; onChange: 
               <Trash2 className="h-3 w-3" />
             </button>
           </div>
-          <Input value={slide.imageUrl} onChange={e => updateSlide(idx, "imageUrl", e.target.value)}
-            placeholder="Image URL" className="bg-white/5 border-white/10 text-white h-7 text-[11px]" />
+          <ImageUploadField
+            label="Image"
+            value={slide.imageUrl}
+            onChange={(url) => updateSlide(idx, "imageUrl", url)}
+            folder={`builder/slides`}
+          />
           <div className="grid grid-cols-2 gap-1.5">
             <Input value={slide.title} onChange={e => updateSlide(idx, "title", e.target.value)}
               placeholder="Headline" className="bg-white/5 border-white/10 text-white h-7 text-[11px]" />
@@ -194,12 +199,12 @@ export default function StorePageBuilder({ storeId }: { storeId: string }) {
               )}
 
               {(section.type === "hero_banner" || section.type === "image_banner") && (
-                <div>
-                  <Label className="text-white/60 text-[10px]">Image URL</Label>
-                  <Input value={section.imageUrl} onChange={e => updateSection(section.id, { imageUrl: e.target.value })}
-                    placeholder="https://..."
-                    className="bg-white/5 border-white/10 text-white mt-0.5 h-8 text-xs" />
-                </div>
+                <ImageUploadField
+                  label="Image"
+                  value={section.imageUrl}
+                  onChange={(url) => updateSection(section.id, { imageUrl: url })}
+                  folder={`builder/${storeId}`}
+                />
               )}
 
               {section.type === "hero_banner" && (
