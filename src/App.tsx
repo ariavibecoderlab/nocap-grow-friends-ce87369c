@@ -52,6 +52,7 @@ import SupportLogin from "./pages/SupportLogin";
 import SupportPortal from "./pages/SupportPortal";
 import ResetPassword from "./pages/ResetPassword";
 import AiHelpChat from "./components/AiHelpChat";
+import SellerPortal from "./pages/SellerPortal";
 
 const queryClient = new QueryClient();
 
@@ -110,6 +111,7 @@ const App = () => (
               <Route path="/support-portal" element={<SupportPortal />} />
               <Route path="/support-portal/*" element={<SupportPortal />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/seller-portal" element={<SellerPortal />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
