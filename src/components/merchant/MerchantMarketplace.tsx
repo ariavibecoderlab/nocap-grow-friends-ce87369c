@@ -712,6 +712,25 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
         </CardContent>
       </Card>
 
+      {/* Store URL Banner */}
+      <Card className="border-secondary/20 bg-secondary/5">
+        <CardContent className="p-3 flex items-center gap-2">
+          <Globe className="h-4 w-4 text-secondary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] text-white/40 font-medium">Your Store URL</p>
+            <p className="text-xs text-white font-mono truncate">{`${window.location.origin}/store/${store.slug}`}</p>
+          </div>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/50 hover:text-white shrink-0"
+            onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/store/${store.slug}`); toast({ title: "Store URL copied!" }); }}>
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-white/50 hover:text-white shrink-0"
+            onClick={() => window.open(`/store/${store.slug}`, "_blank")}>
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Button>
+        </CardContent>
+      </Card>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full bg-white/5 border border-white/10 flex-wrap h-auto gap-0">
           <TabsTrigger value="products" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Products</TabsTrigger>
