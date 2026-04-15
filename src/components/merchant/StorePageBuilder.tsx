@@ -57,8 +57,12 @@ function SlideshowEditor({ slides, onChange }: { slides: SlideData[]; onChange: 
               <Trash2 className="h-3 w-3" />
             </button>
           </div>
-          <Input value={slide.imageUrl} onChange={e => updateSlide(idx, "imageUrl", e.target.value)}
-            placeholder="Image URL" className="bg-white/5 border-white/10 text-white h-7 text-[11px]" />
+          <ImageUploadField
+            label="Image"
+            value={slide.imageUrl}
+            onChange={(url) => updateSlide(idx, "imageUrl", url)}
+            folder={`builder/slides`}
+          />
           <div className="grid grid-cols-2 gap-1.5">
             <Input value={slide.title} onChange={e => updateSlide(idx, "title", e.target.value)}
               placeholder="Headline" className="bg-white/5 border-white/10 text-white h-7 text-[11px]" />
