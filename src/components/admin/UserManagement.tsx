@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -15,6 +15,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Search, Mail, Phone, Calendar, Wallet } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -23,6 +32,7 @@ const ALL_ROLES: AppRole[] = ["member", "merchant", "branch", "admin"];
 const UserManagement = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
   const [pendingAction, setPendingAction] = useState<{
     targetUserId: string;
     role: AppRole;
@@ -40,11 +50,17 @@ const UserManagement = () => {
       const { data: wallets, error: wErr } = await supabase.from("wallets").select("*");
       if (wErr) throw wErr;
 
-      return profiles.map((p) => ({
-        ...p,
-        roles: roles.filter((r) => r.user_id === p.user_id).map((r) => r.role),
-        balance: wallets.find((w) => w.user_id === p.user_id)?.balance ?? 0,
-      }));
+      // Get emails via the security-definer function
+      const { data: emails } = await supabase.rpc("get_all_user_emails");
+
+      return profiles
+        .map((p) => ({
+          ...p,
+          roles: roles.filter((r) => r.user_id === p.user_id).map((r) => r.role),
+          balance: wallets.find((w) => w.user_id === p.user_id)?.balance ?? 0,
+          email: emails?.find((e: any) => e.user_id === p.user_id)?.email || "—",
+        }))
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     },
   });
 
@@ -70,57 +86,182 @@ const UserManagement = () => {
     }
   };
 
+  const filtered = users?.filter((u) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      (u.full_name || "").toLowerCase().includes(q) ||
+      (u.phone || "").toLowerCase().includes(q) ||
+      (u.referral_code || "").toLowerCase().includes(q) ||
+      (u.email || "").toLowerCase().includes(q)
+    );
+  });
+
+  const formatDate = (d: string) => {
+    const date = new Date(d);
+    return date.toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" }) +
+      " " + date.toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit" });
+  };
+
   return (
     <>
-      <div className="space-y-3 mt-4">
+      <div className="space-y-4">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, email, phone, or referral code..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 bg-card border-border"
+          />
+        </div>
+
+        {/* Stats */}
+        <div className="text-xs text-muted-foreground">
+          {filtered?.length ?? 0} user{(filtered?.length ?? 0) !== 1 ? "s" : ""} found
+        </div>
+
         {isLoading ? (
-          <p className="text-white/40 text-sm">Loading...</p>
+          <p className="text-muted-foreground text-sm">Loading...</p>
         ) : (
-          users?.map((u) => (
-            <Card key={u.id} className="border-white/10 bg-white/5">
-              <CardContent className="py-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium text-sm text-white">{u.full_name || "No name"}</p>
-                  <span className="text-xs text-white/40">RM {Number(u.balance).toFixed(2)}</span>
-                </div>
-                <p className="text-xs text-white/40">{u.phone || "—"} · {u.referral_code}</p>
-                <div className="flex flex-wrap gap-1">
-                  {ALL_ROLES.map((role) => {
-                    const has = u.roles.includes(role);
-                    return (
-                      <Button
-                        key={role}
-                        size="sm"
-                        variant={has ? "default" : "outline"}
-                        className={`h-6 text-xs px-2 ${has ? "bg-secondary text-primary hover:bg-secondary/90" : "border-white/10 text-white/50 hover:bg-white/10 hover:text-white"}`}
-                        onClick={() => handleRoleClick(u.user_id, role, has, u.full_name || "this user")}
-                        disabled={roleMutation.isPending}
-                      >
-                        {role}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          ))
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block rounded-lg border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-card/50">
+                    <TableHead className="text-xs">Name</TableHead>
+                    <TableHead className="text-xs">Contact</TableHead>
+                    <TableHead className="text-xs">Referral</TableHead>
+                    <TableHead className="text-xs">Registered</TableHead>
+                    <TableHead className="text-xs text-right">Balance</TableHead>
+                    <TableHead className="text-xs">Roles</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered?.map((u) => (
+                    <TableRow key={u.id} className="border-border">
+                      <TableCell className="py-2">
+                        <span className="font-medium text-sm">{u.full_name || "No name"}</span>
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Mail className="h-3 w-3 shrink-0" />
+                            <span className="truncate max-w-[180px]">{u.email}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Phone className="h-3 w-3 shrink-0" />
+                            <span>{u.phone || "—"}</span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{u.referral_code}</code>
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3 shrink-0" />
+                          <span>{formatDate(u.created_at)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-2 text-right">
+                        <span className="text-xs font-medium">RM {Number(u.balance).toFixed(2)}</span>
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <div className="flex flex-wrap gap-1">
+                          {ALL_ROLES.map((role) => {
+                            const has = u.roles.includes(role);
+                            return (
+                              <Button
+                                key={role}
+                                size="sm"
+                                variant={has ? "default" : "outline"}
+                                className={`h-6 text-xs px-2 ${has ? "bg-secondary text-primary hover:bg-secondary/90" : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+                                onClick={() => handleRoleClick(u.user_id, role, has, u.full_name || "this user")}
+                                disabled={roleMutation.isPending}
+                              >
+                                {role}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-3">
+              {filtered?.map((u) => (
+                <Card key={u.id} className="border-border bg-card">
+                  <CardContent className="py-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-sm">{u.full_name || "No name"}</p>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Wallet className="h-3 w-3" />
+                        RM {Number(u.balance).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Mail className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{u.email}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Phone className="h-3 w-3 shrink-0" />
+                        <span>{u.phone || "—"}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3 shrink-0" />
+                        <span>{formatDate(u.created_at)}</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Referral: <code className="bg-muted px-1 py-0.5 rounded">{u.referral_code}</code>
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {ALL_ROLES.map((role) => {
+                        const has = u.roles.includes(role);
+                        return (
+                          <Button
+                            key={role}
+                            size="sm"
+                            variant={has ? "default" : "outline"}
+                            className={`h-6 text-xs px-2 ${has ? "bg-secondary text-primary hover:bg-secondary/90" : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+                            onClick={() => handleRoleClick(u.user_id, role, has, u.full_name || "this user")}
+                            disabled={roleMutation.isPending}
+                          >
+                            {role}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
       <AlertDialog open={!!pendingAction} onOpenChange={(open) => !open && setPendingAction(null)}>
-        <AlertDialogContent className="bg-primary border-white/10 max-w-sm">
+        <AlertDialogContent className="bg-card border-border max-w-sm">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">
+            <AlertDialogTitle>
               {pendingAction?.remove ? "Remove Admin Role" : "Grant Admin Role"}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-white/50">
+            <AlertDialogDescription>
               {pendingAction?.remove
-                ? `Are you sure you want to remove admin privileges from "${pendingAction.userName}"? They will lose access to the admin panel.`
-                : `Are you sure you want to grant admin privileges to "${pendingAction?.userName}"? They will have full access to the admin panel.`}
+                ? `Remove admin privileges from "${pendingAction.userName}"?`
+                : `Grant admin privileges to "${pendingAction?.userName}"?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-white/10 text-white/70 hover:bg-white/10 hover:text-white">Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-secondary text-primary hover:bg-secondary/90 font-semibold"
               onClick={() => {
