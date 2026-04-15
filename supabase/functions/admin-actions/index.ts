@@ -467,6 +467,38 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "settle_withdrawal": {
+        const { withdrawalId: swId, settlementRef } = body;
+        const { error: swErr } = await adminClient
+          .from("withdrawal_requests")
+          .update({
+            status: "settled",
+            settled_at: new Date().toISOString(),
+            settlement_ref: settlementRef || null,
+          })
+          .eq("id", swId)
+          .eq("status", "approved");
+        if (swErr) throw swErr;
+
+        // Notify user
+        const { data: swReq } = await adminClient
+          .from("withdrawal_requests")
+          .select("user_id, amount, wallet_type")
+          .eq("id", swId)
+          .single();
+        if (swReq) {
+          await adminClient.from("notifications").insert({
+            user_id: swReq.user_id,
+            title: "Withdrawal Settled ✅",
+            message: `Your withdrawal of RM ${Number(swReq.amount).toFixed(2)} has been transferred to your bank account.${settlementRef ? ` Ref: ${settlementRef}` : ''}`,
+            type: "success",
+          });
+        }
+
+        result = { success: true };
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Unknown action" }), {
           status: 400,
