@@ -33,39 +33,39 @@ export default function SellerPortalSidebar({ activeGuide, onSelectGuide, comple
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-border">
-        <h2 className="text-lg font-bold text-secondary mb-1">Seller Portal</h2>
-        <p className="text-xs text-muted-foreground mb-3">
+      <div className="p-3 sm:p-4 border-b border-border">
+        <h2 className="text-base sm:text-lg font-bold text-secondary mb-0.5 sm:mb-1">Seller Portal</h2>
+        <p className="text-[11px] sm:text-xs text-muted-foreground mb-2 sm:mb-3">
           {completedGuides.length}/{totalGuides} guides completed
         </p>
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-2 sm:top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search guides..."
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
-            className="pl-9 h-9 text-sm bg-muted/50"
+            className="pl-9 h-8 sm:h-9 text-sm bg-muted/50"
           />
         </div>
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
+        <div className="p-1.5 sm:p-2 space-y-0.5 sm:space-y-1">
           {filteredJourneys.map(journey => (
             <Collapsible
               key={journey.id}
               open={openJourneys.includes(journey.id)}
               onOpenChange={() => toggle(journey.id)}
             >
-              <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted/50 rounded-md">
-                {openJourneys.includes(journey.id) ? <ChevronDown className="h-4 w-4 text-secondary" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              <CollapsibleTrigger className="flex items-center gap-2 w-full px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-semibold text-foreground hover:bg-muted/50 rounded-md">
+                {openJourneys.includes(journey.id) ? <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-secondary shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />}
                 <span className="truncate">{journey.title}</span>
-                <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0">
+                <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0 shrink-0">
                   {journey.guides.filter(g => completedGuides.includes(g.id)).length}/{journey.guides.length}
                 </Badge>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="ml-4 space-y-0.5 mt-0.5">
+                <div className="ml-3 sm:ml-4 space-y-0.5 mt-0.5">
                   {journey.guides.map(guide => {
                     const isActive = activeGuide === guide.id;
                     const isComplete = completedGuides.includes(guide.id);
@@ -74,14 +74,14 @@ export default function SellerPortalSidebar({ activeGuide, onSelectGuide, comple
                         key={guide.id}
                         onClick={() => onSelectGuide(guide.id)}
                         className={cn(
-                          "flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors text-left",
+                          "flex items-center gap-2 w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md transition-colors text-left",
                           isActive ? "bg-secondary/15 text-secondary font-medium" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                         )}
                       >
                         {isComplete ? (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                          <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-400 shrink-0" />
                         ) : (
-                          <guide.icon className="h-4 w-4 shrink-0" />
+                          <guide.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
                         )}
                         <span className="truncate">{guide.title}</span>
                       </button>

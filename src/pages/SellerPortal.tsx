@@ -61,19 +61,19 @@ export default function SellerPortal() {
   );
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       {/* Top bar */}
       <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border">
-        <div className="flex items-center h-14 px-4 gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
+        <div className="flex items-center h-12 sm:h-14 px-3 sm:px-4 gap-2 sm:gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
           {isMobile && (
-            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-              <Menu className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSidebarOpen(true)}>
+              <Menu className="h-4 w-4" />
             </Button>
           )}
-          <h1 className="font-bold text-lg text-secondary">Seller Portal</h1>
+          <h1 className="font-bold text-base sm:text-lg text-secondary truncate">Seller Portal</h1>
           <span className="text-xs text-muted-foreground hidden sm:inline ml-1">— Knowledge Base for Merchants</span>
         </div>
       </header>
@@ -89,7 +89,7 @@ export default function SellerPortal() {
         {/* Mobile sidebar sheet */}
         {isMobile && (
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetContent side="left" className="p-0 w-80">
+            <SheetContent side="left" className="p-0 w-[85vw] max-w-80">
               <SheetTitle className="sr-only">Navigation</SheetTitle>
               {sidebarContent}
             </SheetContent>
@@ -98,7 +98,7 @@ export default function SellerPortal() {
 
         {/* Main content */}
         <ScrollArea className="flex-1">
-          <div className="p-4 sm:p-8">
+          <div className="p-3 sm:p-6 md:p-8">
             <GuideContent
               guideId={activeGuide}
               completedGuides={completedGuides}
