@@ -77,6 +77,7 @@ const Marketplace = () => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const loadingMore = useRef(false);
 
   // Set marketplace OG meta tags
   useEffect(() => {
@@ -249,14 +250,20 @@ const Marketplace = () => {
   // Intersection Observer for infinite scroll
   useEffect(() => {
     const el = sentinelRef.current;
-    if (!el) return;
+    if (!el || !hasMore) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          setVisibleCount(prev => Math.min(prev + PAGE_SIZE, filtered.length));
+        if (entries[0].isIntersecting && !loadingMore.current) {
+          loadingMore.current = true;
+          setVisibleCount(prev => {
+            const next = Math.min(prev + PAGE_SIZE, filtered.length);
+            // Reset guard after a short delay to allow re-render
+            requestAnimationFrame(() => { loadingMore.current = false; });
+            return next;
+          });
         }
       },
-      { rootMargin: "200px" }
+      { rootMargin: "100px", threshold: 0.1 }
     );
     observer.observe(el);
     return () => observer.disconnect();
