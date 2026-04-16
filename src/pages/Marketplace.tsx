@@ -103,56 +103,64 @@ const Marketplace = () => {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
-      // Fetch all live stores, active products, and categories in parallel
-      const [storesRes, productsRes, categoriesRes] = await Promise.all([
-        supabase
-          .from("marketplace_stores")
-          .select("id, slug, store_name, logo_url")
-          .eq("status", "live")
-          .order("store_name"),
-        supabase
-          .from("marketplace_products")
-          .select("id, store_id, name, price, images, stock_quantity, is_featured, category_id, sold_count")
-          .eq("status", "active")
-          .order("is_featured", { ascending: false }),
-        supabase
-          .from("marketplace_categories")
-          .select("id, name, store_id")
-          .order("sort_order"),
-      ]);
+      try {
+        // Fetch all live stores, active products, and categories in parallel
+        const [storesRes, productsRes, categoriesRes] = await Promise.all([
+          supabase
+            .from("marketplace_stores")
+            .select("id, slug, store_name, logo_url")
+            .eq("status", "live")
+            .order("store_name"),
+          supabase
+            .from("marketplace_products")
+            .select("id, store_id, name, price, images, stock_quantity, is_featured, category_id, sold_count")
+            .eq("status", "active")
+            .order("is_featured", { ascending: false }),
+          supabase
+            .from("marketplace_categories")
+            .select("id, name, store_id")
+            .order("sort_order"),
+        ]);
 
-      const storeList = (storesRes.data as StoreInfo[]) || [];
-      const productList = (productsRes.data as ProductRow[]) || [];
-      const categoryList = (categoriesRes.data as CategoryInfo[]) || [];
+        if (cancelled) return;
 
-      setStores(storeList);
-      setProducts(productList);
-      setCategories(categoryList);
+        const storeList = (storesRes.data as StoreInfo[]) || [];
+        const productList = (productsRes.data as ProductRow[]) || [];
+        const categoryList = (categoriesRes.data as CategoryInfo[]) || [];
 
-      // Fetch average ratings for all products
-      if (productList.length > 0) {
-        const { data: reviewData } = await supabase
-          .from("marketplace_reviews")
-          .select("product_id, rating");
-        if (reviewData && reviewData.length > 0) {
-          const ratingMap: Record<string, { sum: number; count: number }> = {};
-          reviewData.forEach((r: any) => {
-            if (!ratingMap[r.product_id]) ratingMap[r.product_id] = { sum: 0, count: 0 };
-            ratingMap[r.product_id].sum += r.rating;
-            ratingMap[r.product_id].count += 1;
-          });
-          const avgMap: Record<string, number> = {};
-          Object.entries(ratingMap).forEach(([id, { sum, count }]) => {
-            avgMap[id] = sum / count;
-          });
-          setRatings(avgMap);
+        setStores(storeList);
+        setProducts(productList);
+        setCategories(categoryList);
+
+        // Fetch average ratings for all products
+        if (productList.length > 0) {
+          const { data: reviewData } = await supabase
+            .from("marketplace_reviews")
+            .select("product_id, rating");
+          if (!cancelled && reviewData && reviewData.length > 0) {
+            const ratingMap: Record<string, { sum: number; count: number }> = {};
+            reviewData.forEach((r: any) => {
+              if (!ratingMap[r.product_id]) ratingMap[r.product_id] = { sum: 0, count: 0 };
+              ratingMap[r.product_id].sum += r.rating;
+              ratingMap[r.product_id].count += 1;
+            });
+            const avgMap: Record<string, number> = {};
+            Object.entries(ratingMap).forEach(([id, { sum, count }]) => {
+              avgMap[id] = sum / count;
+            });
+            setRatings(avgMap);
+          }
         }
+      } catch (err) {
+        console.error("Marketplace load error:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      setLoading(false);
     };
     load();
+    return () => { cancelled = true; };
   }, []);
 
   // Compute global price bounds
