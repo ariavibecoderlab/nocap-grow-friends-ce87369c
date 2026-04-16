@@ -77,6 +77,7 @@ const Marketplace = () => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const loadingMore = useRef(false);
 
   // Set marketplace OG meta tags
   useEffect(() => {
