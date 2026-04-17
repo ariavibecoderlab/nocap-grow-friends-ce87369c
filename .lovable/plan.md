@@ -1,62 +1,115 @@
 
+User confirmed: ship Phases 1+2 first (live editor + templates/blocks), replace existing form-based builder entirely, and enforce Draft vs Published from v1. Will also queue Phases 3-5 as follow-ups.
 
-# Plan: Update OAuth Authorize Page to Password-Based Flow
+Key technical decisions:
+- New folder `src/components/merchant/storefront-builder/` replacing `StorePageBuilder.tsx`
+- Schema additions: `marketplace_stores.draft_layout JSONB`, `draft_theme JSONB`, `published_at TIMESTAMPTZ`, `published_layout` (rename current `page_layout`) — keep `page_layout` as the live/published one to avoid breaking `StorePage.tsx` reads
+- Live preview via iframe → `/store/:slug?preview=draft&token=...` with a short-lived preview token (since draft data isn't public)
+- DnD via `@dnd-kit/core` + `@dnd-kit/sortable`
+- Reuses existing theme system in `src/lib/storeThemes.ts` and `ImageUploadField`
 
-## Current State
-The `/authorize` page (used by Brainy Bunch Wallet, DRE Coffee, AhmadsOS) currently uses an **OTP-based** login flow:
-1. User enters email → system sends OTP → user verifies OTP → consent screen
+# Storefront Builder v2 — Implementation Plan
 
-The main NoCap login page (`/auth`) uses a **password-based** flow:
-1. User enters email → system checks if account exists
-2. **Existing user with password** → password login dialog
-3. **Existing user without password** → set password dialog
-4. **New user** → show referral code + password fields → register
+## Phase 1 — Live Split-Screen Editor (v1 ship)
 
-## Proposed Changes
+**New page**: `/merchant/storefront/builder` (replaces the in-tab `StorePageBuilder` inside `MerchantStorePages.tsx`)
 
-### File: `src/pages/Authorize.tsx`
-Replace the OTP-based authentication with the same password-first flow used in `Auth.tsx`:
-
-1. **Remove** OTP-related logic (`sendOtpViaEdgeFunction`, `handleSendOtp`, `handleVerifyOtp`, OTP step UI)
-2. **Remove** imports for `verifyOtp`, `signUp` with random password pattern
-3. **Add** imports for `signInWithPassword`, `signUp` (with user-chosen password), and `checkHasPassword` edge function call
-4. **Update step type** from `"login" | "register" | "otp" | "consent"` to `"login" | "register" | "consent"` (password entry handled inline/dialog like Auth.tsx)
-5. **Add password fields** to the login step — after email submission, show password input for existing users
-6. **Add set-password dialog** for existing users who haven't set a password yet
-7. **Add registration fields** (referral code + password + confirm password + PasswordStrengthIndicator) for new users
-8. **Add forgot password** button that triggers `resetPasswordForEmail`
-
-### Flow After Changes
+**Layout** (desktop ≥1024px):
 ```text
-User enters email → "Continue"
-  ├─ User exists + has password → Show password field → Sign in → Consent
-  ├─ User exists + no password → Show "Set Password" dialog → Set → Sign in → Consent
-  └─ User not found → Show referral code + password + confirm password → Register → Sign in → Consent
+┌──────────────────────────────────────────────────────────┐
+│ Toolbar: [◀ Back] Store Name  [Desktop|Tablet|Mobile]    │
+│          [Undo][Redo]  [Save Draft] [Publish ▾]          │
+├────────────────────┬─────────────────────────────────────┤
+│ Sections (sortable)│                                      │
+│ ┌─ Hero        ⋮ │                                      │
+│ ├─ Featured    ⋮ │       Live Preview (iframe)          │
+│ ├─ About       ⋮ │       responsive frame               │
+│ └─ + Add       ⋮ │                                      │
+│                    │                                      │
+│ Properties Panel   │                                      │
+│ (selected block)   │                                      │
+└────────────────────┴─────────────────────────────────────┘
 ```
+Mobile (<1024px): tabs switch between Editor / Preview.
 
-This exactly mirrors the `/auth` page behavior.
+**Components**:
+- `BuilderLayout.tsx` — root layout, viewport state
+- `BuilderToolbar.tsx` — viewport switcher, undo/redo, save/publish, "View live"
+- `SectionsPanel.tsx` — sortable list (`@dnd-kit/sortable`), add/duplicate/hide/delete
+- `BlockPropertiesPanel.tsx` — dynamic form per block type
+- `LivePreviewFrame.tsx` — iframe with viewport-sized wrapper (1280, 768, 390 px)
+- `useBuilderState.ts` — Zustand-style hook with undo/redo history (last 50 states), debounced auto-save (10s)
 
-## Implications to Existing Integrations
+**Live preview mechanism**:
+- Iframe loads `/store/:slug?preview=draft&token=<jwt>`
+- `StorePage.tsx` detects `?preview=draft`, validates token via edge function, reads `draft_layout` instead of `page_layout`
+- Builder posts `{type: 'BUILDER_UPDATE', layout, theme}` via `postMessage` on every edit; preview applies in-memory without refetch
 
-### No Breaking Changes for 3rd-Party Apps
-- **URL structure unchanged**: `/authorize?client_id=...&redirect_uri=...&scope=...` remains the same
-- **Token exchange unchanged**: The authorization code generation and redirect-back logic is untouched
-- **Consent screen unchanged**: Same permissions display and approve/deny flow
-- **All three apps** (Brainy Bunch, DRE Coffee, AhmadsOS) will work without any code changes on their end
+## Phase 2 — Templates & Block Library (v1 ship)
 
-### Behavioral Changes
-- **Existing NoCap members** who previously logged in via OTP will now use their password instead. If they haven't set a password, they'll be prompted to create one (same as main login)
-- **New users** registering via OAuth will now create a proper password (instead of a random one), so they can also log in directly on nocap.life afterward
-- **OTP dependency removed** from OAuth flow — no more reliance on the `send-otp` edge function for authorization, reducing email delivery friction
+**Starter Templates** (one-click apply theme + sample blocks + sample copy):
+1. Fashion Boutique
+2. Restaurant / F&B
+3. Services / Bookings
+4. Electronics / Tech
+5. Minimal Portfolio
+6. Bold Promo
 
-### Benefits
-- Consistent user experience across all entry points
-- New users get a usable password immediately (no "set password later" needed)
-- Reduces support confusion — one login method everywhere
+Stored as TS constants in `src/lib/storeTemplates.ts`. First-time users see template picker modal; existing stores can apply via toolbar "Apply Template".
 
-## Technical Details
-- Reuse `check-has-password` and `set-initial-password` edge functions (already deployed)
-- Import `PasswordStrengthIndicator` component (already exists)
-- Keep the `api-app-info` resolution logic and consent flow completely unchanged
-- Keep the `resolvedAppId` dual-format lookup (UUID/hex) intact
+**Block Gallery** (visual "Add Section" with thumbnails):
+- Hero Banner, Hero Slideshow, Featured Products, Product Grid by Category, Banner Carousel, Text Block, Image + Text, Testimonials, FAQ Accordion, Newsletter Signup, About, CTA Banner, Custom HTML
+- Each block has a thumbnail, label, description, and default content
 
+**Inline image picker** (replaces URL paste): tabs for "Upload" (existing `ImageUploadField`) | "From products" (pulls `marketplace_products.images`) | "From media library" (lists prior uploads in `builder/<storeId>` folder).
+
+## Phase 5 (pulled into v1) — Draft vs Published
+
+**Schema migration**:
+```sql
+ALTER TABLE marketplace_stores
+  ADD COLUMN draft_layout JSONB DEFAULT '[]'::jsonb,
+  ADD COLUMN draft_theme JSONB,
+  ADD COLUMN draft_updated_at TIMESTAMPTZ,
+  ADD COLUMN published_at TIMESTAMPTZ;
+```
+- `page_layout` stays as the **published** layout (read by storefront)
+- `draft_layout` is what the builder edits
+- Auto-save writes to `draft_layout`; "Publish" copies `draft_layout → page_layout` and stamps `published_at`
+- Toolbar shows badge: "Draft has unpublished changes" when `draft_updated_at > published_at`
+
+**Edge function**: `builder-preview-token` — issues a short-lived (5 min) signed token bound to `(store_id, merchant_user_id)` so the iframe can read draft data without exposing it publicly. `StorePage` validates via a new `get_draft_layout` RPC.
+
+## Phases 3 & 4 (follow-up after v1)
+
+**Phase 3 — Theme Customizer**: live color pickers, 8 curated font pairs, border radius slider, "Match my logo" (canvas color extraction), save custom theme.
+
+**Phase 4 — Unified Storefront Hub**: consolidate Pages / Theme / Menus / Domain & SEO / Checkout into a single `/merchant/storefront` shell with left sub-nav. Always-visible "View live" + "Share preview link".
+
+## Files to Create / Modify
+
+**Create** (~12 files):
+- `src/pages/MerchantStorefrontBuilder.tsx`
+- `src/components/merchant/storefront-builder/{BuilderLayout,BuilderToolbar,SectionsPanel,BlockPropertiesPanel,LivePreviewFrame,TemplatePickerModal,BlockGallery,InlineImagePicker}.tsx`
+- `src/components/merchant/storefront-builder/blocks/` — one renderer config per block type
+- `src/hooks/useBuilderState.ts`
+- `src/lib/storeTemplates.ts`
+- `supabase/functions/builder-preview-token/index.ts`
+
+**Modify**:
+- `src/App.tsx` — add `/merchant/storefront/builder` route
+- `src/components/merchant/MerchantStorePages.tsx` — replace embedded `StorePageBuilder` with "Open Builder" CTA linking to new page
+- `src/pages/StorePage.tsx` — handle `?preview=draft&token=...`, accept postMessage updates, render new block types
+- Delete: `src/components/merchant/StorePageBuilder.tsx`
+
+**Migration**: schema additions above + RPC `get_draft_layout(store_id, token)`.
+
+## Build Order
+1. Schema migration (draft columns) + preview token edge function
+2. Builder shell + state hook + toolbar
+3. Sections panel with DnD + properties panel
+4. Live preview iframe + postMessage bridge + StorePage draft mode
+5. Block gallery + new block types in renderer
+6. Template picker + 6 starter templates
+7. Inline image picker
+8. Replace MerchantStorePages tab, delete old builder, ship
