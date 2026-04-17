@@ -33,15 +33,24 @@ const DistributionAudit = () => {
   const [to, setTo] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const load = async () => {
     setLoading(true);
+    setErrorMsg(null);
     const { data, error } = await supabase.rpc("list_distribution_audit", {
       p_limit: 100,
+      p_offset: 0,
       p_search: search || null,
       p_from: from ? new Date(from).toISOString() : null,
       p_to: to ? new Date(to + "T23:59:59").toISOString() : null,
     });
-    if (!error && data) setRows(data as unknown as Row[]);
+    if (error) {
+      setErrorMsg(error.message);
+      setRows([]);
+    } else {
+      setRows((data as unknown as Row[]) ?? []);
+    }
     setLoading(false);
   };
 
