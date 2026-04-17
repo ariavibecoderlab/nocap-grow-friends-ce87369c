@@ -54,6 +54,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AiHelpChat from "./components/AiHelpChat";
 import SellerPortal from "./pages/SellerPortal";
 import MerchantStorefrontBuilder from "./pages/MerchantStorefrontBuilder";
+import MerchantStorefrontHub from "./pages/MerchantStorefrontHub";
 
 const queryClient = new QueryClient();
 
@@ -113,6 +114,8 @@ const App = () => (
               <Route path="/support-portal/*" element={<SupportPortal />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/seller-portal" element={<SellerPortal />} />
+              <Route path="/merchant/storefront" element={<MerchantStorefrontHub />} />
+              <Route path="/merchant/storefront/:storeId" element={<MerchantStorefrontHub />} />
               <Route path="/merchant/storefront/builder" element={<MerchantStorefrontBuilder />} />
               <Route path="/merchant/storefront/builder/:storeId" element={<MerchantStorefrontBuilder />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
