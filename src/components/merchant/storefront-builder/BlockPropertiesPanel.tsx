@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import ImageUploadField from "@/components/merchant/ImageUploadField";
+import BuilderImageField from "./BuilderImageField";
 import { Plus, Trash2, ChevronDown } from "lucide-react";
 import { useState } from "react";
 
@@ -46,7 +46,7 @@ export default function BlockPropertiesPanel({ block, storeId, onUpdate }: Props
       {/* Type-specific fields */}
       {block.type === "hero_banner" && (
         <>
-          <ImageUploadField label="Hero Image" value={block.imageUrl} onChange={(u) => onUpdate({ imageUrl: u })} folder={`builder/${storeId}`} />
+          <BuilderImageField label="Hero Image" value={block.imageUrl} onChange={(u) => onUpdate({ imageUrl: u })} storeId={storeId} folder="builder" />
           <div>
             <Label className="text-[10px] text-white/60">Subtitle</Label>
             <Input value={block.content} onChange={(e) => onUpdate({ content: e.target.value })} className="bg-white/5 border-white/10 text-white mt-1 h-8 text-xs" />
@@ -56,16 +56,16 @@ export default function BlockPropertiesPanel({ block, storeId, onUpdate }: Props
       )}
 
       {block.type === "hero_slideshow" && (
-        <SlideshowEditor block={block} onUpdate={onUpdate} />
+        <SlideshowEditor block={block} storeId={storeId} onUpdate={onUpdate} />
       )}
 
       {block.type === "image_banner" && (
-        <ImageUploadField label="Image" value={block.imageUrl} onChange={(u) => onUpdate({ imageUrl: u })} folder={`builder/${storeId}`} />
+        <BuilderImageField label="Image" value={block.imageUrl} onChange={(u) => onUpdate({ imageUrl: u })} storeId={storeId} folder="builder" />
       )}
 
       {block.type === "image_text" && (
         <>
-          <ImageUploadField label="Image" value={block.imageUrl} onChange={(u) => onUpdate({ imageUrl: u })} folder={`builder/${storeId}`} />
+          <BuilderImageField label="Image" value={block.imageUrl} onChange={(u) => onUpdate({ imageUrl: u })} storeId={storeId} folder="builder" />
           <div>
             <Label className="text-[10px] text-white/60">Body Text</Label>
             <Textarea value={block.content} onChange={(e) => onUpdate({ content: e.target.value })} className="bg-white/5 border-white/10 text-white mt-1 text-xs min-h-[80px]" />
@@ -156,7 +156,7 @@ function SelectField({ label, value, options, onChange }: { label: string; value
   );
 }
 
-function SlideshowEditor({ block, onUpdate }: { block: BlockDefinition; onUpdate: (p: Partial<BlockDefinition>) => void }) {
+function SlideshowEditor({ block, storeId, onUpdate }: { block: BlockDefinition; storeId: string; onUpdate: (p: Partial<BlockDefinition>) => void }) {
   const slides: any[] = (() => { try { return JSON.parse(block.content || "[]"); } catch { return []; } })();
   const set = (next: any[]) => onUpdate({ content: JSON.stringify(next) });
 
@@ -171,7 +171,7 @@ function SlideshowEditor({ block, onUpdate }: { block: BlockDefinition; onUpdate
               <Trash2 className="h-3 w-3" />
             </button>
           </div>
-          <ImageUploadField label="Image" value={s.imageUrl || ""} onChange={(u) => set(slides.map((sl, j) => j === i ? { ...sl, imageUrl: u } : sl))} folder="builder/slides" />
+          <BuilderImageField label="Image" value={s.imageUrl || ""} onChange={(u) => set(slides.map((sl, j) => j === i ? { ...sl, imageUrl: u } : sl))} storeId={storeId} folder="builder/slides" />
           <Input value={s.title || ""} onChange={(e) => set(slides.map((sl, j) => j === i ? { ...sl, title: e.target.value } : sl))} placeholder="Headline" className="bg-white/5 border-white/10 text-white h-7 text-[11px]" />
           <Input value={s.subtitle || ""} onChange={(e) => set(slides.map((sl, j) => j === i ? { ...sl, subtitle: e.target.value } : sl))} placeholder="Subtitle" className="bg-white/5 border-white/10 text-white h-7 text-[11px]" />
           <div className="grid grid-cols-2 gap-1">
