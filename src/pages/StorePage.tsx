@@ -277,12 +277,14 @@ const StorePage = () => {
       ? [{ imageUrl: heroSection.imageUrl || "", title: heroSection.title || "", subtitle: heroSection.content || "" }]
       : [];
 
-  // Resolve theme
+  // Resolve theme (preview overrides win in builder)
   const storeSettings = store?.settings && typeof store.settings === "object" && !Array.isArray(store.settings)
     ? (store.settings as Record<string, unknown>)
     : {};
-  const overrides = (storeSettings.theme_overrides || {}) as ThemeOverrides;
-  const resolvedTheme = store ? resolveTheme(store.theme, overrides) : null;
+  const baseOverrides = (storeSettings.theme_overrides || {}) as ThemeOverrides;
+  const overrides = (isPreview && previewTheme?.overrides ? previewTheme.overrides : baseOverrides) as ThemeOverrides;
+  const themeId = (isPreview && previewTheme?.themeId) ? previewTheme.themeId : store?.theme;
+  const resolvedTheme = store ? resolveTheme(themeId || "classic", overrides) : null;
   const themeCSSVars = resolvedTheme ? themeToCSS(resolvedTheme) : {};
 
   // Load Google Fonts dynamically when a non-default font pair is in use
