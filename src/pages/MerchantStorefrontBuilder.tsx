@@ -10,7 +10,8 @@ import BlockPropertiesPanel from "@/components/merchant/storefront-builder/Block
 import LivePreviewFrame from "@/components/merchant/storefront-builder/LivePreviewFrame";
 import BlockGalleryDialog from "@/components/merchant/storefront-builder/BlockGalleryDialog";
 import TemplatePickerDialog from "@/components/merchant/storefront-builder/TemplatePickerDialog";
-import { Loader2, PanelLeft, Eye } from "lucide-react";
+import ThemeCustomizerPanel from "@/components/merchant/storefront-builder/ThemeCustomizerPanel";
+import { Loader2, PanelLeft, Eye, Layers, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function MerchantStorefrontBuilder() {
@@ -123,6 +124,7 @@ function BuilderInner({
 }) {
   const { toast } = useToast();
   const builder = useBuilderState({ storeId });
+  const [editorTab, setEditorTab] = useState<"sections" | "theme">("sections");
 
   if (builder.loading) {
     return (
@@ -180,27 +182,53 @@ function BuilderInner({
       <div className="flex-1 flex overflow-hidden">
         {/* Editor pane */}
         <div className={`${mobileTab === "editor" ? "flex" : "hidden"} lg:flex flex-col w-full lg:w-[380px] border-r border-white/10 bg-primary/50`}>
-          <div className="flex-1 min-h-0 grid grid-rows-2">
-            <div className="border-b border-white/10 overflow-hidden">
-              <SectionsPanel
-                blocks={builder.blocks}
-                selectedId={builder.selectedId}
-                onSelect={builder.setSelectedId}
-                onReorder={builder.reorderBlocks}
-                onDuplicate={builder.duplicateBlock}
-                onDelete={builder.removeBlock}
-                onToggleHidden={builder.toggleHidden}
-                onAddBlock={() => setShowBlockGallery(true)}
-              />
-            </div>
-            <div className="overflow-hidden">
-              <BlockPropertiesPanel
-                block={selected}
-                storeId={storeId}
-                onUpdate={(patch) => selected && builder.updateBlock(selected.id, patch)}
-              />
-            </div>
+          {/* Tab switcher: Sections | Theme */}
+          <div className="flex border-b border-white/10 shrink-0">
+            <button
+              onClick={() => setEditorTab("sections")}
+              className={`flex-1 py-2 text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors ${editorTab === "sections" ? "text-white border-b-2 border-secondary bg-white/[0.02]" : "text-white/40 hover:text-white/70"}`}
+            >
+              <Layers className="h-3.5 w-3.5" /> Sections
+            </button>
+            <button
+              onClick={() => setEditorTab("theme")}
+              className={`flex-1 py-2 text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors ${editorTab === "theme" ? "text-white border-b-2 border-secondary bg-white/[0.02]" : "text-white/40 hover:text-white/70"}`}
+            >
+              <Palette className="h-3.5 w-3.5" /> Theme
+            </button>
           </div>
+
+          {editorTab === "sections" ? (
+            <div className="flex-1 min-h-0 grid grid-rows-2">
+              <div className="border-b border-white/10 overflow-hidden">
+                <SectionsPanel
+                  blocks={builder.blocks}
+                  selectedId={builder.selectedId}
+                  onSelect={builder.setSelectedId}
+                  onReorder={builder.reorderBlocks}
+                  onDuplicate={builder.duplicateBlock}
+                  onDelete={builder.removeBlock}
+                  onToggleHidden={builder.toggleHidden}
+                  onAddBlock={() => setShowBlockGallery(true)}
+                />
+              </div>
+              <div className="overflow-hidden">
+                <BlockPropertiesPanel
+                  block={selected}
+                  storeId={storeId}
+                  onUpdate={(patch) => selected && builder.updateBlock(selected.id, patch)}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-hidden">
+              <ThemeCustomizerPanel
+                storeId={storeId}
+                theme={builder.theme}
+                onChange={builder.setTheme}
+              />
+            </div>
+          )}
         </div>
 
         {/* Preview pane */}
