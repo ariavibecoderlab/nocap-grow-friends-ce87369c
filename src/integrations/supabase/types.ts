@@ -2898,6 +2898,7 @@ export type Database = {
         Args: {
           p_from?: string
           p_limit?: number
+          p_offset?: number
           p_search?: string
           p_to?: string
         }
@@ -2916,6 +2917,7 @@ export type Database = {
           sale_amount: number
           source: string
           status: string
+          total_count: number
         }[]
       }
       reconcile_wallet_balances: {
