@@ -109,8 +109,8 @@ describe("Phase 5 — Returns & Refunds", () => {
 
 // Phase 6: Store Builder, Custom Domains, Themes
 describe("Phase 6 — Storefront Customization", () => {
-  it("StorePageBuilder component exists", async () => {
-    const mod = await import("@/components/merchant/StorePageBuilder");
+  it("Storefront Builder v2 page exists", async () => {
+    const mod = await import("@/pages/MerchantStorefrontBuilder");
     expect(mod.default).toBeDefined();
   });
 
