@@ -71,6 +71,7 @@ interface PageSection {
   content: string;
   imageUrl: string;
   settings?: Record<string, string>;
+  hidden?: boolean;
 }
 
 const PRODUCTS_PER_PAGE = 12;
