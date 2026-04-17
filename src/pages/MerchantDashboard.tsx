@@ -94,6 +94,7 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread,
   topContent?: React.ReactNode;
 }) => {
   const [activeTab, setActiveTab] = useState("qr");
+  const navigate = useNavigate();
 
   // Storefront Hub tabs are routed to the unified hub page
   const HUB_TABS = new Set(["storefront_hub", "pages", "menus", "seo", "domain", "checkout", "announce", "blog"]);
