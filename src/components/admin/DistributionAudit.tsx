@@ -101,7 +101,9 @@ const DistributionAudit = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {errorMsg ? (
+            <div className="text-center py-12 text-destructive text-sm">Error: {errorMsg}</div>
+          ) : loading ? (
             <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
           ) : rows.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">No distributions found.</div>
