@@ -1848,6 +1848,41 @@ export type Database = {
           },
         ]
       }
+      marketplace_store_preview_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          merchant_user_id: string
+          store_id: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          merchant_user_id: string
+          store_id: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          merchant_user_id?: string
+          store_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_store_preview_tokens_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_stores: {
         Row: {
           announcement: Json
@@ -1856,6 +1891,9 @@ export type Database = {
           checkout_settings: Json
           created_at: string
           description: string | null
+          draft_layout: Json | null
+          draft_theme: Json | null
+          draft_updated_at: string | null
           email: string | null
           free_shipping_min: number | null
           id: string
@@ -1863,6 +1901,7 @@ export type Database = {
           merchant_user_id: string
           page_layout: Json
           primary_color: string
+          published_at: string | null
           seo: Json
           settings: Json
           shipping_flat_rate: number
@@ -1882,6 +1921,9 @@ export type Database = {
           checkout_settings?: Json
           created_at?: string
           description?: string | null
+          draft_layout?: Json | null
+          draft_theme?: Json | null
+          draft_updated_at?: string | null
           email?: string | null
           free_shipping_min?: number | null
           id?: string
@@ -1889,6 +1931,7 @@ export type Database = {
           merchant_user_id: string
           page_layout?: Json
           primary_color?: string
+          published_at?: string | null
           seo?: Json
           settings?: Json
           shipping_flat_rate?: number
@@ -1908,6 +1951,9 @@ export type Database = {
           checkout_settings?: Json
           created_at?: string
           description?: string | null
+          draft_layout?: Json | null
+          draft_theme?: Json | null
+          draft_updated_at?: string | null
           email?: string | null
           free_shipping_min?: number | null
           id?: string
@@ -1915,6 +1961,7 @@ export type Database = {
           merchant_user_id?: string
           page_layout?: Json
           primary_color?: string
+          published_at?: string | null
           seo?: Json
           settings?: Json
           shipping_flat_rate?: number
@@ -2754,6 +2801,7 @@ export type Database = {
         Returns: boolean
       }
       cleanup_old_api_logs: { Args: never; Returns: undefined }
+      cleanup_preview_tokens: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       credit_wallet: {
         Args: {
@@ -2810,6 +2858,21 @@ export type Database = {
         Returns: {
           count: number
           tier: number
+        }[]
+      }
+      get_store_draft: {
+        Args: { p_store_id: string; p_token: string }
+        Returns: {
+          banner_url: string
+          description: string
+          draft_layout: Json
+          draft_theme: Json
+          logo_url: string
+          slug: string
+          store_id: string
+          store_name: string
+          theme_id: string
+          theme_overrides: Json
         }[]
       }
       has_role: {
