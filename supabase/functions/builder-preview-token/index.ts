@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
 
     // Opportunistic cleanup
     if (Math.random() < 0.05) {
-      await admin.rpc("cleanup_preview_tokens").catch(() => {});
+      try { await admin.rpc("cleanup_preview_tokens"); } catch (_) { /* ignore */ }
     }
 
     return new Response(JSON.stringify({ token: rawToken, expires_in: 600 }), {
