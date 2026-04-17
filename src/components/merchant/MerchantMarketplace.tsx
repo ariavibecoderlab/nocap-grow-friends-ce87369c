@@ -745,17 +745,8 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
           <TabsTrigger value="analytics" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
             <BarChart3 className="h-3 w-3 mr-0.5" />Stats
           </TabsTrigger>
-          <TabsTrigger value="builder" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-            <Layout className="h-3 w-3 mr-0.5" />Builder
-          </TabsTrigger>
-          <TabsTrigger value="pages" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-            <FileText className="h-3 w-3 mr-0.5" />Pages
-          </TabsTrigger>
-          <TabsTrigger value="menus" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-            <Menu className="h-3 w-3 mr-0.5" />Menus
-          </TabsTrigger>
-          <TabsTrigger value="seo" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
-            <Globe className="h-3 w-3 mr-0.5" />SEO
+          <TabsTrigger value="storefront" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">
+            <Layout className="h-3 w-3 mr-0.5" />Storefront
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex-1 text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/50">Settings</TabsTrigger>
         </TabsList>
@@ -769,36 +760,23 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
           <StoreAnalytics storeId={store.id} />
         </TabsContent>
 
-        {/* BUILDER TAB — replaced by full-page Storefront Builder v2 */}
-        <TabsContent value="builder" className="mt-3">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-6 md:p-10 text-center">
+        {/* STOREFRONT TAB — unified hub entry */}
+        <TabsContent value="storefront" className="mt-3">
+          <div className="rounded-xl border border-white/10 bg-gradient-to-br from-secondary/15 to-white/5 p-6 md:p-10 text-center">
             <div className="text-3xl mb-2">🎨</div>
-            <h3 className="text-base font-bold text-white mb-1">Storefront Builder</h3>
+            <h3 className="text-base font-bold text-white mb-1">Storefront Hub</h3>
             <p className="text-xs text-white/60 mb-4 max-w-md mx-auto">
-              Design your store with a live, drag-and-drop editor. Choose a starter template, add sections, and preview changes in real time.
+              Builder, pages, menus, blog, announcements, SEO, custom domain & checkout — all in one place.
             </p>
-            <a
-              href={`/merchant/storefront/builder/${store.id}`}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-secondary text-primary text-sm font-semibold hover:opacity-90 transition"
-            >
-              Open Builder →
-            </a>
+            <div className="flex flex-wrap gap-2 justify-center">
+              <a href={`/merchant/storefront/${store.id}`} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-secondary text-primary text-sm font-semibold hover:opacity-90 transition">
+                Open Storefront Hub →
+              </a>
+              <a href={`/merchant/storefront/builder/${store.id}`} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-white/10 text-white text-sm font-semibold hover:bg-white/15 transition">
+                Open Builder
+              </a>
+            </div>
           </div>
-        </TabsContent>
-
-        {/* PAGES TAB */}
-        <TabsContent value="pages" className="mt-3">
-          <MerchantStorePages storeId={store.id} storeSlug={store.slug} />
-        </TabsContent>
-
-        {/* MENUS TAB */}
-        <TabsContent value="menus" className="mt-3">
-          <MerchantStoreMenus storeId={store.id} />
-        </TabsContent>
-
-        {/* SEO TAB */}
-        <TabsContent value="seo" className="mt-3">
-          <StoreSeoSettings storeId={store.id} />
         </TabsContent>
 
         {/* PRODUCTS TAB */}
