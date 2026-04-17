@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BlockDefinition } from "@/lib/storeTemplates";
 import { Loader2, RefreshCw } from "lucide-react";
@@ -24,35 +24,52 @@ export default function LivePreviewFrame({ storeSlug, storeId, blocks, theme, vi
   const [loading, setLoading] = useState(true);
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Fetch preview token on mount + every 8 minutes
   useEffect(() => {
     let cancelled = false;
+
     const fetchToken = async () => {
       try {
+        if (!cancelled) {
+          setLoading(true);
+          setError(null);
+          setIframeLoaded(false);
+        }
+
         const { data, error } = await supabase.functions.invoke("builder-preview-token", {
           body: { store_id: storeId },
         });
+
         if (cancelled) return;
+
         if (error || !data?.token) {
           setError(error?.message || "Failed to create preview token");
+          setToken(null);
           setLoading(false);
           return;
         }
+
         setToken(data.token);
-        setError(null);
         setLoading(false);
       } catch (e: any) {
-        if (!cancelled) { setError(e.message); setLoading(false); }
+        if (!cancelled) {
+          setError(e.message);
+          setToken(null);
+          setLoading(false);
+        }
       }
     };
+
     fetchToken();
     const interval = setInterval(fetchToken, 8 * 60 * 1000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [storeId]);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [storeId, refreshKey]);
 
-  // Push updates via postMessage when blocks/theme change
   useEffect(() => {
     if (!iframeLoaded || !iframeRef.current) return;
     iframeRef.current.contentWindow?.postMessage(
@@ -62,14 +79,14 @@ export default function LivePreviewFrame({ storeSlug, storeId, blocks, theme, vi
   }, [blocks, theme, iframeLoaded]);
 
   const refresh = () => {
-    setIframeLoaded(false);
-    if (iframeRef.current) {
-      iframeRef.current.src = iframeRef.current.src;
-    }
+    setRefreshKey((key) => key + 1);
   };
 
   const size = VIEWPORT_SIZES[viewport];
-  const scale = viewport === "desktop" ? "min(1, 100%/1280)" : "1";
+  const previewUrl = useMemo(() => {
+    if (!token) return "";
+    return `/store/${storeSlug}?preview=draft&store=${storeId}&token=${encodeURIComponent(token)}`;
+  }, [storeSlug, storeId, token]);
 
   if (loading) {
     return (
@@ -91,8 +108,6 @@ export default function LivePreviewFrame({ storeSlug, storeId, blocks, theme, vi
     );
   }
 
-  const previewUrl = `/store/${storeSlug}?preview=draft&store=${storeId}&token=${encodeURIComponent(token)}`;
-
   return (
     <div className="flex-1 flex flex-col bg-black/40 overflow-hidden">
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10 text-[10px] text-white/40">
@@ -112,6 +127,7 @@ export default function LivePreviewFrame({ storeSlug, storeId, blocks, theme, vi
           }}
         >
           <iframe
+            key={previewUrl}
             ref={iframeRef}
             src={previewUrl}
             onLoad={() => setIframeLoaded(true)}
