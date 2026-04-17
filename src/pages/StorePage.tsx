@@ -251,7 +251,10 @@ const StorePage = () => {
 
   const headerMenus = menus.filter(m => m.position === "header");
   const footerMenus = menus.filter(m => m.position === "footer");
-  const sections = (store?.page_layout && Array.isArray(store.page_layout) ? store.page_layout : []) as unknown as PageSection[];
+  const layoutSource = isPreview && previewBlocks
+    ? previewBlocks
+    : (store?.page_layout && Array.isArray(store.page_layout) ? store.page_layout : []);
+  const sections = layoutSource as unknown as PageSection[];
 
   const featuredProducts = products.filter(p => p.is_featured);
   const newArrivals = [...products].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 8);
@@ -274,12 +277,14 @@ const StorePage = () => {
       ? [{ imageUrl: heroSection.imageUrl || "", title: heroSection.title || "", subtitle: heroSection.content || "" }]
       : [];
 
-  // Resolve theme
+  // Resolve theme (preview overrides win in builder)
   const storeSettings = store?.settings && typeof store.settings === "object" && !Array.isArray(store.settings)
     ? (store.settings as Record<string, unknown>)
     : {};
-  const overrides = (storeSettings.theme_overrides || {}) as ThemeOverrides;
-  const resolvedTheme = store ? resolveTheme(store.theme, overrides) : null;
+  const baseOverrides = (storeSettings.theme_overrides || {}) as ThemeOverrides;
+  const overrides = (isPreview && previewTheme?.overrides ? previewTheme.overrides : baseOverrides) as ThemeOverrides;
+  const themeId = (isPreview && previewTheme?.themeId) ? previewTheme.themeId : store?.theme;
+  const resolvedTheme = store ? resolveTheme(themeId || "classic", overrides) : null;
   const themeCSSVars = resolvedTheme ? themeToCSS(resolvedTheme) : {};
 
   // Load Google Fonts dynamically when a non-default font pair is in use
