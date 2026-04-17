@@ -441,8 +441,8 @@ const StorePage = () => {
       </div>
 
       <div className="mx-auto max-w-4xl px-4">
-        {/* Featured Products Row */}
-        {featuredProducts.length > 0 && (
+        {/* Featured Products */}
+        {featuredProductSections.length === 0 && featuredProducts.length > 0 && (
           <div className="mt-8 space-y-3 animate-fade-in">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
@@ -468,15 +468,54 @@ const StorePage = () => {
           </div>
         )}
 
+        {featuredProductSections.map(section => {
+          const limit = Number(section.settings?.limit || 8);
+          const sectionProducts = fallbackFeaturedProducts.slice(0, limit);
+
+          return (
+            <div key={section.id} className="mt-8 space-y-3 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+                  {section.title || "Featured Products"}
+                </h2>
+                <span className="text-[11px] font-medium" style={{ color: "var(--store-accent)" }}>
+                  {sectionProducts.length} items
+                </span>
+              </div>
+              {sectionProducts.length > 0 ? (
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
+                  {sectionProducts.map(p => (
+                    <div key={p.id} className="flex-shrink-0 w-44 md:w-52">
+                      <ProductCard
+                        id={p.id} storeId={p.store_id} name={p.name} price={p.price}
+                        images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
+                        storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
+                        flashPrice={flashPrices[p.id]}
+                        onQuickView={setQuickViewId}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-lg border p-4 text-sm" style={{ backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)", color: "var(--store-text-muted)" }}>
+                  Add active products to populate this section.
+                </div>
+              )}
+            </div>
+          );
+        })}
+
         {/* Category Grid */}
-        <div className="mt-8 animate-fade-in">
-          <StoreCategoryGrid
-            categories={categories}
-            selectedCat={selectedCat}
-            onSelect={setSelectedCat}
-            accentColor={resolvedTheme?.colors.accent}
-          />
-        </div>
+        {categories.length > 0 && (
+          <div className="mt-8 animate-fade-in">
+            <StoreCategoryGrid
+              categories={categories}
+              selectedCat={selectedCat}
+              onSelect={setSelectedCat}
+              accentColor={resolvedTheme?.colors.accent}
+            />
+          </div>
+        )}
 
         {/* CTA Banner sections */}
         {ctaSections.map(section => (
