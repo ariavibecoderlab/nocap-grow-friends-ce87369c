@@ -2894,30 +2894,57 @@ export type Database = {
         Args: { _store_id: string; _user_id: string }
         Returns: boolean
       }
-      list_distribution_audit: {
-        Args: {
-          p_from?: string
-          p_limit?: number
-          p_search?: string
-          p_to?: string
-        }
-        Returns: {
-          amount: number
-          branch_id: string
-          branch_name: string
-          child_count: number
-          child_total: number
-          created_at: string
-          id: string
-          member_id: string
-          member_name: string
-          member_referral_code: string
-          reconciled: boolean
-          sale_amount: number
-          source: string
-          status: string
-        }[]
-      }
+      list_distribution_audit:
+        | {
+            Args: {
+              p_from?: string
+              p_limit?: number
+              p_offset?: number
+              p_search?: string
+              p_to?: string
+            }
+            Returns: {
+              amount: number
+              branch_id: string
+              branch_name: string
+              child_count: number
+              child_total: number
+              created_at: string
+              id: string
+              member_id: string
+              member_name: string
+              member_referral_code: string
+              reconciled: boolean
+              sale_amount: number
+              source: string
+              status: string
+              total_count: number
+            }[]
+          }
+        | {
+            Args: {
+              p_from?: string
+              p_limit?: number
+              p_search?: string
+              p_to?: string
+            }
+            Returns: {
+              amount: number
+              branch_id: string
+              branch_name: string
+              child_count: number
+              child_total: number
+              created_at: string
+              id: string
+              member_id: string
+              member_name: string
+              member_referral_code: string
+              reconciled: boolean
+              sale_amount: number
+              source: string
+              status: string
+            }[]
+          }
       reconcile_wallet_balances: {
         Args: never
         Returns: {
