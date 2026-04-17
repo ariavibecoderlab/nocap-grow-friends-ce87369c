@@ -457,10 +457,10 @@ const StorePage = () => {
           </div>
         ))}
 
-        {/* Page Layout Sections (text, about, testimonials, image_banner) */}
+        {/* Page Layout Sections (extended block types) */}
         {otherSections.length > 0 && (
           <div className="mt-8 space-y-4">
-            {otherSections.map(section => (
+            {otherSections.filter(s => !s.hidden).map(section => (
               <div key={section.id} className="animate-fade-in">
                 {section.type === "image_banner" && section.imageUrl && (
                   <img src={section.imageUrl} alt={section.title} className="w-full object-cover shadow-sm" style={{ borderRadius: "var(--store-radius)" }} />
@@ -475,7 +475,65 @@ const StorePage = () => {
                   <div className="p-5 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
                     <h3 className="text-sm font-bold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
                     <p className="text-xs italic leading-relaxed" style={{ color: "var(--store-text-muted)" }}>"{section.content}"</p>
+                    {section.settings?.author && (
+                      <p className="mt-2 text-[11px] font-medium" style={{ color: "var(--store-accent)" }}>— {section.settings.author}</p>
+                    )}
                   </div>
+                )}
+                {section.type === "image_text" && (
+                  <div className={`grid md:grid-cols-2 gap-5 items-center p-5 border ${section.settings?.layout === "image-right" ? "md:[&>*:first-child]:order-2" : ""}`}
+                    style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
+                    {section.imageUrl ? (
+                      <img src={section.imageUrl} alt={section.title} className="w-full h-48 md:h-full object-cover" style={{ borderRadius: "var(--store-radius)" }} />
+                    ) : (
+                      <div className="w-full h-48 md:h-full flex items-center justify-center" style={{ backgroundColor: "var(--store-bg)", borderRadius: "var(--store-radius)" }}>
+                        <Store className="h-8 w-8 opacity-30" />
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="text-base font-bold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
+                      <p className="text-xs whitespace-pre-wrap leading-relaxed" style={{ color: "var(--store-text-muted)" }}>{section.content}</p>
+                    </div>
+                  </div>
+                )}
+                {section.type === "faq" && (() => {
+                  let items: { q: string; a: string }[] = [];
+                  try { items = JSON.parse(section.content || "[]"); } catch { /* noop */ }
+                  return (
+                    <div className="p-5 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
+                      <h3 className="text-sm font-bold mb-3" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
+                      <div className="space-y-2">
+                        {items.map((it, i) => (
+                          <details key={i} className="group border-b last:border-0 pb-2" style={{ borderColor: "var(--store-surface-border)" }}>
+                            <summary className="cursor-pointer text-xs font-medium py-1.5 flex justify-between items-center" style={{ color: "var(--store-text)" }}>
+                              <span>{it.q}</span>
+                              <span className="ml-2 transition-transform group-open:rotate-45 text-base" style={{ color: "var(--store-accent)" }}>+</span>
+                            </summary>
+                            <p className="text-xs mt-1 pb-1 leading-relaxed" style={{ color: "var(--store-text-muted)" }}>{it.a}</p>
+                          </details>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+                {section.type === "newsletter" && (
+                  <div className="p-6 text-center border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
+                    <h3 className="text-base font-bold mb-1" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
+                    <p className="text-xs mb-4" style={{ color: "var(--store-text-muted)" }}>{section.content}</p>
+                    <form onSubmit={(e) => { e.preventDefault(); }} className="flex gap-2 max-w-sm mx-auto">
+                      <input type="email" required placeholder="your@email.com"
+                        className="flex-1 h-9 px-3 text-xs border outline-none focus:ring-2"
+                        style={{ backgroundColor: "var(--store-bg)", borderColor: "var(--store-surface-border)", color: "var(--store-text)", borderRadius: "var(--store-btn-radius)" }} />
+                      <button type="submit" className="h-9 px-4 text-xs font-semibold"
+                        style={{ backgroundColor: "var(--store-primary)", color: "var(--store-primary-fg)", borderRadius: "var(--store-btn-radius)" }}>
+                        Subscribe
+                      </button>
+                    </form>
+                  </div>
+                )}
+                {section.type === "custom_html" && (
+                  <div className="p-5 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}
+                    dangerouslySetInnerHTML={{ __html: section.content || "" }} />
                 )}
               </div>
             ))}
