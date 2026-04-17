@@ -125,7 +125,13 @@ const StorePage = () => {
       let activeStoreId: string | null = null;
 
       // Preview mode: fetch via secure RPC using token
-      if (isPreview && previewToken && previewStoreId) {
+      if (isPreview) {
+        if (!previewToken || !previewStoreId) {
+          setStore(null);
+          setLoading(false);
+          return;
+        }
+
         const { data: draft, error } = await supabase.rpc("get_store_draft", {
           p_store_id: previewStoreId,
           p_token: previewToken,
