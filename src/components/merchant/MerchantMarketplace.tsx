@@ -19,7 +19,6 @@ import BulkProductUpload from "@/components/merchant/BulkProductUpload";
 import StoreAnalytics from "@/components/merchant/StoreAnalytics";
 import MerchantReviews from "@/components/merchant/MerchantReviews";
 import MerchantReturns from "@/components/merchant/MerchantReturns";
-import StorePageBuilder from "@/components/merchant/StorePageBuilder";
 import MerchantStorePages from "@/components/merchant/MerchantStorePages";
 import MerchantStoreMenus from "@/components/merchant/MerchantStoreMenus";
 import StoreSeoSettings from "@/components/merchant/StoreSeoSettings";
@@ -770,9 +769,21 @@ export default function MerchantMarketplace({ branches, selectedBranchId }: Merc
           <StoreAnalytics storeId={store.id} />
         </TabsContent>
 
-        {/* BUILDER TAB */}
+        {/* BUILDER TAB — replaced by full-page Storefront Builder v2 */}
         <TabsContent value="builder" className="mt-3">
-          <StorePageBuilder storeId={store.id} />
+          <div className="rounded-xl border border-white/10 bg-white/5 p-6 md:p-10 text-center">
+            <div className="text-3xl mb-2">🎨</div>
+            <h3 className="text-base font-bold text-white mb-1">Storefront Builder</h3>
+            <p className="text-xs text-white/60 mb-4 max-w-md mx-auto">
+              Design your store with a live, drag-and-drop editor. Choose a starter template, add sections, and preview changes in real time.
+            </p>
+            <a
+              href={`/merchant/storefront/builder/${store.id}`}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-secondary text-primary text-sm font-semibold hover:opacity-90 transition"
+            >
+              Open Builder →
+            </a>
+          </div>
         </TabsContent>
 
         {/* PAGES TAB */}
