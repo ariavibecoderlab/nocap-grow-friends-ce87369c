@@ -118,6 +118,12 @@ const StorePage = () => {
   useEffect(() => {
     if (!slug) return;
     const fetchData = async () => {
+      setLoading(true);
+      setRatings({});
+      setFlashPrices({});
+
+      let activeStoreId: string | null = null;
+
       // Preview mode: fetch via secure RPC using token
       if (isPreview && previewToken && previewStoreId) {
         const { data: draft, error } = await supabase.rpc("get_store_draft", {
@@ -125,10 +131,12 @@ const StorePage = () => {
           p_token: previewToken,
         });
         if (error || !draft || (Array.isArray(draft) && draft.length === 0)) {
+          setStore(null);
           setLoading(false);
           return;
         }
         const d: any = Array.isArray(draft) ? draft[0] : draft;
+        activeStoreId = d.store_id;
         // Build a synthetic store object for preview
         setStore({
           id: d.store_id, slug: d.slug, store_name: d.store_name,
@@ -140,41 +148,51 @@ const StorePage = () => {
         } as any);
         setPreviewBlocks(Array.isArray(d.draft_layout) ? d.draft_layout : []);
         if (d.draft_theme) setPreviewTheme(d.draft_theme as any);
+        document.title = `${d.store_name} Preview`;
+      } else {
+        const { data: storeData } = await supabase
+          .from("marketplace_stores")
+          .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo, announcement, settings")
+          .eq("slug", slug)
+          .eq("status", "live")
+          .maybeSingle();
+
+        if (!storeData) {
+          setStore(null);
+          setLoading(false);
+          return;
+        }
+
+        activeStoreId = storeData.id;
+        setStore(storeData as unknown as StoreData);
+
+        const seo = storeData.seo as Record<string, string> | null;
+        if (seo?.meta_title) document.title = seo.meta_title;
+        else document.title = storeData.store_name;
+      }
+
+      if (!activeStoreId) {
         setLoading(false);
         return;
       }
 
-      const { data: storeData } = await supabase
-        .from("marketplace_stores")
-        .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo, announcement, settings")
-        .eq("slug", slug)
-        .eq("status", "live")
-        .maybeSingle();
-
-      if (!storeData) { setLoading(false); return; }
-      setStore(storeData as unknown as StoreData);
-
-      const seo = storeData.seo as Record<string, string> | null;
-      if (seo?.meta_title) document.title = seo.meta_title;
-      else document.title = storeData.store_name;
-
       const [prodRes, catRes, menuRes, followRes] = await Promise.all([
         supabase.from("marketplace_products")
           .select("id, store_id, name, price, images, stock_quantity, is_featured, category_id, sold_count, created_at")
-          .eq("store_id", storeData.id)
+          .eq("store_id", activeStoreId)
           .eq("status", "active")
           .order("is_featured", { ascending: false }),
         supabase.from("marketplace_categories")
           .select("id, name, sort_order, image_url")
-          .eq("store_id", storeData.id)
+          .eq("store_id", activeStoreId)
           .order("sort_order"),
         supabase.from("marketplace_store_menus")
           .select("id, label, url, position")
-          .eq("store_id", storeData.id)
+          .eq("store_id", activeStoreId)
           .order("sort_order"),
         supabase.from("marketplace_store_follows")
           .select("id", { count: "exact", head: true })
-          .eq("store_id", storeData.id),
+          .eq("store_id", activeStoreId),
       ]);
 
       const prods = (prodRes.data as unknown as ProductRow[]) || [];
@@ -191,7 +209,7 @@ const StorePage = () => {
             .in("product_id", productIds),
           supabase.from("marketplace_flash_sales")
             .select("product_id, flash_price")
-            .eq("store_id", storeData.id)
+            .eq("store_id", activeStoreId)
             .eq("is_active", true)
             .lte("starts_at", new Date().toISOString())
             .gte("ends_at", new Date().toISOString()),
@@ -221,7 +239,7 @@ const StorePage = () => {
       setLoading(false);
     };
     fetchData();
-  }, [slug]);
+  }, [slug, isPreview, previewToken, previewStoreId]);
 
   useEffect(() => {
     if (showSearch && searchRef.current) searchRef.current.focus();
@@ -257,6 +275,8 @@ const StorePage = () => {
   const sections = layoutSource as unknown as PageSection[];
 
   const featuredProducts = products.filter(p => p.is_featured);
+  const featuredProductSections = sections.filter(s => s.type === "featured_products" && !s.hidden);
+  const fallbackFeaturedProducts = featuredProducts.length > 0 ? featuredProducts : products;
   const newArrivals = [...products].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 8);
 
   // Compute average store rating
@@ -274,7 +294,13 @@ const StorePage = () => {
         ctaUrl: s.ctaUrl || "",
       }))
     : heroSection?.type === "hero_banner"
-      ? [{ imageUrl: heroSection.imageUrl || "", title: heroSection.title || "", subtitle: heroSection.content || "" }]
+      ? [{
+          imageUrl: heroSection.imageUrl || "",
+          title: heroSection.title || "",
+          subtitle: heroSection.content || "",
+          ctaText: heroSection.settings?.cta_text || "",
+          ctaUrl: heroSection.settings?.cta_url || "",
+        }]
       : [];
 
   // Resolve theme (preview overrides win in builder)
