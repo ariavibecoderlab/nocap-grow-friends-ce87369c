@@ -2846,6 +2846,10 @@ export type Database = {
           total_descendants: number
         }[]
       }
+      get_distribution_trace: {
+        Args: { p_distribution_id: string }
+        Returns: Json
+      }
       get_referral_emails: {
         Args: { referral_user_ids: string[] }
         Returns: {
@@ -2889,6 +2893,30 @@ export type Database = {
       is_store_manager: {
         Args: { _store_id: string; _user_id: string }
         Returns: boolean
+      }
+      list_distribution_audit: {
+        Args: {
+          p_from?: string
+          p_limit?: number
+          p_search?: string
+          p_to?: string
+        }
+        Returns: {
+          amount: number
+          branch_id: string
+          branch_name: string
+          child_count: number
+          child_total: number
+          created_at: string
+          id: string
+          member_id: string
+          member_name: string
+          member_referral_code: string
+          reconciled: boolean
+          sale_amount: number
+          source: string
+          status: string
+        }[]
       }
       reconcile_wallet_balances: {
         Args: never
