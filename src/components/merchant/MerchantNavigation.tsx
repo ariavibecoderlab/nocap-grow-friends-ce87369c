@@ -71,17 +71,13 @@ export function getMerchantSections(chatUnread: number): NavSection[] {
         { value: "collections", icon: Layers, label: "Collections" },
         { value: "giftcards", icon: Gift, label: "Gift Cards" },
         { value: "carts", icon: ShoppingBag, label: "Abandoned Carts" },
-        { value: "announce", icon: Megaphone, label: "Announcements" },
       ],
     },
     {
       id: "storefront",
       label: "🎨 Storefront",
       items: [
-        { value: "domain", icon: Globe, label: "Custom Domain" },
-        { value: "checkout", icon: CreditCard, label: "Checkout Settings" },
-        { value: "seo", icon: Search, label: "Product SEO" },
-        { value: "blog", icon: BookOpen, label: "Store Blog" },
+        { value: "storefront_hub", icon: Globe, label: "Storefront Hub" },
         { value: "import", icon: Upload, label: "Import / Export" },
       ],
     },
