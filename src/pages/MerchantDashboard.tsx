@@ -94,6 +94,21 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread,
   topContent?: React.ReactNode;
 }) => {
   const [activeTab, setActiveTab] = useState("qr");
+
+  // Storefront Hub tabs are routed to the unified hub page
+  const HUB_TABS = new Set(["storefront_hub", "pages", "menus", "seo", "domain", "checkout", "announce", "blog"]);
+  const handleTabChange = (value: string) => {
+    if (HUB_TABS.has(value)) {
+      const sectionMap: Record<string, string> = {
+        storefront_hub: "overview",
+        pages: "pages", menus: "menus", seo: "seo", domain: "domain",
+        checkout: "checkout", announce: "announce", blog: "blog",
+      };
+      navigate(`/merchant/storefront?section=${sectionMap[value] || "overview"}`);
+      return;
+    }
+    setActiveTab(value);
+  };
   const isMobile = useIsMobile();
 
   const renderContent = () => {
@@ -134,7 +149,7 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread,
     return (
       <div className="mt-4 space-y-4">
         {topContent}
-        <MerchantNavigation activeTab={activeTab} onTabChange={setActiveTab} chatUnread={chatUnread} />
+        <MerchantNavigation activeTab={activeTab} onTabChange={handleTabChange} chatUnread={chatUnread} />
         <div className="mt-3">
           {renderContent()}
         </div>
@@ -146,7 +161,7 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread,
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex w-full min-h-screen">
-        <MerchantSidebar activeTab={activeTab} onTabChange={setActiveTab} chatUnread={chatUnread} />
+        <MerchantSidebar activeTab={activeTab} onTabChange={handleTabChange} chatUnread={chatUnread} />
         <div className="flex-1 flex flex-col min-w-0">
           <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2 bg-primary">
             <SidebarTrigger className="text-white/40 hover:text-white" />
