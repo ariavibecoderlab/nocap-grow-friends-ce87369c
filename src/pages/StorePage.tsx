@@ -100,9 +100,49 @@ const StorePage = () => {
   const searchRef = useRef<HTMLInputElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
+  // Listen for builder postMessage updates in preview mode
+  useEffect(() => {
+    if (!isPreview) return;
+    const onMsg = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type === "BUILDER_UPDATE") {
+        if (Array.isArray(e.data.blocks)) setPreviewBlocks(e.data.blocks);
+        if (e.data.theme) setPreviewTheme(e.data.theme);
+      }
+    };
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, [isPreview]);
+
   useEffect(() => {
     if (!slug) return;
     const fetchData = async () => {
+      // Preview mode: fetch via secure RPC using token
+      if (isPreview && previewToken && previewStoreId) {
+        const { data: draft, error } = await supabase.rpc("get_store_draft", {
+          p_store_id: previewStoreId,
+          p_token: previewToken,
+        });
+        if (error || !draft || (Array.isArray(draft) && draft.length === 0)) {
+          setLoading(false);
+          return;
+        }
+        const d: any = Array.isArray(draft) ? draft[0] : draft;
+        // Build a synthetic store object for preview
+        setStore({
+          id: d.store_id, slug: d.slug, store_name: d.store_name,
+          tagline: null, description: d.description, logo_url: d.logo_url,
+          banner_url: d.banner_url, primary_color: "#FFC800",
+          theme: d.theme_id || "classic", shipping_flat_rate: 0, free_shipping_min: null,
+          page_layout: d.draft_layout || [], seo: {}, announcement: null,
+          settings: { theme_overrides: d.draft_theme?.overrides || d.theme_overrides || {} },
+        } as any);
+        setPreviewBlocks(Array.isArray(d.draft_layout) ? d.draft_layout : []);
+        if (d.draft_theme) setPreviewTheme(d.draft_theme as any);
+        setLoading(false);
+        return;
+      }
+
       const { data: storeData } = await supabase
         .from("marketplace_stores")
         .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo, announcement, settings")
