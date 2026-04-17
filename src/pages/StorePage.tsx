@@ -124,26 +124,68 @@ const StorePage = () => {
 
       let activeStoreId: string | null = null;
 
-      // Preview mode: fetch via secure RPC using token
+      // Preview mode: fetch via secure RPC using token, then fall back to authenticated draft access
       if (isPreview) {
-        if (!previewToken || !previewStoreId) {
-          setStore(null);
-          setLoading(false);
-          return;
+        let previewDraft: any = null;
+
+        if (previewToken && previewStoreId) {
+          const { data: draft, error } = await supabase.rpc("get_store_draft", {
+            p_store_id: previewStoreId,
+            p_token: previewToken,
+          });
+
+          if (!error && draft && (!Array.isArray(draft) || draft.length > 0)) {
+            previewDraft = Array.isArray(draft) ? draft[0] : draft;
+          } else {
+            console.warn("Preview RPC failed, falling back to authenticated draft fetch", error);
+          }
         }
 
-        const { data: draft, error } = await supabase.rpc("get_store_draft", {
-          p_store_id: previewStoreId,
-          p_token: previewToken,
-        });
-        if (error || !draft || (Array.isArray(draft) && draft.length === 0)) {
-          setStore(null);
-          setLoading(false);
-          return;
+        if (!previewDraft) {
+          const { data: authData } = await supabase.auth.getUser();
+          const user = authData.user;
+
+          if (!user) {
+            setStore(null);
+            setLoading(false);
+            return;
+          }
+
+          let fallbackQuery = supabase
+            .from("marketplace_stores")
+            .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, draft_layout, draft_theme, announcement, settings, merchant_user_id")
+            .eq("merchant_user_id", user.id)
+            .limit(1);
+
+          fallbackQuery = previewStoreId
+            ? fallbackQuery.eq("id", previewStoreId)
+            : fallbackQuery.eq("slug", slug);
+
+          const { data: previewStore, error: previewStoreError } = await fallbackQuery.maybeSingle();
+
+          if (previewStoreError || !previewStore) {
+            console.warn("Authenticated preview fallback failed", previewStoreError);
+            setStore(null);
+            setLoading(false);
+            return;
+          }
+
+          previewDraft = {
+            store_id: previewStore.id,
+            slug: previewStore.slug,
+            store_name: previewStore.store_name,
+            description: previewStore.description,
+            logo_url: previewStore.logo_url,
+            banner_url: previewStore.banner_url,
+            theme_id: previewStore.theme,
+            draft_layout: previewStore.draft_layout || [],
+            draft_theme: previewStore.draft_theme || null,
+            theme_overrides: (previewStore.settings as any)?.theme_overrides || {},
+          };
         }
-        const d: any = Array.isArray(draft) ? draft[0] : draft;
+
+        const d = previewDraft;
         activeStoreId = d.store_id;
-        // Build a synthetic store object for preview
         setStore({
           id: d.store_id, slug: d.slug, store_name: d.store_name,
           tagline: null, description: d.description, logo_url: d.logo_url,
