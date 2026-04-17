@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import CartDrawer from "@/components/marketplace/CartDrawer";
@@ -78,7 +78,13 @@ const PRODUCTS_PER_PAGE = 12;
 const StorePage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isPreview = searchParams.get("preview") === "draft";
+  const previewToken = searchParams.get("token");
+  const previewStoreId = searchParams.get("store");
   const [store, setStore] = useState<StoreData | null>(null);
+  const [previewBlocks, setPreviewBlocks] = useState<any[] | null>(null);
+  const [previewTheme, setPreviewTheme] = useState<{ themeId: string; overrides: any } | null>(null);
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [ratings, setRatings] = useState<Record<string, number>>({});
