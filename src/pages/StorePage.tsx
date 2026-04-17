@@ -251,7 +251,10 @@ const StorePage = () => {
 
   const headerMenus = menus.filter(m => m.position === "header");
   const footerMenus = menus.filter(m => m.position === "footer");
-  const sections = (store?.page_layout && Array.isArray(store.page_layout) ? store.page_layout : []) as unknown as PageSection[];
+  const layoutSource = isPreview && previewBlocks
+    ? previewBlocks
+    : (store?.page_layout && Array.isArray(store.page_layout) ? store.page_layout : []);
+  const sections = layoutSource as unknown as PageSection[];
 
   const featuredProducts = products.filter(p => p.is_featured);
   const newArrivals = [...products].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 8);
