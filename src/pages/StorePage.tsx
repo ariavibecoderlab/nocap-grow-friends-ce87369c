@@ -281,6 +281,29 @@ const StorePage = () => {
   const resolvedTheme = store ? resolveTheme(store.theme, overrides) : null;
   const themeCSSVars = resolvedTheme ? themeToCSS(resolvedTheme) : {};
 
+  // Load Google Fonts dynamically when a non-default font pair is in use
+  useEffect(() => {
+    if (!resolvedTheme) return;
+    const families = new Set<string>();
+    const extract = (font: string) => {
+      const m = font.match(/'([^']+)'/);
+      if (m && m[1] !== "Inter") families.add(m[1].replace(/ /g, "+"));
+    };
+    extract(resolvedTheme.fonts.heading);
+    extract(resolvedTheme.fonts.body);
+    if (families.size === 0) return;
+    const id = "store-google-fonts";
+    let link = document.getElementById(id) as HTMLLinkElement | null;
+    const href = `https://fonts.googleapis.com/css2?${[...families].map(f => `family=${f}:wght@400;500;600;700`).join("&")}&display=swap`;
+    if (!link) {
+      link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      document.head.appendChild(link);
+    }
+    if (link.href !== href) link.href = href;
+  }, [resolvedTheme?.fonts.heading, resolvedTheme?.fonts.body]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-primary">
