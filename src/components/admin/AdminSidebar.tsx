@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Store, Banknote, Settings2, Users, ArrowLeftRight,
-  Code, ShieldCheck, GitBranch, LogOut,
+  Code, ShieldCheck, GitBranch, LogOut, Activity,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -22,6 +22,7 @@ const navItems = [
   { title: "Transactions", url: "/admin-portal/transactions", icon: ArrowLeftRight },
   { title: "API Apps", url: "/admin-portal/api-apps", icon: Code },
   { title: "Audit", url: "/admin-portal/audit", icon: ShieldCheck },
+  { title: "Distribution Audit", url: "/admin-portal/distribution-audit", icon: Activity },
   { title: "Referral Tree", url: "/admin-portal/referral-tree", icon: GitBranch },
 ];
 
