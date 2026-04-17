@@ -1,1 +1,0 @@
-DROP FUNCTION IF EXISTS public.list_distribution_audit(integer, text, timestamp with time zone, timestamp with time zone);
