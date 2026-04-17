@@ -13,6 +13,7 @@ import WithdrawalApprovals from "@/components/admin/WithdrawalApprovals";
 import ApiAppsManagement from "@/components/admin/ApiAppsManagement";
 import WalletReconciliation from "@/components/admin/WalletReconciliation";
 import AdminReferralTreeContent from "@/components/admin/AdminReferralTreeContent";
+import DistributionAudit from "@/components/admin/DistributionAudit";
 import { Loader2 } from "lucide-react";
 
 const sectionMap: Record<string, React.FC> = {
@@ -25,6 +26,7 @@ const sectionMap: Record<string, React.FC> = {
   "api-apps": ApiAppsManagement,
   audit: WalletReconciliation,
   "referral-tree": AdminReferralTreeContent,
+  "distribution-audit": DistributionAudit,
 };
 
 const AdminPortal = () => {
