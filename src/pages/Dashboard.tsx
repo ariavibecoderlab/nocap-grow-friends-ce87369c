@@ -80,8 +80,8 @@ const Dashboard = () => {
     const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes, merchantRoleRes] = await Promise.all([
       supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
       supabase.from("profiles").select("full_name, phone, referral_code, avatar_url, address, has_pin").eq("user_id", user.id).maybeSingle(),
-      supabase.from("referral_tree").select("id").eq("ancestor_id", user.id).eq("tier", 1),
-      supabase.from("referral_tree").select("id").eq("ancestor_id", user.id),
+      supabase.from("referral_tree").select("id", { count: "exact", head: true }).eq("ancestor_id", user.id).eq("tier", 1),
+      supabase.from("referral_tree").select("id", { count: "exact", head: true }).eq("ancestor_id", user.id),
       supabase.from("transactions").select("amount, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed"),
       supabase.from("transactions").select("id, type, amount, status, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
       supabase.from("user_roles").select("id").eq("user_id", user.id).eq("role", "merchant").maybeSingle()
