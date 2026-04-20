@@ -89,8 +89,8 @@ const Dashboard = () => {
 
     if (walletRes.data) setBalance(Number(walletRes.data.balance));
     if (profileRes.data) setProfile(profileRes.data);
-    if (directReferrals.data) setReferralCount(directReferrals.data.length);
-    if (allReferrals.data) setNetworkCount(allReferrals.data.length);
+    setReferralCount(directReferrals.count ?? 0);
+    setNetworkCount(allReferrals.count ?? 0);
     if (earningsRes.data) {
       setCashbackEarnings(earningsRes.data.filter(t => t.type === 'cashback').reduce((sum, t) => sum + Number(t.amount), 0));
       setCommissionEarnings(earningsRes.data.filter(t => t.type === 'commission').reduce((sum, t) => sum + Number(t.amount), 0));
