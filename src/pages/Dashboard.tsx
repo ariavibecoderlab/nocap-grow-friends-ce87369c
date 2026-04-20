@@ -80,8 +80,8 @@ const Dashboard = () => {
     const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes, merchantRoleRes] = await Promise.all([
       supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
       supabase.from("profiles").select("full_name, phone, referral_code, avatar_url, address, has_pin").eq("user_id", user.id).maybeSingle(),
-      supabase.from("referral_tree").select("id").eq("ancestor_id", user.id).eq("tier", 1),
-      supabase.from("referral_tree").select("id").eq("ancestor_id", user.id),
+      supabase.from("referral_tree").select("id", { count: "exact", head: true }).eq("ancestor_id", user.id).eq("tier", 1),
+      supabase.from("referral_tree").select("id", { count: "exact", head: true }).eq("ancestor_id", user.id),
       supabase.from("transactions").select("amount, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed"),
       supabase.from("transactions").select("id, type, amount, status, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
       supabase.from("user_roles").select("id").eq("user_id", user.id).eq("role", "merchant").maybeSingle()
@@ -89,8 +89,8 @@ const Dashboard = () => {
 
     if (walletRes.data) setBalance(Number(walletRes.data.balance));
     if (profileRes.data) setProfile(profileRes.data);
-    if (directReferrals.data) setReferralCount(directReferrals.data.length);
-    if (allReferrals.data) setNetworkCount(allReferrals.data.length);
+    setReferralCount(directReferrals.count ?? 0);
+    setNetworkCount(allReferrals.count ?? 0);
     if (earningsRes.data) {
       setCashbackEarnings(earningsRes.data.filter(t => t.type === 'cashback').reduce((sum, t) => sum + Number(t.amount), 0));
       setCommissionEarnings(earningsRes.data.filter(t => t.type === 'commission').reduce((sum, t) => sum + Number(t.amount), 0));
