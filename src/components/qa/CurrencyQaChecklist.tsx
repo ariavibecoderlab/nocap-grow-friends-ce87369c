@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Loader2, ExternalLink, Play } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, ExternalLink, Play, Trash2 } from "lucide-react";
 import { formatRM, toRMNumber } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
+import { getSanitizerLog, clearSanitizerLog, type SanitizerLogEntry } from "@/lib/sanitizeApiResponse";
 
 /* -------------------------------------------------------------- */
 /* Unit cases — every input below MUST render exactly "RM 0.00".  */
