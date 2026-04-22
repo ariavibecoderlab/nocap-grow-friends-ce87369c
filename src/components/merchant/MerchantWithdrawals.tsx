@@ -190,11 +190,19 @@ const MerchantWithdrawals = ({ userId }: Props) => {
           <p className="text-xs font-semibold text-white/70 uppercase tracking-wide">Balance Breakdown</p>
           <div className="flex items-center justify-between text-sm">
             <span className="text-white/60">Total Sales</span>
-            <span className="text-white font-medium tabular-nums">{formatRM(totalSales)}</span>
+            {totalSales > 0 ? (
+              <span className="text-white font-medium tabular-nums">{formatRM(totalSales)}</span>
+            ) : (
+              <span className="text-white/40 italic text-xs">No completed sales yet</span>
+            )}
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-white/60">Approved / Settled Withdrawals</span>
-            <span className="text-white font-medium tabular-nums">− {formatRM(totalCommitted)}</span>
+            {totalCommitted > 0 ? (
+              <span className="text-white font-medium tabular-nums">− {formatRM(totalCommitted)}</span>
+            ) : (
+              <span className="text-white/40 italic text-xs">None yet</span>
+            )}
           </div>
           <Separator className="bg-white/10" />
           <div className="flex items-center justify-between text-sm">
