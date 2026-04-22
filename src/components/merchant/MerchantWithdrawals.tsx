@@ -28,6 +28,11 @@ interface Props {
   userId: string;
 }
 
+// Round to 2 decimals to avoid floating-point drift (e.g. 0.1+0.2)
+const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
+// Format an RM value with thousands separators and exactly 2 decimals
+const formatRM = (n: number) =>
+  `RM ${round2(n).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const MerchantWithdrawals = ({ userId }: Props) => {
   const { toast } = useToast();
@@ -82,11 +87,11 @@ const MerchantWithdrawals = ({ userId }: Props) => {
         .maybeSingle(),
     ]);
     if (wr) setRequests(wr as WithdrawalRequest[]);
-    const tSales = (sales ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0);
-    const tCommitted = (committed ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0);
+    const tSales = round2((sales ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0));
+    const tCommitted = round2((committed ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0));
     setTotalSales(tSales);
     setTotalCommitted(tCommitted);
-    setWalletBalance(tSales - tCommitted);
+    setWalletBalance(round2(tSales - tCommitted));
     if (app) {
       setBankName(app.bank_name || "");
       setBankAccountNo(app.bank_account_no || "");
@@ -117,13 +122,13 @@ const MerchantWithdrawals = ({ userId }: Props) => {
   const hasPending = requests.some((r) => r.status === "pending");
 
   const submit = async () => {
-    const amt = Number(amount);
+    const amt = round2(Number(amount));
     if (!amt || amt <= 0) {
       toast({ title: "Enter a valid amount", variant: "destructive" });
       return;
     }
     if (amt < minWithdrawal) {
-      toast({ title: `Minimum withdrawal is RM ${minWithdrawal.toFixed(2)}`, variant: "destructive" });
+      toast({ title: `Minimum withdrawal is ${formatRM(minWithdrawal)}`, variant: "destructive" });
       return;
     }
     if (amt > walletBalance) {
@@ -171,7 +176,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
         <CardContent className="p-4 flex items-center justify-between">
           <div>
             <p className="text-xs text-white/40">Available Balance</p>
-            <p className="text-xl font-bold font-display text-white">RM {walletBalance.toFixed(2)}</p>
+            <p className="text-xl font-bold font-display text-white">{formatRM(walletBalance)}</p>
           </div>
           <Button size="sm" onClick={() => setShowForm(true)} disabled={hasPending} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90 font-semibold">
             <ArrowDownToLine className="h-3.5 w-3.5" /> Withdraw
@@ -185,16 +190,16 @@ const MerchantWithdrawals = ({ userId }: Props) => {
           <p className="text-xs font-semibold text-white/70 uppercase tracking-wide">Balance Breakdown</p>
           <div className="flex items-center justify-between text-sm">
             <span className="text-white/60">Total Sales</span>
-            <span className="text-white font-medium tabular-nums">RM {totalSales.toFixed(2)}</span>
+            <span className="text-white font-medium tabular-nums">{formatRM(totalSales)}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-white/60">Approved / Settled Withdrawals</span>
-            <span className="text-white font-medium tabular-nums">− RM {totalCommitted.toFixed(2)}</span>
+            <span className="text-white font-medium tabular-nums">− {formatRM(totalCommitted)}</span>
           </div>
           <Separator className="bg-white/10" />
           <div className="flex items-center justify-between text-sm">
             <span className="text-secondary font-semibold">Available Balance</span>
-            <span className="text-secondary font-bold tabular-nums">RM {walletBalance.toFixed(2)}</span>
+            <span className="text-secondary font-bold tabular-nums">{formatRM(walletBalance)}</span>
           </div>
         </CardContent>
       </Card>
@@ -214,7 +219,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
                 <div className="flex items-center gap-2">
                   {statusIcon(r.status)}
                   <div>
-                    <p className="text-sm font-semibold text-white">RM {Number(r.amount).toFixed(2)}</p>
+                    <p className="text-sm font-semibold text-white">{formatRM(Number(r.amount))}</p>
                     <p className="text-[10px] text-white/40">
                       {r.bank_name} • {r.bank_account_no}
                     </p>
@@ -250,8 +255,8 @@ const MerchantWithdrawals = ({ userId }: Props) => {
           <div className="space-y-3">
             <div className="space-y-1">
               <Label className="text-white/70">Amount (RM) *</Label>
-              <Input type="number" inputMode="decimal" placeholder={minWithdrawal.toFixed(2)} value={amount} onChange={(e) => setAmount(e.target.value)} min={minWithdrawal} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
-              <p className="text-[10px] text-white/40">Min: RM {minWithdrawal.toFixed(2)} • Available: RM {walletBalance.toFixed(2)}</p>
+              <Input type="number" inputMode="decimal" step="0.01" placeholder={round2(minWithdrawal).toFixed(2)} value={amount} onChange={(e) => setAmount(e.target.value)} min={minWithdrawal} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
+              <p className="text-[10px] text-white/40">Min: {formatRM(minWithdrawal)} • Available: {formatRM(walletBalance)}</p>
             </div>
             <div className="space-y-1">
               <Label className="text-white/70">Bank Name *</Label>
@@ -306,7 +311,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
                     <ArrowDownToLine className="h-6 w-6 text-secondary" />
                   </div>
                   <p className="font-display text-3xl font-bold tabular-nums text-white">
-                    RM {Number(r.amount).toFixed(2)}
+                    {formatRM(Number(r.amount))}
                   </p>
                   <Badge className={statusCfg.className}>
                     <StatusIcon className="mr-1 h-3 w-3" />
