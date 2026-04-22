@@ -14,6 +14,7 @@ import OnboardingChecklist from "@/components/OnboardingChecklist";
 import { useToast } from "@/hooks/use-toast";
 import { formatRM } from "@/lib/currency";
 import { sanitizeNumericObject, sanitizeNumericFields } from "@/lib/sanitizeApiResponse";
+import { RMAmount } from "@/components/RMAmount";
 
 interface Transaction {
   id: string;
