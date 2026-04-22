@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart3, Download, TrendingUp, TrendingDown, ShoppingCart, Users, DollarSign } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import RevenueForecast from "./RevenueForecast";
+import { formatRM } from "@/lib/currency";
 
 interface Props { storeId: string; }
 
@@ -106,9 +107,9 @@ const MerchantSalesReports = ({ storeId }: Props) => {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-2">
         {[
-          { label: "Revenue", value: `RM ${totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-green-400" },
+          { label: "Revenue", value: formatRM(totalRevenue), icon: DollarSign, color: "text-green-400" },
           { label: "Orders", value: totalOrders, icon: ShoppingCart, color: "text-blue-400" },
-          { label: "Avg Order", value: `RM ${avgOrderValue.toFixed(2)}`, icon: TrendingUp, color: "text-secondary" },
+          { label: "Avg Order", value: formatRM(avgOrderValue), icon: TrendingUp, color: "text-secondary" },
           { label: "Customers", value: uniqueCustomers, icon: Users, color: "text-purple-400" },
         ].map(kpi => (
           <Card key={kpi.label} className="border-white/10 bg-white/5">
@@ -171,7 +172,7 @@ const MerchantSalesReports = ({ storeId }: Props) => {
                     <span className="text-white truncate">{c.name}</span>
                     <Badge variant="outline" className="text-[9px] px-1 py-0 border-white/10 text-white/40">{c.count} orders</Badge>
                   </div>
-                  <span className="text-secondary font-semibold shrink-0">RM {c.total.toFixed(2)}</span>
+                  <span className="text-secondary font-semibold shrink-0">{formatRM(c.total)}</span>
                 </div>
               ))}
             </div>
