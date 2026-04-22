@@ -255,8 +255,8 @@ const MerchantWithdrawals = ({ userId }: Props) => {
           <div className="space-y-3">
             <div className="space-y-1">
               <Label className="text-white/70">Amount (RM) *</Label>
-              <Input type="number" inputMode="decimal" placeholder={minWithdrawal.toFixed(2)} value={amount} onChange={(e) => setAmount(e.target.value)} min={minWithdrawal} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
-              <p className="text-[10px] text-white/40">Min: RM {minWithdrawal.toFixed(2)} • Available: RM {walletBalance.toFixed(2)}</p>
+              <Input type="number" inputMode="decimal" step="0.01" placeholder={round2(minWithdrawal).toFixed(2)} value={amount} onChange={(e) => setAmount(e.target.value)} min={minWithdrawal} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
+              <p className="text-[10px] text-white/40">Min: {formatRM(minWithdrawal)} • Available: {formatRM(walletBalance)}</p>
             </div>
             <div className="space-y-1">
               <Label className="text-white/70">Bank Name *</Label>
