@@ -9,11 +9,13 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NocapLogo from "@/components/NocapLogo";
+import CurrencyQaChecklist from "@/components/qa/CurrencyQaChecklist";
 import {
   ChevronDown, ChevronRight, Search, ArrowLeft, BookOpen, FileText,
   CheckCircle, XCircle, AlertTriangle, BarChart3, Download, RotateCcw,
   LogIn, LayoutDashboard, Wallet, QrCode, ArrowUpDown, Users, Shield,
-  Bell, Settings, Store, Code, Globe, Smartphone, Key, Lock, Zap, Database
+  Bell, Settings, Store, Code, Globe, Smartphone, Key, Lock, Zap, Database,
+  DollarSign
 } from "lucide-react";
 
 interface TestCase {
@@ -249,6 +251,17 @@ const UatScripts = () => {
       </header>
 
       <div className="mx-auto max-w-7xl p-4 md:p-6">
+        <Tabs defaultValue="scripts" className="w-full">
+          <TabsList className="bg-white/5 border border-white/10 mb-4">
+            <TabsTrigger value="scripts" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">
+              <FileText className="mr-1.5 h-3.5 w-3.5" /> Test Scripts
+            </TabsTrigger>
+            <TabsTrigger value="currency" className="text-xs data-[state=active]:bg-secondary data-[state=active]:text-primary">
+              <DollarSign className="mr-1.5 h-3.5 w-3.5" /> Currency QA
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="scripts" className="mt-0">
         {/* Progress Summary */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           <Card className="border-white/10 bg-white/5">
@@ -452,6 +465,12 @@ const UatScripts = () => {
         <p className="text-center text-xs text-white/20 mt-8 pb-8">
           Generated for NoCap Wallet v1.0 — February 2026
         </p>
+          </TabsContent>
+
+          <TabsContent value="currency" className="mt-0">
+            <CurrencyQaChecklist />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
