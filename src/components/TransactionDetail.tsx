@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowDownLeft, ArrowUpRight, ArrowUpDown, Gift, Share2, FileText, Zap, CheckCircle, XCircle, Clock } from "lucide-react";
 import jsPDF from "jspdf";
 import { formatRM, toRMNumber } from "@/lib/currency";
+import { RMAmount } from "@/components/RMAmount";
 
 interface Transaction {
   id: string;
@@ -196,7 +197,7 @@ const TransactionDetail = ({ transaction, open, onOpenChange }: TransactionDetai
               {typeIcon(tx.type)}
             </div>
             <p className={`font-display text-3xl font-bold tabular-nums ${credit ? "text-secondary" : "text-white"}`}>
-              {credit ? "+" : "-"}{formatRM(Math.abs(toRMNumber(tx.amount)))}
+              <RMAmount value={credit ? Math.abs(toRMNumber(tx.amount)) : -Math.abs(toRMNumber(tx.amount))} sign="delta" />
             </p>
             <Badge className={status.className}>
               <StatusIcon className="mr-1 h-3 w-3" />
