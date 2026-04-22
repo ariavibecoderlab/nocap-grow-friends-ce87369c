@@ -215,8 +215,8 @@ const MerchantAnalytics = ({ userId, branches }: MerchantAnalyticsProps) => {
         </Card>
         <Card className="border-border/50 bg-card">
           <CardContent className="p-3 text-center">
-            <Activity className="mx-auto h-4 w-4 text-secondary" />
-            <p className="mt-1 font-display text-lg font-bold text-foreground">{txnCount}</p>
+            <BarChart3 className="mx-auto h-4 w-4 text-secondary" />
+            <p className="mt-1 font-display text-lg font-bold text-foreground">{totalTxns}</p>
             <p className="text-[10px] text-muted-foreground">Transactions</p>
           </CardContent>
         </Card>
