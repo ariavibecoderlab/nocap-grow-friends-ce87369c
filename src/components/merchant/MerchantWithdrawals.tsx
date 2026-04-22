@@ -41,6 +41,8 @@ const MerchantWithdrawals = ({ userId }: Props) => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
   const [totalCommitted, setTotalCommitted] = useState(0);
+  const [totalApproved, setTotalApproved] = useState(0);
+  const [totalSettled, setTotalSettled] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null);
@@ -98,8 +100,12 @@ const MerchantWithdrawals = ({ userId }: Props) => {
     }
     const tSales = round2((sales ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0));
     const tCommitted = round2((committed ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0));
+    const tApproved = round2((wr ?? []).filter((r: any) => r.status === "approved").reduce((s, r: any) => s + Number(r.amount || 0), 0));
+    const tSettled = round2((wr ?? []).filter((r: any) => r.status === "settled").reduce((s, r: any) => s + Number(r.amount || 0), 0));
     setTotalSales(tSales);
     setTotalCommitted(tCommitted);
+    setTotalApproved(tApproved);
+    setTotalSettled(tSettled);
     setWalletBalance(round2(tSales - tCommitted));
     if (app) {
       setBankName(app.bank_name || "");
@@ -206,9 +212,17 @@ const MerchantWithdrawals = ({ userId }: Props) => {
             )}
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-white/60">Approved / Settled Withdrawals</span>
-            {totalCommitted > 0 ? (
-              <span className="text-white font-medium tabular-nums">− {formatRM(totalCommitted)}</span>
+            <span className="text-white/60">Approved Withdrawals <span className="text-white/30 text-[10px]">(awaiting payout)</span></span>
+            {totalApproved > 0 ? (
+              <span className="text-white font-medium tabular-nums">− {formatRM(totalApproved)}</span>
+            ) : (
+              <span className="text-white/40 italic text-xs">None yet</span>
+            )}
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/60">Settled Withdrawals <span className="text-white/30 text-[10px]">(paid out)</span></span>
+            {totalSettled > 0 ? (
+              <span className="text-white font-medium tabular-nums">− {formatRM(totalSettled)}</span>
             ) : (
               <span className="text-white/40 italic text-xs">None yet</span>
             )}
