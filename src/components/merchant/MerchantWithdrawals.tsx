@@ -87,11 +87,11 @@ const MerchantWithdrawals = ({ userId }: Props) => {
         .maybeSingle(),
     ]);
     if (wr) setRequests(wr as WithdrawalRequest[]);
-    const tSales = (sales ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0);
-    const tCommitted = (committed ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0);
+    const tSales = round2((sales ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0));
+    const tCommitted = round2((committed ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0));
     setTotalSales(tSales);
     setTotalCommitted(tCommitted);
-    setWalletBalance(tSales - tCommitted);
+    setWalletBalance(round2(tSales - tCommitted));
     if (app) {
       setBankName(app.bank_name || "");
       setBankAccountNo(app.bank_account_no || "");
