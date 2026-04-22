@@ -5,6 +5,7 @@ import { Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
+import { formatRM } from "@/lib/currency";
 
 interface BranchSalesSummaryProps {
   branchId: string;
@@ -111,7 +112,7 @@ const BranchSalesSummary = ({ branchId, merchantUserId }: BranchSalesSummaryProp
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[10px] text-white/40">Today's Sales</p>
-              <p className="font-display text-2xl font-bold text-white">RM {todaySales.toFixed(2)}</p>
+              <p className="font-display text-2xl font-bold text-white">{formatRM(todaySales)}</p>
               <p className="text-[10px] text-white/40">{todayCount} transaction{todayCount !== 1 ? "s" : ""}</p>
             </div>
             <div className="text-right">
@@ -141,7 +142,7 @@ const BranchSalesSummary = ({ branchId, merchantUserId }: BranchSalesSummaryProp
       <div className="grid grid-cols-2 gap-2">
         <Card className="border-white/10 bg-white/5">
           <CardContent className="p-3 text-center">
-            <p className="font-display text-lg font-bold text-white">RM {totalMonth.toFixed(2)}</p>
+            <p className="font-display text-lg font-bold text-white">{formatRM(totalMonth)}</p>
             <p className="text-[10px] text-white/40">Last 30 Days</p>
           </CardContent>
         </Card>
@@ -165,7 +166,7 @@ const BranchSalesSummary = ({ branchId, merchantUserId }: BranchSalesSummaryProp
                 <YAxis tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 9 }} axisLine={false} tickLine={false} />
                 <Tooltip
                   contentStyle={{ background: "hsl(160, 30%, 10%)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
-                  formatter={(v: number) => [`RM ${v.toFixed(2)}`, "Sales"]}
+                  formatter={(v: number) => [formatRM(v), "Sales"]}
                 />
                 <Bar dataKey="sales" fill="hsl(47, 100%, 50%)" radius={[3, 3, 0, 0]} />
               </BarChart>

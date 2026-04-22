@@ -424,13 +424,13 @@ const BranchDashboard = () => {
               </Card>
               <Card className="border-white/10 bg-white/5">
                 <CardContent className="p-3 text-center">
-                  <p className="font-display text-lg font-bold text-white">RM {todaySales.toFixed(2)}</p>
+                  <p className="font-display text-lg font-bold text-white">{formatRM(todaySales)}</p>
                   <p className="text-[10px] text-white/40">Today</p>
                 </CardContent>
               </Card>
               <Card className="border-white/10 bg-white/5">
                 <CardContent className="p-3 text-center">
-                  <p className="font-display text-lg font-bold text-white">RM {totalSales.toFixed(2)}</p>
+                  <p className="font-display text-lg font-bold text-white">{formatRM(totalSales)}</p>
                   <p className="text-[10px] text-white/40">Total</p>
                 </CardContent>
               </Card>
@@ -507,7 +507,7 @@ const BranchDashboard = () => {
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>
                       <p className="text-xs text-white/40">Branch Balance</p>
-                      <p className="text-xl font-bold font-display text-white">RM {Number(selectedBranch.balance).toFixed(2)}</p>
+                      <p className="text-xl font-bold font-display text-white">{formatRM(selectedBranch.balance)}</p>
                     </div>
                     <Button size="sm" onClick={() => setShowWithdrawForm(true)} disabled={hasPending} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90 font-semibold">
                       <ArrowDownToLine className="h-3.5 w-3.5" /> Withdraw
