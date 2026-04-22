@@ -597,7 +597,7 @@ const BranchDashboard = () => {
             <div className="space-y-1">
               <Label className="text-white/70">Amount (RM) *</Label>
               <Input type="number" inputMode="decimal" placeholder="0.00" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="border-white/10 bg-white/5 text-white placeholder:text-white/30" />
-              <p className="text-[10px] text-white/40">Available: RM {Number(selectedBranch?.balance || 0).toFixed(2)}</p>
+              <p className="text-[10px] text-white/40">Available: {formatRM(selectedBranch?.balance)}</p>
             </div>
             <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={submitWithdrawal} disabled={submittingWithdraw}>
               {submittingWithdraw ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Submit Request
