@@ -119,7 +119,7 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread,
       case "shop": return <MerchantMarketplace branches={branches.map(b => ({ id: b.id, branch_name: b.branch_name }))} selectedBranchId={selectedBranch.id} />;
       case "chat": return <MerchantChatTab branchId={selectedBranch.id} />;
       case "txns": return <MerchantTransactions userId={user.id} branchId={selectedBranch.id} />;
-      case "withdraw": return <MerchantWithdrawals userId={user.id} />;
+      case "withdraw": return <MerchantWithdrawals key={selectedBranch.id} userId={user.id} branchId={selectedBranch.id} branchBalance={Number((selectedBranch as any)?.balance || 0)} branchName={selectedBranch.branch_name} />;
       case "dist": return <MerchantDistributions userId={user.id} branchId={selectedBranch.id} />;
       case "reports": return <MerchantSettlement userId={user.id} branches={branches} />;
       case "analytics": return <MerchantAnalytics userId={user.id} branches={branches} />;
