@@ -194,7 +194,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-white/60">Approved / Settled Withdrawals</span>
-            <span className="text-white font-medium tabular-nums">− RM {totalCommitted.toFixed(2)}</span>
+            <span className="text-white font-medium tabular-nums">− {formatRM(totalCommitted)}</span>
           </div>
           <Separator className="bg-white/10" />
           <div className="flex items-center justify-between text-sm">
