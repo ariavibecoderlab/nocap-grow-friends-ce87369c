@@ -176,7 +176,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
         <CardContent className="p-4 flex items-center justify-between">
           <div>
             <p className="text-xs text-white/40">Available Balance</p>
-            <p className="text-xl font-bold font-display text-white">RM {walletBalance.toFixed(2)}</p>
+            <p className="text-xl font-bold font-display text-white">{formatRM(walletBalance)}</p>
           </div>
           <Button size="sm" onClick={() => setShowForm(true)} disabled={hasPending} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90 font-semibold">
             <ArrowDownToLine className="h-3.5 w-3.5" /> Withdraw
