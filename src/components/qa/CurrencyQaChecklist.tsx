@@ -56,6 +56,9 @@ export default function CurrencyQaChecklist() {
   const [unitResults, setUnitResults] = useState<Record<number, UnitResult>>({});
   const [liveResults, setLiveResults] = useState<LiveResult[]>([]);
   const [liveLoading, setLiveLoading] = useState(false);
+  const [sanitizerEntries, setSanitizerEntries] = useState<readonly SanitizerLogEntry[]>([]);
+
+  const refreshSanitizerLog = () => setSanitizerEntries(getSanitizerLog());
 
   const runUnit = () => {
     const out: Record<number, UnitResult> = {};
