@@ -236,7 +236,7 @@ const Dashboard = () => {
               </button>
             </div>
             <p className="mt-2 font-display text-3xl font-bold tracking-tight text-secondary">
-              {showBalance ? formatRM(balance) : "RM ••••••"}
+              {showBalance ? <RMAmount value={balance} /> : "RM ••••••"}
             </p>
             <div className="mt-3 flex gap-2">
               <Button size="sm" className="bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => navigate("/top-up")}>
