@@ -219,7 +219,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
                 <div className="flex items-center gap-2">
                   {statusIcon(r.status)}
                   <div>
-                    <p className="text-sm font-semibold text-white">RM {Number(r.amount).toFixed(2)}</p>
+                    <p className="text-sm font-semibold text-white">{formatRM(Number(r.amount))}</p>
                     <p className="text-[10px] text-white/40">
                       {r.bank_name} • {r.bank_account_no}
                     </p>
