@@ -79,7 +79,7 @@ export default function CurrencyQaChecklist() {
         );
         continue;
       }
-      const rows = (data || []) as Array<Record<string, unknown>>;
+      const rows = (data || []) as unknown as Array<Record<string, unknown>>;
       target.columns.forEach((col) => {
         const offending = rows.filter((r) => {
           const raw = r[col];
