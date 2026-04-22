@@ -241,7 +241,7 @@ const MerchantTransactions = ({ userId, branchId }: MerchantTransactionsProps) =
                             </div>
                           </div>
                           <p className="text-sm font-semibold text-secondary shrink-0">
-                            +RM {Number(t.amount).toFixed(2)}
+                            +{formatRM(t.amount)}
                           </p>
                         </CardContent>
                       </Card>
