@@ -168,7 +168,7 @@ const TransactionDetail = ({ transaction, open, onOpenChange }: TransactionDetai
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: `NOcap Receipt - ${transactionLabel(tx.type)}`,
-          text: `Transaction receipt for ${credit ? "+" : "-"}RM ${Math.abs(tx.amount).toFixed(2)}`,
+          text: `Transaction receipt for ${credit ? "+" : "-"}${formatRM(Math.abs(toRMNumber(tx.amount)))}`,
           files: [file],
         });
       } else {
