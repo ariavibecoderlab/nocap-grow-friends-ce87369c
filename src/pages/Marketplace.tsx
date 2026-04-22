@@ -255,26 +255,36 @@ const Marketplace = () => {
   const hasMore = visibleCount < filtered.length;
   const visibleProducts = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
 
-  // Intersection Observer for infinite scroll
+  // Auto-advance pagination while sentinel is in view (handles the case
+  // where the sentinel is already visible on initial render — IntersectionObserver
+  // would otherwise not re-fire for the same intersecting state).
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el || !hasMore) return;
+
+    let isIntersecting = false;
+    let rafId: number | null = null;
+
+    const advance = () => {
+      if (!isIntersecting) return;
+      setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filtered.length));
+      rafId = requestAnimationFrame(advance);
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !loadingMore.current) {
-          loadingMore.current = true;
-          setVisibleCount(prev => {
-            const next = Math.min(prev + PAGE_SIZE, filtered.length);
-            // Reset guard after a short delay to allow re-render
-            requestAnimationFrame(() => { loadingMore.current = false; });
-            return next;
-          });
+        isIntersecting = entries[0].isIntersecting;
+        if (isIntersecting && rafId === null) {
+          rafId = requestAnimationFrame(advance);
         }
       },
-      { rootMargin: "100px", threshold: 0.1 }
+      { rootMargin: "200px", threshold: 0 }
     );
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, [hasMore, filtered.length]);
 
   // Search suggestions (kept for client-side fallback filtering)
