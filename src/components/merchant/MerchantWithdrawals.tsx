@@ -45,6 +45,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
   const [submitting, setSubmitting] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [unknownStatuses, setUnknownStatuses] = useState<string[]>([]);
 
   // Form fields
   const [amount, setAmount] = useState("");
