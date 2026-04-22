@@ -13,6 +13,7 @@ import NotificationBell from "@/components/NotificationBell";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
 import { useToast } from "@/hooks/use-toast";
 import { formatRM } from "@/lib/currency";
+import { sanitizeNumericObject, sanitizeNumericFields } from "@/lib/sanitizeApiResponse";
 
 interface Transaction {
   id: string;
@@ -88,15 +89,16 @@ const Dashboard = () => {
       supabase.from("user_roles").select("id").eq("user_id", user.id).eq("role", "merchant").maybeSingle()
     ]);
 
-    if (walletRes.data) setBalance(Number(walletRes.data.balance));
+    const safeWallet = sanitizeNumericObject(walletRes.data, ["balance"], { context: "wallets" });
+    if (safeWallet) setBalance(safeWallet.balance);
     if (profileRes.data) setProfile(profileRes.data);
     setReferralCount(directReferrals.count ?? 0);
     setNetworkCount(allReferrals.count ?? 0);
-    if (earningsRes.data) {
-      setCashbackEarnings(earningsRes.data.filter(t => t.type === 'cashback').reduce((sum, t) => sum + Number(t.amount), 0));
-      setCommissionEarnings(earningsRes.data.filter(t => t.type === 'commission').reduce((sum, t) => sum + Number(t.amount), 0));
-    }
-    if (txRes.data) setTransactions(txRes.data as Transaction[]);
+    const safeEarnings = sanitizeNumericFields(earningsRes.data as Array<{ amount: number; type: string }> | null, ["amount"], { context: "transactions.earnings" });
+    setCashbackEarnings(safeEarnings.filter(t => t.type === 'cashback').reduce((sum, t) => sum + t.amount, 0));
+    setCommissionEarnings(safeEarnings.filter(t => t.type === 'commission').reduce((sum, t) => sum + t.amount, 0));
+    const safeTx = sanitizeNumericFields(txRes.data as Transaction[] | null, ["amount"], { context: "transactions.recent" });
+    setTransactions(safeTx);
     setIsMerchant(!!merchantRoleRes.data);
     setLoadingData(false);
   };

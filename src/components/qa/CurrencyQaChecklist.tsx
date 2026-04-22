@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Loader2, ExternalLink, Play } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, ExternalLink, Play, Trash2 } from "lucide-react";
 import { formatRM, toRMNumber } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
+import { getSanitizerLog, clearSanitizerLog, type SanitizerLogEntry } from "@/lib/sanitizeApiResponse";
 
 /* -------------------------------------------------------------- */
 /* Unit cases — every input below MUST render exactly "RM 0.00".  */
@@ -55,6 +56,9 @@ export default function CurrencyQaChecklist() {
   const [unitResults, setUnitResults] = useState<Record<number, UnitResult>>({});
   const [liveResults, setLiveResults] = useState<LiveResult[]>([]);
   const [liveLoading, setLiveLoading] = useState(false);
+  const [sanitizerEntries, setSanitizerEntries] = useState<readonly SanitizerLogEntry[]>([]);
+
+  const refreshSanitizerLog = () => setSanitizerEntries(getSanitizerLog());
 
   const runUnit = () => {
     const out: Record<number, UnitResult> = {};
@@ -256,6 +260,55 @@ export default function CurrencyQaChecklist() {
           <p className="text-[10px] text-white/30 mt-3">
             Tip: After capturing, attach the PNGs to the QA ticket. Look for any value missing the <code>RM</code> prefix, showing fewer than 2 decimals, or rendering <code>NaN</code>.
           </p>
+        </CardContent>
+      </Card>
+      {/* Sanitizer log */}
+      <Card className="border-white/10 bg-white/5">
+        <CardHeader className="flex flex-row items-center justify-between p-4">
+          <div>
+            <CardTitle className="text-sm font-semibold text-white">4. API sanitizer log</CardTitle>
+            <p className="text-xs text-white/40 mt-0.5">
+              Live anomalies caught by the API response sanitizer (NaN/Infinity/non-numeric values coerced to <code>0</code> before they reached the UI). Buffer holds the last 200 entries.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => { clearSanitizerLog(); refreshSanitizerLog(); }} className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10 text-xs h-8">
+              <Trash2 className="mr-1 h-3 w-3" /> Clear
+            </Button>
+            <Button size="sm" onClick={refreshSanitizerLog} className="bg-secondary text-primary hover:bg-secondary/90 text-xs h-8">
+              <Play className="mr-1 h-3 w-3" /> Refresh ({sanitizerEntries.length})
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          {sanitizerEntries.length === 0 ? (
+            <p className="text-xs text-white/30 text-center py-4">No anomalies recorded. Browse the app, then click Refresh.</p>
+          ) : (
+            <div className="overflow-x-auto max-h-72 overflow-y-auto">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-primary">
+                  <tr className="border-b border-white/10 text-white/40">
+                    <th className="text-left py-1.5 px-2 font-medium">Time</th>
+                    <th className="text-left py-1.5 px-2 font-medium">Context</th>
+                    <th className="text-left py-1.5 px-2 font-medium">Field</th>
+                    <th className="text-left py-1.5 px-2 font-medium">Row</th>
+                    <th className="text-left py-1.5 px-2 font-medium">Raw value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sanitizerEntries.slice().reverse().map((e, i) => (
+                    <tr key={i} className="border-b border-white/5">
+                      <td className="py-1.5 px-2 font-mono text-white/50">{new Date(e.timestamp).toLocaleTimeString()}</td>
+                      <td className="py-1.5 px-2 font-mono text-white/70">{e.context}</td>
+                      <td className="py-1.5 px-2 font-mono text-white/70">{e.field}</td>
+                      <td className="py-1.5 px-2 font-mono text-white/50">{e.rowIndex ?? "—"}</td>
+                      <td className="py-1.5 px-2 font-mono text-red-400">{String(e.rawValue)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
