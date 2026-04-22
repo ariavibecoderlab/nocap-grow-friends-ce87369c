@@ -179,6 +179,26 @@ const MerchantWithdrawals = ({ userId }: Props) => {
         </CardContent>
       </Card>
 
+      {/* Breakdown */}
+      <Card className="border-white/10 bg-white/5">
+        <CardContent className="p-4 space-y-2">
+          <p className="text-xs font-semibold text-white/70 uppercase tracking-wide">Balance Breakdown</p>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/60">Total Sales</span>
+            <span className="text-white font-medium tabular-nums">RM {totalSales.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/60">Approved / Settled Withdrawals</span>
+            <span className="text-white font-medium tabular-nums">− RM {totalCommitted.toFixed(2)}</span>
+          </div>
+          <Separator className="bg-white/10" />
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-secondary font-semibold">Available Balance</span>
+            <span className="text-secondary font-bold tabular-nums">RM {walletBalance.toFixed(2)}</span>
+          </div>
+        </CardContent>
+      </Card>
+
       {hasPending && (
         <p className="text-xs text-amber-500 text-center">You have a pending withdrawal request. Please wait for it to be processed.</p>
       )}
