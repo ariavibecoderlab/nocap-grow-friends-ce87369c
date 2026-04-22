@@ -13,6 +13,7 @@ import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 import MerchantTransactions from "@/components/merchant/MerchantTransactions";
+import { formatRM } from "@/lib/currency";
 import MerchantWithdrawals from "@/components/merchant/MerchantWithdrawals";
 import BranchOwnerAssignment from "@/components/merchant/BranchOwnerAssignment";
 import MerchantAnalytics from "@/components/merchant/MerchantAnalytics";
@@ -614,9 +615,9 @@ const MerchantDashboard = () => {
 
   const statsBlock = (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <Card className="border-white/10 bg-white/5"><CardContent className="p-4 text-center"><BarChart3 className="mx-auto h-4 w-4 text-secondary" /><p className="mt-1 font-display text-xl font-bold text-white">RM {todaySales.toFixed(2)}</p><p className="text-[10px] text-white/40">Today's Sales</p></CardContent></Card>
-      <Card className="border-white/10 bg-white/5"><CardContent className="p-4 text-center"><BarChart3 className="mx-auto h-4 w-4 text-secondary" /><p className="mt-1 font-display text-xl font-bold text-white">RM {totalSales.toFixed(2)}</p><p className="text-[10px] text-white/40">Total Sales</p></CardContent></Card>
-      <Card className="border-white/10 bg-white/5"><CardContent className="p-4 text-center"><Wallet className="mx-auto h-4 w-4 text-secondary" /><p className="mt-1 font-display text-xl font-bold text-white">RM {Number((selectedBranch as any)?.balance || 0).toFixed(2)}</p><p className="text-[10px] text-white/40">Branch Balance</p></CardContent></Card>
+      <Card className="border-white/10 bg-white/5"><CardContent className="p-4 text-center"><BarChart3 className="mx-auto h-4 w-4 text-secondary" /><p className="mt-1 font-display text-xl font-bold text-white">{formatRM(todaySales)}</p><p className="text-[10px] text-white/40">Today's Sales</p></CardContent></Card>
+      <Card className="border-white/10 bg-white/5"><CardContent className="p-4 text-center"><BarChart3 className="mx-auto h-4 w-4 text-secondary" /><p className="mt-1 font-display text-xl font-bold text-white">{formatRM(totalSales)}</p><p className="text-[10px] text-white/40">Total Sales</p></CardContent></Card>
+      <Card className="border-white/10 bg-white/5"><CardContent className="p-4 text-center"><Wallet className="mx-auto h-4 w-4 text-secondary" /><p className="mt-1 font-display text-xl font-bold text-white">{formatRM((selectedBranch as any)?.balance)}</p><p className="text-[10px] text-white/40">Branch Balance</p></CardContent></Card>
       <Card className="border-white/10 bg-white/5"><CardContent className="p-4 text-center"><Store className="mx-auto h-4 w-4 text-secondary" /><p className="mt-1 font-display text-xl font-bold text-white">{branches.length}</p><p className="text-[10px] text-white/40">Branches</p></CardContent></Card>
     </div>
   );
@@ -703,7 +704,7 @@ const MerchantDashboard = () => {
           )}
         </div>
         <div className="flex justify-between text-sm"><span className="text-white/40">Status</span><span className={`font-medium ${selectedBranch?.is_active ? 'text-secondary' : 'text-destructive'}`}>{selectedBranch?.is_active ? "Active" : "Inactive"}</span></div>
-        <div className="flex justify-between text-sm"><span className="text-white/40">Branch Balance</span><span className="font-medium text-white">RM {Number((selectedBranch as any)?.balance || 0).toFixed(2)}</span></div>
+        <div className="flex justify-between text-sm"><span className="text-white/40">Branch Balance</span><span className="font-medium text-white">{formatRM((selectedBranch as any)?.balance)}</span></div>
         <div className="flex justify-between text-sm"><span className="text-white/40">QR Code ID</span><span className="font-mono text-xs text-white/70">{selectedBranch?.qr_code_id.slice(0, 8)}...</span></div>
       </CardContent></Card>
       <AlertDialog open={showCommissionConfirm} onOpenChange={setShowCommissionConfirm}>

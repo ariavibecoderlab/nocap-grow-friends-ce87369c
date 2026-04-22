@@ -13,6 +13,7 @@ import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 import NotificationBell from "@/components/NotificationBell";
+import { formatRM } from "@/lib/currency";
 import NocapLogo from "@/components/NocapLogo";
 import BranchSalesSummary from "@/components/branch/BranchSalesSummary";
 import BranchTransactionSearch from "@/components/branch/BranchTransactionSearch";
@@ -404,7 +405,7 @@ const BranchDashboard = () => {
                     <Store className="h-4 w-4 text-secondary" />
                     <p className="text-sm font-medium text-white">{b.branch_name}</p>
                   </div>
-                  <p className="text-xs text-white/40">RM {Number(b.balance).toFixed(2)}</p>
+                  <p className="text-xs text-white/40">{formatRM(b.balance)}</p>
                 </CardContent>
               </Card>
             ))}
@@ -417,7 +418,7 @@ const BranchDashboard = () => {
             <div className="grid grid-cols-3 gap-3">
               <Card className="border-white/10 bg-white/5">
                 <CardContent className="p-3 text-center">
-                  <p className="font-display text-lg font-bold text-white">RM {Number(selectedBranch.balance).toFixed(2)}</p>
+                  <p className="font-display text-lg font-bold text-white">{formatRM(selectedBranch.balance)}</p>
                   <p className="text-[10px] text-white/40">Branch Balance</p>
                 </CardContent>
               </Card>
