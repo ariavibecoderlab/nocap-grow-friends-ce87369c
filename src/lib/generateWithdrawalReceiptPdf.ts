@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { formatRM } from "@/lib/currency";
 
 export interface WithdrawalReceiptData {
   id: string;
@@ -31,7 +32,7 @@ export function generateWithdrawalReceiptPDF(r: WithdrawalReceiptData): jsPDF {
   doc.setTextColor(40, 40, 40);
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
-  doc.text(`RM ${Number(r.amount).toFixed(2)}`, w / 2, 58, { align: "center" });
+  doc.text(formatRM(r.amount), w / 2, 58, { align: "center" });
 
   // Status
   doc.setFontSize(10);
@@ -87,7 +88,7 @@ export async function shareWithdrawalReceipt(r: WithdrawalReceiptData): Promise<
   if (navigator.share && navigator.canShare({ files: [file] })) {
     await navigator.share({
       title: "NOcap Withdrawal Receipt",
-      text: `Withdrawal receipt for RM ${Number(r.amount).toFixed(2)}`,
+      text: `Withdrawal receipt for ${formatRM(r.amount)}`,
       files: [file],
     });
   } else {
