@@ -71,11 +71,11 @@ export default function RevenueForecast({ dailyData }: Props) {
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="text-center">
             <p className="text-[10px] text-white/40">7-Day Avg</p>
-            <p className="text-sm font-bold text-secondary">RM {forecast.movingAvg.toFixed(0)}/day</p>
+            <p className="text-sm font-bold text-secondary">RM {forecast.movingAvg.toFixed(2)}/day</p>
           </div>
           <div className="text-center">
             <p className="text-[10px] text-white/40">Next 7-Day Proj.</p>
-            <p className="text-sm font-bold text-white">RM {forecast.projectedWeekly.toFixed(0)}</p>
+            <p className="text-sm font-bold text-white">RM {forecast.projectedWeekly.toFixed(2)}</p>
           </div>
         </div>
 

@@ -209,20 +209,21 @@ const MerchantAnalytics = ({ userId, branches }: MerchantAnalyticsProps) => {
       <div className="grid grid-cols-3 gap-2">
         <Card className="border-border/50 bg-card">
           <CardContent className="p-3 text-center">
-            <p className="font-display text-lg font-bold text-foreground">RM {totalRevenue.toFixed(0)}</p>
+            <p className="font-display text-lg font-bold text-foreground">RM {totalRevenue.toFixed(2)}</p>
             <p className="text-[10px] text-muted-foreground">Total Revenue</p>
           </CardContent>
         </Card>
         <Card className="border-border/50 bg-card">
           <CardContent className="p-3 text-center">
-            <p className="font-display text-lg font-bold text-foreground">{totalTxns}</p>
+            <Activity className="mx-auto h-4 w-4 text-secondary" />
+            <p className="mt-1 font-display text-lg font-bold text-foreground">{txnCount}</p>
             <p className="text-[10px] text-muted-foreground">Transactions</p>
           </CardContent>
         </Card>
         <Card className="border-border/50 bg-card">
           <CardContent className="p-3 text-center">
             <div className="flex items-center justify-center gap-1">
-              <p className="font-display text-lg font-bold text-foreground">RM {avgTxn.toFixed(0)}</p>
+              <p className="font-display text-lg font-bold text-foreground">RM {avgTxn.toFixed(2)}</p>
               {growth !== null && (
                 growth >= 0 ? <TrendingUp className="h-3 w-3 text-green-400" /> : <TrendingDown className="h-3 w-3 text-red-400" />
               )}

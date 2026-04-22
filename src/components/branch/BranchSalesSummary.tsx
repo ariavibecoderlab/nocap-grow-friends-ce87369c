@@ -141,7 +141,7 @@ const BranchSalesSummary = ({ branchId, merchantUserId }: BranchSalesSummaryProp
       <div className="grid grid-cols-2 gap-2">
         <Card className="border-white/10 bg-white/5">
           <CardContent className="p-3 text-center">
-            <p className="font-display text-lg font-bold text-white">RM {totalMonth.toFixed(0)}</p>
+            <p className="font-display text-lg font-bold text-white">RM {totalMonth.toFixed(2)}</p>
             <p className="text-[10px] text-white/40">Last 30 Days</p>
           </CardContent>
         </Card>
