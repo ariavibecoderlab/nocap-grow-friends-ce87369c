@@ -296,7 +296,7 @@ const Dashboard = () => {
           <Card className="border-white/10 bg-white/5">
             <CardContent className="p-3 text-center">
               <Banknote className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-1 font-display text-lg font-bold text-white">RM {commissionEarnings.toFixed(2)}</p>
+              <p className="mt-1 font-display text-lg font-bold text-white">{formatRM(commissionEarnings)}</p>
               <p className="text-[10px] text-white/40">Commission</p>
             </CardContent>
           </Card>
