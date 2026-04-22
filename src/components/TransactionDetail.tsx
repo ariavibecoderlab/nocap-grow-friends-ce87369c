@@ -196,7 +196,7 @@ const TransactionDetail = ({ transaction, open, onOpenChange }: TransactionDetai
               {typeIcon(tx.type)}
             </div>
             <p className={`font-display text-3xl font-bold tabular-nums ${credit ? "text-secondary" : "text-white"}`}>
-              {credit ? "+" : "-"}RM {Math.abs(tx.amount).toFixed(2)}
+              {credit ? "+" : "-"}{formatRM(Math.abs(toRMNumber(tx.amount)))}
             </p>
             <Badge className={status.className}>
               <StatusIcon className="mr-1 h-3 w-3" />
@@ -219,10 +219,10 @@ const TransactionDetail = ({ transaction, open, onOpenChange }: TransactionDetai
             />
             {tx.description && <DetailRow label="Description" value={tx.description} />}
             {tx.fee_amount != null && tx.fee_amount > 0 && (
-              <DetailRow label="Fee" value={`RM ${tx.fee_amount.toFixed(2)}`} />
+              <DetailRow label="Fee" value={formatRM(tx.fee_amount)} />
             )}
             {tx.net_amount != null && (
-              <DetailRow label="Net Amount" value={`RM ${tx.net_amount.toFixed(2)}`} />
+              <DetailRow label="Net Amount" value={formatRM(tx.net_amount)} />
             )}
             <DetailRow label="Transaction ID" value={tx.id} mono />
             {tx.reference_id && <DetailRow label="Reference ID" value={tx.reference_id} mono />}
