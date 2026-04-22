@@ -28,6 +28,11 @@ interface Props {
   userId: string;
 }
 
+// Round to 2 decimals to avoid floating-point drift (e.g. 0.1+0.2)
+const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
+// Format an RM value with thousands separators and exactly 2 decimals
+const formatRM = (n: number) =>
+  `RM ${round2(n).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const MerchantWithdrawals = ({ userId }: Props) => {
   const { toast } = useToast();
