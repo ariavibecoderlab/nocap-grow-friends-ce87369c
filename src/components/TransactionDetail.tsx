@@ -94,7 +94,7 @@ const generateReceiptPDF = (tx: Transaction): jsPDF => {
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
   const sign = credit ? "+" : "-";
-  doc.text(`${sign}RM ${Math.abs(tx.amount).toFixed(2)}`, w / 2, 58, { align: "center" });
+  doc.text(`${sign}${formatRM(Math.abs(toRMNumber(tx.amount)))}`, w / 2, 58, { align: "center" });
 
   // Status badge
   doc.setFontSize(10);
