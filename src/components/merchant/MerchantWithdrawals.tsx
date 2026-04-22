@@ -212,9 +212,17 @@ const MerchantWithdrawals = ({ userId }: Props) => {
             )}
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-white/60">Approved / Settled Withdrawals</span>
-            {totalCommitted > 0 ? (
-              <span className="text-white font-medium tabular-nums">− {formatRM(totalCommitted)}</span>
+            <span className="text-white/60">Approved Withdrawals <span className="text-white/30 text-[10px]">(awaiting payout)</span></span>
+            {totalApproved > 0 ? (
+              <span className="text-white font-medium tabular-nums">− {formatRM(totalApproved)}</span>
+            ) : (
+              <span className="text-white/40 italic text-xs">None yet</span>
+            )}
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/60">Settled Withdrawals <span className="text-white/30 text-[10px]">(paid out)</span></span>
+            {totalSettled > 0 ? (
+              <span className="text-white font-medium tabular-nums">− {formatRM(totalSettled)}</span>
             ) : (
               <span className="text-white/40 italic text-xs">None yet</span>
             )}
