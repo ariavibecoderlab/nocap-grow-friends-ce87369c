@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowDownLeft, ArrowUpRight, ArrowUpDown, Gift, Share2, FileText, Zap, CheckCircle, XCircle, Clock } from "lucide-react";
 import jsPDF from "jspdf";
+import { formatRM, toRMNumber } from "@/lib/currency";
 
 interface Transaction {
   id: string;
@@ -93,7 +94,7 @@ const generateReceiptPDF = (tx: Transaction): jsPDF => {
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
   const sign = credit ? "+" : "-";
-  doc.text(`${sign}RM ${Math.abs(tx.amount).toFixed(2)}`, w / 2, 58, { align: "center" });
+  doc.text(`${sign}${formatRM(Math.abs(toRMNumber(tx.amount)))}`, w / 2, 58, { align: "center" });
 
   // Status badge
   doc.setFontSize(10);
@@ -113,8 +114,8 @@ const generateReceiptPDF = (tx: Transaction): jsPDF => {
   ];
 
   if (tx.description) details.push(["Description", tx.description]);
-  if (tx.fee_amount) details.push(["Fee", `RM ${tx.fee_amount.toFixed(2)}`]);
-  if (tx.net_amount) details.push(["Net Amount", `RM ${tx.net_amount.toFixed(2)}`]);
+  if (tx.fee_amount) details.push(["Fee", formatRM(tx.fee_amount)]);
+  if (tx.net_amount) details.push(["Net Amount", formatRM(tx.net_amount)]);
   if (tx.reference_id) details.push(["Reference", tx.reference_id.substring(0, 18) + "..."]);
 
   let y = 84;
@@ -167,7 +168,7 @@ const TransactionDetail = ({ transaction, open, onOpenChange }: TransactionDetai
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: `NOcap Receipt - ${transactionLabel(tx.type)}`,
-          text: `Transaction receipt for ${credit ? "+" : "-"}RM ${Math.abs(tx.amount).toFixed(2)}`,
+          text: `Transaction receipt for ${credit ? "+" : "-"}${formatRM(Math.abs(toRMNumber(tx.amount)))}`,
           files: [file],
         });
       } else {
@@ -195,7 +196,7 @@ const TransactionDetail = ({ transaction, open, onOpenChange }: TransactionDetai
               {typeIcon(tx.type)}
             </div>
             <p className={`font-display text-3xl font-bold tabular-nums ${credit ? "text-secondary" : "text-white"}`}>
-              {credit ? "+" : "-"}RM {Math.abs(tx.amount).toFixed(2)}
+              {credit ? "+" : "-"}{formatRM(Math.abs(toRMNumber(tx.amount)))}
             </p>
             <Badge className={status.className}>
               <StatusIcon className="mr-1 h-3 w-3" />
@@ -218,10 +219,10 @@ const TransactionDetail = ({ transaction, open, onOpenChange }: TransactionDetai
             />
             {tx.description && <DetailRow label="Description" value={tx.description} />}
             {tx.fee_amount != null && tx.fee_amount > 0 && (
-              <DetailRow label="Fee" value={`RM ${tx.fee_amount.toFixed(2)}`} />
+              <DetailRow label="Fee" value={formatRM(tx.fee_amount)} />
             )}
             {tx.net_amount != null && (
-              <DetailRow label="Net Amount" value={`RM ${tx.net_amount.toFixed(2)}`} />
+              <DetailRow label="Net Amount" value={formatRM(tx.net_amount)} />
             )}
             <DetailRow label="Transaction ID" value={tx.id} mono />
             {tx.reference_id && <DetailRow label="Reference ID" value={tx.reference_id} mono />}

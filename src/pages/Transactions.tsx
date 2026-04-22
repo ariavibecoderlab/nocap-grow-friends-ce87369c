@@ -14,6 +14,7 @@ import { ArrowLeft, ArrowDownLeft, ArrowUpRight, ArrowUpDown, Gift, Wallet, Sear
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
+import { formatRM, toRMNumber } from "@/lib/currency";
 
 interface Transaction {
   id: string;
@@ -150,7 +151,7 @@ const Transactions = () => {
         (tx) =>
           (tx.description && tx.description.toLowerCase().includes(q)) ||
           transactionLabel(tx.type).toLowerCase().includes(q) ||
-          tx.amount.toFixed(2).includes(q)
+          toRMNumber(tx.amount).toFixed(2).includes(q)
       );
     }
 
@@ -310,7 +311,7 @@ const Transactions = () => {
                     </p>
                   </div>
                   <p className={`text-sm font-semibold tabular-nums ${isCredit(tx.type) ? "text-secondary" : "text-white"}`}>
-                    {isCredit(tx.type) ? "+" : "-"}RM {Math.abs(tx.amount).toFixed(2)}
+                    {isCredit(tx.type) ? "+" : "-"}{formatRM(Math.abs(toRMNumber(tx.amount)))}
                   </p>
                 </CardContent>
               </Card>

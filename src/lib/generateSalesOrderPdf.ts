@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { formatRM } from "@/lib/currency";
 
 export interface SalesOrderData {
   storeName: string;
@@ -122,8 +123,8 @@ function renderOrder(doc: jsPDF, data: SalesOrderData, logoDataUrl: string | nul
     const nameLines = doc.splitTextToSize(item.productName, 80);
     doc.text(nameLines, margin + 2, y);
     doc.text(String(item.quantity), pageWidth - margin - 55, y, { align: "right" });
-    doc.text(`RM ${item.unitPrice.toFixed(2)}`, pageWidth - margin - 30, y, { align: "right" });
-    doc.text(`RM ${item.subtotal.toFixed(2)}`, pageWidth - margin - 2, y, { align: "right" });
+    doc.text(formatRM(item.unitPrice), pageWidth - margin - 30, y, { align: "right" });
+    doc.text(formatRM(item.subtotal), pageWidth - margin - 2, y, { align: "right" });
     y += nameLines.length * 4 + 2;
     doc.setDrawColor(230);
     doc.line(margin, y - 1, pageWidth - margin, y - 1);
@@ -135,16 +136,16 @@ function renderOrder(doc: jsPDF, data: SalesOrderData, logoDataUrl: string | nul
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.text("Subtotal", labelX, y, { align: "right" });
-  doc.text(`RM ${data.subtotal.toFixed(2)}`, totalsX, y, { align: "right" }); y += 5;
+  doc.text(formatRM(data.subtotal), totalsX, y, { align: "right" }); y += 5;
   doc.text("Shipping", labelX, y, { align: "right" });
-  doc.text(`RM ${data.shippingFee.toFixed(2)}`, totalsX, y, { align: "right" }); y += 5;
+  doc.text(formatRM(data.shippingFee), totalsX, y, { align: "right" }); y += 5;
 
   doc.setDrawColor(180);
   doc.line(labelX - 10, y - 2, totalsX, y - 2);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.text("Total", labelX, y + 2, { align: "right" });
-  doc.text(`RM ${data.totalAmount.toFixed(2)}`, totalsX, y + 2, { align: "right" }); y += 10;
+  doc.text(formatRM(data.totalAmount), totalsX, y + 2, { align: "right" }); y += 10;
 
   if (data.trackingNumber) {
     doc.setFont("helvetica", "normal");

@@ -12,6 +12,7 @@ import NocapLogo from "@/components/NocapLogo";
 import NotificationBell from "@/components/NotificationBell";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
 import { useToast } from "@/hooks/use-toast";
+import { formatRM } from "@/lib/currency";
 
 interface Transaction {
   id: string;
@@ -232,7 +233,7 @@ const Dashboard = () => {
               </button>
             </div>
             <p className="mt-2 font-display text-3xl font-bold tracking-tight text-secondary">
-              {showBalance ? `RM ${balance.toFixed(2)}` : "RM ••••••"}
+              {showBalance ? formatRM(balance) : "RM ••••••"}
             </p>
             <div className="mt-3 flex gap-2">
               <Button size="sm" className="bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => navigate("/top-up")}>
@@ -288,14 +289,14 @@ const Dashboard = () => {
           <Card className="border-white/10 bg-white/5">
             <CardContent className="p-3 text-center">
               <Gift className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-1 font-display text-lg font-bold text-white">RM {cashbackEarnings.toFixed(2)}</p>
+              <p className="mt-1 font-display text-lg font-bold text-white">{formatRM(cashbackEarnings)}</p>
               <p className="text-[10px] text-white/40">Cashback</p>
             </CardContent>
           </Card>
           <Card className="border-white/10 bg-white/5">
             <CardContent className="p-3 text-center">
               <Banknote className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-1 font-display text-lg font-bold text-white">RM {commissionEarnings.toFixed(2)}</p>
+              <p className="mt-1 font-display text-lg font-bold text-white">{formatRM(commissionEarnings)}</p>
               <p className="text-[10px] text-white/40">Commission</p>
             </CardContent>
           </Card>
@@ -380,7 +381,7 @@ const Dashboard = () => {
                       </p>
                     </div>
                     <p className={`text-sm font-semibold tabular-nums ${isCredit(tx.type) ? "text-secondary" : "text-white"}`}>
-                      {isCredit(tx.type) ? "+" : "-"}RM {Math.abs(tx.amount).toFixed(2)}
+                      {isCredit(tx.type) ? "+" : "-"}{formatRM(Math.abs(tx.amount))}
                     </p>
                   </CardContent>
                 </Card>
