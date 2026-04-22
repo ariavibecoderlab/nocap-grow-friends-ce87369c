@@ -151,7 +151,7 @@ const Transactions = () => {
         (tx) =>
           (tx.description && tx.description.toLowerCase().includes(q)) ||
           transactionLabel(tx.type).toLowerCase().includes(q) ||
-          tx.amount.toFixed(2).includes(q)
+          toRMNumber(tx.amount).toFixed(2).includes(q)
       );
     }
 
