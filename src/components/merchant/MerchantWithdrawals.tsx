@@ -166,6 +166,7 @@ const MerchantWithdrawals = ({ userId, branchId, branchBalance, branchName }: Pr
       bank_account_no: bankAccountNo.trim(),
       bank_account_holder: bankAccountHolder.trim(),
       wallet_type: "merchant",
+      branch_id: branchId,
     });
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
