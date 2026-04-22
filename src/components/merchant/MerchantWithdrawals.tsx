@@ -22,10 +22,14 @@ interface WithdrawalRequest {
   status: string;
   rejection_reason: string | null;
   created_at: string;
+  branch_id: string | null;
 }
 
 interface Props {
   userId: string;
+  branchId: string;
+  branchBalance: number;
+  branchName?: string;
 }
 
 // Round to 2 decimals to avoid floating-point drift (e.g. 0.1+0.2)
