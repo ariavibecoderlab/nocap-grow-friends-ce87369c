@@ -15,6 +15,7 @@ import { format, startOfDay, endOfDay, startOfWeek, startOfMonth, subDays } from
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 import { formatRM, toRMNumber } from "@/lib/currency";
+import { RMAmount } from "@/components/RMAmount";
 
 interface Transaction {
   id: string;
@@ -311,7 +312,7 @@ const Transactions = () => {
                     </p>
                   </div>
                   <p className={`text-sm font-semibold tabular-nums ${isCredit(tx.type) ? "text-secondary" : "text-white"}`}>
-                    {isCredit(tx.type) ? "+" : "-"}{formatRM(Math.abs(toRMNumber(tx.amount)))}
+                    <RMAmount value={isCredit(tx.type) ? Math.abs(toRMNumber(tx.amount)) : -Math.abs(toRMNumber(tx.amount))} sign="delta" />
                   </p>
                 </CardContent>
               </Card>
