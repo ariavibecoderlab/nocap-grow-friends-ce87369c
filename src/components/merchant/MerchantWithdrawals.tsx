@@ -87,7 +87,15 @@ const MerchantWithdrawals = ({ userId }: Props) => {
         .eq("key", "min_withdrawal_amount")
         .maybeSingle(),
     ]);
-    if (wr) setRequests(wr as WithdrawalRequest[]);
+    if (wr) {
+      setRequests(wr as WithdrawalRequest[]);
+      const KNOWN = new Set(["pending", "approved", "rejected", "settled"]);
+      const unknown = Array.from(new Set((wr as WithdrawalRequest[]).map((r) => r.status).filter((s) => !KNOWN.has(s))));
+      if (unknown.length > 0) {
+        console.warn("[MerchantWithdrawals] Unexpected withdrawal_requests.status values:", unknown, "— excluded from Available Balance calculation.");
+      }
+      setUnknownStatuses(unknown);
+    }
     const tSales = round2((sales ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0));
     const tCommitted = round2((committed ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0));
     setTotalSales(tSales);
