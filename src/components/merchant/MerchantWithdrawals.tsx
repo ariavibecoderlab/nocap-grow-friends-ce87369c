@@ -48,14 +48,24 @@ const MerchantWithdrawals = ({ userId }: Props) => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: wr }, { data: wallet }, { data: app }, { data: globalSettings }] = await Promise.all([
+    const [{ data: wr }, { data: sales }, { data: committed }, { data: app }, { data: globalSettings }] = await Promise.all([
       supabase
         .from("withdrawal_requests")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(20),
-      supabase.from("wallets").select("balance").eq("user_id", userId).eq("wallet_type", "merchant").single(),
+      supabase
+        .from("transactions")
+        .select("amount")
+        .eq("user_id", userId)
+        .eq("type", "top_up")
+        .eq("status", "completed"),
+      supabase
+        .from("withdrawal_requests")
+        .select("amount")
+        .eq("user_id", userId)
+        .in("status", ["approved", "settled"]),
       supabase
         .from("merchant_applications")
         .select("bank_name, bank_account_no, bank_account_holder, min_withdrawal_amount")
@@ -70,7 +80,9 @@ const MerchantWithdrawals = ({ userId }: Props) => {
         .maybeSingle(),
     ]);
     if (wr) setRequests(wr as WithdrawalRequest[]);
-    if (wallet) setWalletBalance(Number(wallet.balance));
+    const totalSales = (sales ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0);
+    const totalCommitted = (committed ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0);
+    setWalletBalance(totalSales - totalCommitted);
     if (app) {
       setBankName(app.bank_name || "");
       setBankAccountNo(app.bank_account_no || "");
