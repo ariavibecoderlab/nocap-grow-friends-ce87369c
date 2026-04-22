@@ -41,6 +41,8 @@ const MerchantWithdrawals = ({ userId }: Props) => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
   const [totalCommitted, setTotalCommitted] = useState(0);
+  const [totalApproved, setTotalApproved] = useState(0);
+  const [totalSettled, setTotalSettled] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null);
