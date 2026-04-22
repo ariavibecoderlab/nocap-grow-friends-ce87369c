@@ -238,6 +238,15 @@ const MerchantWithdrawals = ({ userId }: Props) => {
         </CardContent>
       </Card>
 
+      {unknownStatuses.length > 0 && (
+        <div className="rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-400">
+          <p className="font-semibold">⚠ Unexpected withdrawal status detected</p>
+          <p className="mt-0.5 text-amber-400/80">
+            Found unknown status{unknownStatuses.length > 1 ? "es" : ""}: <span className="font-mono">{unknownStatuses.join(", ")}</span>. These are excluded from Available Balance. Please contact support.
+          </p>
+        </div>
+      )}
+
       {hasPending && (
         <p className="text-xs text-amber-500 text-center">You have a pending withdrawal request. Please wait for it to be processed.</p>
       )}
