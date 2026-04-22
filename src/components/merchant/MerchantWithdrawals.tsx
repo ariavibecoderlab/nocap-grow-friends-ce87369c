@@ -45,6 +45,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
   const [submitting, setSubmitting] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [unknownStatuses, setUnknownStatuses] = useState<string[]>([]);
 
   // Form fields
   const [amount, setAmount] = useState("");
@@ -86,7 +87,15 @@ const MerchantWithdrawals = ({ userId }: Props) => {
         .eq("key", "min_withdrawal_amount")
         .maybeSingle(),
     ]);
-    if (wr) setRequests(wr as WithdrawalRequest[]);
+    if (wr) {
+      setRequests(wr as WithdrawalRequest[]);
+      const KNOWN = new Set(["pending", "approved", "rejected", "settled"]);
+      const unknown = Array.from(new Set((wr as WithdrawalRequest[]).map((r) => r.status).filter((s) => !KNOWN.has(s))));
+      if (unknown.length > 0) {
+        console.warn("[MerchantWithdrawals] Unexpected withdrawal_requests.status values:", unknown, "— excluded from Available Balance calculation.");
+      }
+      setUnknownStatuses(unknown);
+    }
     const tSales = round2((sales ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0));
     const tCommitted = round2((committed ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0));
     setTotalSales(tSales);
@@ -228,6 +237,15 @@ const MerchantWithdrawals = ({ userId }: Props) => {
           </div>
         </CardContent>
       </Card>
+
+      {unknownStatuses.length > 0 && (
+        <div className="rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-400">
+          <p className="font-semibold">⚠ Unexpected withdrawal status detected</p>
+          <p className="mt-0.5 text-amber-400/80">
+            Found unknown status{unknownStatuses.length > 1 ? "es" : ""}: <span className="font-mono">{unknownStatuses.join(", ")}</span>. These are excluded from Available Balance. Please contact support.
+          </p>
+        </div>
+      )}
 
       {hasPending && (
         <p className="text-xs text-amber-500 text-center">You have a pending withdrawal request. Please wait for it to be processed.</p>
