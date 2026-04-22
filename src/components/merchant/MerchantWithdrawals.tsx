@@ -311,7 +311,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
                     <ArrowDownToLine className="h-6 w-6 text-secondary" />
                   </div>
                   <p className="font-display text-3xl font-bold tabular-nums text-white">
-                    RM {Number(r.amount).toFixed(2)}
+                    {formatRM(Number(r.amount))}
                   </p>
                   <Badge className={statusCfg.className}>
                     <StatusIcon className="mr-1 h-3 w-3" />
