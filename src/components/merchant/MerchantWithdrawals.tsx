@@ -209,6 +209,23 @@ const MerchantWithdrawals = ({ userId }: Props) => {
             <span className="text-secondary font-semibold">Available Balance</span>
             <span className="text-secondary font-bold tabular-nums">{formatRM(walletBalance)}</span>
           </div>
+          <div className="pt-2 mt-1 border-t border-white/5 space-y-1">
+            <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wide">Status Legend</p>
+            <div className="flex flex-wrap gap-1.5 text-[10px]">
+              <span className="inline-flex items-center gap-1 rounded bg-secondary/15 text-secondary px-1.5 py-0.5">
+                <CheckCircle2 className="h-2.5 w-2.5" /> Approved — deducts
+              </span>
+              <span className="inline-flex items-center gap-1 rounded bg-secondary/15 text-secondary px-1.5 py-0.5">
+                <CheckCircle2 className="h-2.5 w-2.5" /> Settled — deducts
+              </span>
+              <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 text-amber-400 px-1.5 py-0.5">
+                <Clock className="h-2.5 w-2.5" /> Pending — ignored
+              </span>
+              <span className="inline-flex items-center gap-1 rounded bg-destructive/15 text-destructive px-1.5 py-0.5">
+                <XCircle className="h-2.5 w-2.5" /> Rejected — ignored
+              </span>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
