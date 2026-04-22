@@ -34,6 +34,8 @@ const MerchantWithdrawals = ({ userId }: Props) => {
   const [requests, setRequests] = useState<WithdrawalRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [totalSales, setTotalSales] = useState(0);
+  const [totalCommitted, setTotalCommitted] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null);
@@ -80,9 +82,11 @@ const MerchantWithdrawals = ({ userId }: Props) => {
         .maybeSingle(),
     ]);
     if (wr) setRequests(wr as WithdrawalRequest[]);
-    const totalSales = (sales ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0);
-    const totalCommitted = (committed ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0);
-    setWalletBalance(totalSales - totalCommitted);
+    const tSales = (sales ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0);
+    const tCommitted = (committed ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0);
+    setTotalSales(tSales);
+    setTotalCommitted(tCommitted);
+    setWalletBalance(tSales - tCommitted);
     if (app) {
       setBankName(app.bank_name || "");
       setBankAccountNo(app.bank_account_no || "");
@@ -172,6 +176,26 @@ const MerchantWithdrawals = ({ userId }: Props) => {
           <Button size="sm" onClick={() => setShowForm(true)} disabled={hasPending} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90 font-semibold">
             <ArrowDownToLine className="h-3.5 w-3.5" /> Withdraw
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Breakdown */}
+      <Card className="border-white/10 bg-white/5">
+        <CardContent className="p-4 space-y-2">
+          <p className="text-xs font-semibold text-white/70 uppercase tracking-wide">Balance Breakdown</p>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/60">Total Sales</span>
+            <span className="text-white font-medium tabular-nums">RM {totalSales.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/60">Approved / Settled Withdrawals</span>
+            <span className="text-white font-medium tabular-nums">− RM {totalCommitted.toFixed(2)}</span>
+          </div>
+          <Separator className="bg-white/10" />
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-secondary font-semibold">Available Balance</span>
+            <span className="text-secondary font-bold tabular-nums">RM {walletBalance.toFixed(2)}</span>
+          </div>
         </CardContent>
       </Card>
 
