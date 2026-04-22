@@ -1,12 +1,43 @@
 
-The user wants a way to verify the end-to-end correctness of the cashback + 6-tier commission distribution. The best approach is a dedicated **Admin Distribution Audit** view that traces a single payment from charge → distribution → cashback + 5 tier commissions, showing every wallet movement and the math behind it.
 
-Let me check what already exists. From context: `MerchantDistributions.tsx` already shows a per-merchant view of distributions with breakdown. There's also `AdminDashboard`, `TransactionsList`, `api-distribute` edge function, and the 6-tier commission engine (`mem://logic/commission-engine`: 1/6 split, RM0.01 min).
+## Plan: Fix Merchant "Available Balance" calculation
 
-What's missing for proper debugging:
-1. A single **traceable view** that takes any payment/charge and shows the full distribution chain
-2. Side-by-side **expected vs actual** math (so the user can confirm correctness)
-3. **Wallet movement verification** (debit from branch == sum of credits to member + 5 referrers)
-4. Coverage of edge cases: missing referrers, RM0.01 minimum, sandbox vs live
+**Problem:** On the Merchant page, the **Available Balance** card in the Withdraw section currently reads directly from the merchant wallet (showing RM 0.00 in the screenshot), even though Total Sales is RM 182. This creates a mismatch and prevents withdrawal requests.
 
-Plan: Build an Admin-only "Distribution Audit" tool inside the Admin Portal.
+**New rule:**
+```
+Available Balance = Total Sales − Σ Withdrawals (status = 'approved' OR 'settled')
+```
+- `pending` and `rejected` withdrawals are **excluded** from the deduction.
+- `approved` = admin approved but not yet paid out; `settled` = paid out and marked complete. Both reduce available balance (since the funds are committed/gone).
+
+### Changes
+
+**1. `src/components/merchant/MerchantWithdrawals.tsx`**
+- Replace the wallet-balance lookup with a computed value:
+  - Fetch `Σ amount` from `transactions` where `user_id = userId`, `type = 'top_up'`, `status = 'completed'` → **Total Sales**
+  - Fetch `Σ amount` from `withdrawal_requests` where `user_id = userId`, `status IN ('approved','settled')` → **Committed Withdrawals**
+  - `availableBalance = totalSales − committedWithdrawals`
+- Use this value for:
+  - The "Available Balance" display
+  - The submit-validation check (`amt > availableBalance`)
+  - The helper text under the amount input
+- Keep the existing realtime subscription on `withdrawal_requests` so the balance refreshes after admin approves/settles a request.
+
+**2. (Optional consistency)** `src/pages/MerchantDashboard.tsx`
+- Leave the top-row "Branch Balance" card untouched (it represents the live wallet, useful for ops).
+- No change needed to "Total Sales" calculation — same source.
+
+### Math example (matches your screenshot)
+- Total Sales: RM 182
+- Approved/Settled withdrawals: RM 0
+- → Available Balance: **RM 182.00** (instead of RM 0.00 from the empty wallet)
+
+Once a withdrawal of RM 50 is approved by admin:
+- → Available Balance: **RM 132.00**
+
+### Notes
+- No database migration needed — `withdrawal_requests.status` already supports `pending / approved / rejected / settled`.
+- No edge function changes.
+- Affects only the merchant-facing UI; admin views unchanged.
+
