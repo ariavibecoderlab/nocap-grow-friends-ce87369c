@@ -465,6 +465,12 @@ const UatScripts = () => {
         <p className="text-center text-xs text-white/20 mt-8 pb-8">
           Generated for NoCap Wallet v1.0 — February 2026
         </p>
+          </TabsContent>
+
+          <TabsContent value="currency" className="mt-0">
+            <CurrencyQaChecklist />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
