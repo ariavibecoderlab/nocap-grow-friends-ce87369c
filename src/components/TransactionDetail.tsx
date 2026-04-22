@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowDownLeft, ArrowUpRight, ArrowUpDown, Gift, Share2, FileText, Zap, CheckCircle, XCircle, Clock } from "lucide-react";
 import jsPDF from "jspdf";
+import { formatRM, toRMNumber } from "@/lib/currency";
 
 interface Transaction {
   id: string;
