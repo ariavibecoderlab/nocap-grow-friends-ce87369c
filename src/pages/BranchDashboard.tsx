@@ -417,19 +417,19 @@ const BranchDashboard = () => {
             <div className="grid grid-cols-3 gap-3">
               <Card className="border-white/10 bg-white/5">
                 <CardContent className="p-3 text-center">
-                  <p className="font-display text-lg font-bold text-white">RM {Number(selectedBranch.balance).toFixed(0)}</p>
+                  <p className="font-display text-lg font-bold text-white">RM {Number(selectedBranch.balance).toFixed(2)}</p>
                   <p className="text-[10px] text-white/40">Branch Balance</p>
                 </CardContent>
               </Card>
               <Card className="border-white/10 bg-white/5">
                 <CardContent className="p-3 text-center">
-                  <p className="font-display text-lg font-bold text-white">RM {todaySales.toFixed(0)}</p>
+                  <p className="font-display text-lg font-bold text-white">RM {todaySales.toFixed(2)}</p>
                   <p className="text-[10px] text-white/40">Today</p>
                 </CardContent>
               </Card>
               <Card className="border-white/10 bg-white/5">
                 <CardContent className="p-3 text-center">
-                  <p className="font-display text-lg font-bold text-white">RM {totalSales.toFixed(0)}</p>
+                  <p className="font-display text-lg font-bold text-white">RM {totalSales.toFixed(2)}</p>
                   <p className="text-[10px] text-white/40">Total</p>
                 </CardContent>
               </Card>

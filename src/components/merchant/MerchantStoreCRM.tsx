@@ -177,7 +177,7 @@ const MerchantStoreCRM = ({ storeId }: Props) => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {[
           { label: "Customers", value: stats.total, fmt: String(stats.total) },
-          { label: "Total Revenue", value: stats.totalRevenue, fmt: `RM ${stats.totalRevenue.toFixed(0)}` },
+          { label: "Total Revenue", value: stats.totalRevenue, fmt: `RM ${stats.totalRevenue.toFixed(2)}` },
           { label: "Avg Order", value: stats.avgOrderValue, fmt: `RM ${stats.avgOrderValue.toFixed(2)}` },
           { label: "Repeat Rate", value: stats.repeatRate, fmt: `${stats.repeatRate}%` },
         ].map(s => (

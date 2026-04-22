@@ -114,7 +114,7 @@ export default function StoreAnalytics({ storeId }: StoreAnalyticsProps) {
         <Card className="border-border/50 bg-card">
           <CardContent className="p-3 text-center">
             <TrendingUp className="h-4 w-4 mx-auto text-secondary mb-1" />
-            <p className="font-display text-lg font-bold text-foreground">RM {totalRevenue.toFixed(0)}</p>
+            <p className="font-display text-lg font-bold text-foreground">RM {totalRevenue.toFixed(2)}</p>
             <p className="text-[10px] text-muted-foreground">Revenue</p>
           </CardContent>
         </Card>

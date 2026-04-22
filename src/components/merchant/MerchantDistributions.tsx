@@ -149,7 +149,7 @@ const MerchantDistributions = ({ userId, branchId }: MerchantDistributionsProps)
         <Card className="border-white/10 bg-white/5">
           <CardContent className="p-3 text-center">
             <Coins className="mx-auto h-4 w-4 text-secondary" />
-            <p className="mt-1 font-display text-base font-bold text-white">RM {totalSaleAmount.toFixed(0)}</p>
+            <p className="mt-1 font-display text-base font-bold text-white">RM {totalSaleAmount.toFixed(2)}</p>
             <p className="text-[9px] text-white/40">Total Sales</p>
           </CardContent>
         </Card>
