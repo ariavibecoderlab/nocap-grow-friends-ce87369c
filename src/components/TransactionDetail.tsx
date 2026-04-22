@@ -114,8 +114,8 @@ const generateReceiptPDF = (tx: Transaction): jsPDF => {
   ];
 
   if (tx.description) details.push(["Description", tx.description]);
-  if (tx.fee_amount) details.push(["Fee", `RM ${tx.fee_amount.toFixed(2)}`]);
-  if (tx.net_amount) details.push(["Net Amount", `RM ${tx.net_amount.toFixed(2)}`]);
+  if (tx.fee_amount) details.push(["Fee", formatRM(tx.fee_amount)]);
+  if (tx.net_amount) details.push(["Net Amount", formatRM(tx.net_amount)]);
   if (tx.reference_id) details.push(["Reference", tx.reference_id.substring(0, 18) + "..."]);
 
   let y = 84;
