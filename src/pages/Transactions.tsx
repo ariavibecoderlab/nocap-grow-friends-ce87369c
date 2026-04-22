@@ -311,7 +311,7 @@ const Transactions = () => {
                     </p>
                   </div>
                   <p className={`text-sm font-semibold tabular-nums ${isCredit(tx.type) ? "text-secondary" : "text-white"}`}>
-                    {isCredit(tx.type) ? "+" : "-"}RM {Math.abs(tx.amount).toFixed(2)}
+                    {isCredit(tx.type) ? "+" : "-"}{formatRM(Math.abs(toRMNumber(tx.amount)))}
                   </p>
                 </CardContent>
               </Card>
