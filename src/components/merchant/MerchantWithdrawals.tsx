@@ -190,7 +190,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
           <p className="text-xs font-semibold text-white/70 uppercase tracking-wide">Balance Breakdown</p>
           <div className="flex items-center justify-between text-sm">
             <span className="text-white/60">Total Sales</span>
-            <span className="text-white font-medium tabular-nums">RM {totalSales.toFixed(2)}</span>
+            <span className="text-white font-medium tabular-nums">{formatRM(totalSales)}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-white/60">Approved / Settled Withdrawals</span>
