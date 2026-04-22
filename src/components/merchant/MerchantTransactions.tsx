@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { ArrowDownLeft, Loader2, ChevronDown, CalendarIcon, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatRM } from "@/lib/currency";
 
 interface Transaction {
   id: string;
@@ -241,7 +242,7 @@ const MerchantTransactions = ({ userId, branchId }: MerchantTransactionsProps) =
                             </div>
                           </div>
                           <p className="text-sm font-semibold text-secondary shrink-0">
-                            +RM {Number(t.amount).toFixed(2)}
+                            +{formatRM(t.amount)}
                           </p>
                         </CardContent>
                       </Card>

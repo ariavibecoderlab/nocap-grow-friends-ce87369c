@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Wallet, Clock, CheckCircle2, XCircle, ArrowDownToLine, Share2, FileText } from "lucide-react";
 import { shareWithdrawalReceipt, downloadWithdrawalReceipt } from "@/lib/generateWithdrawalReceiptPdf";
 import { MALAYSIAN_BANKS } from "@/lib/constants";
+import { formatRM, toRMNumber } from "@/lib/currency";
 
 interface WithdrawalRequest {
   id: string;
@@ -33,10 +34,7 @@ interface Props {
 }
 
 // Round to 2 decimals to avoid floating-point drift (e.g. 0.1+0.2)
-const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
-// Format an RM value with thousands separators and exactly 2 decimals
-const formatRM = (n: number) =>
-  `RM ${round2(n).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const round2 = (n: number) => Math.round(toRMNumber(n) * 100) / 100;
 
 const MerchantWithdrawals = ({ userId, branchId, branchBalance, branchName }: Props) => {
   const { toast } = useToast();
