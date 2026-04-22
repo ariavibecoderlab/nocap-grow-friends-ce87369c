@@ -9,11 +9,13 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NocapLogo from "@/components/NocapLogo";
+import CurrencyQaChecklist from "@/components/qa/CurrencyQaChecklist";
 import {
   ChevronDown, ChevronRight, Search, ArrowLeft, BookOpen, FileText,
   CheckCircle, XCircle, AlertTriangle, BarChart3, Download, RotateCcw,
   LogIn, LayoutDashboard, Wallet, QrCode, ArrowUpDown, Users, Shield,
-  Bell, Settings, Store, Code, Globe, Smartphone, Key, Lock, Zap, Database
+  Bell, Settings, Store, Code, Globe, Smartphone, Key, Lock, Zap, Database,
+  DollarSign
 } from "lucide-react";
 
 interface TestCase {
