@@ -38,7 +38,7 @@ const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 const formatRM = (n: number) =>
   `RM ${round2(n).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const MerchantWithdrawals = ({ userId }: Props) => {
+const MerchantWithdrawals = ({ userId, branchId, branchBalance, branchName }: Props) => {
   const { toast } = useToast();
   const [requests, setRequests] = useState<WithdrawalRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,23 +62,22 @@ const MerchantWithdrawals = ({ userId }: Props) => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: wr }, { data: sales }, { data: committed }, { data: app }, { data: globalSettings }] = await Promise.all([
+    // Per-branch scope: history list and committed totals are filtered by branch_id.
+    // Available Balance = live branch wallet balance (already nets out paid-out funds).
+    // Total Sales (lifetime credited to this branch) = current balance + approved + settled withdrawals.
+    const [{ data: wr }, { data: committed }, { data: app }, { data: globalSettings }] = await Promise.all([
       supabase
         .from("withdrawal_requests")
         .select("*")
         .eq("user_id", userId)
+        .eq("branch_id", branchId)
         .order("created_at", { ascending: false })
         .limit(20),
       supabase
-        .from("transactions")
-        .select("amount")
-        .eq("user_id", userId)
-        .eq("type", "top_up")
-        .eq("status", "completed"),
-      supabase
         .from("withdrawal_requests")
-        .select("amount")
+        .select("amount,status")
         .eq("user_id", userId)
+        .eq("branch_id", branchId)
         .in("status", ["approved", "settled"]),
       supabase
         .from("merchant_applications")
@@ -102,14 +101,11 @@ const MerchantWithdrawals = ({ userId }: Props) => {
       }
       setUnknownStatuses(unknown);
     }
-    // Derive ALL totals from this refetch's API responses — no reads from React state.
-    // `committed` is an unlimited query (authoritative for the deduction); `wr` is capped at 20
-    // and is used only for the per-status display rows in the breakdown.
-    const tSales = round2((sales ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0));
     const tCommitted = round2((committed ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0));
-    const tApproved = round2((wr ?? []).filter((r: any) => r.status === "approved").reduce((s, r: any) => s + Number(r.amount || 0), 0));
-    const tSettled = round2((wr ?? []).filter((r: any) => r.status === "settled").reduce((s, r: any) => s + Number(r.amount || 0), 0));
-    const tAvailable = round2(tSales - tCommitted);
+    const tApproved = round2((committed ?? []).filter((r: any) => r.status === "approved").reduce((s, r: any) => s + Number(r.amount || 0), 0));
+    const tSettled = round2((committed ?? []).filter((r: any) => r.status === "settled").reduce((s, r: any) => s + Number(r.amount || 0), 0));
+    const tAvailable = round2(branchBalance);
+    const tSales = round2(tAvailable + tCommitted);
     setTotalSales(tSales);
     setTotalCommitted(tCommitted);
     setTotalApproved(tApproved);
@@ -119,7 +115,6 @@ const MerchantWithdrawals = ({ userId }: Props) => {
       setBankName(app.bank_name || "");
       setBankAccountNo(app.bank_account_no || "");
       setBankAccountHolder(app.bank_account_holder || "");
-      // Per-merchant override takes priority over global default
       const merchantMin = app.min_withdrawal_amount != null ? Number(app.min_withdrawal_amount) : null;
       const globalMin = globalSettings?.value ? Number(globalSettings.value) : 50;
       setMinWithdrawal(merchantMin ?? globalMin);
@@ -133,14 +128,15 @@ const MerchantWithdrawals = ({ userId }: Props) => {
     fetchData();
 
     const channel = supabase
-      .channel("withdrawal-updates")
+      .channel(`withdrawal-updates-${branchId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "withdrawal_requests", filter: `user_id=eq.${userId}` }, () => {
         fetchData();
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, branchId, branchBalance]);
 
   const hasPending = requests.some((r) => r.status === "pending");
 
