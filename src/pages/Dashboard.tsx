@@ -12,6 +12,7 @@ import NocapLogo from "@/components/NocapLogo";
 import NotificationBell from "@/components/NotificationBell";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
 import { useToast } from "@/hooks/use-toast";
+import { formatRM } from "@/lib/currency";
 
 interface Transaction {
   id: string;
