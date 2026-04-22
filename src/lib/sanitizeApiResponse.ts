@@ -78,16 +78,16 @@ function coerceNumber(
  * Sanitize a single object: replace listed numeric fields with finite numbers.
  * Returns a shallow copy; the original object is not mutated.
  */
-export function sanitizeNumericObject<T extends Record<string, unknown>>(
+export function sanitizeNumericObject<T extends object>(
   obj: T | null | undefined,
   fields: ReadonlyArray<keyof T & string>,
   options: SanitizeOptions = {},
 ): T | null {
   if (!obj) return null;
   const { context = "unknown", fallback = 0 } = options;
-  const out: Record<string, unknown> = { ...obj };
+  const out: Record<string, unknown> = { ...(obj as Record<string, unknown>) };
   for (const field of fields) {
-    out[field] = coerceNumber(obj[field], field, context, null, fallback);
+    out[field] = coerceNumber((obj as Record<string, unknown>)[field], field, context, null, fallback);
   }
   return out as T;
 }
@@ -96,7 +96,7 @@ export function sanitizeNumericObject<T extends Record<string, unknown>>(
  * Sanitize an array of rows. Each row gets the listed numeric fields coerced.
  * Returns a new array; the input is not mutated.
  */
-export function sanitizeNumericFields<T extends Record<string, unknown>>(
+export function sanitizeNumericFields<T extends object>(
   rows: T[] | null | undefined,
   fields: ReadonlyArray<keyof T & string>,
   options: SanitizeOptions = {},
@@ -104,9 +104,9 @@ export function sanitizeNumericFields<T extends Record<string, unknown>>(
   if (!rows || !Array.isArray(rows)) return [];
   const { context = "unknown", fallback = 0 } = options;
   return rows.map((row, idx) => {
-    const out: Record<string, unknown> = { ...row };
+    const out: Record<string, unknown> = { ...(row as Record<string, unknown>) };
     for (const field of fields) {
-      out[field] = coerceNumber(row[field], field, context, idx, fallback);
+      out[field] = coerceNumber((row as Record<string, unknown>)[field], field, context, idx, fallback);
     }
     return out as T;
   });
