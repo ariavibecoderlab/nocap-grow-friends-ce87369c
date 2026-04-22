@@ -100,8 +100,12 @@ const MerchantWithdrawals = ({ userId }: Props) => {
     }
     const tSales = round2((sales ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0));
     const tCommitted = round2((committed ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0));
+    const tApproved = round2((wr ?? []).filter((r: any) => r.status === "approved").reduce((s, r: any) => s + Number(r.amount || 0), 0));
+    const tSettled = round2((wr ?? []).filter((r: any) => r.status === "settled").reduce((s, r: any) => s + Number(r.amount || 0), 0));
     setTotalSales(tSales);
     setTotalCommitted(tCommitted);
+    setTotalApproved(tApproved);
+    setTotalSettled(tSettled);
     setWalletBalance(round2(tSales - tCommitted));
     if (app) {
       setBankName(app.bank_name || "");
