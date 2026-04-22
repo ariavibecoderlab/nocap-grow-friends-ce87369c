@@ -13,6 +13,7 @@ import NotificationBell from "@/components/NotificationBell";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
 import { useToast } from "@/hooks/use-toast";
 import { formatRM } from "@/lib/currency";
+import { sanitizeNumericObject, sanitizeNumericFields } from "@/lib/sanitizeApiResponse";
 
 interface Transaction {
   id: string;
