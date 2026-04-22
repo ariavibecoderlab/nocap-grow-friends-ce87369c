@@ -199,7 +199,7 @@ const MerchantWithdrawals = ({ userId }: Props) => {
           <Separator className="bg-white/10" />
           <div className="flex items-center justify-between text-sm">
             <span className="text-secondary font-semibold">Available Balance</span>
-            <span className="text-secondary font-bold tabular-nums">RM {walletBalance.toFixed(2)}</span>
+            <span className="text-secondary font-bold tabular-nums">{formatRM(walletBalance)}</span>
           </div>
         </CardContent>
       </Card>
