@@ -122,13 +122,13 @@ const MerchantWithdrawals = ({ userId }: Props) => {
   const hasPending = requests.some((r) => r.status === "pending");
 
   const submit = async () => {
-    const amt = Number(amount);
+    const amt = round2(Number(amount));
     if (!amt || amt <= 0) {
       toast({ title: "Enter a valid amount", variant: "destructive" });
       return;
     }
     if (amt < minWithdrawal) {
-      toast({ title: `Minimum withdrawal is RM ${minWithdrawal.toFixed(2)}`, variant: "destructive" });
+      toast({ title: `Minimum withdrawal is ${formatRM(minWithdrawal)}`, variant: "destructive" });
       return;
     }
     if (amt > walletBalance) {
