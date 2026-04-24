@@ -2448,6 +2448,100 @@ app.listen(3000);`}</CodeBlock>
                 </CardContent>
               </Card>
 
+              {/* Webhook Replay with Idempotency */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">
+                    Webhook Replay with Idempotency
+                    <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold ml-2">v1.4</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Re-deliver any past webhook to your current webhook URL. Server-side payload + signature integrity checks
+                    guarantee the replay is byte-identical to the original event. Idempotency-Key prevents duplicate dispatches.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Endpoint</h4>
+                    <CodeBlock>{`POST https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks-replay
+Headers:
+  X-Api-Key: <your_api_key>
+  X-Api-Secret: <your_api_secret>
+  Content-Type: application/json
+  Idempotency-Key: <uuid v4>   # recommended, max 255 chars
+
+Body:
+  { "delivery_id": "<UUID of the original webhook_deliveries row>" }`}</CodeBlock>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Success response (200)</h4>
+                    <CodeBlock>{`{
+  "data": {
+    "replay_id": "9b4e...",          // new webhook_deliveries row
+    "original_id": "6f1a...",        // delivery_id you sent
+    "event": "order.paid",
+    "delivered": true,
+    "status_code": 200,
+    "attempts": 1
+  }
+}
+# Header on cached repeats: Idempotent-Replay: true`}</CodeBlock>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Integration prompt for your AI / dev</h4>
+                    <CodeBlock>{`Implement a "Replay" action on the webhook delivery log:
+
+1. On click, generate a fresh UUID and POST to /api-webhooks-replay
+   with X-Api-Key, X-Api-Secret, and Idempotency-Key: <uuid>.
+   Body: { delivery_id: <row.id> }.
+
+2. Persist locally (idempotency_key, original_delivery_id, last_response)
+   so you can dedupe and inspect.
+
+3. Treat response header "Idempotent-Replay: true" as success — show
+   the cached replay_id, never as a duplicate error.
+
+4. Error matrix:
+     400  invalid body / bad delivery_id
+     401  invalid X-Api-Key / X-Api-Secret
+     404  delivery_id not found OR belongs to another app
+     409  signature integrity failed (api secret rotated since original
+          dispatch) OR Idempotency-Key reused with different body
+     429  rate limited — honor retry_after_seconds, then retry with the
+          SAME Idempotency-Key
+
+5. For 5xx responses, retry with exponential backoff (1s, 2s, 4s) and
+   the SAME Idempotency-Key — the server returns the cached result if
+   the first attempt actually completed.
+
+6. Show the user: original event, original delivered_at, new replay_id,
+   new status_code, attempt count. Badge the original row
+   "replayed → <replay_id>".`}</CodeBlock>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3 bg-muted/30 border border-border rounded-md">
+                      <p className="text-xs font-semibold mb-1">Rate limits</p>
+                      <p className="text-xs text-muted-foreground">30 replays/min per merchant · 5 replays/min per <code className="text-primary">delivery_id</code>.</p>
+                    </div>
+                    <div className="p-3 bg-muted/30 border border-border rounded-md">
+                      <p className="text-xs font-semibold mb-1">Idempotency window</p>
+                      <p className="text-xs text-muted-foreground">24 hours. Same key + same body → cached response. Same key + different body → <code className="text-primary">409</code>.</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-900 p-4 rounded-md">
+                    <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                      <strong>⚠️ Signature integrity:</strong> If your <code className="font-mono">api_secret</code> was rotated since the original
+                      delivery, the recomputed HMAC won't match the stored signature and the server returns <code className="font-mono">409</code> rather
+                      than emit a webhook your verifier would reject. Replay the event from a fresh dispatch instead.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Sandbox Testing */}
               <Card>
                 <CardHeader>
