@@ -70,7 +70,9 @@ export type Database = {
           is_sandbox: boolean
           merchant_user_id: string
           name: string
+          scopes: Json
           updated_at: string
+          webhook_subscriptions: Json | null
           webhook_url: string | null
         }
         Insert: {
@@ -84,7 +86,9 @@ export type Database = {
           is_sandbox?: boolean
           merchant_user_id: string
           name: string
+          scopes?: Json
           updated_at?: string
+          webhook_subscriptions?: Json | null
           webhook_url?: string | null
         }
         Update: {
@@ -98,7 +102,9 @@ export type Database = {
           is_sandbox?: boolean
           merchant_user_id?: string
           name?: string
+          scopes?: Json
           updated_at?: string
+          webhook_subscriptions?: Json | null
           webhook_url?: string | null
         }
         Relationships: [
@@ -289,6 +295,70 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      inventory_reservations: {
+        Row: {
+          app_id: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          product_id: string
+          quantity: number
+          reference: string | null
+          released_at: string | null
+          status: string
+          variant_id: string | null
+        }
+        Insert: {
+          app_id: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          product_id: string
+          quantity: number
+          reference?: string | null
+          released_at?: string | null
+          status?: string
+          variant_id?: string | null
+        }
+        Update: {
+          app_id?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          reference?: string | null
+          released_at?: string | null
+          status?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_reservations_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "api_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_reservations_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       marketplace_abandoned_carts: {
         Row: {
@@ -2203,6 +2273,82 @@ export type Database = {
           },
         ]
       }
+      payment_links: {
+        Row: {
+          amount: number
+          app_id: string
+          branch_id: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          expires_at: string
+          id: string
+          merchant_user_id: string
+          metadata: Json
+          order_id: string | null
+          paid_at: string | null
+          status: string
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          app_id: string
+          branch_id?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          expires_at?: string
+          id?: string
+          merchant_user_id: string
+          metadata?: Json
+          order_id?: string | null
+          paid_at?: string | null
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          app_id?: string
+          branch_id?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          expires_at?: string
+          id?: string
+          merchant_user_id?: string
+          metadata?: Json
+          order_id?: string | null
+          paid_at?: string | null
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_links_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "api_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_links_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_links_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address: string | null
@@ -2706,6 +2852,62 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "merchant_branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_deliveries: {
+        Row: {
+          app_id: string
+          attempt_count: number
+          created_at: string
+          delivered_at: string | null
+          event: string
+          id: string
+          last_error: string | null
+          next_retry_at: string | null
+          payload: Json
+          signature: string | null
+          status: string
+          status_code: number | null
+          target_url: string
+        }
+        Insert: {
+          app_id: string
+          attempt_count?: number
+          created_at?: string
+          delivered_at?: string | null
+          event: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          payload?: Json
+          signature?: string | null
+          status?: string
+          status_code?: number | null
+          target_url: string
+        }
+        Update: {
+          app_id?: string
+          attempt_count?: number
+          created_at?: string
+          delivered_at?: string | null
+          event?: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          payload?: Json
+          signature?: string | null
+          status?: string
+          status_code?: number | null
+          target_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "api_applications"
             referencedColumns: ["id"]
           },
         ]
