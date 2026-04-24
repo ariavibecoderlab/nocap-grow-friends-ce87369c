@@ -580,6 +580,36 @@ const Referral = () => {
                   </span>
                 );
               })()}
+              {lastDiff && (() => {
+                // Auto-fade after 8s — recompute on each render is cheap
+                const ageMs = Date.now() - lastDiff.at;
+                if (ageMs > 8000) return null;
+                const fmt = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+                const directTone =
+                  lastDiff.direct > 0
+                    ? "text-emerald-300"
+                    : lastDiff.direct < 0
+                    ? "text-rose-300"
+                    : "text-white/60";
+                const totalTone =
+                  lastDiff.total > 0
+                    ? "text-emerald-300"
+                    : lastDiff.total < 0
+                    ? "text-rose-300"
+                    : "text-white/60";
+                return (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium animate-fade-in"
+                    aria-live="polite"
+                    title="Change since previous cached snapshot"
+                  >
+                    <span className="text-white/60">Δ</span>
+                    <span className={directTone}>direct {fmt(lastDiff.direct)}</span>
+                    <span className="text-white/30">·</span>
+                    <span className={totalTone}>total {fmt(lastDiff.total)}</span>
+                  </span>
+                );
+              })()}
               {(() => {
                 const stamp = lastFreshAt ?? cachedAt;
                 if (!stamp) return null;
