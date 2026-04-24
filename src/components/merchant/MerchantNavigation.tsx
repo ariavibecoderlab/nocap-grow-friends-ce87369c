@@ -89,6 +89,7 @@ export function getMerchantSections(chatUnread: number): NavSection[] {
         { value: "staff", icon: Shield, label: "Staff Permissions" },
         { value: "api", icon: Code, label: "API Apps" },
         { value: "logs", icon: ScrollText, label: "API Logs" },
+        { value: "webhooks", icon: ScrollText, label: "Webhook Deliveries" },
       ],
     },
   ];

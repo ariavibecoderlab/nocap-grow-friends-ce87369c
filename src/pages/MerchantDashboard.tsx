@@ -20,6 +20,7 @@ import MerchantAnalytics from "@/components/merchant/MerchantAnalytics";
 import MerchantSettlement from "@/components/merchant/MerchantSettlement";
 import MerchantApiApps from "@/components/merchant/MerchantApiApps";
 import MerchantApiLogs from "@/components/merchant/MerchantApiLogs";
+import MerchantWebhookDeliveries from "@/components/merchant/MerchantWebhookDeliveries";
 import NotificationBell from "@/components/NotificationBell";
 import NocapLogo from "@/components/NocapLogo";
 import MerchantMarketplace from "@/components/merchant/MerchantMarketplace";
@@ -142,6 +143,7 @@ const MerchantNavigationWrapper = ({ selectedBranch, branches, user, chatUnread,
       case "staff": return <MerchantStoreTabWrapper branchId={selectedBranch.id}>{(storeId) => <MerchantStaffPermissions storeId={storeId} />}</MerchantStoreTabWrapper>;
       case "api": return <MerchantApiApps branches={branches} />;
       case "logs": return <MerchantApiLogs />;
+      case "webhooks": return <MerchantWebhookDeliveries />;
       default: return null;
     }
   };
