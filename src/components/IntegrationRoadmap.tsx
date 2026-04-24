@@ -201,40 +201,48 @@ export default function IntegrationRoadmap() {
             <Badge variant="outline" className="text-xs">Path B (Prompts 6–9): Upgrade existing</Badge>
             <Badge className="text-xs bg-emerald-600 hover:bg-emerald-700">Path C (Prompts 10–12): Add Top-Up</Badge>
             <Badge className="text-xs bg-blue-600 hover:bg-blue-700">Path D (Prompt 13): Add Distribution</Badge>
+            <Badge className="text-xs bg-fuchsia-600 hover:bg-fuchsia-700">Path E (Prompts 14–18): Sales Assistant</Badge>
           </div>
           <div className="overflow-x-auto">
              <table className="w-full text-sm">
               <thead>
-                 <tr className="border-b border-border">
+                   <tr className="border-b border-border">
                    <th className="text-left py-2 pr-4 font-semibold">Prompt</th>
                    <th className="text-left py-2 pr-4 font-semibold">New</th>
                    <th className="text-left py-2 pr-4 font-semibold">Upgrade</th>
                    <th className="text-left py-2 pr-4 font-semibold">Top-Up</th>
-                   <th className="text-left py-2 font-semibold">Dist</th>
+                   <th className="text-left py-2 pr-4 font-semibold">Dist</th>
+                   <th className="text-left py-2 font-semibold">Sales AI</th>
                  </tr>
               </thead>
               <tbody className="text-muted-foreground">
                 {[
-                  ["1 — Credentials & DB", "Yes", "Skip", "Skip", "Skip"],
-                  ["2 — API Service Layer", "Yes", "Skip", "Skip", "Skip"],
-                  ["3 — OAuth Connection", "Yes", "Skip", "Skip", "Skip"],
-                  ["4 — Account Creation via Referral", "Yes", "Skip", "Skip", "Skip"],
-                  ["5 — Wallet Checkout", "Yes", "Skip", "Skip", "Skip"],
-                  ["6 — Upgrade DB + APIs", "Yes", "Start here", "Skip", "Skip"],
-                  ["7 — Re-auth for Referral", "Yes", "Yes", "Skip", "Skip"],
-                  ["8 — Multi-Branch Routing", "Yes", "Yes", "Skip", "Skip"],
-                  ["9 — Referral Dashboard", "Yes", "Yes", "Skip", "Skip"],
-                  ["10 — Top-Up Service", "Skip", "Skip", "Start here", "Skip"],
-                  ["11 — Re-auth for Top-Up", "Skip", "Skip", "Yes", "Skip"],
-                  ["12 — Top-Up UI & Webhooks", "Skip", "Skip", "Yes", "Skip"],
-                  ["13 — Distribution", "Skip", "Skip", "Skip", "Start here"],
-                ].map(([prompt, fresh, upgrade, topup, dist], i) => (
+                  ["1 — Credentials & DB", "Yes", "Skip", "Skip", "Skip", "Skip"],
+                  ["2 — API Service Layer", "Yes", "Skip", "Skip", "Skip", "Skip"],
+                  ["3 — OAuth Connection", "Yes", "Skip", "Skip", "Skip", "Skip"],
+                  ["4 — Account Creation via Referral", "Yes", "Skip", "Skip", "Skip", "Skip"],
+                  ["5 — Wallet Checkout", "Yes", "Skip", "Skip", "Skip", "Skip"],
+                  ["6 — Upgrade DB + APIs", "Yes", "Start here", "Skip", "Skip", "Skip"],
+                  ["7 — Re-auth for Referral", "Yes", "Yes", "Skip", "Skip", "Skip"],
+                  ["8 — Multi-Branch Routing", "Yes", "Yes", "Skip", "Skip", "Skip"],
+                  ["9 — Referral Dashboard", "Yes", "Yes", "Skip", "Skip", "Skip"],
+                  ["10 — Top-Up Service", "Skip", "Skip", "Start here", "Skip", "Skip"],
+                  ["11 — Re-auth for Top-Up", "Skip", "Skip", "Yes", "Skip", "Skip"],
+                  ["12 — Top-Up UI & Webhooks", "Skip", "Skip", "Yes", "Skip", "Skip"],
+                  ["13 — Distribution", "Skip", "Skip", "Skip", "Start here", "Skip"],
+                  ["14 — Sales AI: Connect to NoCap", "Skip", "Skip", "Skip", "Skip", "Start here"],
+                  ["15 — Sales AI: Sync Products/Orders", "Skip", "Skip", "Skip", "Skip", "Yes"],
+                  ["16 — Sales AI: NoCap Webhooks", "Skip", "Skip", "Skip", "Skip", "Yes"],
+                  ["17 — Sales AI: Payment Links in Chat", "Skip", "Skip", "Skip", "Skip", "Yes"],
+                  ["18 — Sales AI: Brain + Referral Data", "Skip", "Skip", "Skip", "Skip", "Yes"],
+                ].map(([prompt, fresh, upgrade, topup, dist, salesai], i) => (
                   <tr key={i} className="border-b border-border/50">
                     <td className="py-2 pr-4 font-mono text-xs">{prompt}</td>
                     <td className="py-2 pr-4">{fresh}</td>
                     <td className="py-2 pr-4">{upgrade}</td>
                     <td className="py-2 pr-4">{topup}</td>
-                    <td className="py-2">{dist}</td>
+                    <td className="py-2 pr-4">{dist}</td>
+                    <td className="py-2">{salesai}</td>
                   </tr>
                 ))}
               </tbody>
