@@ -57,10 +57,18 @@ export async function dispatchWebhook(
   let delivered = false;
   let totalAttempts = 0;
   let signature = '';
+  let payloadHash = '';
 
   try {
     const payloadStr = JSON.stringify(body);
     const encoder = new TextEncoder();
+    const payloadBytes = encoder.encode(payloadStr);
+
+    // SHA-256 of the exact bytes we sign — recorded so replay can detect any
+    // mutation of the stored payload before re-emitting the webhook.
+    const hashBuf = await crypto.subtle.digest('SHA-256', payloadBytes);
+    payloadHash = Array.from(new Uint8Array(hashBuf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+
     const key = await crypto.subtle.importKey(
       'raw',
       encoder.encode(secretHash),
@@ -68,7 +76,7 @@ export async function dispatchWebhook(
       false,
       ['sign'],
     );
-    const sigBuf = await crypto.subtle.sign('HMAC', key, encoder.encode(payloadStr));
+    const sigBuf = await crypto.subtle.sign('HMAC', key, payloadBytes);
     signature = Array.from(new Uint8Array(sigBuf)).map((b) => b.toString(16).padStart(2, '0')).join('');
 
     const maxRetries = 3;
@@ -113,12 +121,12 @@ export async function dispatchWebhook(
       });
     } catch (_) { /* best-effort */ }
 
-    // Refuse to record a delivery without a signature — replay relies on it
-    // for integrity verification. An empty signature here means HMAC signing
-    // threw before reaching the dispatch loop, and there is nothing meaningful
-    // to verify against later.
-    if (!signature) {
-      console.error('[webhook] refusing to log delivery with empty signature', { appId, event: body.event });
+    // Refuse to record a delivery without a signature/payload_hash — replay
+    // relies on both for integrity verification. An empty value here means
+    // signing/hashing threw before reaching the dispatch loop, and there is
+    // nothing meaningful to verify against later.
+    if (!signature || !payloadHash) {
+      console.error('[webhook] refusing to log delivery with empty signature/payload_hash', { appId, event: body.event });
     } else {
       try {
         await supabase.from('webhook_deliveries').insert({
@@ -126,6 +134,7 @@ export async function dispatchWebhook(
           event: body.event,
           payload: body,
           signature,
+          payload_hash: payloadHash,
           target_url: webhookUrl,
           status: delivered ? 'delivered' : 'failed',
           attempt_count: totalAttempts,
