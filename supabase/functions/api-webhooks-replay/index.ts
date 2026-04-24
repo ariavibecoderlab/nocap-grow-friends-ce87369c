@@ -184,6 +184,20 @@ Deno.serve(async (req) => {
     .limit(1)
     .maybeSingle();
 
+  const cacheResult = async (status: number, payload: unknown, replayId: string | null) => {
+    if (idempotencyKey && requestHash) {
+      await supabase.from('webhook_replay_idempotency').insert({
+        app_id: app.id,
+        idempotency_key: idempotencyKey,
+        request_hash: requestHash,
+        response_status: status,
+        response_body: payload,
+        replay_id: replayId,
+        original_delivery_id: original.id,
+      });
+    }
+  };
+
   if (latest && latest.id !== lastIdBefore) {
     await supabase
       .from('webhook_deliveries')
@@ -193,7 +207,7 @@ Deno.serve(async (req) => {
       })
       .eq('id', latest.id);
 
-    return json(200, {
+    const responseBody = {
       data: {
         replay_id: latest.id,
         original_id: original.id,
@@ -202,14 +216,18 @@ Deno.serve(async (req) => {
         status_code: latest.status_code,
         attempts: latest.attempt_count,
       },
-    });
+    };
+    await cacheResult(200, responseBody, latest.id);
+    return json(200, responseBody);
   }
 
-  return json(202, {
+  const fallbackBody = {
     data: {
       original_id: original.id,
       event: original.event,
       message: 'Replay dispatched but no new delivery row was recorded',
     },
-  });
+  };
+  await cacheResult(202, fallbackBody, null);
+  return json(202, fallbackBody);
 });
