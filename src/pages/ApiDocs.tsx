@@ -139,7 +139,10 @@ const ApiDocs = () => {
                         <tr className="border-b border-border/50">
                           <td className="py-2 pr-4 font-mono text-xs">/api-branches</td>
                           <td className="py-2">60 req/min</td>
-                          <td className="py-2">60 req/min</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-app-info</td>
+                          <td className="py-2">120 req/min</td>
                         </tr>
                         <tr className="border-b border-border/50">
                           <td className="py-2 pr-4 font-mono text-xs">/api-referral-register</td>

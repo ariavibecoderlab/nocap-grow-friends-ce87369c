@@ -33,7 +33,7 @@ export function generateApiGuidePdf() {
 
   doc.setFontSize(8);
   doc.setTextColor(120, 120, 120);
-  doc.text("Version 1.2 — April 2026", pageWidth - margin, 32, { align: "right" });
+  doc.text("Version 1.3 — April 2026", pageWidth - margin, 32, { align: "right" });
 
   y = 54;
 
