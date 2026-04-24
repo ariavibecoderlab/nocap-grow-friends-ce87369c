@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
   // ---- Load original delivery (must belong to caller's app) ----
   const { data: original } = await supabase
     .from('webhook_deliveries')
-    .select('id, app_id, event, payload, target_url, signature')
+    .select('id, app_id, event, payload, target_url, signature, payload_hash')
     .eq('id', deliveryId)
     .eq('app_id', app.id)
     .maybeSingle();
@@ -154,11 +154,13 @@ Deno.serve(async (req) => {
   }
 
   // ---- Server-side payload + signature integrity check ----
-  // The replay MUST send byte-identical payload to the original event, and the
-  // recomputed HMAC (using the current api_secret_hash) MUST match the signature
-  // recorded at original dispatch time. If the secret was rotated or the stored
-  // payload was tampered with, refuse to replay rather than emitting a webhook
-  // that downstream verifiers will reject (or worse, silently accept as new).
+  // The replay MUST send byte-identical payload to the original event. We
+  // verify integrity in three layers:
+  //   1) payload_hash: SHA-256 of stored payload bytes matches the hash
+  //      recorded at first dispatch ⇒ proves the stored row was not mutated.
+  //   2) event match:  payload.event matches the delivery row's event column.
+  //   3) signature:    recomputed HMAC (current secret) matches the signature
+  //      recorded at first dispatch ⇒ proves the secret has not been rotated.
   const payload = original.payload as WebhookPayload;
   let serializedPayload: string;
   try {
@@ -173,7 +175,32 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Recompute HMAC-SHA256 over the exact serialized bytes using the current secret.
+  const payloadBytes = new TextEncoder().encode(serializedPayload);
+
+  // (1) Payload hash check — runs BEFORE signing, so we never sign tampered bytes.
+  const hashBuf = await crypto.subtle.digest('SHA-256', payloadBytes);
+  const recomputedPayloadHash = Array.from(new Uint8Array(hashBuf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  if (!original.payload_hash) {
+    return json(409, {
+      error: 'Payload integrity check failed',
+      detail:
+        'Original delivery has no recorded payload_hash, so byte-level integrity cannot be verified. Re-trigger the source event instead of replaying this row.',
+    });
+  }
+  if (original.payload_hash !== recomputedPayloadHash) {
+    return json(409, {
+      error: 'Payload integrity check failed',
+      detail:
+        'Stored payload SHA-256 does not match the hash recorded at first dispatch. The webhook_deliveries row appears to have been modified. Replay refused.',
+      original_payload_hash_prefix: original.payload_hash.slice(0, 12),
+      recomputed_payload_hash_prefix: recomputedPayloadHash.slice(0, 12),
+    });
+  }
+
+  // (3) Recompute HMAC-SHA256 over the exact serialized bytes using current secret.
   const hmacKey = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(app.api_secret_hash),
@@ -181,19 +208,11 @@ Deno.serve(async (req) => {
     false,
     ['sign'],
   );
-  const sigBuf = await crypto.subtle.sign(
-    'HMAC',
-    hmacKey,
-    new TextEncoder().encode(serializedPayload),
-  );
+  const sigBuf = await crypto.subtle.sign('HMAC', hmacKey, payloadBytes);
   const recomputedSignature = Array.from(new Uint8Array(sigBuf))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 
-  // The original signature MUST exist — every dispatch since v1.4 records it.
-  // A missing/empty signature means this row predates integrity-checked replay
-  // (or was inserted by a buggy path), so we cannot guarantee the payload is
-  // identical to what the merchant's verifier originally accepted.
   if (!original.signature) {
     return json(409, {
       error: 'Signature integrity check failed',
@@ -205,7 +224,7 @@ Deno.serve(async (req) => {
     return json(409, {
       error: 'Signature integrity check failed',
       detail:
-        'Recomputed signature does not match the original. The API secret may have been rotated since the original delivery, or the stored payload has been modified. Replay refused to avoid emitting an unverifiable webhook.',
+        'Recomputed signature does not match the original. The API secret may have been rotated since the original delivery. Replay refused to avoid emitting an unverifiable webhook.',
       original_signature_prefix: original.signature.slice(0, 12),
       recomputed_signature_prefix: recomputedSignature.slice(0, 12),
     });
