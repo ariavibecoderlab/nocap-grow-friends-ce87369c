@@ -464,11 +464,24 @@ const Referral = () => {
       {/* Header */}
       <div className="px-4 pb-14 pt-8">
         <div className="mx-auto max-w-md">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors">
-              <ArrowLeft className="h-5 w-5 text-white" />
-            </button>
-            <h1 className="font-display text-xl font-bold text-white">My Network</h1>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors">
+                <ArrowLeft className="h-5 w-5 text-white" />
+              </button>
+              <h1 className="font-display text-xl font-bold text-white truncate">My Network</h1>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRecount}
+              disabled={recountLoading}
+              className="shrink-0 gap-1.5 border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+              aria-label="Refresh network — bypass cache and re-fetch latest counts"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${recountLoading ? "animate-spin" : ""}`} />
+              <span className="text-xs">{recountLoading ? "Refreshing..." : "Refresh"}</span>
+            </Button>
           </div>
         </div>
       </div>
