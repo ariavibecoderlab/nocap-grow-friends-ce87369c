@@ -88,6 +88,7 @@ const Referral = () => {
   const [isRevalidating, setIsRevalidating] = useState(false);
   const [lastFreshAt, setLastFreshAt] = useState<Date | null>(null);
   const [servedFromCache, setServedFromCache] = useState(false);
+  const [cachedAt, setCachedAt] = useState<Date | null>(null);
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading, navigate]);
