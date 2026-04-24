@@ -55,15 +55,57 @@ Deno.serve(async (req) => {
   }
 
   // ---- Body ----
+  const rawBody = await req.text();
   let body: Record<string, unknown>;
   try {
-    body = await req.json();
+    body = JSON.parse(rawBody);
   } catch {
     return json(400, { error: 'Invalid JSON body' });
   }
   const deliveryId = typeof body.delivery_id === 'string' ? body.delivery_id : null;
   if (!deliveryId || !/^[0-9a-f-]{36}$/i.test(deliveryId)) {
     return json(400, { error: 'delivery_id (UUID) is required' });
+  }
+
+  // ---- Idempotency-Key handling ----
+  // If client sends Idempotency-Key, return cached response for repeats within 24h.
+  // Mismatched body for the same key returns 409.
+  const idempotencyKey = req.headers.get('idempotency-key')?.trim() || null;
+  let requestHash: string | null = null;
+  if (idempotencyKey) {
+    if (idempotencyKey.length > 255) {
+      return json(400, { error: 'Idempotency-Key must be <= 255 chars' });
+    }
+    requestHash = await sha256Hex(rawBody);
+
+    // Purge expired rows opportunistically (best-effort).
+    await supabase
+      .from('webhook_replay_idempotency')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
+
+    const { data: cached } = await supabase
+      .from('webhook_replay_idempotency')
+      .select('request_hash, response_status, response_body')
+      .eq('app_id', app.id)
+      .eq('idempotency_key', idempotencyKey)
+      .maybeSingle();
+
+    if (cached) {
+      if (cached.request_hash !== requestHash) {
+        return json(409, {
+          error: 'Idempotency-Key reused with different request body',
+        });
+      }
+      return new Response(JSON.stringify(cached.response_body), {
+        status: cached.response_status,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Idempotent-Replay': 'true',
+        },
+      });
+    }
   }
 
   // ---- Rate limiting (ad-hoc, backed by check_rate_limit RPC) ----
