@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
   // ---- Load original delivery (must belong to caller's app) ----
   const { data: original } = await supabase
     .from('webhook_deliveries')
-    .select('id, app_id, event, payload, target_url, signature, payload_hash')
+    .select('id, app_id, event, payload, target_url, signature, payload_hash, secret_hash_fingerprint')
     .eq('id', deliveryId)
     .eq('app_id', app.id)
     .maybeSingle();
@@ -151,6 +151,40 @@ Deno.serve(async (req) => {
 
   if (!app.webhook_url) {
     return json(400, { error: 'No webhook_url configured for this app' });
+  }
+
+  // ---- Secret-rotation guard ----
+  // Compare a SHA-256 fingerprint of the api_secret_hash currently on the app
+  // against the fingerprint recorded at first dispatch. If they differ, the
+  // merchant rotated their API secret since the original event was sent — any
+  // signature we recompute now would be unverifiable by the receiver, so we
+  // refuse the replay with a clear 409 instead of emitting a broken webhook.
+  // (This is a hash-of-a-hash; the raw secret is never persisted.)
+  const currentSecretFpBuf = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(app.api_secret_hash),
+  );
+  const currentSecretFp = Array.from(new Uint8Array(currentSecretFpBuf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  if (!original.secret_hash_fingerprint) {
+    return json(409, {
+      error: 'Secret integrity check failed',
+      detail:
+        'Original delivery has no recorded secret fingerprint, so we cannot prove the signing secret is still available. Re-trigger the source event instead of replaying this row.',
+      code: 'SECRET_FINGERPRINT_MISSING',
+    });
+  }
+  if (original.secret_hash_fingerprint !== currentSecretFp) {
+    return json(409, {
+      error: 'API secret has been rotated since this webhook was originally sent',
+      detail:
+        'The api_secret_hash used to sign this delivery is no longer the active secret on this app. Replay refused to avoid emitting a webhook the receiver cannot verify. Re-trigger the source event with the current secret instead.',
+      code: 'SECRET_ROTATED',
+      original_secret_fp_prefix: original.secret_hash_fingerprint.slice(0, 12),
+      current_secret_fp_prefix: currentSecretFp.slice(0, 12),
+    });
   }
 
   // ---- Server-side payload + signature integrity check ----
