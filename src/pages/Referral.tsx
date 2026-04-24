@@ -169,19 +169,24 @@ const Referral = () => {
     return allRows;
   }, []);
 
-  const fetchData = useCallback(async (opts?: { forceRefresh?: boolean }) => {
+  const fetchData = useCallback(async (opts?: { forceRefresh?: boolean; silent?: boolean }) => {
     if (!user) return;
 
     const cached = !opts?.forceRefresh ? getCached(user.id) : null;
     if (cached) {
-      // Hydrate UI instantly from cache so the page renders without waiting on the network
+      // SWR: hydrate UI instantly from cache so the page renders without waiting on the network
       setReferrals(cached.referrals);
       setTierCountsFromRpc(cached.tierCounts);
       setBeyondTier5Count(cached.beyondTier5Count);
       setLoadingData(false);
-    } else {
+      setServedFromCache(true);
+    } else if (!opts?.silent) {
       setLoadingData(true);
+      setServedFromCache(false);
     }
+
+    // Always revalidate in the background — flag so UI can show a subtle indicator
+    setIsRevalidating(true);
 
     try {
       const [profileRes, commissionRows, deepCountRes] = await Promise.all([
@@ -193,18 +198,31 @@ const Referral = () => {
       if (profileRes.data) {
         setProfile(profileRes.data);
         const profileReferrals = await fetchReferralsFromProfiles(profileRes.data.id);
-        setReferrals(profileReferrals);
 
         const derivedTierCounts = profileReferrals.reduce<Record<number, number>>((acc, row) => {
           acc[row.tier] = (acc[row.tier] || 0) + 1;
           return acc;
         }, {});
-        setTierCountsFromRpc(derivedTierCounts);
 
         const beyond = (deepCountRes.data && Array.isArray(deepCountRes.data) && deepCountRes.data.length > 0)
           ? Number(deepCountRes.data[0].beyond_tier5) || 0
           : 0;
+
+        // Diff against cached snapshot to decide whether to notify the user
+        const prevDirect = cached?.tierCounts[1] || 0;
+        const prevTotal = cached
+          ? Object.values(cached.tierCounts).reduce((s, c) => s + c, 0) + cached.beyondTier5Count
+          : null;
+        const nextDirect = derivedTierCounts[1] || 0;
+        const nextTotal = Object.values(derivedTierCounts).reduce((s, c) => s + c, 0) + beyond;
+        const counts_changed = prevTotal !== null && (prevDirect !== nextDirect || prevTotal !== nextTotal);
+
+        // Apply fresh data
+        setReferrals(profileReferrals);
+        setTierCountsFromRpc(derivedTierCounts);
         setBeyondTier5Count(beyond);
+        setLastFreshAt(new Date());
+        setServedFromCache(false);
 
         // Persist to cache for next visit / page refresh
         setCached(user.id, {
@@ -212,6 +230,13 @@ const Referral = () => {
           tierCounts: derivedTierCounts,
           beyondTier5Count: beyond,
         });
+
+        if (counts_changed) {
+          toast({
+            title: "Network updated",
+            description: `Direct: ${nextDirect} • Total: ${nextTotal}`,
+          });
+        }
       } else {
         setProfile(null);
         setReferrals([]);
@@ -223,8 +248,9 @@ const Referral = () => {
       setCommissions(commissionRows);
     } finally {
       setLoadingData(false);
+      setIsRevalidating(false);
     }
-  }, [fetchAllEarnings, fetchReferralsFromProfiles, user]);
+  }, [fetchAllEarnings, fetchReferralsFromProfiles, user, toast]);
 
   const handleRecount = useCallback(async () => {
     if (!user || !profile) return;
