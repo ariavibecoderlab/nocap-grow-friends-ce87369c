@@ -1270,23 +1270,125 @@ Pass either `reservation_id` or `reference`. Idempotent — already-released/exp
 
 ### Webhook subscriptions
 
+Auth: `X-Api-Key` + `X-Api-Secret` (server-to-server). Per-app — each API application stores its own `webhook_url` and `subscriptions` array.
+
 #### `GET /api-webhooks/subscriptions`
 
-Returns the calling app's `webhook_url`, current `subscriptions` (or `null` for all), and the full `available_events` catalog.
+Returns the calling app's current configuration plus the full event catalog so you can render an opt-in UI.
+
+```bash
+curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks/subscriptions" \
+  -H "X-Api-Key: your_api_key" \
+  -H "X-Api-Secret: your_api_secret"
+```
+
+**Sample response — subscribed to all (default):**
+
+```json
+{
+  "app_id": "f6e5...",
+  "webhook_url": "https://yourapp.com/webhooks/nocap",
+  "subscriptions": null,
+  "subscribed_to_all": true,
+  "available_events": [
+    "charge.completed", "charge.failed", "charge.refunded",
+    "order.created", "order.paid", "order.shipped", "order.delivered", "order.cancelled",
+    "product.stock_changed",
+    "payment_link.paid", "payment_link.expired"
+  ]
+}
+```
+
+**Sample response — opted in to a subset:**
+
+```json
+{
+  "app_id": "f6e5...",
+  "webhook_url": "https://yourapp.com/webhooks/nocap",
+  "subscriptions": ["order.paid", "order.shipped", "payment_link.paid"],
+  "subscribed_to_all": false,
+  "available_events": ["charge.completed", "charge.failed", "..."]
+}
+```
 
 #### `POST /api-webhooks/subscriptions` {#post-apiwebhookssubscriptions}
 
+Update the delivery URL and/or per-event opt-ins. Both `webhook_url` and `subscriptions` are optional — only the fields you send are changed.
+
+**Subscribe to specific events only:**
+
 ```bash
 curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks/subscriptions" \
-  -H "X-Api-Key: your_api_key" -H "X-Api-Secret: your_api_secret" \
+  -H "X-Api-Key: your_api_key" \
+  -H "X-Api-Secret: your_api_secret" \
   -H "Content-Type: application/json" \
   -d '{
     "webhook_url": "https://yourapp.com/webhooks/nocap",
-    "subscriptions": ["order.paid", "order.shipped"]
+    "subscriptions": ["order.paid", "order.shipped", "payment_link.paid"]
   }'
 ```
 
-Either field is optional. `subscriptions: null` re-subscribes to all events. Unknown events are rejected with `400` and the full `available_events` list.
+**Subscribe to all events (v1.3-compatible default):**
+
+Pass `null` (not `[]` — an empty array means "no events").
+
+```bash
+curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks/subscriptions" \
+  -H "X-Api-Key: your_api_key" \
+  -H "X-Api-Secret: your_api_secret" \
+  -H "Content-Type: application/json" \
+  -d '{ "subscriptions": null }'
+```
+
+**Update webhook URL only:**
+
+```bash
+curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks/subscriptions" \
+  -H "X-Api-Key: your_api_key" \
+  -H "X-Api-Secret: your_api_secret" \
+  -H "Content-Type: application/json" \
+  -d '{ "webhook_url": "https://yourapp.com/webhooks/nocap" }'
+```
+
+**Pause all deliveries** (without deleting the URL): subscribe to an empty list.
+
+```bash
+curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks/subscriptions" \
+  -H "X-Api-Key: your_api_key" \
+  -H "X-Api-Secret: your_api_secret" \
+  -H "Content-Type: application/json" \
+  -d '{ "subscriptions": [] }'
+```
+
+**Sample success response:**
+
+```json
+{
+  "app_id": "f6e5...",
+  "webhook_url": "https://yourapp.com/webhooks/nocap",
+  "subscriptions": ["order.paid", "order.shipped", "payment_link.paid"],
+  "subscribed_to_all": false,
+  "updated_at": "2026-04-24T08:45:12.331Z"
+}
+```
+
+**Validation error (unknown event):**
+
+```json
+{
+  "error": "Unknown event(s): order.refunded",
+  "available_events": ["charge.completed", "order.created", "order.paid", "..."]
+}
+```
+
+| `subscriptions` value | Behavior |
+|---|---|
+| `null` | Subscribe to **all** events (v1.3 default) |
+| `["order.paid", "order.shipped"]` | Receive **only** those events |
+| `[]` | Receive **no** events (deliveries paused) |
+| omitted from POST | Existing setting is preserved |
+
+> **Branch scoping** — Branch-scoped apps (registered with a `branch_id`) only receive events for that branch. Merchant-level apps (no branch) receive all events for the merchant.
 
 ---
 
