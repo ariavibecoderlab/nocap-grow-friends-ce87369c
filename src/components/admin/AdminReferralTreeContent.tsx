@@ -227,6 +227,16 @@ const AdminReferralTreeContent = () => {
     setNodeToRemove(node); setRemoveConfirmOpen(true);
   };
   const handleDeleteMember = (node: ProfileNode) => { setNodeToDelete(node); setDeleteReassignCode(""); setDeleteDialogOpen(true); };
+  const handleClearCache = async (node: ProfileNode) => {
+    const ok = await broadcastInvalidate(node.user_id, supabase as any);
+    toast({
+      title: ok ? "Cache clear signal sent" : "Failed to send signal",
+      description: ok
+        ? `${node.full_name || "User"}'s next visit to My Network will fetch fresh data. Open sessions will refresh now.`
+        : "Try again in a moment.",
+      variant: ok ? "default" : "destructive",
+    });
+  };
   const handleToggleSelect = (node: ProfileNode) => {
     setSelectedUserIds((prev) => { const next = new Set(prev); if (next.has(node.user_id)) next.delete(node.user_id); else next.add(node.user_id); return next; });
   };
@@ -324,12 +334,12 @@ const AdminReferralTreeContent = () => {
       ) : filteredNodes ? (
         <div>
           <p className="text-muted-foreground text-sm mb-3">{filteredNodes.length} result(s)</p>
-          {filteredNodes.map((node) => <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} onDeleteMember={handleDeleteMember} selectMode={selectMode} selectedIds={selectedUserIds} onToggleSelect={handleToggleSelect} />)}
+          {filteredNodes.map((node) => <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} onDeleteMember={handleDeleteMember} onClearCache={handleClearCache} selectMode={selectMode} selectedIds={selectedUserIds} onToggleSelect={handleToggleSelect} />)}
         </div>
       ) : (
         <div>
           <p className="text-muted-foreground text-sm mb-3">{rootNodes.length} root user(s) · {profiles.length} total · Page {currentPage}/{totalPages}</p>
-          {paginatedRoots.map((node) => <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} onDeleteMember={handleDeleteMember} selectMode={selectMode} selectedIds={selectedUserIds} onToggleSelect={handleToggleSelect} />)}
+          {paginatedRoots.map((node) => <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} onDeleteMember={handleDeleteMember} onClearCache={handleClearCache} selectMode={selectMode} selectedIds={selectedUserIds} onToggleSelect={handleToggleSelect} />)}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
               <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => p - 1)}>Previous</Button>
