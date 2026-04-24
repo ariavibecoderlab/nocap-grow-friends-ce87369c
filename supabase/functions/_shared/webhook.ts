@@ -113,19 +113,27 @@ export async function dispatchWebhook(
       });
     } catch (_) { /* best-effort */ }
 
-    try {
-      await supabase.from('webhook_deliveries').insert({
-        app_id: appId,
-        event: body.event,
-        payload: body,
-        signature,
-        target_url: webhookUrl,
-        status: delivered ? 'delivered' : 'failed',
-        attempt_count: totalAttempts,
-        status_code: lastStatus,
-        delivered_at: delivered ? new Date().toISOString() : null,
-      });
-    } catch (_) { /* best-effort */ }
+    // Refuse to record a delivery without a signature — replay relies on it
+    // for integrity verification. An empty signature here means HMAC signing
+    // threw before reaching the dispatch loop, and there is nothing meaningful
+    // to verify against later.
+    if (!signature) {
+      console.error('[webhook] refusing to log delivery with empty signature', { appId, event: body.event });
+    } else {
+      try {
+        await supabase.from('webhook_deliveries').insert({
+          app_id: appId,
+          event: body.event,
+          payload: body,
+          signature,
+          target_url: webhookUrl,
+          status: delivered ? 'delivered' : 'failed',
+          attempt_count: totalAttempts,
+          status_code: lastStatus,
+          delivered_at: delivered ? new Date().toISOString() : null,
+        });
+      } catch (_) { /* best-effort */ }
+    }
   }
 }
 
