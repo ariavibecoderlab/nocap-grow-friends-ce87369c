@@ -131,3 +131,6 @@ verify_jwt = false
 
 [functions.api-webhooks]
 verify_jwt = false
+
+[functions.expire-payment-links]
+verify_jwt = false
