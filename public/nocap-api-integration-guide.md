@@ -11,7 +11,7 @@ The v1.4 release adds endpoints required by AI sales-assistant integrations (e.g
 - **Authentication (new endpoints only):** server-to-server merchant credentials via the `X-Api-Key` and `X-Api-Secret` headers — no user Bearer token required for v1.4 catalog/order reads.
 - **All v1.3 endpoints, request shapes, response envelopes, webhook payloads, and the OAuth Authorization Code flow remain unchanged.**
 
-### New endpoints (Phase 1)
+### New endpoints
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -21,20 +21,21 @@ The v1.4 release adds endpoints required by AI sales-assistant integrations (e.g
 | PATCH | `/api-orders?id=<uuid>` | Update fulfillment status / tracking number |
 | POST | `/api-payment-links` | Create hosted checkout link (`/pay/<link_id>` on nocap.life) |
 | GET | `/api-payment-links` | List payment links; `?id=<uuid>` returns single link |
+| GET | `/api-customers` | Merchant-scoped customer directory; `?phone=` / `?email=` lookup; `?id=<uuid>&orders=true` returns history |
+| POST | `/api-inventory/reserve` | Soft TTL hold on stock; idempotent per `(api_key, reference)` |
+| POST | `/api-inventory/release` | Release a hold by `reservation_id` or `reference` |
+| GET | `/api-webhooks/subscriptions` | View webhook URL, current event opt-ins, full event catalog |
+| POST | `/api-webhooks/subscriptions` | Update webhook URL and per-event subscriptions |
 
 ### New webhook events (additive — `charge.*` unchanged)
 
-- **Orders:** `order.created`, `order.confirmed`, `order.shipped`, `order.delivered`, `order.cancelled`, `order.refunded`
+- **Orders:** `order.created`, `order.paid`, `order.shipped`, `order.delivered`, `order.cancelled`, `order.refunded`
 - **Payment links:** `payment_link.paid`, `payment_link.expired`
 - **Products:** `product.created`, `product.updated`, `product.stock_changed`
 
-Envelope adds `merchant_id` + `branch_id` next to the existing `event`/`data` fields. Same HMAC-SHA256 signing scheme via `X-Webhook-Signature`.
+Envelope adds `merchant_id` + `branch_id` next to the existing `event`/`data` fields. Same HMAC-SHA256 signing scheme via `X-Webhook-Signature`. See the [Webhooks v1.4](#webhooks-v14) chapter for verification samples and retry policy.
 
-### Coming next (Phase 2 / 3)
 
-- `GET /api-customers` directory + per-merchant order history
-- Inventory reservations (`POST /api-inventory/reserve`, `release`)
-- Per-event webhook subscriptions + replay endpoint
 
 ### Example — create order with hosted payment link
 
@@ -1039,7 +1040,257 @@ Respond with any `2xx` status code to acknowledge receipt. Non-2xx responses or 
 
 ---
 
-## Rate Limits
+## Webhooks v1.4 {#webhooks-v14}
+
+The v1.4 release adds new event types for the Commerce API while keeping the **exact same HMAC-SHA256 signing scheme, headers, and retry policy** as v1.3 `charge.*` events. Existing verifiers continue to work unchanged.
+
+### What's new in v1.4
+
+- **New events** — see catalog below.
+- **Envelope additions** — every payload now includes `merchant_id` (always) and `branch_id` (nullable). The `event`, `data`, and `timestamp` fields are unchanged.
+- **Per-event subscriptions** — opt in to specific events via [`POST /api-webhooks/subscriptions`](#post-apiwebhookssubscriptions). Default (`subscriptions: null`) = subscribe to all (preserves v1.3 behavior).
+- **Branch scoping** — branch-scoped apps (those registered with a `branch_id`) only receive events for that branch. Merchant-level apps (no branch) receive everything for the merchant.
+
+### v1.4 event catalog
+
+| Group | Events | When fired |
+|---|---|---|
+| Orders | `order.created`, `order.paid`, `order.shipped`, `order.delivered`, `order.cancelled`, `order.refunded` | Marketplace order lifecycle (POST/PATCH `/api-orders`, hosted checkout) |
+| Payment links | `payment_link.paid`, `payment_link.expired` | Hosted `/pay/<link_id>` checkout outcomes; `expired` fires from the scheduled job after `expires_at` |
+| Products | `product.created`, `product.updated`, `product.stock_changed` | Catalog mutations and stock decrements at order time |
+
+### Envelope (v1.4)
+
+```json
+{
+  "event": "order.paid",
+  "merchant_id": "uuid",
+  "branch_id": "uuid-or-null",
+  "timestamp": "2026-04-24T10:00:00Z",
+  "data": {
+    "order_id": "uuid",
+    "order_number": "ORD-20260424-0001",
+    "total_amount": 99.80,
+    "currency": "MYR",
+    "payment_method": "wallet",
+    "items": [{ "product_id": "uuid", "quantity": 2, "unit_price": 49.90 }]
+  }
+}
+```
+
+### Signature verification
+
+Identical to v1.3. Compute `HMAC-SHA256(key = SHA256(api_secret), msg = raw_body)` and compare against the `X-Webhook-Signature` header (hex, 64 chars) in constant time.
+
+#### Node.js / TypeScript
+
+```js
+const crypto = require('crypto');
+
+// Cache once at startup — never recompute per request.
+const SECRET_HASH = crypto
+  .createHash('sha256')
+  .update(process.env.NOCAP_API_SECRET)
+  .digest('hex');
+
+function verifyWebhook(rawBody, signatureHeader) {
+  const expected = crypto
+    .createHmac('sha256', SECRET_HASH)
+    .update(rawBody)
+    .digest('hex');
+  return crypto.timingSafeEqual(
+    Buffer.from(expected, 'hex'),
+    Buffer.from(signatureHeader, 'hex'),
+  );
+}
+
+// Express handler — note express.raw() to keep the body byte-identical
+app.post('/webhooks/nocap', express.raw({ type: 'application/json' }), (req, res) => {
+  const sig = req.header('X-Webhook-Signature');
+  if (!sig || !verifyWebhook(req.body, sig)) return res.status(401).end();
+
+  const event = JSON.parse(req.body.toString('utf8'));
+  switch (event.event) {
+    case 'order.paid':          /* fulfill */          break;
+    case 'order.shipped':       /* notify buyer */     break;
+    case 'payment_link.paid':   /* mark cart paid */   break;
+    case 'payment_link.expired':/* cleanup */          break;
+    case 'product.stock_changed': /* sync stock */     break;
+  }
+  res.status(200).end(); // 2xx ACK is required to stop retries
+});
+```
+
+#### Python (Flask)
+
+```python
+import hmac, hashlib, os
+from flask import request, abort
+
+SECRET_HASH = hashlib.sha256(os.environ['NOCAP_API_SECRET'].encode()).hexdigest()
+
+def verify(raw_body: bytes, sig: str) -> bool:
+    expected = hmac.new(SECRET_HASH.encode(), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, sig or '')
+
+@app.post('/webhooks/nocap')
+def nocap_webhook():
+    if not verify(request.get_data(), request.headers.get('X-Webhook-Signature', '')):
+        abort(401)
+    event = request.get_json()
+    # ... dispatch on event['event']
+    return '', 200
+```
+
+#### PHP
+
+```php
+$secretHash = hash('sha256', getenv('NOCAP_API_SECRET'));
+$raw        = file_get_contents('php://input');
+$expected   = hash_hmac('sha256', $raw, $secretHash);
+$received   = $_SERVER['HTTP_X_WEBHOOK_SIGNATURE'] ?? '';
+if (!hash_equals($expected, $received)) { http_response_code(401); exit; }
+
+$event = json_decode($raw, true);
+// dispatch on $event['event']
+http_response_code(200);
+```
+
+### Headers
+
+| Header | Description |
+|---|---|
+| `X-Webhook-Signature` | HMAC-SHA256 hex digest (64 chars) over the raw JSON body |
+| `X-Webhook-Event` | Event name, e.g. `order.paid` (mirrors `body.event`) |
+| `X-Webhook-Attempt` | Retry attempt number — `1`, `2`, or `3` |
+| `Content-Type` | Always `application/json` |
+
+### Retry policy (v1.4 — unchanged from v1.3)
+
+NoCap retries failed webhook deliveries up to **3 times** with exponential backoff. Any non-2xx response or network error triggers a retry.
+
+| Attempt | Delay before send |
+|---|---|
+| 1 | Immediate |
+| 2 | 1 second after attempt 1 fails |
+| 3 | 2 seconds after attempt 2 fails |
+
+After all 3 attempts fail, the delivery is recorded as `failed` in `webhook_deliveries` (and `api_request_logs`). You can inspect failures from the Merchant Dashboard → API Apps → Webhook Deliveries.
+
+#### Recommended handler patterns
+
+1. **Always 2xx fast.** ACK with `200` immediately after signature verification, then process asynchronously (queue, background worker). Slow handlers cause unnecessary retries.
+2. **Idempotency.** The same event may arrive more than once (retries, replays). Key your processing on `data.order_id` / `data.link_id` + `event` and short-circuit duplicates.
+3. **Tolerate out-of-order delivery.** `order.paid` may arrive before `order.created` under retry pressure — make state transitions commutative or check current DB state before applying.
+4. **Verify against the raw body.** Do not re-serialize parsed JSON before computing HMAC — whitespace/key-order differences will break the signature.
+5. **Constant-time compare.** Use `timingSafeEqual` / `hmac.compare_digest` / `hash_equals` — never `==`.
+
+### Per-event subscription (opt-in)
+
+By default an app receives **all** events. To receive only a subset:
+
+```bash
+curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks/subscriptions" \
+  -H "X-Api-Key: your_api_key" \
+  -H "X-Api-Secret: your_api_secret" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "webhook_url": "https://yourapp.com/webhooks/nocap",
+    "subscriptions": ["order.paid", "order.shipped", "payment_link.paid"]
+  }'
+```
+
+Pass `{ "subscriptions": null }` to revert to "all events" (the v1.3-compatible default).
+
+### Testing v1.4 webhooks
+
+1. **Sandbox mode** — Webhooks fire normally with `is_sandbox: true` in the payload. Pair with a tunnel (ngrok / Cloudflare Tunnel) to receive deliveries on localhost.
+2. **Trigger flow** — `POST /api-orders` with `create_payment_link: true`, then pay the hosted link in sandbox to fire `order.created` → `order.paid` → `payment_link.paid` → `product.stock_changed`.
+3. **Replay** — Inspect `webhook_deliveries` from the dashboard to retry failed deliveries.
+
+---
+
+## v1.4 Endpoint Reference
+
+### Customers — `GET /api-customers`
+
+Merchant-scoped directory of buyers who have ordered from your stores. Auth: `X-Api-Key` + `X-Api-Secret`.
+
+```bash
+# Lookup by phone (URL-encode the +)
+curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-customers?phone=%2B60123456789" \
+  -H "X-Api-Key: your_api_key" -H "X-Api-Secret: your_api_secret"
+
+# Customer detail with order history
+curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-customers?id=<uuid>&orders=true" \
+  -H "X-Api-Key: your_api_key" -H "X-Api-Secret: your_api_secret"
+```
+
+| Query | Description |
+|---|---|
+| `id` | Customer UUID — returns single record |
+| `orders` | When `true` and `id` set, includes the customer's order history with this merchant |
+| `phone` / `email` | Exact-match lookup |
+| `q` | Free-text search across name/email/phone |
+| `limit` / `offset` | Paging (defaults 50 / 0) |
+
+### Inventory reservations
+
+Soft TTL holds. Stock is **not** decremented; effective availability = `stock_quantity − Σ active reservations`.
+
+#### `POST /api-inventory/reserve`
+
+```bash
+curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-inventory/reserve" \
+  -H "X-Api-Key: your_api_key" -H "X-Api-Secret: your_api_secret" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "product_id": "uuid",
+    "variant_id": "uuid-or-omit",
+    "quantity": 2,
+    "ttl_seconds": 900,
+    "reference": "cart_abc123"
+  }'
+```
+
+- `ttl_seconds` defaults to **900** (15 min); min 30, max 3600.
+- Idempotent per `(api_key, reference)` — re-posting the same reference returns the existing active hold.
+- Returns `409 { error: "Insufficient stock", available, requested }` when the hold cannot be granted.
+
+#### `POST /api-inventory/release`
+
+```bash
+curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-inventory/release" \
+  -H "X-Api-Key: your_api_key" -H "X-Api-Secret: your_api_secret" \
+  -H "Content-Type: application/json" \
+  -d '{ "reference": "cart_abc123" }'
+```
+
+Pass either `reservation_id` or `reference`. Idempotent — already-released/expired holds return `200`.
+
+### Webhook subscriptions
+
+#### `GET /api-webhooks/subscriptions`
+
+Returns the calling app's `webhook_url`, current `subscriptions` (or `null` for all), and the full `available_events` catalog.
+
+#### `POST /api-webhooks/subscriptions` {#post-apiwebhookssubscriptions}
+
+```bash
+curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks/subscriptions" \
+  -H "X-Api-Key: your_api_key" -H "X-Api-Secret: your_api_secret" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "webhook_url": "https://yourapp.com/webhooks/nocap",
+    "subscriptions": ["order.paid", "order.shipped"]
+  }'
+```
+
+Either field is optional. `subscriptions: null` re-subscribes to all events. Unknown events are rejected with `400` and the full `available_events` list.
+
+---
+
+
 
 | Endpoint | Limit | Window |
 |---|---|---|
