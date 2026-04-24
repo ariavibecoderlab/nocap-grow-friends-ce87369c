@@ -502,16 +502,45 @@ const Referral = () => {
                 <ArrowLeft className="h-5 w-5 text-white" />
               </button>
               <h1 className="font-display text-xl font-bold text-white truncate">My Network</h1>
-              {(isRevalidating || servedFromCache) && (
-                <span
-                  className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/70"
-                  aria-live="polite"
-                  title={servedFromCache ? "Showing cached data — checking for updates…" : "Updating in background…"}
-                >
-                  <RefreshCw className={`h-3 w-3 ${isRevalidating ? "animate-spin" : ""}`} />
-                  {isRevalidating ? "Updating…" : "Cached"}
-                </span>
-              )}
+              {(() => {
+                const isLive = !servedFromCache && !!lastFreshAt;
+                const isCached = servedFromCache && !!cachedAt;
+                if (!isRevalidating && !isLive && !isCached) return null;
+                const tone = isRevalidating
+                  ? "bg-white/10 text-white/70"
+                  : isLive
+                  ? "bg-emerald-500/15 text-emerald-300"
+                  : "bg-amber-500/15 text-amber-300";
+                const dot = isRevalidating
+                  ? "bg-white/60 animate-pulse"
+                  : isLive
+                  ? "bg-emerald-400"
+                  : "bg-amber-400";
+                const label = isRevalidating
+                  ? "Updating…"
+                  : isLive
+                  ? `Live • ${lastFreshAt!.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                  : `Cached • ${cachedAt!.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+                const fullTitle = isRevalidating
+                  ? "Refreshing referral network in the background…"
+                  : isLive
+                  ? `Live data fetched at ${lastFreshAt!.toLocaleString()}`
+                  : `Showing cached data from ${cachedAt!.toLocaleString()} — tap Refresh for the latest.`;
+                return (
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${tone}`}
+                    aria-live="polite"
+                    title={fullTitle}
+                  >
+                    {isRevalidating ? (
+                      <RefreshCw className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+                    )}
+                    {label}
+                  </span>
+                );
+              })()}
             </div>
             <Button
               size="sm"
