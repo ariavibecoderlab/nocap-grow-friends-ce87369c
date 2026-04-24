@@ -310,8 +310,36 @@ export function generateApiGuidePdf() {
   code(`curl "${BASE_URL}/api-cashback-history?page=1&limit=10" \\\n  -H "x-api-key: KEY" -H "x-api-secret: SECRET" \\\n  -H "Authorization: Bearer TOKEN"`);
   paragraph("Response includes transactions array and totals for cashback and commission.");
 
-  // --- Webhooks ---
-  heading("5. Webhooks");
+  // --- v1.4 Commerce Endpoints ---
+  heading("4b. v1.4 Commerce Endpoints (additive)");
+  paragraph("All v1.4 endpoints use server-to-server auth: X-Api-Key + X-Api-Secret only (no user Bearer token).");
+
+  subheading("4b.1 Products — GET /api-products");
+  paragraph("List/search products in your stores. ?id=<uuid> returns detail including variants. Filters: store_id, q (search), status, limit, offset.");
+  code(`curl "${BASE_URL}/api-products?store_id=<uuid>&q=tshirt" \\\n  -H "X-Api-Key: KEY" -H "X-Api-Secret: SECRET"`);
+
+  subheading("4b.2 Orders — GET / POST / PATCH /api-orders");
+  paragraph("GET lists orders (filters: store_id, status, payment_status, from, to). POST creates a draft order; pass create_payment_link: true to also receive a hosted /pay/<link_id>. PATCH ?id=<uuid> updates fulfillment status and tracking_number.");
+  code(`curl -X POST "${BASE_URL}/api-orders" \\\n  -H "X-Api-Key: KEY" -H "X-Api-Secret: SECRET" -H "Content-Type: application/json" \\\n  -d '{"store_id":"uuid","buyer_name":"Ali","buyer_phone":"+60123456789","buyer_email":"ali@example.com","shipping_address":"12 Jalan ABC","items":[{"product_id":"uuid","quantity":2}],"create_payment_link":true}'`);
+
+  subheading("4b.3 Payment Links — GET / POST /api-payment-links");
+  paragraph("Hosted checkout link. Buyer pays at /pay/<link_id> on nocap.life — PIN never leaves NoCap. Lifecycle webhooks: payment_link.paid, payment_link.expired.");
+  code(`curl -X POST "${BASE_URL}/api-payment-links" \\\n  -H "X-Api-Key: KEY" -H "X-Api-Secret: SECRET" -H "Content-Type: application/json" \\\n  -d '{"amount":49.90,"description":"Order ORD-XYZ","expires_in_seconds":86400}'`);
+
+  subheading("4b.4 Customers — GET /api-customers");
+  paragraph("Merchant-scoped directory of buyers who have ordered from your stores. Filter by ?phone= or ?email=. ?id=<uuid> returns one customer. Append &orders=true for full order history.");
+  code(`# Lookup by phone\ncurl "${BASE_URL}/api-customers?phone=%2B60123456789" \\\n  -H "X-Api-Key: KEY" -H "X-Api-Secret: SECRET"\n\n# Detail with order history\ncurl "${BASE_URL}/api-customers?id=<uuid>&orders=true" \\\n  -H "X-Api-Key: KEY" -H "X-Api-Secret: SECRET"`);
+
+  subheading("4b.5 Inventory Reservations — POST /api-inventory/reserve · /release");
+  paragraph("Soft TTL holds on stock. reserve() does NOT decrement stock_quantity — effective availability = stock − Σ active reservations. ttl_seconds defaults to 900 (max 3600). Idempotent per (api_key, reference).");
+  code(`# Reserve\ncurl -X POST "${BASE_URL}/api-inventory/reserve" \\\n  -H "X-Api-Key: KEY" -H "X-Api-Secret: SECRET" -H "Content-Type: application/json" \\\n  -d '{"product_id":"uuid","quantity":2,"ttl_seconds":900,"reference":"cart_abc"}'\n\n# Release (by reference OR reservation_id)\ncurl -X POST "${BASE_URL}/api-inventory/release" \\\n  -H "X-Api-Key: KEY" -H "X-Api-Secret: SECRET" -H "Content-Type: application/json" \\\n  -d '{"reference":"cart_abc"}'`);
+  paragraph("On stock-out, reserve returns 409 with { available, requested }. Release is idempotent — already-released/expired holds return 200.");
+
+  subheading("4b.6 Webhook Subscriptions — GET / POST /api-webhooks/subscriptions");
+  paragraph("Manage per-event opt-in and the delivery URL for the calling app. subscriptions=null means subscribe to all (v1.3-compatible default). Branch-scoped apps only receive events for their branch.");
+  code(`# View\ncurl "${BASE_URL}/api-webhooks/subscriptions" \\\n  -H "X-Api-Key: KEY" -H "X-Api-Secret: SECRET"\n\n# Subscribe to a subset\ncurl -X POST "${BASE_URL}/api-webhooks/subscriptions" \\\n  -H "X-Api-Key: KEY" -H "X-Api-Secret: SECRET" -H "Content-Type: application/json" \\\n  -d '{"webhook_url":"https://yourapp.com/webhooks/nocap","subscriptions":["order.paid","order.shipped","payment_link.paid"]}'`);
+
+
   paragraph("Configure your webhook URL in Merchant Dashboard > API Apps. NoCap sends POST requests with HMAC-SHA256 signed payloads for all events.");
 
   subheading("How Signing Works");

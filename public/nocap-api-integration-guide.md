@@ -11,7 +11,7 @@ The v1.4 release adds endpoints required by AI sales-assistant integrations (e.g
 - **Authentication (new endpoints only):** server-to-server merchant credentials via the `X-Api-Key` and `X-Api-Secret` headers — no user Bearer token required for v1.4 catalog/order reads.
 - **All v1.3 endpoints, request shapes, response envelopes, webhook payloads, and the OAuth Authorization Code flow remain unchanged.**
 
-### New endpoints (Phase 1)
+### New endpoints
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -21,20 +21,21 @@ The v1.4 release adds endpoints required by AI sales-assistant integrations (e.g
 | PATCH | `/api-orders?id=<uuid>` | Update fulfillment status / tracking number |
 | POST | `/api-payment-links` | Create hosted checkout link (`/pay/<link_id>` on nocap.life) |
 | GET | `/api-payment-links` | List payment links; `?id=<uuid>` returns single link |
+| GET | `/api-customers` | Merchant-scoped customer directory; `?phone=` / `?email=` lookup; `?id=<uuid>&orders=true` returns history |
+| POST | `/api-inventory/reserve` | Soft TTL hold on stock; idempotent per `(api_key, reference)` |
+| POST | `/api-inventory/release` | Release a hold by `reservation_id` or `reference` |
+| GET | `/api-webhooks/subscriptions` | View webhook URL, current event opt-ins, full event catalog |
+| POST | `/api-webhooks/subscriptions` | Update webhook URL and per-event subscriptions |
 
 ### New webhook events (additive — `charge.*` unchanged)
 
-- **Orders:** `order.created`, `order.confirmed`, `order.shipped`, `order.delivered`, `order.cancelled`, `order.refunded`
+- **Orders:** `order.created`, `order.paid`, `order.shipped`, `order.delivered`, `order.cancelled`, `order.refunded`
 - **Payment links:** `payment_link.paid`, `payment_link.expired`
 - **Products:** `product.created`, `product.updated`, `product.stock_changed`
 
-Envelope adds `merchant_id` + `branch_id` next to the existing `event`/`data` fields. Same HMAC-SHA256 signing scheme via `X-Webhook-Signature`.
+Envelope adds `merchant_id` + `branch_id` next to the existing `event`/`data` fields. Same HMAC-SHA256 signing scheme via `X-Webhook-Signature`. See the [Webhooks v1.4](#webhooks-v14) chapter for verification samples and retry policy.
 
-### Coming next (Phase 2 / 3)
 
-- `GET /api-customers` directory + per-merchant order history
-- Inventory reservations (`POST /api-inventory/reserve`, `release`)
-- Per-event webhook subscriptions + replay endpoint
 
 ### Example — create order with hosted payment link
 
