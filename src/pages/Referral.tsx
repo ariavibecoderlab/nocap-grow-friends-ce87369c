@@ -166,10 +166,19 @@ const Referral = () => {
     return allRows;
   }, []);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (opts?: { forceRefresh?: boolean }) => {
     if (!user) return;
 
-    setLoadingData(true);
+    const cached = !opts?.forceRefresh ? getCached(user.id) : null;
+    if (cached) {
+      // Hydrate UI instantly from cache so the page renders without waiting on the network
+      setReferrals(cached.referrals);
+      setTierCountsFromRpc(cached.tierCounts);
+      setBeyondTier5Count(cached.beyondTier5Count);
+      setLoadingData(false);
+    } else {
+      setLoadingData(true);
+    }
 
     try {
       const [profileRes, commissionRows, deepCountRes] = await Promise.all([
@@ -188,16 +197,24 @@ const Referral = () => {
           return acc;
         }, {});
         setTierCountsFromRpc(derivedTierCounts);
+
+        const beyond = (deepCountRes.data && Array.isArray(deepCountRes.data) && deepCountRes.data.length > 0)
+          ? Number(deepCountRes.data[0].beyond_tier5) || 0
+          : 0;
+        setBeyondTier5Count(beyond);
+
+        // Persist to cache for next visit / page refresh
+        setCached(user.id, {
+          referrals: profileReferrals,
+          tierCounts: derivedTierCounts,
+          beyondTier5Count: beyond,
+        });
       } else {
         setProfile(null);
         setReferrals([]);
         setTierCountsFromRpc({});
-      }
-
-      if (deepCountRes.data && Array.isArray(deepCountRes.data) && deepCountRes.data.length > 0) {
-        setBeyondTier5Count(Number(deepCountRes.data[0].beyond_tier5) || 0);
-      } else {
         setBeyondTier5Count(0);
+        invalidateReferralCache(user.id);
       }
 
       setCommissions(commissionRows);
