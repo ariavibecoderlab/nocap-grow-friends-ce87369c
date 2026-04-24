@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -548,6 +549,36 @@ const Referral = () => {
                     )}
                     {label}
                   </span>
+                );
+              })()}
+              {(() => {
+                const stamp = lastFreshAt ?? cachedAt;
+                if (!stamp) return null;
+                const formatRelative = (d: Date) => {
+                  const diffSec = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+                  if (diffSec < 10) return "just now";
+                  if (diffSec < 60) return `${diffSec}s ago`;
+                  const m = Math.floor(diffSec / 60);
+                  if (m < 60) return `${m}m ago`;
+                  const h = Math.floor(m / 60);
+                  if (h < 24) return `${h}h ago`;
+                  return d.toLocaleDateString();
+                };
+                return (
+                  <TooltipProvider delayDuration={150}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="block text-[11px] text-white/60 mt-0.5 cursor-help">
+                          Last updated {formatRelative(stamp)}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs">
+                        {lastFreshAt
+                          ? `Tier counts revalidated at ${stamp.toLocaleString()}`
+                          : `Showing cached data from ${stamp.toLocaleString()}`}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 );
               })()}
             </div>
