@@ -335,6 +335,15 @@ const Referral = () => {
           fetchData({ forceRefresh: true });
         },
       )
+      .on("broadcast", { event: "invalidate" }, () => {
+        // Admin-triggered cache clear for this member
+        invalidateReferralCache(user.id);
+        toast({
+          title: "Network cache cleared",
+          description: "An administrator refreshed your referral data.",
+        });
+        fetchData({ forceRefresh: true });
+      })
       .subscribe();
 
     return () => {
