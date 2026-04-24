@@ -85,6 +85,9 @@ const Referral = () => {
   const [beyondTier5Count, setBeyondTier5Count] = useState(0);
   const [recountLoading, setRecountLoading] = useState(false);
   const [recountResult, setRecountResult] = useState<{ direct: number; total: number; at: Date } | null>(null);
+  const [isRevalidating, setIsRevalidating] = useState(false);
+  const [lastFreshAt, setLastFreshAt] = useState<Date | null>(null);
+  const [servedFromCache, setServedFromCache] = useState(false);
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading, navigate]);
