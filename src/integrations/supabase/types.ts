@@ -2954,6 +2954,33 @@ export type Database = {
           },
         ]
       }
+      webhook_event_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          event: string
+          is_enabled: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event: string
+          is_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event?: string
+          is_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       withdrawal_requests: {
         Row: {
           amount: number
