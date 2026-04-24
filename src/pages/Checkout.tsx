@@ -202,6 +202,8 @@ const Checkout = () => {
 
       // Clear cart for all stores that were checked out
       storeIds.forEach(id => clearStoreItems(id));
+      // Marketplace order distributes cashback + 5-tier commissions — invalidate cached network snapshot.
+      invalidateOnDownlineImpact(user?.id);
       toast({ title: "Order placed!", description: `Order #${data.order_number}` });
       navigate(`/order/${data.order_id}`);
     } catch (err: any) {
