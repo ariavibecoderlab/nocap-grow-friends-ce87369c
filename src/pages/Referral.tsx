@@ -25,6 +25,8 @@ import {
   Network,
   Phone,
   MessageCircle,
+  RefreshCw,
+  CheckCircle2,
 } from "lucide-react";
 
 interface ReferralMember {
@@ -80,7 +82,8 @@ const Referral = () => {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [tierCountsFromRpc, setTierCountsFromRpc] = useState<Record<number, number>>({});
   const [beyondTier5Count, setBeyondTier5Count] = useState(0);
-
+  const [recountLoading, setRecountLoading] = useState(false);
+  const [recountResult, setRecountResult] = useState<{ direct: number; total: number; at: Date } | null>(null);
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading, navigate]);
@@ -201,6 +204,39 @@ const Referral = () => {
       setLoadingData(false);
     }
   }, [fetchAllEarnings, fetchReferralsFromProfiles, user]);
+
+  const handleRecount = useCallback(async () => {
+    if (!user || !profile) return;
+    setRecountLoading(true);
+    try {
+      const [rows, deepCountRes] = await Promise.all([
+        fetchReferralsFromProfiles(profile.id),
+        supabase.rpc("get_deep_network_count", { p_user_id: user.id }),
+      ]);
+      setReferrals(rows);
+      const derived = rows.reduce<Record<number, number>>((acc, r) => {
+        acc[r.tier] = (acc[r.tier] || 0) + 1;
+        return acc;
+      }, {});
+      setTierCountsFromRpc(derived);
+
+      let beyond = 0;
+      if (deepCountRes.data && Array.isArray(deepCountRes.data) && deepCountRes.data.length > 0) {
+        beyond = Number(deepCountRes.data[0].beyond_tier5) || 0;
+        setBeyondTier5Count(beyond);
+      }
+
+      const direct = derived[1] || 0;
+      const total = Object.values(derived).reduce((s, c) => s + c, 0) + beyond;
+      setRecountResult({ direct, total, at: new Date() });
+      toast({ title: "Recount complete", description: `Direct: ${direct} • Network: ${total}` });
+    } catch (err) {
+      console.error("Recount error:", err);
+      toast({ title: "Recount failed", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setRecountLoading(false);
+    }
+  }, [user, profile, fetchReferralsFromProfiles, toast]);
 
   useEffect(() => {
     if (!user) return;
@@ -476,6 +512,49 @@ const Referral = () => {
 
           {/* Referral Tree Tab */}
           <TabsContent value="tree" className="mt-4 space-y-0">
+            {/* Network Recount Panel */}
+            <Card className="border-secondary/20 bg-secondary/5 mb-4">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-secondary uppercase tracking-wider">Network Recount</p>
+                    <p className="mt-1 text-[11px] text-white/50 leading-relaxed">
+                      Re-tally direct &amp; total network using paginated logic (handles 1000+ members).
+                    </p>
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div className="rounded-lg bg-white/5 p-2.5">
+                        <p className="text-[10px] uppercase tracking-wide text-white/40">Direct (T1)</p>
+                        <p className="font-display text-lg font-bold text-white tabular-nums">
+                          {recountResult ? recountResult.direct : (tierCountsFromRpc[1] || 0)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-white/5 p-2.5">
+                        <p className="text-[10px] uppercase tracking-wide text-white/40">Total Network</p>
+                        <p className="font-display text-lg font-bold text-white tabular-nums">
+                          {recountResult ? recountResult.total : totalNetworkCount}
+                        </p>
+                      </div>
+                    </div>
+                    {recountResult && (
+                      <div className="mt-2 flex items-center gap-1.5 text-[10px] text-secondary/80">
+                        <CheckCircle2 className="h-3 w-3" />
+                        <span>Recounted at {recountResult.at.toLocaleTimeString()}</span>
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={handleRecount}
+                    disabled={recountLoading}
+                    className="shrink-0 gap-1.5 bg-secondary text-primary hover:bg-secondary/90"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${recountLoading ? "animate-spin" : ""}`} />
+                    {recountLoading ? "Counting..." : "Recount Now"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Visual Tier Progress */}
             <Card className="border-white/10 bg-white/5 mb-4">
               <CardContent className="p-4 space-y-3">
