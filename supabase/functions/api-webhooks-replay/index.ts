@@ -66,6 +66,37 @@ Deno.serve(async (req) => {
     return json(400, { error: 'delivery_id (UUID) is required' });
   }
 
+  // ---- Rate limiting (ad-hoc, backed by check_rate_limit RPC) ----
+  // Per merchant: 30 replays / minute across all deliveries.
+  // Per delivery: 5 replays / minute for the same delivery_id.
+  const { data: merchantOk } = await supabase.rpc('check_rate_limit', {
+    p_identifier: `merchant:${app.merchant_user_id}`,
+    p_endpoint: 'webhook-replay',
+    p_max_requests: 30,
+    p_window_seconds: 60,
+  });
+  if (merchantOk === false) {
+    return json(429, {
+      error: 'Rate limit exceeded',
+      detail: 'Maximum 30 webhook replays per minute per merchant',
+      retry_after_seconds: 60,
+    });
+  }
+
+  const { data: deliveryOk } = await supabase.rpc('check_rate_limit', {
+    p_identifier: `delivery:${deliveryId}`,
+    p_endpoint: 'webhook-replay',
+    p_max_requests: 5,
+    p_window_seconds: 60,
+  });
+  if (deliveryOk === false) {
+    return json(429, {
+      error: 'Rate limit exceeded',
+      detail: 'Maximum 5 replays per minute for the same delivery_id',
+      retry_after_seconds: 60,
+    });
+  }
+
   // ---- Load original delivery (must belong to caller's app) ----
   const { data: original } = await supabase
     .from('webhook_deliveries')
