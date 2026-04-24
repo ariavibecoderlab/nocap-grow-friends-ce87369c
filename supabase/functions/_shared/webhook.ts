@@ -99,11 +99,11 @@ export async function dispatchWebhook(
         signature,
         target_url: webhookUrl,
         status: delivered ? 'delivered' : 'failed',
-        attempts: totalAttempts,
-        last_status_code: lastStatus,
-        last_attempted_at: new Date().toISOString(),
+        attempt_count: totalAttempts,
+        status_code: lastStatus,
+        delivered_at: delivered ? new Date().toISOString() : null,
       });
-    } catch (_) { /* best-effort: table may not exist in older envs */ }
+    } catch (_) { /* best-effort */ }
   }
 }
 
