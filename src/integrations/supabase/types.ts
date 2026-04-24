@@ -2981,6 +2981,53 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_replay_idempotency: {
+        Row: {
+          app_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          idempotency_key: string
+          original_delivery_id: string | null
+          replay_id: string | null
+          request_hash: string
+          response_body: Json
+          response_status: number
+        }
+        Insert: {
+          app_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          idempotency_key: string
+          original_delivery_id?: string | null
+          replay_id?: string | null
+          request_hash: string
+          response_body: Json
+          response_status: number
+        }
+        Update: {
+          app_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          idempotency_key?: string
+          original_delivery_id?: string | null
+          replay_id?: string | null
+          request_hash?: string
+          response_body?: Json
+          response_status?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_replay_idempotency_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "api_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       withdrawal_requests: {
         Row: {
           amount: number
