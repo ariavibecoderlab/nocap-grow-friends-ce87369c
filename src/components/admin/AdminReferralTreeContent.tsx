@@ -16,8 +16,9 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import {
-  Search, ChevronRight, ChevronDown, Users, GitBranch, Loader2, Unlink, Trash2, CheckSquare, X,
+  Search, ChevronRight, ChevronDown, Users, GitBranch, Loader2, Unlink, Trash2, CheckSquare, X, RefreshCw,
 } from "lucide-react";
+import { broadcastInvalidate } from "@/lib/referralCache";
 
 interface ProfileNode {
   id: string;
@@ -39,7 +40,7 @@ const tierBg = [
 ];
 
 const TreeNode = ({
-  node, depth, childrenMap, onChangeReferrer, onRemoveReferrer, onDeleteMember,
+  node, depth, childrenMap, onChangeReferrer, onRemoveReferrer, onDeleteMember, onClearCache,
   selectMode, selectedIds, onToggleSelect,
 }: {
   node: ProfileNode;
@@ -48,6 +49,7 @@ const TreeNode = ({
   onChangeReferrer: (node: ProfileNode) => void;
   onRemoveReferrer: (node: ProfileNode) => void;
   onDeleteMember: (node: ProfileNode) => void;
+  onClearCache: (node: ProfileNode) => void;
   selectMode: boolean;
   selectedIds: Set<string>;
   onToggleSelect: (node: ProfileNode) => void;
@@ -96,6 +98,9 @@ const TreeNode = ({
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <Button variant="ghost" size="sm" className="text-blue-400/70 hover:text-blue-400 hover:bg-blue-400/10 text-xs px-2" onClick={(e) => { e.stopPropagation(); onClearCache(node); }} title="Clear referral network cache">
+            <RefreshCw className="h-3.5 w-3.5" />
+          </Button>
           <Button variant="ghost" size="sm" className="text-destructive/70 hover:text-destructive hover:bg-destructive/10 text-xs px-2" onClick={(e) => { e.stopPropagation(); onDeleteMember(node); }} title="Delete member">
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
@@ -112,7 +117,7 @@ const TreeNode = ({
       {expanded && children.length > 0 && (
         <div className="border-l border-border ml-3">
           {children.map((child) => (
-            <TreeNode key={child.id} node={child} depth={depth + 1} childrenMap={childrenMap} onChangeReferrer={onChangeReferrer} onRemoveReferrer={onRemoveReferrer} onDeleteMember={onDeleteMember} selectMode={selectMode} selectedIds={selectedIds} onToggleSelect={onToggleSelect} />
+            <TreeNode key={child.id} node={child} depth={depth + 1} childrenMap={childrenMap} onChangeReferrer={onChangeReferrer} onRemoveReferrer={onRemoveReferrer} onDeleteMember={onDeleteMember} onClearCache={onClearCache} selectMode={selectMode} selectedIds={selectedIds} onToggleSelect={onToggleSelect} />
           ))}
         </div>
       )}
@@ -222,6 +227,16 @@ const AdminReferralTreeContent = () => {
     setNodeToRemove(node); setRemoveConfirmOpen(true);
   };
   const handleDeleteMember = (node: ProfileNode) => { setNodeToDelete(node); setDeleteReassignCode(""); setDeleteDialogOpen(true); };
+  const handleClearCache = async (node: ProfileNode) => {
+    const ok = await broadcastInvalidate(node.user_id, supabase as any);
+    toast({
+      title: ok ? "Cache clear signal sent" : "Failed to send signal",
+      description: ok
+        ? `${node.full_name || "User"}'s next visit to My Network will fetch fresh data. Open sessions will refresh now.`
+        : "Try again in a moment.",
+      variant: ok ? "default" : "destructive",
+    });
+  };
   const handleToggleSelect = (node: ProfileNode) => {
     setSelectedUserIds((prev) => { const next = new Set(prev); if (next.has(node.user_id)) next.delete(node.user_id); else next.add(node.user_id); return next; });
   };
@@ -319,12 +334,12 @@ const AdminReferralTreeContent = () => {
       ) : filteredNodes ? (
         <div>
           <p className="text-muted-foreground text-sm mb-3">{filteredNodes.length} result(s)</p>
-          {filteredNodes.map((node) => <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} onDeleteMember={handleDeleteMember} selectMode={selectMode} selectedIds={selectedUserIds} onToggleSelect={handleToggleSelect} />)}
+          {filteredNodes.map((node) => <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} onDeleteMember={handleDeleteMember} onClearCache={handleClearCache} selectMode={selectMode} selectedIds={selectedUserIds} onToggleSelect={handleToggleSelect} />)}
         </div>
       ) : (
         <div>
           <p className="text-muted-foreground text-sm mb-3">{rootNodes.length} root user(s) · {profiles.length} total · Page {currentPage}/{totalPages}</p>
-          {paginatedRoots.map((node) => <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} onDeleteMember={handleDeleteMember} selectMode={selectMode} selectedIds={selectedUserIds} onToggleSelect={handleToggleSelect} />)}
+          {paginatedRoots.map((node) => <TreeNode key={node.id} node={node} depth={0} childrenMap={childrenMap} onChangeReferrer={handleChangeReferrer} onRemoveReferrer={handleRemoveReferrer} onDeleteMember={handleDeleteMember} onClearCache={handleClearCache} selectMode={selectMode} selectedIds={selectedUserIds} onToggleSelect={handleToggleSelect} />)}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
               <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => p - 1)}>Previous</Button>

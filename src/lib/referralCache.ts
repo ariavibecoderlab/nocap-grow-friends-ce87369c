@@ -93,6 +93,42 @@ export function invalidateOnDownlineImpact(userId: string | null | undefined): v
   invalidate(userId);
 }
 
+/**
+ * Broadcast a cache-invalidation signal to a specific member's open sessions.
+ * Used by admins to force-clear another user's referral network cache when
+ * investigating incorrect tier counts. The target browser listens on the same
+ * channel (see Referral.tsx) and clears its local cache + refetches.
+ *
+ * Returns true on successful send, false otherwise. Best-effort: the target
+ * may not be online, in which case the next visit (within TTL) will still
+ * read stale data — but the admin can also rely on the natural 5-min TTL.
+ */
+export async function broadcastInvalidate(
+  userId: string,
+  client: { channel: (name: string) => any; removeChannel: (ch: any) => void },
+): Promise<boolean> {
+  if (!userId) return false;
+  try {
+    const ch = client.channel(`referral-sync-${userId}`);
+    await new Promise<void>((resolve) => {
+      ch.subscribe((status: string) => {
+        if (status === "SUBSCRIBED") resolve();
+      });
+      // Safety timeout
+      setTimeout(() => resolve(), 2000);
+    });
+    await ch.send({
+      type: "broadcast",
+      event: "invalidate",
+      payload: { at: Date.now() },
+    });
+    setTimeout(() => client.removeChannel(ch), 500);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function clearAll(): void {
   memoryCache.clear();
   if (typeof window === "undefined") return;
