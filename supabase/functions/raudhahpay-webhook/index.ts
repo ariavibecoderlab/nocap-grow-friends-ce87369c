@@ -60,17 +60,20 @@ serve(async (req) => {
 
     console.log('RaudhahPay webhook received:', JSON.stringify(payload));
 
+    // HMAC signature verification status
+    let signatureStatus: 'verified' | 'invalid' | 'missing_signature' | 'missing_secret' = 'missing_secret';
     if (RAUDHAHPAY_SECRET_KEY && payload.signature) {
       const isValid = await verifySignature(payload, payload.signature, RAUDHAHPAY_SECRET_KEY);
+      signatureStatus = isValid ? 'verified' : 'invalid';
+      console.log(`[webhook-verify] raudhahpay signature_status=${signatureStatus} ref1=${payload.ref1 ?? 'none'}`);
       if (!isValid) {
-        console.error('Invalid signature! Possible tampered callback.');
-        return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+        return new Response(JSON.stringify({ error: 'Invalid signature', signature_status: signatureStatus }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      console.log('Signature verified successfully');
     } else {
-      console.warn('No signature verification: missing secret key or signature in payload');
+      signatureStatus = !RAUDHAHPAY_SECRET_KEY ? 'missing_secret' : 'missing_signature';
+      console.warn(`[webhook-verify] raudhahpay signature_status=${signatureStatus} — accepting unverified payload`);
     }
 
     const transactionId = payload.ref1;
