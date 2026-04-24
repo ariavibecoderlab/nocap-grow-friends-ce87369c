@@ -35,49 +35,78 @@ function isFresh(entry: CachedNetwork): boolean {
   return Date.now() - entry.cachedAt < TTL_MS;
 }
 
+/**
+ * Read from durable storage (localStorage) first so the cache survives full
+ * page reloads AND tab close/reopen. Falls back to sessionStorage for legacy
+ * entries written by previous versions of this module.
+ */
+function readPersisted(userId: string): CachedNetwork | null {
+  if (typeof window === "undefined") return null;
+  const key = storageKey(userId);
+  for (const store of [window.localStorage, window.sessionStorage]) {
+    try {
+      const raw = store.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw) as CachedNetwork;
+      if (!parsed || typeof parsed.cachedAt !== "number") continue;
+      if (!isFresh(parsed)) {
+        store.removeItem(key);
+        continue;
+      }
+      return parsed;
+    } catch {
+      // ignore individual store failures
+    }
+  }
+  return null;
+}
+
+function writePersisted(userId: string, entry: CachedNetwork): void {
+  if (typeof window === "undefined") return;
+  const key = storageKey(userId);
+  const payload = JSON.stringify(entry);
+  try {
+    window.localStorage.setItem(key, payload);
+  } catch {
+    // localStorage quota or privacy mode — fall back to sessionStorage
+    try {
+      window.sessionStorage.setItem(key, payload);
+    } catch {
+      // memory-only is fine
+    }
+  }
+}
+
+function removePersisted(userId: string): void {
+  if (typeof window === "undefined") return;
+  const key = storageKey(userId);
+  try { window.localStorage.removeItem(key); } catch { /* ignore */ }
+  try { window.sessionStorage.removeItem(key); } catch { /* ignore */ }
+}
+
 export function getCached(userId: string): CachedNetwork | null {
   // 1. Memory first (fastest)
   const mem = memoryCache.get(userId);
   if (mem && isFresh(mem)) return mem;
 
-  // 2. Hydrate from sessionStorage if available
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.sessionStorage.getItem(storageKey(userId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as CachedNetwork;
-    if (!parsed || typeof parsed.cachedAt !== "number") return null;
-    if (!isFresh(parsed)) {
-      window.sessionStorage.removeItem(storageKey(userId));
-      return null;
-    }
-    // Promote to memory
-    memoryCache.set(userId, parsed);
-    return parsed;
-  } catch {
-    return null;
+  // 2. Hydrate from durable storage (localStorage, then sessionStorage fallback)
+  const persisted = readPersisted(userId);
+  if (persisted) {
+    memoryCache.set(userId, persisted);
+    return persisted;
   }
+  return null;
 }
 
 export function setCached(userId: string, value: Omit<CachedNetwork, "cachedAt">): void {
   const entry: CachedNetwork = { ...value, cachedAt: Date.now() };
   memoryCache.set(userId, entry);
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(storageKey(userId), JSON.stringify(entry));
-  } catch {
-    // Quota or serialization issues — memory cache still works
-  }
+  writePersisted(userId, entry);
 }
 
 export function invalidate(userId: string): void {
   memoryCache.delete(userId);
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.removeItem(storageKey(userId));
-  } catch {
-    // ignore
-  }
+  removePersisted(userId);
 }
 
 /**
@@ -132,15 +161,17 @@ export async function broadcastInvalidate(
 export function clearAll(): void {
   memoryCache.clear();
   if (typeof window === "undefined") return;
-  try {
-    const keys: string[] = [];
-    for (let i = 0; i < window.sessionStorage.length; i++) {
-      const k = window.sessionStorage.key(i);
-      if (k && k.startsWith(STORAGE_PREFIX)) keys.push(k);
+  for (const store of [window.localStorage, window.sessionStorage]) {
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < store.length; i++) {
+        const k = store.key(i);
+        if (k && k.startsWith(STORAGE_PREFIX)) keys.push(k);
+      }
+      keys.forEach((k) => store.removeItem(k));
+    } catch {
+      // ignore
     }
-    keys.forEach((k) => window.sessionStorage.removeItem(k));
-  } catch {
-    // ignore
   }
 }
 
