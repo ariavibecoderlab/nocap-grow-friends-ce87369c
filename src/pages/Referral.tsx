@@ -227,6 +227,9 @@ const Referral = () => {
     if (!user || !profile) return;
     setRecountLoading(true);
     try {
+      // Recount always bypasses cache
+      invalidateReferralCache(user.id);
+
       const [rows, deepCountRes] = await Promise.all([
         fetchReferralsFromProfiles(profile.id),
         supabase.rpc("get_deep_network_count", { p_user_id: user.id }),
@@ -243,6 +246,13 @@ const Referral = () => {
         beyond = Number(deepCountRes.data[0].beyond_tier5) || 0;
         setBeyondTier5Count(beyond);
       }
+
+      // Persist freshly-recounted values to cache
+      setCached(user.id, {
+        referrals: rows,
+        tierCounts: derived,
+        beyondTier5Count: beyond,
+      });
 
       const direct = derived[1] || 0;
       const total = Object.values(derived).reduce((s, c) => s + c, 0) + beyond;
@@ -275,6 +285,7 @@ const Referral = () => {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
+          // Earnings change — keep network cache, just refresh in background
           fetchData();
         },
       )
@@ -287,7 +298,9 @@ const Referral = () => {
           filter: `ancestor_id=eq.${user.id}`,
         },
         () => {
-          fetchData();
+          // Network membership changed — invalidate then refetch
+          invalidateReferralCache(user.id);
+          fetchData({ forceRefresh: true });
         },
       )
       .subscribe();
