@@ -499,12 +499,22 @@ const Referral = () => {
                 <ArrowLeft className="h-5 w-5 text-white" />
               </button>
               <h1 className="font-display text-xl font-bold text-white truncate">My Network</h1>
+              {(isRevalidating || servedFromCache) && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/70"
+                  aria-live="polite"
+                  title={servedFromCache ? "Showing cached data — checking for updates…" : "Updating in background…"}
+                >
+                  <RefreshCw className={`h-3 w-3 ${isRevalidating ? "animate-spin" : ""}`} />
+                  {isRevalidating ? "Updating…" : "Cached"}
+                </span>
+              )}
             </div>
             <Button
               size="sm"
               variant="outline"
               onClick={handleRecount}
-              disabled={recountLoading}
+              disabled={recountLoading || isRevalidating}
               className="shrink-0 gap-1.5 border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
               aria-label="Refresh network — bypass cache and re-fetch latest counts"
             >
