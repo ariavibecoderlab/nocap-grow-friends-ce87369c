@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -91,12 +91,20 @@ const Referral = () => {
   const [servedFromCache, setServedFromCache] = useState(false);
   const [cachedAt, setCachedAt] = useState<Date | null>(null);
   const [lastDiff, setLastDiff] = useState<{ direct: number; total: number; at: number } | null>(null);
+  const [revalidateError, setRevalidateError] = useState<string | null>(null);
+  const retryAttemptRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Auto-clear the diff pill 8s after it appears so it doesn't linger across navigations
   useEffect(() => {
     if (!lastDiff) return;
     const t = setTimeout(() => setLastDiff(null), 8000);
     return () => clearTimeout(t);
   }, [lastDiff]);
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
+  }, []);
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading, navigate]);
@@ -206,6 +214,9 @@ const Referral = () => {
         supabase.rpc("get_deep_network_count", { p_user_id: user.id }),
       ]);
 
+      if (profileRes.error) throw profileRes.error;
+      if (deepCountRes.error) throw deepCountRes.error;
+
       if (profileRes.data) {
         setProfile(profileRes.data);
         const profileReferrals = await fetchReferralsFromProfiles(profileRes.data.id);
@@ -260,6 +271,31 @@ const Referral = () => {
       }
 
       setCommissions(commissionRows);
+      // Success — clear any prior error and reset retry counter
+      setRevalidateError(null);
+      retryAttemptRef.current = 0;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    } catch (err: any) {
+      // Background fetch failed — keep cached data on screen, surface a non-blocking error.
+      // If we have NO cached data and this is the first visible load, also clear loading state
+      // so the empty UI doesn't spin forever.
+      const message = err?.message || "Couldn't refresh your network. Check your connection.";
+      setRevalidateError(message);
+
+      // Auto-retry with exponential backoff (1s, 3s) up to 2 attempts before giving up to user.
+      const attempt = retryAttemptRef.current;
+      if (attempt < 2) {
+        retryAttemptRef.current = attempt + 1;
+        const delay = attempt === 0 ? 1000 : 3000;
+        if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = setTimeout(() => {
+          retryTimerRef.current = null;
+          fetchData({ silent: true, forceRefresh: opts?.forceRefresh });
+        }, delay);
+      }
     } finally {
       setLoadingData(false);
       setIsRevalidating(false);
@@ -616,6 +652,32 @@ const Referral = () => {
                   </span>
                 );
               })()}
+              {revalidateError && (
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 text-rose-200 px-2 py-0.5 text-[10px] font-medium animate-fade-in"
+                  role="alert"
+                  title={revalidateError}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                  <span className="max-w-[160px] truncate">Refresh failed</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      retryAttemptRef.current = 0;
+                      if (retryTimerRef.current) {
+                        clearTimeout(retryTimerRef.current);
+                        retryTimerRef.current = null;
+                      }
+                      setRevalidateError(null);
+                      fetchData({ silent: true, forceRefresh: true });
+                    }}
+                    disabled={isRevalidating}
+                    className="underline underline-offset-2 hover:text-rose-100 disabled:opacity-50 disabled:no-underline"
+                  >
+                    Try again
+                  </button>
+                </span>
+              )}
               {(() => {
                 const stamp = lastFreshAt ?? cachedAt;
                 if (!stamp) return null;
