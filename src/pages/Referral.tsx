@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -214,6 +214,9 @@ const Referral = () => {
         supabase.rpc("get_deep_network_count", { p_user_id: user.id }),
       ]);
 
+      if (profileRes.error) throw profileRes.error;
+      if (deepCountRes.error) throw deepCountRes.error;
+
       if (profileRes.data) {
         setProfile(profileRes.data);
         const profileReferrals = await fetchReferralsFromProfiles(profileRes.data.id);
@@ -268,6 +271,31 @@ const Referral = () => {
       }
 
       setCommissions(commissionRows);
+      // Success — clear any prior error and reset retry counter
+      setRevalidateError(null);
+      retryAttemptRef.current = 0;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    } catch (err: any) {
+      // Background fetch failed — keep cached data on screen, surface a non-blocking error.
+      // If we have NO cached data and this is the first visible load, also clear loading state
+      // so the empty UI doesn't spin forever.
+      const message = err?.message || "Couldn't refresh your network. Check your connection.";
+      setRevalidateError(message);
+
+      // Auto-retry with exponential backoff (1s, 3s) up to 2 attempts before giving up to user.
+      const attempt = retryAttemptRef.current;
+      if (attempt < 2) {
+        retryAttemptRef.current = attempt + 1;
+        const delay = attempt === 0 ? 1000 : 3000;
+        if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = setTimeout(() => {
+          retryTimerRef.current = null;
+          fetchData({ silent: true, forceRefresh: opts?.forceRefresh });
+        }, delay);
+      }
     } finally {
       setLoadingData(false);
       setIsRevalidating(false);
