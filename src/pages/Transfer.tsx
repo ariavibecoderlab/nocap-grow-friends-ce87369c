@@ -220,6 +220,9 @@ const Transfer = () => {
       }
 
       setBalance(data.new_balance);
+      // Transfer credits cashback to sender + commissions up the upline.
+      // Invalidate cached network so /referral will refetch fresh tier earnings.
+      invalidateOnDownlineImpact(user?.id);
       setStep("success");
     } catch (err) {
       toast({ title: "Error", description: "Something went wrong.", variant: "destructive" });
