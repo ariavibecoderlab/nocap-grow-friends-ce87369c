@@ -989,10 +989,30 @@ app.post("/webhook/nocap", (req, res) => {
                   <CodeBlock>{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-orders?status=paid&limit=10" \\
   -H "X-Api-Key: your_api_key" \\
   -H "X-Api-Secret: your_api_secret"`}</CodeBlock>
-                  <h4 className="text-sm font-semibold">Note:</h4>
-                  <p className="text-xs text-muted-foreground">
-                    <code>POST /api-orders</code> (create draft) and <code>PATCH /api-orders?id=…</code> (update fulfillment status) ship in Phase 1.2 alongside <code>/api-payment-links</code>.
-                  </p>
+                  <h4 className="text-sm font-semibold mt-4">POST /api-orders — create draft order</h4>
+                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-orders" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "store_id": "uuid",
+    "buyer_name": "Ali",
+    "buyer_phone": "+60123456789",
+    "buyer_email": "ali@example.com",
+    "shipping_address": "12 Jalan ABC, KL",
+    "shipping_fee": 8,
+    "items": [{ "product_id": "uuid", "quantity": 2 }],
+    "create_payment_link": true
+  }'`}</CodeBlock>
+                  <p className="text-xs text-muted-foreground">Returns the order, line items, and (if requested) a hosted <code>payment_link</code> at <code>/pay/&lt;link_id&gt;</code>. Fires <code>order.created</code> webhook.</p>
+
+                  <h4 className="text-sm font-semibold mt-4">PATCH /api-orders?id=… — update fulfillment</h4>
+                  <CodeBlock>{`curl -X PATCH "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-orders?id=ORDER_UUID" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "status": "shipped", "tracking_number": "PL123456789MY" }'`}</CodeBlock>
+                  <p className="text-xs text-muted-foreground">Allowed status transitions: <code>draft</code>, <code>pending</code>, <code>confirmed</code>, <code>shipped</code>, <code>delivered</code>, <code>cancelled</code>, <code>refunded</code>. Each transition fires <code>order.&lt;status&gt;</code>.</p>
                   <ApiTryIt
                     method="GET"
                     endpoint="api-orders"
