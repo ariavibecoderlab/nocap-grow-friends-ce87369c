@@ -181,9 +181,11 @@ const Referral = () => {
       setBeyondTier5Count(cached.beyondTier5Count);
       setLoadingData(false);
       setServedFromCache(true);
+      setCachedAt(new Date(cached.cachedAt));
     } else if (!opts?.silent) {
       setLoadingData(true);
       setServedFromCache(false);
+      setCachedAt(null);
     }
 
     // Always revalidate in the background — flag so UI can show a subtle indicator
