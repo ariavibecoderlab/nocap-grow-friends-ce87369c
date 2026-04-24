@@ -139,7 +139,10 @@ const ApiDocs = () => {
                         <tr className="border-b border-border/50">
                           <td className="py-2 pr-4 font-mono text-xs">/api-branches</td>
                           <td className="py-2">60 req/min</td>
-                          <td className="py-2">60 req/min</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-app-info</td>
+                          <td className="py-2">120 req/min</td>
                         </tr>
                         <tr className="border-b border-border/50">
                           <td className="py-2 pr-4 font-mono text-xs">/api-referral-register</td>
@@ -1176,7 +1179,40 @@ app.post("/webhook/nocap", (req, res) => {
                 </CardContent>
               </Card>
 
-              {/* Top-Up Endpoint */}
+              {/* App Info (public) */}
+              <div className="pt-4">
+                <h2 className="text-xl font-bold mb-1">App Metadata (Public)</h2>
+                <p className="text-sm text-muted-foreground mb-4">Look up an API app's display name from its <code className="text-primary font-bold">app_id</code>. Public — no authentication required. Useful for rendering app branding on custom OAuth consent screens.</p>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 text-xs font-bold rounded">GET</span>
+                    <CardTitle className="text-lg">/api-app-info</CardTitle>
+                  </div>
+                  <CardDescription>Resolve an app's public name from its <code className="font-mono">app_id</code> (UUID) or <code className="font-mono">api_key</code>.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <h4 className="text-sm font-semibold">Query Parameters:</h4>
+                  <ul className="list-disc pl-5 text-sm space-y-1 text-muted-foreground">
+                    <li><code className="text-primary font-bold">app_id</code> (string, required): The app's UUID, or its <code className="font-mono">api_key</code> as a fallback.</li>
+                  </ul>
+                  <h4 className="text-sm font-semibold">Request Example:</h4>
+                  <CodeBlock>{`curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-app-info?app_id=YOUR_APP_ID"`}</CodeBlock>
+                  <h4 className="text-sm font-semibold">Response Example:</h4>
+                  <CodeBlock>{`{
+  "id": "11111111-2222-3333-4444-555555555555",
+  "name": "Acme POS"
+}`}</CodeBlock>
+                  <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 p-3 rounded-md">
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      🔓 <strong>Public endpoint:</strong> No <code className="font-mono">x-api-key</code> or Bearer token required. Returns <code className="font-mono">404</code> if the app does not exist or is inactive. Only the <code className="font-mono">id</code> and <code className="font-mono">name</code> fields are returned — no secrets are ever exposed.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
               <div className="pt-4">
                 <h2 className="text-xl font-bold mb-1">Wallet Top-Up</h2>
                 <p className="text-sm text-muted-foreground mb-4">Allow users to top up their NoCap wallet via FPX bank transfer. Requires the <code className="text-primary font-bold">topup</code> OAuth scope.</p>
