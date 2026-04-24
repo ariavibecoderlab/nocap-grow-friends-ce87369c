@@ -1,6 +1,6 @@
 # NoCap API — Integration Guide
 
-> **Version:** 1.1  
+> **Version:** 1.3  
 > **Base URL:** `https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1`  
 > **Authorization URL:** `https://nocap.life/authorize`  
 > **Last Updated:** February 2026
