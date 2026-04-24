@@ -58,6 +58,7 @@ export async function dispatchWebhook(
   let totalAttempts = 0;
   let signature = '';
   let payloadHash = '';
+  let secretFingerprint = '';
 
   try {
     const payloadStr = JSON.stringify(body);
@@ -68,6 +69,13 @@ export async function dispatchWebhook(
     // mutation of the stored payload before re-emitting the webhook.
     const hashBuf = await crypto.subtle.digest('SHA-256', payloadBytes);
     payloadHash = Array.from(new Uint8Array(hashBuf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+
+    // Fingerprint (SHA-256) of the api_secret_hash used to sign THIS delivery.
+    // Stored alongside the row so replay can detect a rotated secret and refuse
+    // to re-dispatch instead of emitting a webhook the receiver can no longer verify.
+    // Note: this is a hash-of-a-hash — the secret itself is never persisted.
+    const fpBuf = await crypto.subtle.digest('SHA-256', encoder.encode(secretHash));
+    secretFingerprint = Array.from(new Uint8Array(fpBuf)).map((b) => b.toString(16).padStart(2, '0')).join('');
 
     const key = await crypto.subtle.importKey(
       'raw',
@@ -135,6 +143,7 @@ export async function dispatchWebhook(
           payload: body,
           signature,
           payload_hash: payloadHash,
+          secret_hash_fingerprint: secretFingerprint || null,
           target_url: webhookUrl,
           status: delivered ? 'delivered' : 'failed',
           attempt_count: totalAttempts,
