@@ -16,8 +16,9 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import {
-  Search, ChevronRight, ChevronDown, Users, GitBranch, Loader2, Unlink, Trash2, CheckSquare, X,
+  Search, ChevronRight, ChevronDown, Users, GitBranch, Loader2, Unlink, Trash2, CheckSquare, X, RefreshCw,
 } from "lucide-react";
+import { broadcastInvalidate } from "@/lib/referralCache";
 
 interface ProfileNode {
   id: string;
@@ -39,7 +40,7 @@ const tierBg = [
 ];
 
 const TreeNode = ({
-  node, depth, childrenMap, onChangeReferrer, onRemoveReferrer, onDeleteMember,
+  node, depth, childrenMap, onChangeReferrer, onRemoveReferrer, onDeleteMember, onClearCache,
   selectMode, selectedIds, onToggleSelect,
 }: {
   node: ProfileNode;
@@ -48,6 +49,7 @@ const TreeNode = ({
   onChangeReferrer: (node: ProfileNode) => void;
   onRemoveReferrer: (node: ProfileNode) => void;
   onDeleteMember: (node: ProfileNode) => void;
+  onClearCache: (node: ProfileNode) => void;
   selectMode: boolean;
   selectedIds: Set<string>;
   onToggleSelect: (node: ProfileNode) => void;
@@ -96,6 +98,9 @@ const TreeNode = ({
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <Button variant="ghost" size="sm" className="text-blue-400/70 hover:text-blue-400 hover:bg-blue-400/10 text-xs px-2" onClick={(e) => { e.stopPropagation(); onClearCache(node); }} title="Clear referral network cache">
+            <RefreshCw className="h-3.5 w-3.5" />
+          </Button>
           <Button variant="ghost" size="sm" className="text-destructive/70 hover:text-destructive hover:bg-destructive/10 text-xs px-2" onClick={(e) => { e.stopPropagation(); onDeleteMember(node); }} title="Delete member">
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
@@ -112,7 +117,7 @@ const TreeNode = ({
       {expanded && children.length > 0 && (
         <div className="border-l border-border ml-3">
           {children.map((child) => (
-            <TreeNode key={child.id} node={child} depth={depth + 1} childrenMap={childrenMap} onChangeReferrer={onChangeReferrer} onRemoveReferrer={onRemoveReferrer} onDeleteMember={onDeleteMember} selectMode={selectMode} selectedIds={selectedIds} onToggleSelect={onToggleSelect} />
+            <TreeNode key={child.id} node={child} depth={depth + 1} childrenMap={childrenMap} onChangeReferrer={onChangeReferrer} onRemoveReferrer={onRemoveReferrer} onDeleteMember={onDeleteMember} onClearCache={onClearCache} selectMode={selectMode} selectedIds={selectedIds} onToggleSelect={onToggleSelect} />
           ))}
         </div>
       )}
