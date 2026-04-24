@@ -287,6 +287,9 @@ const QrPay = () => {
     }
 
     setResult(data);
+    // QR payment generates cashback (payer) + 5-tier commissions to upline.
+    // Drop the cached network snapshot so /referral refetches fresh earnings/totals.
+    invalidateOnDownlineImpact(user?.id);
     setStep("success");
   };
 
