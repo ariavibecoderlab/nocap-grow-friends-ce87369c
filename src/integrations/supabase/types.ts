@@ -2908,6 +2908,7 @@ export type Database = {
           payload: Json
           payload_hash: string | null
           replayed_from_id: string | null
+          secret_hash_fingerprint: string | null
           signature: string
           status: string
           status_code: number | null
@@ -2925,6 +2926,7 @@ export type Database = {
           payload?: Json
           payload_hash?: string | null
           replayed_from_id?: string | null
+          secret_hash_fingerprint?: string | null
           signature: string
           status?: string
           status_code?: number | null
@@ -2942,6 +2944,7 @@ export type Database = {
           payload?: Json
           payload_hash?: string | null
           replayed_from_id?: string | null
+          secret_hash_fingerprint?: string | null
           signature?: string
           status?: string
           status_code?: number | null
