@@ -91,6 +91,12 @@ const Referral = () => {
   const [servedFromCache, setServedFromCache] = useState(false);
   const [cachedAt, setCachedAt] = useState<Date | null>(null);
   const [lastDiff, setLastDiff] = useState<{ direct: number; total: number; at: number } | null>(null);
+  // Auto-clear the diff pill 8s after it appears so it doesn't linger across navigations
+  useEffect(() => {
+    if (!lastDiff) return;
+    const t = setTimeout(() => setLastDiff(null), 8000);
+    return () => clearTimeout(t);
+  }, [lastDiff]);
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading, navigate]);
