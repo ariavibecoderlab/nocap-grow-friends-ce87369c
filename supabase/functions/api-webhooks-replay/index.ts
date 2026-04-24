@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
   // ---- Load original delivery (must belong to caller's app) ----
   const { data: original } = await supabase
     .from('webhook_deliveries')
-    .select('id, app_id, event, payload, target_url')
+    .select('id, app_id, event, payload, target_url, signature')
     .eq('id', deliveryId)
     .eq('app_id', app.id)
     .maybeSingle();
@@ -153,9 +153,52 @@ Deno.serve(async (req) => {
     return json(400, { error: 'No webhook_url configured for this app' });
   }
 
-  // Use current target URL (the saved one may be stale).
-  // Preserve original payload exactly so signature semantics match the original event.
+  // ---- Server-side payload + signature integrity check ----
+  // The replay MUST send byte-identical payload to the original event, and the
+  // recomputed HMAC (using the current api_secret_hash) MUST match the signature
+  // recorded at original dispatch time. If the secret was rotated or the stored
+  // payload was tampered with, refuse to replay rather than emitting a webhook
+  // that downstream verifiers will reject (or worse, silently accept as new).
   const payload = original.payload as WebhookPayload;
+  let serializedPayload: string;
+  try {
+    serializedPayload = JSON.stringify(payload);
+  } catch {
+    return json(422, { error: 'Original payload is not serializable' });
+  }
+  if (!payload || typeof payload !== 'object' || payload.event !== original.event) {
+    return json(422, {
+      error: 'Payload integrity check failed',
+      detail: 'Stored payload event does not match delivery event',
+    });
+  }
+
+  // Recompute HMAC-SHA256 over the exact serialized bytes using the current secret.
+  const hmacKey = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(app.api_secret_hash),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const sigBuf = await crypto.subtle.sign(
+    'HMAC',
+    hmacKey,
+    new TextEncoder().encode(serializedPayload),
+  );
+  const recomputedSignature = Array.from(new Uint8Array(sigBuf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  if (original.signature && original.signature !== recomputedSignature) {
+    return json(409, {
+      error: 'Signature integrity check failed',
+      detail:
+        'Recomputed signature does not match the original. The API secret may have been rotated since the original delivery, or the stored payload has been modified. Replay refused to avoid emitting an unverifiable webhook.',
+      original_signature_prefix: original.signature.slice(0, 12),
+      recomputed_signature_prefix: recomputedSignature.slice(0, 12),
+    });
+  }
 
   // Count rows BEFORE dispatch so we can locate the new attempt row.
   const { data: before } = await supabase
