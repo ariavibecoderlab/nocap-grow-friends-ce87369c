@@ -164,6 +164,14 @@ const ApiDocs = () => {
                           <td className="py-2 pr-4 font-mono text-xs">/api-distribute</td>
                           <td className="py-2">60 req/min</td>
                         </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-products <span className="text-[10px] text-primary">v1.4</span></td>
+                          <td className="py-2">120 req/min</td>
+                        </tr>
+                        <tr className="border-b border-border/50">
+                          <td className="py-2 pr-4 font-mono text-xs">/api-orders <span className="text-[10px] text-primary">v1.4</span></td>
+                          <td className="py-2">120 req/min</td>
+                        </tr>
                       </tbody>
                     </table>
                   </div>
@@ -886,6 +894,122 @@ app.post("/webhook/nocap", (req, res) => {
 
           <TabsContent value="endpoints" forceMount className="data-[state=inactive]:hidden">
             <div className="space-y-6 pb-24">
+              {/* v1.4 Commerce Extension Banner */}
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-2 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold">v1.4</span>
+                  <h3 className="text-sm font-bold">Commerce API Extension — Additive, no breaking changes</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Endpoints below marked <span className="font-bold text-primary">v1.4</span> add product, order, payment-link, and customer access for AI sales assistants (e.g. WhatsApp/Telegram bots).
+                  All v1.3 endpoints, request shapes, response envelopes, webhook payloads, and the OAuth flow remain <strong>unchanged</strong>.
+                  v1.4 endpoints use a new server-to-server auth header pair: <code className="font-mono">X-Api-Key</code> + <code className="font-mono">X-Api-Secret</code> only (no user Bearer token required).
+                </p>
+              </div>
+
+              {/* v1.4 — GET /api-products */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 text-xs font-bold rounded">GET</span>
+                    <CardTitle className="text-lg">/api-products</CardTitle>
+                    <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold">v1.4</span>
+                  </div>
+                  <CardDescription>List, search, or fetch detail for the merchant's marketplace products.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Query Parameters:</h4>
+                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                      <li><code className="text-primary font-bold">id</code> (uuid, optional): Return a single product with its variants.</li>
+                      <li><code className="text-primary font-bold">search</code> (string, optional): Full-text / partial match on name + description.</li>
+                      <li><code className="text-primary font-bold">status</code> (string, optional): Defaults to <code>active</code>. Use <code>draft</code> or <code>archived</code> to inspect non-public items.</li>
+                      <li><code className="text-primary font-bold">page</code> / <code className="text-primary font-bold">limit</code>: Pagination (limit max 100, default 20).</li>
+                    </ul>
+                  </div>
+                  <h4 className="text-sm font-semibold">Request Example:</h4>
+                  <CodeBlock>{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-products?search=hijab&limit=5" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret"`}</CodeBlock>
+                  <h4 className="text-sm font-semibold">Response Example (list):</h4>
+                  <CodeBlock>{`{
+  "data": [
+    {
+      "id": "uuid",
+      "store_id": "uuid",
+      "name": "Premium Hijab",
+      "price": 49.90,
+      "stock_quantity": 25,
+      "status": "active",
+      "images": ["https://..."],
+      "sold_count": 142
+    }
+  ],
+  "page": 1,
+  "limit": 5,
+  "total": 1
+}`}</CodeBlock>
+                  <ApiTryIt
+                    method="GET"
+                    endpoint="api-products"
+                    params={[
+                      { name: "id", placeholder: "uuid (optional)", type: "query" },
+                      { name: "search", placeholder: "search term", type: "query" },
+                      { name: "status", placeholder: "active", type: "query" },
+                      { name: "page", placeholder: "1", type: "query" },
+                      { name: "limit", placeholder: "20", type: "query" },
+                    ]}
+                    needsUserToken={false}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* v1.4 — GET /api-orders */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 text-xs font-bold rounded">GET</span>
+                    <CardTitle className="text-lg">/api-orders</CardTitle>
+                    <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold">v1.4</span>
+                  </div>
+                  <CardDescription>List or fetch detail for marketplace orders belonging to the merchant.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Query Parameters:</h4>
+                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                      <li><code className="text-primary font-bold">id</code> (uuid, optional): Return one order with line items and status history.</li>
+                      <li><code className="text-primary font-bold">status</code>: e.g. <code>pending</code>, <code>paid</code>, <code>shipped</code>, <code>delivered</code>, <code>cancelled</code>.</li>
+                      <li><code className="text-primary font-bold">customer_phone</code>: Exact match on buyer phone (E.164 recommended).</li>
+                      <li><code className="text-primary font-bold">from</code> / <code className="text-primary font-bold">to</code>: ISO 8601 date range on <code>created_at</code>.</li>
+                      <li><code className="text-primary font-bold">page</code> / <code className="text-primary font-bold">limit</code>: Pagination (limit max 100, default 20).</li>
+                    </ul>
+                  </div>
+                  <h4 className="text-sm font-semibold">Request Example:</h4>
+                  <CodeBlock>{`curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-orders?status=paid&limit=10" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret"`}</CodeBlock>
+                  <h4 className="text-sm font-semibold">Note:</h4>
+                  <p className="text-xs text-muted-foreground">
+                    <code>POST /api-orders</code> (create draft) and <code>PATCH /api-orders?id=…</code> (update fulfillment status) ship in Phase 1.2 alongside <code>/api-payment-links</code>.
+                  </p>
+                  <ApiTryIt
+                    method="GET"
+                    endpoint="api-orders"
+                    params={[
+                      { name: "id", placeholder: "uuid (optional)", type: "query" },
+                      { name: "status", placeholder: "paid", type: "query" },
+                      { name: "customer_phone", placeholder: "+60123456789", type: "query" },
+                      { name: "from", placeholder: "2026-01-01", type: "query" },
+                      { name: "to", placeholder: "2026-12-31", type: "query" },
+                      { name: "page", placeholder: "1", type: "query" },
+                      { name: "limit", placeholder: "20", type: "query" },
+                    ]}
+                    needsUserToken={false}
+                  />
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">

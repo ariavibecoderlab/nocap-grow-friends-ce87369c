@@ -1,8 +1,40 @@
 # NoCap API — Integration Guide
 
-> **Version:** 1.3  
+> **Version:** 1.4 — additive Commerce API extension (v1.3 endpoints unchanged)  
 > **Base URL:** `https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1`  
-> **Authorization URL:** `https://nocap.life/authorize`  
+> **Authorization URL:** `https://nocap.life/authorize`
+
+## v1.4 — Commerce API Extension (additive)
+
+The v1.4 release adds endpoints required by AI sales-assistant integrations (e.g. WhatsApp / Telegram bots like OpenClaw) **without changing any v1.3 behavior**.
+
+- **Authentication (new endpoints only):** server-to-server merchant credentials via the `X-Api-Key` and `X-Api-Secret` headers — no user Bearer token required for v1.4 catalog/order reads.
+- **All v1.3 endpoints, request shapes, response envelopes, webhook payloads, and the OAuth Authorization Code flow remain unchanged.**
+
+### New endpoints (Phase 1)
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api-products` | List/search products; `?id=<uuid>` returns detail with variants |
+| GET | `/api-orders` | List orders with filters; `?id=<uuid>` returns detail with items + history |
+
+### Coming next (Phase 1.2 / 2)
+
+- `POST /api-orders` (create draft) + `PATCH /api-orders?id=…` (update fulfillment)
+- `POST /api-payment-links` + hosted `/pay/:linkId` checkout page
+- New webhook events: `product.*`, `order.*`, `payment_link.*` (additive; existing `charge.*` events unchanged)
+- `GET /api-customers` + inventory reservations + per-event webhook subscriptions
+
+### Example — list products
+
+```bash
+curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-products?search=hijab&limit=5" \
+  -H "X-Api-Key: your_api_key" \
+  -H "X-Api-Secret: your_api_secret"
+```
+
+---
+
 > **Last Updated:** February 2026
 
 ---
