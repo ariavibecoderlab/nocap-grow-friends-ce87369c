@@ -106,12 +106,7 @@ export function setCached(userId: string, value: Omit<CachedNetwork, "cachedAt">
 
 export function invalidate(userId: string): void {
   memoryCache.delete(userId);
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.removeItem(storageKey(userId));
-  } catch {
-    // ignore
-  }
+  removePersisted(userId);
 }
 
 /**
@@ -166,15 +161,17 @@ export async function broadcastInvalidate(
 export function clearAll(): void {
   memoryCache.clear();
   if (typeof window === "undefined") return;
-  try {
-    const keys: string[] = [];
-    for (let i = 0; i < window.sessionStorage.length; i++) {
-      const k = window.sessionStorage.key(i);
-      if (k && k.startsWith(STORAGE_PREFIX)) keys.push(k);
+  for (const store of [window.localStorage, window.sessionStorage]) {
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < store.length; i++) {
+        const k = store.key(i);
+        if (k && k.startsWith(STORAGE_PREFIX)) keys.push(k);
+      }
+      keys.forEach((k) => store.removeItem(k));
+    } catch {
+      // ignore
     }
-    keys.forEach((k) => window.sessionStorage.removeItem(k));
-  } catch {
-    // ignore
   }
 }
 
