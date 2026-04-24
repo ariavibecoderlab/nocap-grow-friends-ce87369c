@@ -2906,6 +2906,7 @@ export type Database = {
           last_error: string | null
           next_retry_at: string | null
           payload: Json
+          payload_hash: string | null
           replayed_from_id: string | null
           signature: string
           status: string
@@ -2922,6 +2923,7 @@ export type Database = {
           last_error?: string | null
           next_retry_at?: string | null
           payload?: Json
+          payload_hash?: string | null
           replayed_from_id?: string | null
           signature: string
           status?: string
@@ -2938,6 +2940,7 @@ export type Database = {
           last_error?: string | null
           next_retry_at?: string | null
           payload?: Json
+          payload_hash?: string | null
           replayed_from_id?: string | null
           signature?: string
           status?: string
