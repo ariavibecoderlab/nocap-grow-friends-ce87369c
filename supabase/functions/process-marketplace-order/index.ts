@@ -374,12 +374,25 @@ serve(async (req) => {
       orderItems.map((oi) => ({ ...oi, order_id: order.id }))
     );
 
-    // ── 12. Decrement stock ──
+    // ── 12. Decrement REAL stock (only after wallet has been debited and order row created) ──
+    // This is the moment we commit inventory. Soft holds (inventory_reservations) are advisory
+    // — real stock_quantity only moves here, on payment success.
     for (const item of items) {
       const product = productMap.get(item.product_id)!;
       await supabase.from('marketplace_products')
         .update({ stock_quantity: product.stock_quantity - item.quantity })
         .eq('id', item.product_id);
+    }
+
+    // ── 12a. Consume the buyer's reservations so they stop counting against availability ──
+    // Status flips active → consumed. Idempotent (only updates rows still 'active').
+    if (ownedReservations.length > 0) {
+      const nowIso = new Date().toISOString();
+      await supabase
+        .from('inventory_reservations')
+        .update({ status: 'consumed', consumed_at: nowIso })
+        .in('id', ownedReservations.map((r) => r.id))
+        .eq('status', 'active');
     }
 
     // ── 13. Increment discount code usage ──
