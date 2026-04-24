@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { dispatchWebhookToMerchant } from "../_shared/webhook.ts";
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
@@ -431,6 +432,87 @@ serve(async (req) => {
     });
 
     console.log(`Marketplace order completed: ${orderNumber}, buyer=${buyerId}, total=RM${totalAmount.toFixed(2)}`);
+
+    // ── 19. v1.4 webhooks: fan out to merchant's API apps ──
+    try {
+      const merchantId = store.merchant_user_id;
+      const branchId = branch.id;
+      const baseData = {
+        order_id: order.id,
+        order_number: orderNumber,
+        store_id: storeId,
+        total_amount: totalAmount,
+        subtotal,
+        shipping_fee: shippingFee,
+        currency: 'MYR',
+        buyer: { name: buyer_name, email: buyer_email, phone: buyer_phone },
+      };
+
+      // order.created + order.paid (wallet payment settles immediately)
+      await dispatchWebhookToMerchant(supabase, merchantId, branchId, {
+        event: 'order.created',
+        merchant_id: merchantId,
+        branch_id: branchId,
+        data: { ...baseData, status: 'pending', payment_status: 'paid' },
+      });
+      await dispatchWebhookToMerchant(supabase, merchantId, branchId, {
+        event: 'order.paid',
+        merchant_id: merchantId,
+        branch_id: branchId,
+        data: { ...baseData, status: 'pending', payment_status: 'paid', transaction_id: paymentTx?.id ?? null },
+      });
+
+      // product.stock_changed per item
+      for (const item of items) {
+        const product = productMap.get(item.product_id)!;
+        const newStock = product.stock_quantity - item.quantity;
+        await dispatchWebhookToMerchant(supabase, merchantId, branchId, {
+          event: 'product.stock_changed',
+          merchant_id: merchantId,
+          branch_id: branchId,
+          data: {
+            product_id: product.id,
+            product_name: product.name,
+            store_id: storeId,
+            previous_stock: product.stock_quantity,
+            new_stock: newStock,
+            delta: -item.quantity,
+            reason: 'order_placed',
+            order_id: order.id,
+          },
+        });
+      }
+
+      // payment_link.paid — if this order was tied to an active payment link
+      const { data: linkedPL } = await supabase
+        .from('payment_links')
+        .select('id, amount, currency, status')
+        .eq('order_id', order.id)
+        .in('status', ['active'])
+        .maybeSingle();
+      if (linkedPL) {
+        await supabase
+          .from('payment_links')
+          .update({ status: 'paid', paid_at: new Date().toISOString(), transaction_id: paymentTx?.id ?? null })
+          .eq('id', linkedPL.id);
+        await dispatchWebhookToMerchant(supabase, merchantId, branchId, {
+          event: 'payment_link.paid',
+          merchant_id: merchantId,
+          branch_id: branchId,
+          data: {
+            link_id: linkedPL.id,
+            order_id: order.id,
+            order_number: orderNumber,
+            amount: linkedPL.amount,
+            currency: linkedPL.currency,
+            paid_at: new Date().toISOString(),
+            transaction_id: paymentTx?.id ?? null,
+          },
+        });
+      }
+    } catch (whErr) {
+      console.error('Webhook dispatch (process-marketplace-order) failed:', whErr);
+    }
 
     return jsonRes({
       success: true,

@@ -13,6 +13,7 @@ export interface WebhookPayload {
   timestamp?: string;
 }
 
+
 export async function dispatchWebhook(
   webhookUrl: string | null | undefined,
   secretHash: string,
@@ -105,3 +106,43 @@ export async function dispatchWebhook(
     } catch (_) { /* best-effort: table may not exist in older envs */ }
   }
 }
+
+// Fan out an event to every active api_application owned by a merchant
+// (optionally narrowed to a specific branch). Used by internal flows like
+// process-marketplace-order where there is no single "calling app".
+export async function dispatchWebhookToMerchant(
+  supabase: SupabaseLike,
+  merchantUserId: string,
+  branchId: string | null | undefined,
+  payload: WebhookPayload,
+): Promise<void> {
+  if (!supabase || !merchantUserId) return;
+  try {
+    let q = supabase
+      .from('api_applications')
+      .select('id, api_secret_hash, webhook_url, webhook_subscriptions, branch_id')
+      .eq('merchant_user_id', merchantUserId)
+      .eq('is_active', true)
+      .not('webhook_url', 'is', null);
+    const { data: apps } = await q;
+    if (!apps || apps.length === 0) return;
+
+    // deno-lint-ignore no-explicit-any
+    const targets = (apps as any[]).filter((a) => {
+      // Merchant-level apps (branch_id null) receive all merchant events.
+      // Branch-scoped apps only receive events for that branch.
+      if (a.branch_id == null) return true;
+      if (branchId == null) return false;
+      return a.branch_id === branchId;
+    });
+
+    await Promise.all(
+      targets.map((a) =>
+        dispatchWebhook(a.webhook_url, a.api_secret_hash, a.webhook_subscriptions, payload, supabase, a.id),
+      ),
+    );
+  } catch (e) {
+    console.error('dispatchWebhookToMerchant error:', e);
+  }
+}
+
