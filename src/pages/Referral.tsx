@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { getCached, setCached, invalidate as invalidateReferralCache } from "@/lib/referralCache";
 import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
@@ -165,10 +166,19 @@ const Referral = () => {
     return allRows;
   }, []);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (opts?: { forceRefresh?: boolean }) => {
     if (!user) return;
 
-    setLoadingData(true);
+    const cached = !opts?.forceRefresh ? getCached(user.id) : null;
+    if (cached) {
+      // Hydrate UI instantly from cache so the page renders without waiting on the network
+      setReferrals(cached.referrals);
+      setTierCountsFromRpc(cached.tierCounts);
+      setBeyondTier5Count(cached.beyondTier5Count);
+      setLoadingData(false);
+    } else {
+      setLoadingData(true);
+    }
 
     try {
       const [profileRes, commissionRows, deepCountRes] = await Promise.all([
@@ -187,16 +197,24 @@ const Referral = () => {
           return acc;
         }, {});
         setTierCountsFromRpc(derivedTierCounts);
+
+        const beyond = (deepCountRes.data && Array.isArray(deepCountRes.data) && deepCountRes.data.length > 0)
+          ? Number(deepCountRes.data[0].beyond_tier5) || 0
+          : 0;
+        setBeyondTier5Count(beyond);
+
+        // Persist to cache for next visit / page refresh
+        setCached(user.id, {
+          referrals: profileReferrals,
+          tierCounts: derivedTierCounts,
+          beyondTier5Count: beyond,
+        });
       } else {
         setProfile(null);
         setReferrals([]);
         setTierCountsFromRpc({});
-      }
-
-      if (deepCountRes.data && Array.isArray(deepCountRes.data) && deepCountRes.data.length > 0) {
-        setBeyondTier5Count(Number(deepCountRes.data[0].beyond_tier5) || 0);
-      } else {
         setBeyondTier5Count(0);
+        invalidateReferralCache(user.id);
       }
 
       setCommissions(commissionRows);
@@ -209,6 +227,9 @@ const Referral = () => {
     if (!user || !profile) return;
     setRecountLoading(true);
     try {
+      // Recount always bypasses cache
+      invalidateReferralCache(user.id);
+
       const [rows, deepCountRes] = await Promise.all([
         fetchReferralsFromProfiles(profile.id),
         supabase.rpc("get_deep_network_count", { p_user_id: user.id }),
@@ -225,6 +246,13 @@ const Referral = () => {
         beyond = Number(deepCountRes.data[0].beyond_tier5) || 0;
         setBeyondTier5Count(beyond);
       }
+
+      // Persist freshly-recounted values to cache
+      setCached(user.id, {
+        referrals: rows,
+        tierCounts: derived,
+        beyondTier5Count: beyond,
+      });
 
       const direct = derived[1] || 0;
       const total = Object.values(derived).reduce((s, c) => s + c, 0) + beyond;
@@ -257,6 +285,7 @@ const Referral = () => {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
+          // Earnings change — keep network cache, just refresh in background
           fetchData();
         },
       )
@@ -269,7 +298,9 @@ const Referral = () => {
           filter: `ancestor_id=eq.${user.id}`,
         },
         () => {
-          fetchData();
+          // Network membership changed — invalidate then refetch
+          invalidateReferralCache(user.id);
+          fetchData({ forceRefresh: true });
         },
       )
       .subscribe();
