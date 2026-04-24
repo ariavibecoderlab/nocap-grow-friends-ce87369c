@@ -652,6 +652,32 @@ const Referral = () => {
                   </span>
                 );
               })()}
+              {revalidateError && (
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 text-rose-200 px-2 py-0.5 text-[10px] font-medium animate-fade-in"
+                  role="alert"
+                  title={revalidateError}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                  <span className="max-w-[160px] truncate">Refresh failed</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      retryAttemptRef.current = 0;
+                      if (retryTimerRef.current) {
+                        clearTimeout(retryTimerRef.current);
+                        retryTimerRef.current = null;
+                      }
+                      setRevalidateError(null);
+                      fetchData({ silent: true, forceRefresh: true });
+                    }}
+                    disabled={isRevalidating}
+                    className="underline underline-offset-2 hover:text-rose-100 disabled:opacity-50 disabled:no-underline"
+                  >
+                    Try again
+                  </button>
+                </span>
+              )}
               {(() => {
                 const stamp = lastFreshAt ?? cachedAt;
                 if (!stamp) return null;
