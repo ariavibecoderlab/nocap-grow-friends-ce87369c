@@ -122,6 +122,48 @@ Admin Section: branch mapping management, connected customers overview, top refe
     prompt: `Add a createDistribution service function that calls POST /api-distribute. Headers: x-api-key, x-api-secret (server-to-server, no Bearer token needed). Request body: { branch_id, member_referral_code (or user_id), amount (the sale amount), reference (unique idempotency key) }. The API calculates the commission pool automatically using the branch's commission_percent. Response: { success, distribution_id, breakdown: { total_pool, cashback, tier_commissions[], unclaimed_returned, branch_debited } }. The branch wallet is debited (negative balances allowed). Cashback (1/6 of pool) goes to the member, tier commissions (1/6 each) go to up to 5 referral ancestors, and unclaimed tiers are returned to the branch. Handle errors: 400 (validation/missing fields), 401 (invalid credentials), 404 (branch or member not found), 409 (duplicate reference). Set up webhook verification (HMAC-SHA256, same pattern as charge webhooks) for distribution.completed events. Build an admin/reporting page showing distribution history with breakdowns per branch.`,
     memberImpact: "Members automatically receive cashback when a 3rd party sale is recorded. Referral ancestors earn tier commissions.",
   },
+  {
+    id: 14,
+    title: "Sales Assistant: Connect Merchant to NoCap (Settings)",
+    path: "E",
+    pathLabel: "Nocap Sales Assistant — START HERE",
+    merchantAction: "Share API app credentials (api_key + api_secret) with the merchant operating the Sales Assistant. Confirm webhook URL points to the Sales Assistant's twilio/telegram webhook receiver host.",
+    prompt: `In the Nocap Sales Assistant project, replace the placeholder 'Sync now' on src/pages/dashboard/Settings.tsx with a real NoCap connection flow. Store NOCAP_APP_ID, NOCAP_API_KEY, NOCAP_API_SECRET, NOCAP_BASE_URL as Lovable Cloud secrets (do NOT put secrets in the nocap_connections row). Extend the existing nocap_connections table to store per-merchant context: connected_at, branch_id (nullable, for single-branch apps), default_branch_id (chosen by merchant if multi-branch), scopes (text[]), last_synced_at. Add an edge function 'nocap-connect' (verify_jwt = true) that: (1) calls GET /api-branches with x-api-key + x-api-secret headers, (2) if exactly one branch returns, auto-selects it as default_branch_id, (3) if multiple, returns the list so the UI can render a dropdown for the merchant to pick the default branch, (4) upserts nocap_connections row keyed by user_id. UI: show 'Connect to NoCap' button → on click call edge function → render branch picker if needed → show green 'Connected — Default branch: <name>' status with 'Refresh branches' and 'Disconnect' actions.`,
+    memberImpact: "None — merchant onboarding only. Enables all downstream Sales Assistant features.",
+  },
+  {
+    id: 15,
+    title: "Sales Assistant: Sync Real Products & Orders from NoCap",
+    path: "E",
+    pathLabel: "Nocap Sales Assistant",
+    prompt: `In the Nocap Sales Assistant project, replace the demo seed in Settings 'Sync now' with real NoCap API calls. Create edge function 'nocap-sync' (verify_jwt = true) that: (1) reads nocap_connections for the caller, (2) calls GET /api-products with x-api-key + x-api-secret to fetch the merchant's catalog, (3) upserts each product into the local 'products' table (id mapped to nocap_product_id, plus name, price, description, image_url, stock_quantity, status), (4) calls GET /api-orders to backfill recent orders into the local 'orders' table. Update src/pages/dashboard/Products.tsx to display nocap_product_id badge and a 'Last synced' timestamp. Add a Realtime subscription on 'orders' so new orders pushed by webhooks (next prompt) appear instantly. Add 'Sync now' button on Products and Orders pages that calls the same edge function.`,
+    memberImpact: "Merchant sees their real NoCap catalog and order history inside Sales Assistant — no more demo data.",
+  },
+  {
+    id: 16,
+    title: "Sales Assistant: Receive NoCap Webhooks (Orders, Charges, Inventory)",
+    path: "E",
+    pathLabel: "Nocap Sales Assistant",
+    merchantAction: "In NoCap merchant portal, set the API app webhook URL to https://<sales-assistant-project>.functions.supabase.co/nocap-webhook and subscribe to events: charge.completed, charge.failed, order.created, order.updated, inventory.low.",
+    prompt: `In the Nocap Sales Assistant project, create a public edge function 'nocap-webhook' (verify_jwt = false in supabase/config.toml). Verify HMAC-SHA256 signature: read X-Nocap-Signature header, recompute HMAC using the stored NOCAP_API_SECRET as key over the raw JSON body, compare in constant time. Reject with 401 on mismatch. On success, switch on event type: charge.completed → update orders.payment_status='paid' and trigger AI assistant to send a thank-you reply to the buyer's chat thread (look up by phone/telegram_id); order.created → insert into orders + push a system message into the relevant inbox thread; inventory.low → store a notification record so the dashboard can surface it. Always respond 200 within 5s; do heavy work via background queue if needed.`,
+    memberImpact: "Buyers chatting on WhatsApp/Telegram receive automatic confirmations the moment payment clears.",
+  },
+  {
+    id: 17,
+    title: "Sales Assistant: Send NoCap Payment Links via Chat",
+    path: "E",
+    pathLabel: "Nocap Sales Assistant",
+    prompt: `In the Nocap Sales Assistant project, extend the AI inbox so the assistant (and merchant manually) can send payment links over WhatsApp/Telegram. Create edge function 'nocap-create-payment' (verify_jwt = true) that: (1) accepts { thread_id, amount, description, items[] }, (2) reads default_branch_id from nocap_connections, (3) calls POST /api-payment-links (or POST /api-charge with payment_url return) on NoCap with x-api-key + x-api-secret + branch_id + a unique reference (use thread_id + timestamp), (4) stores the returned payment_url and transaction_id on a new 'payment_intents' table linked to the message thread. In Inbox.tsx, add a 'Send payment link' action button next to the reply box → opens a dialog (amount, description) → on submit calls the edge function → automatically dispatches a chat message via twilio-send/telegram-send containing the payment_url. Also wire the AI draft-reply system (ai-draft-reply) to suggest sending a payment link when the conversation reaches a buying intent.`,
+    memberImpact: "Buyers receive a one-tap NoCap payment link directly in their WhatsApp/Telegram conversation with the merchant.",
+  },
+  {
+    id: 18,
+    title: "Sales Assistant: Feed NoCap Catalog & Referral Data into AI Brain",
+    path: "E",
+    pathLabel: "Nocap Sales Assistant",
+    prompt: `In the Nocap Sales Assistant project, enrich the ai_brain table so AI replies can reference live NoCap data. Add columns/JSONB fields: catalog_snapshot (latest synced product list with prices + stock), referral_program_summary (cached from GET /api-referral-info — commission tiers, current cashback %, member's referral_code if they're a NoCap member), top_sellers (last 30 days, derived from orders). Create scheduled edge function 'nocap-brain-refresh' (run hourly via pg_cron) that re-pulls catalog + referral metadata and updates ai_brain. Update ai-draft-reply edge function to inject this context into the system prompt so the assistant can: quote accurate prices, flag out-of-stock items, mention current cashback rewards, and suggest joining the referral program when relevant. Add a 'Brain' tab in the dashboard sidebar showing what data the AI currently knows about the merchant's NoCap store.`,
+    memberImpact: "AI assistant gives accurate, up-to-date answers about products, prices, stock, and referral rewards — leading to higher conversion.",
+  },
 ];
 
 function CopyPromptButton({ text }: { text: string }) {
