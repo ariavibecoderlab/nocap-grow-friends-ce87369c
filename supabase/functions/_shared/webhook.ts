@@ -13,6 +13,7 @@ export interface WebhookPayload {
   timestamp?: string;
 }
 
+
 export async function dispatchWebhook(
   webhookUrl: string | null | undefined,
   secretHash: string,
