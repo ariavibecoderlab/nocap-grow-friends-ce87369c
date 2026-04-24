@@ -224,6 +224,11 @@ export function generateApiGuidePdf() {
   paragraph("Response: { branches: [{ id, branch_name, qr_code_id, is_active }] }");
   paragraph("Use this endpoint to populate branch selectors or map internal outlet IDs to NoCap branch IDs. Required for merchant-level apps when calling POST /api-charge.");
 
+  subheading("3.7b App Metadata (Public) — GET /api-app-info");
+  paragraph("Public endpoint (no auth) that resolves an app's display name from its app_id (UUID) or api_key. Useful for custom OAuth consent screens.");
+  code(`curl "${BASE_URL}/api-app-info?app_id=YOUR_APP_ID"`);
+  paragraph("Response: { id, name }. Returns 404 if the app does not exist or is inactive. Secrets are never exposed.");
+
   // --- Wallet Top-Up ---
   heading("3c. Wallet Top-Up");
   subheading("3.8 Initiate Top-Up — POST /api-topup");
@@ -360,6 +365,7 @@ export function generateApiGuidePdf() {
   tableRow(["/api-charges-list", "60/min per key"]);
   tableRow(["/api-refund", "20/min per key"]);
   tableRow(["/api-branches", "60/min per key"]);
+  tableRow(["/api-app-info", "120/min (public)"]);
   tableRow(["/api-topup", "30/min per key"]);
   tableRow(["/api-distribute", "60/min per key"]);
   tableRow(["/api-referral-info", "60/min per key"]);

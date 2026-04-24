@@ -402,6 +402,40 @@ curl https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-branches \
 
 ---
 
+### 6a-2. App Metadata (Public)
+
+**`GET /api-app-info`**
+
+Public endpoint — **no authentication required**. Resolves an app's display name from its `app_id` (UUID) or `api_key`. Useful for rendering app branding on custom OAuth consent screens.
+
+**Query Parameters:**
+
+| Field    | Type   | Required | Description                                            |
+|----------|--------|----------|--------------------------------------------------------|
+| `app_id` | string | Yes      | The app's UUID, or its `api_key` as a fallback lookup. |
+
+```bash
+curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-app-info?app_id=YOUR_APP_ID"
+```
+
+**Response (200):**
+
+```json
+{
+  "id": "11111111-2222-3333-4444-555555555555",
+  "name": "Acme POS"
+}
+```
+
+**Errors:**
+
+- `400` — Missing `app_id` query parameter.
+- `404` — App not found or inactive.
+
+> 🔓 Only the `id` and `name` fields are returned — no secrets, webhook URLs, or merchant identifiers are ever exposed.
+
+---
+
 ### 6. Revoke Access Token
 
 Users can revoke access from their **Connected Apps** settings in the NoCap app, or your app can call:
