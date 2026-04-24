@@ -143,6 +143,7 @@ export async function dispatchWebhook(
           payload: body,
           signature,
           payload_hash: payloadHash,
+          secret_hash_fingerprint: secretFingerprint || null,
           target_url: webhookUrl,
           status: delivered ? 'delivered' : 'failed',
           attempt_count: totalAttempts,
