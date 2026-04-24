@@ -80,6 +80,19 @@ export function invalidate(userId: string): void {
   }
 }
 
+/**
+ * Invalidate the cache after a member action that may impact the referral downline
+ * (QR pay, P2P transfer, marketplace checkout, refund, etc.). These actions don't
+ * change tier membership but they DO ripple cashback/commission across the upline,
+ * making cached earnings/totals stale on next visit to /referral.
+ *
+ * Safe to call from anywhere — no-op when userId is missing or storage is unavailable.
+ */
+export function invalidateOnDownlineImpact(userId: string | null | undefined): void {
+  if (!userId) return;
+  invalidate(userId);
+}
+
 export function clearAll(): void {
   memoryCache.clear();
   if (typeof window === "undefined") return;

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateOnDownlineImpact } from "@/lib/referralCache";
 import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { Html5Qrcode } from "html5-qrcode";
@@ -286,6 +287,9 @@ const QrPay = () => {
     }
 
     setResult(data);
+    // QR payment generates cashback (payer) + 5-tier commissions to upline.
+    // Drop the cached network snapshot so /referral refetches fresh earnings/totals.
+    invalidateOnDownlineImpact(user?.id);
     setStep("success");
   };
 

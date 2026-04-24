@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/contexts/CartContext";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateOnDownlineImpact } from "@/lib/referralCache";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -201,6 +202,8 @@ const Checkout = () => {
 
       // Clear cart for all stores that were checked out
       storeIds.forEach(id => clearStoreItems(id));
+      // Marketplace order distributes cashback + 5-tier commissions — invalidate cached network snapshot.
+      invalidateOnDownlineImpact(user?.id);
       toast({ title: "Order placed!", description: `Order #${data.order_number}` });
       navigate(`/order/${data.order_id}`);
     } catch (err: any) {
