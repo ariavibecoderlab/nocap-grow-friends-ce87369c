@@ -1063,6 +1063,106 @@ app.post("/webhook/nocap", (req, res) => {
                 </CardContent>
               </Card>
 
+              {/* v1.4 — GET /api-customers */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 text-xs font-bold rounded">GET</span>
+                    <CardTitle className="text-lg">/api-customers</CardTitle>
+                    <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold">v1.4</span>
+                  </div>
+                  <CardDescription>Merchant-scoped customer directory. Filter by <code>?phone=</code> or <code>?email=</code>; <code>?id=&lt;uuid&gt;</code> returns one customer; <code>?id=&lt;uuid&gt;&amp;orders=true</code> appends order history.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <CodeBlock>{`# List + search
+curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-customers?phone=%2B60123456789" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret"
+
+# Customer detail with order history
+curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-customers?id=<uuid>&orders=true" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret"`}</CodeBlock>
+                  <p className="text-xs text-muted-foreground">Only customers who have ordered from a store owned by the authenticated merchant are returned.</p>
+                </CardContent>
+              </Card>
+
+              {/* v1.4 — POST /api-inventory/reserve */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs font-bold rounded">POST</span>
+                    <CardTitle className="text-lg">/api-inventory/reserve</CardTitle>
+                    <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold">v1.4</span>
+                  </div>
+                  <CardDescription>Soft hold on stock with a TTL (default 900s, max 3600s). Does NOT decrement <code>stock_quantity</code>; effective availability = stock − Σ active reservations. Idempotent per <code>(api_key, reference)</code>.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-inventory/reserve" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "product_id": "uuid",
+    "variant_id": "uuid-or-omit",
+    "quantity": 2,
+    "ttl_seconds": 900,
+    "reference": "cart_abc123"
+  }'`}</CodeBlock>
+                  <p className="text-xs text-muted-foreground">Returns <code>409 Insufficient stock</code> with <code>available</code> + <code>requested</code> when the hold cannot be granted. On success returns the reservation row + <code>available_after</code>.</p>
+                </CardContent>
+              </Card>
+
+              {/* v1.4 — POST /api-inventory/release */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs font-bold rounded">POST</span>
+                    <CardTitle className="text-lg">/api-inventory/release</CardTitle>
+                    <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold">v1.4</span>
+                  </div>
+                  <CardDescription>Release a hold early. Pass <code>reservation_id</code> or the original <code>reference</code>. Idempotent — already-released/expired holds return 200.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-inventory/release" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "reference": "cart_abc123" }'`}</CodeBlock>
+                  <p className="text-xs text-muted-foreground">Holds also auto-expire when <code>expires_at</code> passes — no explicit release required if you're OK waiting.</p>
+                </CardContent>
+              </Card>
+
+              {/* v1.4 — Webhook subscriptions */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 text-xs font-bold rounded">GET</span>
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs font-bold rounded">POST</span>
+                    <CardTitle className="text-lg">/api-webhooks/subscriptions</CardTitle>
+                    <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold">v1.4</span>
+                  </div>
+                  <CardDescription>Manage per-event webhook opt-in and the delivery URL for the calling app. <code>subscriptions: null</code> = subscribe to all (v1.3-compatible default).</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <CodeBlock>{`# View current config + full event catalog
+curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks/subscriptions" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret"
+
+# Subscribe to a specific subset
+curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks/subscriptions" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "webhook_url": "https://yourapp.com/webhooks/nocap",
+    "subscriptions": ["order.paid", "order.shipped", "payment_link.paid"]
+  }'`}</CodeBlock>
+                  <p className="text-xs text-muted-foreground">Pass <code>{`{ "subscriptions": null }`}</code> to revert to "all events". Branch-scoped apps only receive events for their branch; merchant-level apps receive all events for the merchant.</p>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
