@@ -228,12 +228,31 @@ serve(async (req) => {
     }
     const payerId = token.user_id;
 
-    // Resolve branch_id: use body param if provided, otherwise fall back to app's default branch
-    const branch_id = bodyBranchId || app.branch_id;
+    // Resolve branch_id: use body param if provided, otherwise fall back to app's default branch.
+    // For merchant-level apps (branch_id is NULL on the app), if the merchant has exactly ONE
+    // active branch we auto-select it so single-branch merchants work out-of-the-box. Multi-branch
+    // merchants must still pass branch_id explicitly to avoid charging the wrong branch.
+    let branch_id = bodyBranchId || app.branch_id;
     if (!branch_id) {
-      return new Response(JSON.stringify({ error: 'branch_id is required for merchant-level apps (no default branch). Include branch_id in the request body.' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      const { data: activeBranches } = await supabase
+        .from('merchant_branches')
+        .select('id, branch_name')
+        .eq('merchant_user_id', app.merchant_user_id)
+        .eq('is_active', true);
+
+      if (activeBranches && activeBranches.length === 1) {
+        branch_id = activeBranches[0].id;
+      } else {
+        const errRes = {
+          error: 'branch_id is required for merchant-level apps with multiple branches. Include "branch_id" in the request body.',
+          code: 'BRANCH_ID_REQUIRED',
+          available_branches: (activeBranches || []).map((b) => ({ id: b.id, name: b.branch_name })),
+        };
+        await logRequest(supabase, app.id, '/api-charge', 'POST', 400, bodyData, errRes, payerId, startTime);
+        return new Response(JSON.stringify(errRes), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     if (!amount || typeof amount !== 'number' || amount < 0.01 || amount > 50000) {
