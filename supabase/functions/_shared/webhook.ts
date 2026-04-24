@@ -14,6 +14,22 @@ export interface WebhookPayload {
 }
 
 
+async function isEventGloballyEnabled(supabase: SupabaseLike | undefined, event: string): Promise<boolean> {
+  if (!supabase) return true; // No client to check ⇒ fail open (preserves prior behavior)
+  try {
+    const { data } = await supabase
+      .from('webhook_event_settings')
+      .select('is_enabled')
+      .eq('event', event)
+      .maybeSingle();
+    // If the event isn't in the catalog, default to enabled (don't block new event types).
+    if (!data) return true;
+    return data.is_enabled !== false;
+  } catch {
+    return true;
+  }
+}
+
 export async function dispatchWebhook(
   webhookUrl: string | null | undefined,
   secretHash: string,
@@ -23,6 +39,12 @@ export async function dispatchWebhook(
   appId?: string,
 ): Promise<void> {
   if (!webhookUrl) return;
+
+  // Platform-wide admin kill-switch
+  if (!(await isEventGloballyEnabled(supabase, payload.event))) {
+    console.log(`[webhook] event '${payload.event}' disabled by admin — skipping dispatch`);
+    return;
+  }
 
   // Per-event opt-in: null/undefined ⇒ subscribe to all (preserves v1.3 behavior).
   if (Array.isArray(subscriptions) && subscriptions.length > 0 && !subscriptions.includes(payload.event)) {
