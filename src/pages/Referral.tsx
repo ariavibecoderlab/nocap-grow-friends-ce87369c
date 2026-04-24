@@ -580,6 +580,104 @@ const Referral = () => {
               </CardContent>
             </Card>
 
+            {/* Tier Breakdown Table - cross-check direct vs multi-tier network */}
+            <Card className="border-white/10 bg-white/5 mb-4">
+              <CardContent className="p-0">
+                <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+                  <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">Tier Breakdown</p>
+                  <p className="text-[10px] text-white/40">Direct vs Multi-tier</p>
+                </div>
+                <div className="overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-y border-white/10 bg-white/5">
+                        <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-white/50">Tier</th>
+                        <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-white/50">Label</th>
+                        <th className="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-white/50">Members</th>
+                        <th className="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-white/50">% of Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tierCounts.map(({ tier, count }) => {
+                        const colors = tierColors[tier];
+                        const pct = totalNetworkCount > 0 ? (count / totalNetworkCount) * 100 : 0;
+                        const isDirect = tier === 1;
+                        return (
+                          <tr key={tier} className="border-b border-white/5 last:border-b-0">
+                            <td className="px-4 py-2.5">
+                              <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${colors.bg} ${colors.text}`}>
+                                T{tier}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-white/70">
+                              {isDirect ? "Direct" : `Tier ${tier}`}
+                            </td>
+                            <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums text-white">
+                              {count.toLocaleString()}
+                            </td>
+                            <td className="px-4 py-2.5 text-right text-xs tabular-nums text-white/50">
+                              {pct.toFixed(1)}%
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {beyondTier5Count > 0 && (
+                        <tr className="border-b border-white/5">
+                          <td className="px-4 py-2.5">
+                            <span className="inline-block rounded-full px-2 py-0.5 text-[10px] font-bold bg-white/10 text-white/50">
+                              T6+
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-xs text-white/70">Beyond Tier 5</td>
+                          <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums text-white">
+                            {beyondTier5Count.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-2.5 text-right text-xs tabular-nums text-white/50">
+                            {totalNetworkCount > 0 ? ((beyondTier5Count / totalNetworkCount) * 100).toFixed(1) : "0.0"}%
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t border-white/10 bg-secondary/10">
+                        <td colSpan={2} className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-secondary">
+                          Total Network
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-sm font-bold tabular-nums text-secondary">
+                          {totalNetworkCount.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-xs tabular-nums text-secondary/70">
+                          100%
+                        </td>
+                      </tr>
+                      <tr className="border-t border-white/5 bg-white/5">
+                        <td colSpan={2} className="px-4 py-2 text-[11px] text-white/50">
+                          Direct (Tier 1)
+                        </td>
+                        <td className="px-4 py-2 text-right text-xs font-semibold tabular-nums text-white/70">
+                          {(tierCounts[0]?.count || 0).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2 text-right text-[11px] tabular-nums text-white/40">
+                          {totalNetworkCount > 0 ? (((tierCounts[0]?.count || 0) / totalNetworkCount) * 100).toFixed(1) : "0.0"}%
+                        </td>
+                      </tr>
+                      <tr className="bg-white/5">
+                        <td colSpan={2} className="px-4 py-2 text-[11px] text-white/50">
+                          Multi-tier (T2–T5{beyondTier5Count > 0 ? "+" : ""})
+                        </td>
+                        <td className="px-4 py-2 text-right text-xs font-semibold tabular-nums text-white/70">
+                          {(totalNetworkCount - (tierCounts[0]?.count || 0)).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2 text-right text-[11px] tabular-nums text-white/40">
+                          {totalNetworkCount > 0 ? (((totalNetworkCount - (tierCounts[0]?.count || 0)) / totalNetworkCount) * 100).toFixed(1) : "0.0"}%
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
             {totalNetworkCount === 0 ? (
               <Card className="border-white/10 bg-white/5">
                 <CardContent className="flex flex-col items-center justify-center py-10 text-white/40">
