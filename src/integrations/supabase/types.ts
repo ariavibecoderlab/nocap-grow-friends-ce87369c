@@ -296,6 +296,45 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_reservation_events: {
+        Row: {
+          app_id: string
+          event_type: string
+          id: string
+          note: string | null
+          occurred_at: string
+          product_id: string
+          quantity: number
+          reference: string | null
+          reservation_id: string
+          variant_id: string | null
+        }
+        Insert: {
+          app_id: string
+          event_type: string
+          id?: string
+          note?: string | null
+          occurred_at?: string
+          product_id: string
+          quantity: number
+          reference?: string | null
+          reservation_id: string
+          variant_id?: string | null
+        }
+        Update: {
+          app_id?: string
+          event_type?: string
+          id?: string
+          note?: string | null
+          occurred_at?: string
+          product_id?: string
+          quantity?: number
+          reference?: string | null
+          reservation_id?: string
+          variant_id?: string | null
+        }
+        Relationships: []
+      }
       inventory_reservations: {
         Row: {
           app_id: string
