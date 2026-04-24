@@ -304,6 +304,31 @@ const Referral = () => {
     fetchData();
   }, [fetchData, user]);
 
+  // Revalidate on tab refocus / visibility change — uses SWR flags so the
+  // cached UI stays visible while a background fetch runs. Throttled to avoid
+  // hammering the network on rapid focus toggles.
+  useEffect(() => {
+    if (!user) return;
+    let lastRunAt = 0;
+    const MIN_INTERVAL_MS = 30_000;
+    const maybeRevalidate = () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      if (isRevalidating) return;
+      const now = Date.now();
+      if (now - lastRunAt < MIN_INTERVAL_MS) return;
+      lastRunAt = now;
+      fetchData({ silent: true });
+    };
+    const onFocus = () => maybeRevalidate();
+    const onVisibility = () => maybeRevalidate();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [user, fetchData, isRevalidating]);
+
   useEffect(() => {
     if (!user) return;
 
