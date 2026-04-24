@@ -55,6 +55,7 @@ import AiHelpChat from "./components/AiHelpChat";
 import SellerPortal from "./pages/SellerPortal";
 import MerchantStorefrontBuilder from "./pages/MerchantStorefrontBuilder";
 import MerchantStorefrontHub from "./pages/MerchantStorefrontHub";
+import HostedPay from "./pages/HostedPay";
 
 const queryClient = new QueryClient();
 
@@ -118,6 +119,7 @@ const App = () => (
               <Route path="/merchant/storefront/:storeId" element={<MerchantStorefrontHub />} />
               <Route path="/merchant/storefront/builder" element={<MerchantStorefrontBuilder />} />
               <Route path="/merchant/storefront/builder/:storeId" element={<MerchantStorefrontBuilder />} />
+              <Route path="/pay/:linkId" element={<HostedPay />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

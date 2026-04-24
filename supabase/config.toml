@@ -110,3 +110,15 @@ verify_jwt = false
 
 [functions.set-initial-password]
 verify_jwt = false
+
+[functions.api-products]
+verify_jwt = false
+
+[functions.api-orders]
+verify_jwt = false
+
+[functions.api-payment-links]
+verify_jwt = false
+
+[functions.payment-link-info]
+verify_jwt = false

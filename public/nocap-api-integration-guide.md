@@ -17,20 +17,41 @@ The v1.4 release adds endpoints required by AI sales-assistant integrations (e.g
 | --- | --- | --- |
 | GET | `/api-products` | List/search products; `?id=<uuid>` returns detail with variants |
 | GET | `/api-orders` | List orders with filters; `?id=<uuid>` returns detail with items + history |
+| POST | `/api-orders` | Create draft order; optional `create_payment_link: true` returns hosted link |
+| PATCH | `/api-orders?id=<uuid>` | Update fulfillment status / tracking number |
+| POST | `/api-payment-links` | Create hosted checkout link (`/pay/<link_id>` on nocap.life) |
+| GET | `/api-payment-links` | List payment links; `?id=<uuid>` returns single link |
 
-### Coming next (Phase 1.2 / 2)
+### New webhook events (additive — `charge.*` unchanged)
 
-- `POST /api-orders` (create draft) + `PATCH /api-orders?id=…` (update fulfillment)
-- `POST /api-payment-links` + hosted `/pay/:linkId` checkout page
-- New webhook events: `product.*`, `order.*`, `payment_link.*` (additive; existing `charge.*` events unchanged)
-- `GET /api-customers` + inventory reservations + per-event webhook subscriptions
+- **Orders:** `order.created`, `order.confirmed`, `order.shipped`, `order.delivered`, `order.cancelled`, `order.refunded`
+- **Payment links:** `payment_link.paid`, `payment_link.expired`
+- **Products:** `product.created`, `product.updated`, `product.stock_changed`
 
-### Example — list products
+Envelope adds `merchant_id` + `branch_id` next to the existing `event`/`data` fields. Same HMAC-SHA256 signing scheme via `X-Webhook-Signature`.
+
+### Coming next (Phase 2 / 3)
+
+- `GET /api-customers` directory + per-merchant order history
+- Inventory reservations (`POST /api-inventory/reserve`, `release`)
+- Per-event webhook subscriptions + replay endpoint
+
+### Example — create order with hosted payment link
 
 ```bash
-curl -X GET "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-products?search=hijab&limit=5" \
+curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-orders" \
   -H "X-Api-Key: your_api_key" \
-  -H "X-Api-Secret: your_api_secret"
+  -H "X-Api-Secret: your_api_secret" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "store_id": "uuid",
+    "buyer_name": "Ali",
+    "buyer_phone": "+60123456789",
+    "buyer_email": "ali@example.com",
+    "shipping_address": "12 Jalan ABC, KL",
+    "items": [{ "product_id": "uuid", "quantity": 2 }],
+    "create_payment_link": true
+  }'
 ```
 
 ---
