@@ -82,7 +82,8 @@ const Referral = () => {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [tierCountsFromRpc, setTierCountsFromRpc] = useState<Record<number, number>>({});
   const [beyondTier5Count, setBeyondTier5Count] = useState(0);
-
+  const [recountLoading, setRecountLoading] = useState(false);
+  const [recountResult, setRecountResult] = useState<{ direct: number; total: number; at: Date } | null>(null);
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading, navigate]);
