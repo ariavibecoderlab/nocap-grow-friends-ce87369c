@@ -347,6 +347,9 @@ export function generateApiGuidePdf() {
   paragraph("topup.failed — API-initiated wallet top-up payment failed or cancelled.");
   paragraph("distribution.completed — Cashback and commission distribution processed successfully. Payload includes full breakdown (cashback, tier commissions, unclaimed returned).");
   paragraph("user.registered — New user account created via POST /api-referral-register. Payload includes user_id, email, and referral_code.");
+  paragraph("[v1.4] order.created/confirmed/shipped/delivered/cancelled/refunded — Marketplace order lifecycle. Envelope adds merchant_id and branch_id.");
+  paragraph("[v1.4] payment_link.paid / payment_link.expired — Hosted checkout link lifecycle (POST /api-payment-links).");
+  paragraph("[v1.4] product.created / product.updated / product.stock_changed — Catalog change notifications.");
 
   subheading("Retry Policy");
   paragraph("3 attempts with exponential backoff: immediate, 1s, 2s. Respond with 2xx to acknowledge. After 3 failures, webhook is logged as undelivered.");

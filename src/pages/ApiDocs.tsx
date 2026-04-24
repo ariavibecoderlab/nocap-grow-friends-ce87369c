@@ -1030,6 +1030,39 @@ app.post("/webhook/nocap", (req, res) => {
                 </CardContent>
               </Card>
 
+              {/* v1.4 — POST /api-payment-links */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs font-bold rounded">POST</span>
+                    <CardTitle className="text-lg">/api-payment-links</CardTitle>
+                    <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold">v1.4</span>
+                  </div>
+                  <CardDescription>Hosted checkout link. Buyer pays at <code>/pay/&lt;link_id&gt;</code> on nocap.life — PIN never leaves Nocap.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-payment-links" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "amount": 49.90, "description": "Order ORD-XYZ", "expires_in_seconds": 86400 }'`}</CodeBlock>
+                  <p className="text-xs text-muted-foreground">Lifecycle webhooks: <code>payment_link.paid</code>, <code>payment_link.expired</code>.</p>
+                </CardContent>
+              </Card>
+
+              {/* v1.4 — Webhook events catalog */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">v1.4 webhook events <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold ml-2">v1.4</span></CardTitle>
+                  <CardDescription>Additive. Same HMAC-SHA256 signing as v1.3 <code>charge.*</code>; envelope adds <code>merchant_id</code> + <code>branch_id</code>.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <p><span className="font-semibold">Orders:</span> <code className="text-xs">order.created · order.confirmed · order.shipped · order.delivered · order.cancelled · order.refunded</code></p>
+                  <p><span className="font-semibold">Payment links:</span> <code className="text-xs">payment_link.paid · payment_link.expired</code></p>
+                  <p><span className="font-semibold">Products:</span> <code className="text-xs">product.created · product.updated · product.stock_changed</code></p>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
