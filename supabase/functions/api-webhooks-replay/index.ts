@@ -190,7 +190,18 @@ Deno.serve(async (req) => {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 
-  if (original.signature && original.signature !== recomputedSignature) {
+  // The original signature MUST exist — every dispatch since v1.4 records it.
+  // A missing/empty signature means this row predates integrity-checked replay
+  // (or was inserted by a buggy path), so we cannot guarantee the payload is
+  // identical to what the merchant's verifier originally accepted.
+  if (!original.signature) {
+    return json(409, {
+      error: 'Signature integrity check failed',
+      detail:
+        'Original delivery has no recorded signature, so replay integrity cannot be verified. Re-trigger the source event instead of replaying this row.',
+    });
+  }
+  if (original.signature !== recomputedSignature) {
     return json(409, {
       error: 'Signature integrity check failed',
       detail:
