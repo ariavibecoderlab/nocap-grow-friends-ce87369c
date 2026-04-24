@@ -92,15 +92,28 @@ const Referral = () => {
     for (let tier = 1; tier <= 5 && currentParentIds.length > 0; tier++) {
       const nextLevel: Array<{ id: string; user_id: string; full_name: string | null; phone: string | null; tier: number }> = [];
 
-      for (let i = 0; i < currentParentIds.length; i += 1000) {
-        const batch = currentParentIds.slice(i, i + 1000);
-        const { data } = await supabase
-          .from("profiles")
-          .select("id, user_id, full_name, phone")
-          .in("referred_by", batch);
+      // Batch parent IDs into chunks of 200 for the IN() clause
+      const PARENT_BATCH = 200;
+      const PAGE = 1000;
+      for (let i = 0; i < currentParentIds.length; i += PARENT_BATCH) {
+        const batch = currentParentIds.slice(i, i + PARENT_BATCH);
 
-        if (data) {
+        // Paginate within each IN() query to bypass the 1000-row default cap
+        let from = 0;
+        while (true) {
+          const to = from + PAGE - 1;
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("id, user_id, full_name, phone")
+            .in("referred_by", batch)
+            .range(from, to);
+
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+
           nextLevel.push(...data.map((row) => ({ ...row, tier })));
+          if (data.length < PAGE) break;
+          from += PAGE;
         }
       }
 
