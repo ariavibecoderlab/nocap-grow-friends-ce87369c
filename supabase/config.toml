@@ -125,3 +125,6 @@ verify_jwt = false
 
 [functions.api-customers]
 verify_jwt = false
+
+[functions.api-inventory]
+verify_jwt = false
