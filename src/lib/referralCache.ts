@@ -109,7 +109,7 @@ export async function broadcastInvalidate(
 ): Promise<boolean> {
   if (!userId) return false;
   try {
-    const ch = client.channel(`referral-cache:${userId}`);
+    const ch = client.channel(`referral-sync-${userId}`);
     await new Promise<void>((resolve) => {
       ch.subscribe((status: string) => {
         if (status === "SUBSCRIBED") resolve();
