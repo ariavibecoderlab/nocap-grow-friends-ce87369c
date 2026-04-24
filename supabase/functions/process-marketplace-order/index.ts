@@ -64,7 +64,17 @@ serve(async (req) => {
       notes,
       discount_code,
       pin,
+      reservation_ids, // optional string[] — soft holds created via /api-inventory/reserve
     } = await req.json();
+
+    // Normalize reservation_ids → unique non-empty UUID strings.
+    const heldReservationIds: string[] = Array.isArray(reservation_ids)
+      ? Array.from(new Set(
+          (reservation_ids as unknown[])
+            .filter((v): v is string => typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v)),
+        ))
+      : [];
+
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return jsonRes({ error: 'Cart is empty' }, 400);
@@ -85,6 +95,40 @@ serve(async (req) => {
     }
 
     const productMap = new Map(products.map((p) => [p.id, p]));
+
+    // ── 1a. Load buyer-owned active reservations and the live "held by others" total per product ──
+    // Strategy: effective_available_for_this_buyer
+    //   = stock_quantity − (active reservations whose expires_at > now AND id NOT IN heldReservationIds)
+    // i.e. the buyer's own pre-reservation does not block their own checkout.
+    const ownedReservations: Array<{ id: string; product_id: string; quantity: number; status: string; expires_at: string }> = [];
+    if (heldReservationIds.length > 0) {
+      const { data: own } = await supabase
+        .from('inventory_reservations')
+        .select('id, product_id, quantity, status, expires_at')
+        .in('id', heldReservationIds)
+        .eq('status', 'active')
+        .gt('expires_at', new Date().toISOString());
+      ownedReservations.push(...((own ?? []) as typeof ownedReservations));
+    }
+
+    // Sum of OTHER buyers' active holds per product (excludes ownedReservations).
+    const heldByOthers = new Map<string, number>();
+    {
+      let q = supabase
+        .from('inventory_reservations')
+        .select('product_id, quantity')
+        .in('product_id', productIds)
+        .eq('status', 'active')
+        .gt('expires_at', new Date().toISOString());
+      if (ownedReservations.length > 0) {
+        q = q.not('id', 'in', `(${ownedReservations.map((r) => r.id).join(',')})`);
+      }
+      const { data: others } = await q;
+      for (const row of (others ?? []) as Array<{ product_id: string; quantity: number }>) {
+        heldByOthers.set(row.product_id, (heldByOthers.get(row.product_id) ?? 0) + row.quantity);
+      }
+    }
+
     let subtotal = 0;
     const orderItems: Array<{
       product_id: string; product_name: string; unit_price: number;
@@ -97,8 +141,14 @@ serve(async (req) => {
       const product = productMap.get(item.product_id);
       if (!product) return jsonRes({ error: `Product ${item.product_id} not found` }, 400);
       if (product.status !== 'active') return jsonRes({ error: `${product.name} is not available` }, 400);
-      if (product.stock_quantity < item.quantity) {
-        return jsonRes({ error: `${product.name} only has ${product.stock_quantity} in stock` }, 400);
+      const heldElsewhere = heldByOthers.get(product.id) ?? 0;
+      const effectiveAvailable = Math.max(0, product.stock_quantity - heldElsewhere);
+      if (effectiveAvailable < item.quantity) {
+        return jsonRes({
+          error: `${product.name} only has ${effectiveAvailable} in stock`,
+          available: effectiveAvailable,
+          requested: item.quantity,
+        }, 409);
       }
       if (!storeId) storeId = product.store_id;
       else if (storeId !== product.store_id) {
@@ -324,12 +374,25 @@ serve(async (req) => {
       orderItems.map((oi) => ({ ...oi, order_id: order.id }))
     );
 
-    // ── 12. Decrement stock ──
+    // ── 12. Decrement REAL stock (only after wallet has been debited and order row created) ──
+    // This is the moment we commit inventory. Soft holds (inventory_reservations) are advisory
+    // — real stock_quantity only moves here, on payment success.
     for (const item of items) {
       const product = productMap.get(item.product_id)!;
       await supabase.from('marketplace_products')
         .update({ stock_quantity: product.stock_quantity - item.quantity })
         .eq('id', item.product_id);
+    }
+
+    // ── 12a. Consume the buyer's reservations so they stop counting against availability ──
+    // Status flips active → consumed. Idempotent (only updates rows still 'active').
+    if (ownedReservations.length > 0) {
+      const nowIso = new Date().toISOString();
+      await supabase
+        .from('inventory_reservations')
+        .update({ status: 'consumed', consumed_at: nowIso })
+        .in('id', ownedReservations.map((r) => r.id))
+        .eq('status', 'active');
     }
 
     // ── 13. Increment discount code usage ──
