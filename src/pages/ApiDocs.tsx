@@ -1145,13 +1145,30 @@ curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-customers?id=<uu
                   <CardDescription>Manage per-event webhook opt-in and the delivery URL for the calling app. <code>subscriptions: null</code> = subscribe to all (v1.3-compatible default).</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <CodeBlock>{`# View current config + full event catalog
-curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks/subscriptions" \\
+                  <div>
+                    <p className="text-xs font-semibold mb-1">View current config & event catalog</p>
+                    <CodeBlock>{`curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks/subscriptions" \\
   -H "X-Api-Key: your_api_key" \\
   -H "X-Api-Secret: your_api_secret"
 
-# Subscribe to a specific subset
-curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks/subscriptions" \\
+# Sample response (subscribed to all — default)
+{
+  "app_id": "f6e5...",
+  "webhook_url": "https://yourapp.com/webhooks/nocap",
+  "subscriptions": null,
+  "subscribed_to_all": true,
+  "available_events": [
+    "charge.completed", "charge.failed", "charge.refunded",
+    "order.created", "order.paid", "order.shipped", "order.delivered", "order.cancelled",
+    "product.stock_changed",
+    "payment_link.paid", "payment_link.expired"
+  ]
+}`}</CodeBlock>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold mb-1">Subscribe to specific events only</p>
+                    <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks/subscriptions" \\
   -H "X-Api-Key: your_api_key" \\
   -H "X-Api-Secret: your_api_secret" \\
   -H "Content-Type: application/json" \\
@@ -1159,7 +1176,31 @@ curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks
     "webhook_url": "https://yourapp.com/webhooks/nocap",
     "subscriptions": ["order.paid", "order.shipped", "payment_link.paid"]
   }'`}</CodeBlock>
-                  <p className="text-xs text-muted-foreground">Pass <code>{`{ "subscriptions": null }`}</code> to revert to "all events". Branch-scoped apps only receive events for their branch; merchant-level apps receive all events for the merchant.</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold mb-1">Subscribe to ALL events (v1.3-compatible default)</p>
+                    <CodeBlock>{`curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-webhooks/subscriptions" \\
+  -H "X-Api-Key: your_api_key" \\
+  -H "X-Api-Secret: your_api_secret" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "subscriptions": null }'`}</CodeBlock>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Use <code>null</code> for "all events". An empty array <code>[]</code> means "no events" (pauses deliveries without removing the URL).
+                    </p>
+                  </div>
+
+                  <div className="rounded-md border border-border p-3 text-xs space-y-1">
+                    <p className="font-semibold">subscriptions value reference</p>
+                    <p><code>null</code> → Subscribe to all events (default)</p>
+                    <p><code>["order.paid", "order.shipped"]</code> → Receive only those events</p>
+                    <p><code>[]</code> → Pause — no events delivered</p>
+                    <p>omitted from POST → Preserve existing setting</p>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Branch-scoped apps only receive events for their branch; merchant-level apps receive all events for the merchant. Unknown event names return <code>400</code> with the full <code>available_events</code> list.
+                  </p>
                 </CardContent>
               </Card>
 
