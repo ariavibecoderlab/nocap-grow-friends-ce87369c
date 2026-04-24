@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { clearAll as clearReferralCache } from "@/lib/referralCache";
 
 export async function signUp(email: string, password: string, fullName: string, phone: string, referralCode: string) {
   const { data, error } = await supabase.auth.signUp({
@@ -39,6 +40,9 @@ export async function verifyOtp(email: string, token: string) {
 }
 
 export async function signOut() {
+  // Clear durable referral cache so the next signed-in user on this device
+  // doesn't see the previous account's network snapshot.
+  try { clearReferralCache(); } catch { /* ignore */ }
   const { error } = await supabase.auth.signOut();
   return { error };
 }
