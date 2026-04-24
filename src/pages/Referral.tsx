@@ -205,6 +205,39 @@ const Referral = () => {
     }
   }, [fetchAllEarnings, fetchReferralsFromProfiles, user]);
 
+  const handleRecount = useCallback(async () => {
+    if (!user || !profile) return;
+    setRecountLoading(true);
+    try {
+      const [rows, deepCountRes] = await Promise.all([
+        fetchReferralsFromProfiles(profile.id),
+        supabase.rpc("get_deep_network_count", { p_user_id: user.id }),
+      ]);
+      setReferrals(rows);
+      const derived = rows.reduce<Record<number, number>>((acc, r) => {
+        acc[r.tier] = (acc[r.tier] || 0) + 1;
+        return acc;
+      }, {});
+      setTierCountsFromRpc(derived);
+
+      let beyond = 0;
+      if (deepCountRes.data && Array.isArray(deepCountRes.data) && deepCountRes.data.length > 0) {
+        beyond = Number(deepCountRes.data[0].beyond_tier5) || 0;
+        setBeyondTier5Count(beyond);
+      }
+
+      const direct = derived[1] || 0;
+      const total = Object.values(derived).reduce((s, c) => s + c, 0) + beyond;
+      setRecountResult({ direct, total, at: new Date() });
+      toast({ title: "Recount complete", description: `Direct: ${direct} • Network: ${total}` });
+    } catch (err) {
+      console.error("Recount error:", err);
+      toast({ title: "Recount failed", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setRecountLoading(false);
+    }
+  }, [user, profile, fetchReferralsFromProfiles, toast]);
+
   useEffect(() => {
     if (!user) return;
     fetchData();
