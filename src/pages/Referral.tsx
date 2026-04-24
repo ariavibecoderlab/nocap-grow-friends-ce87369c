@@ -90,6 +90,7 @@ const Referral = () => {
   const [lastFreshAt, setLastFreshAt] = useState<Date | null>(null);
   const [servedFromCache, setServedFromCache] = useState(false);
   const [cachedAt, setCachedAt] = useState<Date | null>(null);
+  const [lastDiff, setLastDiff] = useState<{ direct: number; total: number; at: number } | null>(null);
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading, navigate]);
@@ -236,6 +237,9 @@ const Referral = () => {
         });
 
         if (counts_changed) {
+          const directDelta = nextDirect - prevDirect;
+          const totalDelta = nextTotal - (prevTotal as number);
+          setLastDiff({ direct: directDelta, total: totalDelta, at: Date.now() });
           toast({
             title: "Network updated",
             description: `Direct: ${nextDirect} • Total: ${nextTotal}`,
