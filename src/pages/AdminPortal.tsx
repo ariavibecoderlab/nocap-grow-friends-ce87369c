@@ -12,6 +12,7 @@ import TransactionsList from "@/components/admin/TransactionsList";
 import WithdrawalApprovals from "@/components/admin/WithdrawalApprovals";
 import ApiAppsManagement from "@/components/admin/ApiAppsManagement";
 import WalletReconciliation from "@/components/admin/WalletReconciliation";
+import WalletCreditAudit from "@/components/admin/WalletCreditAudit";
 import AdminReferralTreeContent from "@/components/admin/AdminReferralTreeContent";
 import DistributionAudit from "@/components/admin/DistributionAudit";
 import { Loader2 } from "lucide-react";
@@ -25,6 +26,7 @@ const sectionMap: Record<string, React.FC> = {
   transactions: TransactionsList,
   "api-apps": ApiAppsManagement,
   audit: WalletReconciliation,
+  "wallet-credit-audit": WalletCreditAudit,
   "referral-tree": AdminReferralTreeContent,
   "distribution-audit": DistributionAudit,
 };
