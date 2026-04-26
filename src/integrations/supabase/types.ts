@@ -2818,7 +2818,7 @@ export type Database = {
         }
         Relationships: []
       }
-      wallet_balance_audit: {
+      va_balance_audit: {
         Row: {
           branch_id: string | null
           changed_at: string
@@ -3244,14 +3244,14 @@ export type Database = {
           total_count: number
         }[]
       }
-      reconcile_wallet_balances: {
+      reconcile_va_balances: {
         Args: never
         Returns: {
           branch_id: string
           computed_balance: number
           drift: number
           user_id: string
-          wallet_balance: number
+          va_balance: number
           wallet_type: string
         }[]
       }

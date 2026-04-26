@@ -5,6 +5,8 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
+type SupabaseClientAny = ReturnType<typeof createClient<any, 'public', any>>;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key, x-api-secret',
@@ -27,7 +29,7 @@ interface AppRow {
   api_secret_hash: string;
 }
 
-async function authenticate(req: Request, supabase: ReturnType<typeof createClient>): Promise<
+async function authenticate(req: Request, supabase: SupabaseClientAny): Promise<
   { ok: true; app: AppRow } | { ok: false; status: number; error: string }
 > {
   const apiKey = req.headers.get('x-api-key');
@@ -48,14 +50,14 @@ async function authenticate(req: Request, supabase: ReturnType<typeof createClie
 
 // Stores owned by this merchant (so we can scope buyer history to merchant's own orders).
 async function getMerchantStoreIds(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientAny,
   merchantUserId: string,
 ): Promise<string[]> {
   const { data } = await supabase
     .from('marketplace_stores')
     .select('id')
     .eq('merchant_user_id', merchantUserId);
-  return (data ?? []).map((r: { id: string }) => r.id);
+  return ((data ?? []) as Array<{ id: string }>).map((r) => r.id);
 }
 
 Deno.serve(async (req) => {
