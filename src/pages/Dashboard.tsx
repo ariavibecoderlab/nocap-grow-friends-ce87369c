@@ -78,18 +78,33 @@ const Dashboard = () => {
     }
   }, [user, authLoading, navigate]);
 
+  useEffect(() => {
+    setBalance(0);
+    setProfile(null);
+    setReferralCount(0);
+    setNetworkCount(0);
+    setCashbackEarnings(0);
+    setCommissionEarnings(0);
+    setTransactions([]);
+    setIsMerchant(false);
+    setLoadingData(!!user);
+  }, [user?.id]);
+
   const fetchDashboardData = async () => {
     if (!user) return;
+    const currentUserId = user.id;
     setLoadingData(true);
     const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes, merchantRoleRes] = await Promise.all([
-      supabase.from("wallets").select("balance").eq("user_id", user.id).eq("wallet_type", "member").maybeSingle(),
-      supabase.from("profiles").select("full_name, phone, referral_code, avatar_url, address, has_pin").eq("user_id", user.id).maybeSingle(),
-      supabase.from("referral_tree").select("id", { count: "exact", head: true }).eq("ancestor_id", user.id).eq("tier", 1),
-      supabase.from("referral_tree").select("id", { count: "exact", head: true }).eq("ancestor_id", user.id),
-      supabase.from("transactions").select("amount, type").eq("user_id", user.id).in("type", ["cashback", "commission"]).eq("status", "completed"),
-      supabase.from("transactions").select("id, type, amount, status, description, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
-      supabase.from("user_roles").select("id").eq("user_id", user.id).eq("role", "merchant").maybeSingle()
+      supabase.from("wallets").select("balance").eq("user_id", currentUserId).eq("wallet_type", "member").maybeSingle(),
+      supabase.from("profiles").select("full_name, phone, referral_code, avatar_url, address, has_pin").eq("user_id", currentUserId).maybeSingle(),
+      supabase.from("referral_tree").select("id", { count: "exact", head: true }).eq("ancestor_id", currentUserId).eq("tier", 1),
+      supabase.from("referral_tree").select("id", { count: "exact", head: true }).eq("ancestor_id", currentUserId),
+      supabase.from("transactions").select("amount, type").eq("user_id", currentUserId).in("type", ["cashback", "commission"]).eq("status", "completed"),
+      supabase.from("transactions").select("id, type, amount, status, description, created_at").eq("user_id", currentUserId).order("created_at", { ascending: false }).limit(5),
+      supabase.from("user_roles").select("id").eq("user_id", currentUserId).eq("role", "merchant").maybeSingle()
     ]);
+
+    if (currentUserId !== user.id) return;
 
     const safeWallet = sanitizeNumericObject(walletRes.data, ["balance"], { context: "wallets" });
     if (safeWallet) setBalance(safeWallet.balance);
