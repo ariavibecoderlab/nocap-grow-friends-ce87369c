@@ -155,7 +155,7 @@ curl -X POST "\${BASE_URL}/api-revoke" \\
 ## Endpoints
 
 ### GET /api-balance
-Retrieve the authenticated user's current wallet balance.
+Retrieve the authenticated user's current VA balance.
 
 **Headers:** X-Api-Key, X-Api-Secret, Authorization (Bearer token)
 
@@ -459,7 +459,7 @@ Sandbox mode lets you build and test your entire payment integration in a safe e
 
 **What's different in Sandbox?**
 - Charges are marked **completed** immediately (no pending state)
-- No wallet balance is deducted from users
+- No VA balance is deducted from users
 - Webhooks still fire with realistic payloads
 - A **Test Access Token** is auto-generated — no need to run the OAuth flow
 - All sandbox charges are flagged with \`is_sandbox: true\`
@@ -532,7 +532,7 @@ Set a **Webhook URL** when registering your API application. We send a POST requ
 
 | Reason | Description |
 |---|---|
-| \`INSUFFICIENT_BALANCE\` | User's wallet balance is too low |
+| \`INSUFFICIENT_BALANCE\` | User's VA balance is too low |
 | \`PIN_REQUIRED\` | Transaction requires PIN but none was provided |
 | \`PIN_NOT_SET\` | User hasn't configured a PIN yet |
 | \`INVALID_PIN\` | The PIN provided was incorrect |

@@ -83,7 +83,7 @@ Each test case includes:
 |-------|-------|
 | **Precondition** | User has a verified account |
 | **Steps** | 1. Navigate to `/auth` <br> 2. Enter email and password <br> 3. Click "Log In" |
-| **Expected** | User is redirected to `/dashboard`. Wallet balance is displayed. |
+| **Expected** | User is redirected to `/dashboard`. VA balance is displayed. |
 | **Status** | |
 
 ### TC-AUTH-003: Login with Invalid Credentials
@@ -132,7 +132,7 @@ Each test case includes:
 |-------|-------|
 | **Precondition** | User is logged in as member |
 | **Steps** | 1. Navigate to `/dashboard` |
-| **Expected** | Dashboard displays: wallet balance, recent transactions, quick action buttons (Top Up, Transfer, QR Pay). NoCap logo visible in header. |
+| **Expected** | Dashboard displays: VA balance, recent transactions, quick action buttons (Top Up, Transfer, QR Pay). NoCap logo visible in header. |
 | **Status** | |
 
 ### TC-DASH-002: Quick Actions Navigation
@@ -154,7 +154,7 @@ Each test case includes:
 |-------|-------|
 | **Precondition** | User is logged in |
 | **Steps** | 1. Navigate to `/top-up` <br> 2. Enter amount (e.g., RM 50.00) <br> 3. Click "Top Up" <br> 4. Complete payment via payment gateway |
-| **Expected** | Bill created. User redirected to payment gateway. On success, wallet balance increases by the top-up amount. Transaction appears in history. |
+| **Expected** | Bill created. User redirected to payment gateway. On success, VA balance increases by the top-up amount. Transaction appears in history. |
 | **Status** | |
 
 ### TC-TOPUP-002: Top-Up with Invalid Amount
@@ -1222,8 +1222,8 @@ Each test case includes:
 | Field | Value |
 |-------|-------|
 | **Precondition** | Reversal mode has completed |
-| **Steps** | 1. Trigger `nightly-test-reset` with `?mode=topup` <br> 2. Check test account wallet balance |
-| **Expected** | Test account member wallet balance is exactly RM 1,000.00. A `top_up` transaction with description "Nightly test reset top-up" is recorded. |
+| **Steps** | 1. Trigger `nightly-test-reset` with `?mode=topup` <br> 2. Check test account VA balance |
+| **Expected** | Test account member VA balance is exactly RM 1,000.00. A `top_up` transaction with description "Nightly test reset top-up" is recorded. |
 | **Status** | |
 
 ### TC-RESET-003: Daily Email Report
@@ -1240,7 +1240,7 @@ Each test case includes:
 | Field | Value |
 |-------|-------|
 | **Precondition** | Test account made a payment that generated tier 1-5 commissions |
-| **Steps** | 1. Make a payment as the test user at a merchant branch <br> 2. Verify commissions were distributed to referral ancestors (tier 1-5) <br> 3. Trigger `?mode=reverse` <br> 4. Check each ancestor's wallet balance |
+| **Steps** | 1. Make a payment as the test user at a merchant branch <br> 2. Verify commissions were distributed to referral ancestors (tier 1-5) <br> 3. Trigger `?mode=reverse` <br> 4. Check each ancestor's VA balance |
 | **Expected** | All tier 1-5 commission amounts are debited back from each ancestor's member wallet. Commission reversal transactions created. |
 | **Status** | |
 

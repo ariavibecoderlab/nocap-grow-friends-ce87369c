@@ -80,7 +80,7 @@ curl -X POST "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-orders" 
 
 NoCap provides a REST API that allows third-party applications to:
 
-- **Check user wallet balance** (`balance` scope)
+- **Check user VA balance** (`balance` scope)
 - **Create charges / payments** from a user's wallet (`charge` scope)
 - **Refund** completed charges (full or partial)
 - **List and query** charge history
@@ -289,7 +289,7 @@ curl -X POST https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-charge \
 |---|---|---|
 | 400 | `PIN_REQUIRED` | Amount exceeds threshold — include `pin` field |
 | 400 | `PIN_NOT_SET` | User hasn't configured a PIN yet |
-| 400 | `INSUFFICIENT_BALANCE` | User's wallet balance is too low |
+| 400 | `INSUFFICIENT_BALANCE` | User's VA balance is too low |
 | 403 | `INVALID_PIN` | Wrong PIN provided |
 
 ---
@@ -1447,7 +1447,7 @@ All error responses follow this format:
 | `PIN_REQUIRED` | Amount exceeds threshold | Re-submit with `pin` field |
 | `PIN_NOT_SET` | User has no PIN configured | Prompt user to set PIN in NoCap app |
 | `INVALID_PIN` | Wrong PIN provided | Ask user to retry |
-| `INSUFFICIENT_BALANCE` | Wallet balance too low | Prompt user to top up |
+| `INSUFFICIENT_BALANCE` | VA balance too low | Prompt user to top up |
 
 ---
 
@@ -1459,7 +1459,7 @@ Apps created in **Sandbox mode** skip all balance checks, PIN verification, and 
 
 - Charges complete instantly without deducting real balances
 - Webhooks fire normally (with `is_sandbox: true`)
-- Refunds process without checking branch wallet balance
+- Refunds process without checking branch VA balance
 - Response includes `is_sandbox: true`
 
 ### Quick Test Token
@@ -1557,7 +1557,7 @@ Existing connected members do **NOT** need to disconnect or create new accounts:
 2. **Re-authorization** — The 3rd party system shows a banner: **"Unlock Referral Rewards!"** for members missing the `referral` scope.
 3. **One-Click Upgrade** — Member clicks the banner → redirected to NoCap `/authorize` with `scope=balance,charge,referral` → approves → redirected back.
 4. **Token Swap** — NoCap automatically revokes the old token and issues a new one with all 3 scopes. No conflict errors.
-5. **No Disruption** — Wallet balance, payment history, and all existing features remain intact throughout.
+5. **No Disruption** — VA balance, payment history, and all existing features remain intact throughout.
 
 ---
 

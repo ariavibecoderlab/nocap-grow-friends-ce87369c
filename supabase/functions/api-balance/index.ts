@@ -115,7 +115,7 @@ serve(async (req) => {
       });
     }
 
-    // Get member wallet balance
+    // Get member VA balance
     const { data: wallet } = await supabase
       .from('wallets')
       .select('balance')

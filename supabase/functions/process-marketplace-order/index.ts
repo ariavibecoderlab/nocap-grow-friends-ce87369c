@@ -275,7 +275,7 @@ serve(async (req) => {
       await supabase.from('profiles').update({ pin_attempts: 0, pin_locked_until: null }).eq('user_id', buyerId);
     }
 
-    // ── 7. Check wallet balance ──
+    // ── 7. Check VA balance ──
     const { data: buyerWallet } = await supabase
       .from('wallets').select('balance')
       .eq('user_id', buyerId).eq('wallet_type', 'member').single();

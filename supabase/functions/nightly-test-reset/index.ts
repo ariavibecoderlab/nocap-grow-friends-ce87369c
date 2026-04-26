@@ -460,7 +460,7 @@ async function sendDailyReport(supabase: any, userId: string) {
     if (related) downstreamTxs = downstreamTxs.concat(related);
   }
 
-  // Get wallet balance
+  // Get VA balance
   const { data: wallet } = await supabase
     .from('wallets')
     .select('balance')
@@ -551,7 +551,7 @@ async function sendDailyReport(supabase: any, userId: string) {
             <td style="padding: 10px 0; text-align: right;">${commissions.length} — ${formatRM(commissions.reduce((s: number, t: any) => s + Number(t.amount), 0))}</td>
           </tr>
           <tr>
-            <td style="padding: 10px 0; color: #222; font-weight: 700;">Final Wallet Balance</td>
+            <td style="padding: 10px 0; color: #222; font-weight: 700;">Final VA Balance</td>
             <td style="padding: 10px 0; text-align: right; font-weight: 700; font-size: 18px; color: #2dac76;">${formatRM(balance)}</td>
           </tr>
         </table>
