@@ -22,7 +22,7 @@ const navItems = [
   { title: "Transactions", url: "/admin-portal/transactions", icon: ArrowLeftRight },
   { title: "API Apps", url: "/admin-portal/api-apps", icon: Code },
   { title: "Audit", url: "/admin-portal/audit", icon: ShieldCheck },
-  { title: "Wallet Credits", url: "/admin-portal/wallet-credit-audit", icon: WalletCards },
+  { title: "VA Credits", url: "/admin-portal/wallet-credit-audit", icon: WalletCards },
   { title: "Distribution Audit", url: "/admin-portal/distribution-audit", icon: Activity },
   { title: "Referral Tree", url: "/admin-portal/referral-tree", icon: GitBranch },
 ];

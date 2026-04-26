@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, Search, WalletCards, X } from "lucide-react";
+import { Download, RefreshCw, Search, WalletCards, X } from "lucide-react";
 import { formatRM } from "@/lib/currency";
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
@@ -36,6 +36,17 @@ const formatDateTime = (value: string) =>
     second: "2-digit",
     hour12: true,
   });
+
+const formatVaText = (value: string | null | undefined) =>
+  (value ?? "")
+    .replace(/Wallet Balance/g, "VA Balance")
+    .replace(/Wallet balance/g, "VA balance")
+    .replace(/wallet balance/g, "VA balance")
+    .replace(/Wallet Credit/g, "VA Credit")
+    .replace(/Wallet credit/g, "VA credit")
+    .replace(/wallet credit/g, "VA credit");
+
+const csvCell = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
 
 const WalletCreditAudit = () => {
   const [search, setSearch] = useState("");
@@ -122,17 +133,46 @@ const WalletCreditAudit = () => {
   const adminCreditCount = filteredRows.filter((row) => row.isAdminCredit).length;
   const matchedCount = filteredRows.filter((row) => row.audit).length;
 
+  const exportCsv = () => {
+    const header = ["Transaction ID", "Timestamp", "Type", "Amount", "VA Balance Before", "VA Balance After", "User ID", "VA Wallet ID", "Description"];
+    const rows = filteredRows.map(({ transaction, audit, isAdminCredit }) => [
+      transaction.id,
+      formatDateTime(audit?.changed_at ?? transaction.created_at),
+      isAdminCredit ? "Admin credit" : "Top-up",
+      Number(transaction.amount).toFixed(2),
+      audit ? Number(audit.old_balance).toFixed(2) : "",
+      audit ? Number(audit.new_balance).toFixed(2) : "",
+      transaction.user_id,
+      audit?.wallet_id ?? "unmatched",
+      formatVaText(transaction.description),
+    ]);
+    const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "va-credit-audit.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-4 mt-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-foreground">Wallet Credit Audit Trail</h2>
-          <p className="text-sm text-muted-foreground">Completed top-ups and manual admin wallet credits with transaction IDs and balance movement.</p>
+          <h2 className="text-xl font-semibold text-foreground">VA Credit Audit Trail</h2>
+          <p className="text-sm text-muted-foreground">Completed top-ups and manual admin VA credits with transaction IDs and VA Balance movement.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={!filteredRows.length}>
+            <Download className="h-4 w-4 mr-2" />
+            CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -144,7 +184,7 @@ const WalletCreditAudit = () => {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search transaction ID, user ID, wallet ID, amount..."
+          placeholder="Search transaction ID, user ID, VA wallet ID, amount..."
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           className="pl-9 pr-9"
@@ -157,9 +197,9 @@ const WalletCreditAudit = () => {
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading wallet credit audit trail...</p>
+        <p className="text-sm text-muted-foreground">Loading VA credit audit trail...</p>
       ) : !filteredRows.length ? (
-        <Card className="border-border bg-card/70"><CardContent className="py-8 text-center"><WalletCards className="mx-auto mb-2 h-8 w-8 text-muted-foreground" /><p className="text-sm text-muted-foreground">No wallet credits found.</p></CardContent></Card>
+        <Card className="border-border bg-card/70"><CardContent className="py-8 text-center"><WalletCards className="mx-auto mb-2 h-8 w-8 text-muted-foreground" /><p className="text-sm text-muted-foreground">No VA credits found.</p></CardContent></Card>
       ) : (
         <div className="overflow-hidden rounded-md border border-border">
           <Table>
@@ -169,9 +209,9 @@ const WalletCreditAudit = () => {
                 <TableHead>Timestamp</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-right">Before</TableHead>
-                <TableHead className="text-right">After</TableHead>
-                <TableHead>User / Wallet</TableHead>
+                <TableHead className="text-right">VA Balance Before</TableHead>
+                <TableHead className="text-right">VA Balance After</TableHead>
+                <TableHead>User / VA Wallet</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -187,7 +227,7 @@ const WalletCreditAudit = () => {
                   <TableCell className="text-right tabular-nums">{audit ? formatRM(audit.new_balance) : "—"}</TableCell>
                   <TableCell className="max-w-[220px] space-y-1 text-xs">
                     <p className="font-mono text-muted-foreground truncate">User: {transaction.user_id}</p>
-                    <p className="font-mono text-muted-foreground truncate">Wallet: {audit?.wallet_id ?? "unmatched"}</p>
+                    <p className="font-mono text-muted-foreground truncate">VA Wallet: {audit?.wallet_id ?? "unmatched"}</p>
                   </TableCell>
                 </TableRow>
               ))}

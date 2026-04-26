@@ -152,7 +152,7 @@ const WalletReconciliation = () => {
                   <TableRow className="border-white/10 hover:bg-transparent">
                     <TableHead className="text-white/50 text-xs">User ID</TableHead>
                     <TableHead className="text-white/50 text-xs">Type</TableHead>
-                    <TableHead className="text-white/50 text-xs text-right">Wallet</TableHead>
+                    <TableHead className="text-white/50 text-xs text-right">VA Balance</TableHead>
                     <TableHead className="text-white/50 text-xs text-right">Computed</TableHead>
                     <TableHead className="text-white/50 text-xs text-right">Drift</TableHead>
                   </TableRow>
