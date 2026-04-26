@@ -5,6 +5,8 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
+type SupabaseClientAny = ReturnType<typeof createClient<any, 'public', any>>;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key, x-api-secret',
@@ -26,7 +28,7 @@ interface AppRow {
   api_secret_hash: string;
 }
 
-async function authenticate(req: Request, supabase: ReturnType<typeof createClient>): Promise<
+async function authenticate(req: Request, supabase: SupabaseClientAny): Promise<
   { ok: true; app: AppRow } | { ok: false; status: number; error: string }
 > {
   const apiKey = req.headers.get('x-api-key');
@@ -47,7 +49,7 @@ async function authenticate(req: Request, supabase: ReturnType<typeof createClie
 }
 
 // Best-effort cleanup of expired holds before computing availability.
-async function expireOldHolds(supabase: ReturnType<typeof createClient>, productId: string) {
+async function expireOldHolds(supabase: SupabaseClientAny, productId: string) {
   await supabase
     .from('inventory_reservations')
     .update({ status: 'expired', released_at: new Date().toISOString() })
@@ -57,7 +59,7 @@ async function expireOldHolds(supabase: ReturnType<typeof createClient>, product
 }
 
 async function computeAvailable(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClientAny,
   productId: string,
   variantId: string | null,
 ): Promise<{ available: number; baseStock: number } | { error: string }> {
@@ -76,8 +78,9 @@ async function computeAvailable(
       .eq('variant_id', variantId)
       .eq('status', 'active')
       .gt('expires_at', new Date().toISOString());
-    const held = (holds ?? []).reduce((s, r: { quantity: number }) => s + r.quantity, 0);
-    return { available: Math.max(0, v.stock_quantity - held), baseStock: v.stock_quantity };
+    const held = ((holds ?? []) as Array<{ quantity: number }>).reduce((s, r) => s + Number(r.quantity || 0), 0);
+    const baseStock = Number((v as { stock_quantity: number }).stock_quantity || 0);
+    return { available: Math.max(0, baseStock - held), baseStock };
   }
 
   const { data: p } = await supabase
@@ -94,8 +97,9 @@ async function computeAvailable(
     .is('variant_id', null)
     .eq('status', 'active')
     .gt('expires_at', new Date().toISOString());
-  const held = (holds ?? []).reduce((s, r: { quantity: number }) => s + r.quantity, 0);
-  return { available: Math.max(0, p.stock_quantity - held), baseStock: p.stock_quantity };
+  const held = ((holds ?? []) as Array<{ quantity: number }>).reduce((s, r) => s + Number(r.quantity || 0), 0);
+  const baseStock = Number((p as { stock_quantity: number }).stock_quantity || 0);
+  return { available: Math.max(0, baseStock - held), baseStock };
 }
 
 Deno.serve(async (req) => {
