@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/contexts/CartContext";
 import { supabase } from "@/integrations/supabase/client";
+import { TERMINOLOGY } from "@/lib/constants";
 import { invalidateOnDownlineImpact } from "@/lib/referralCache";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -171,7 +172,7 @@ const Checkout = () => {
     }
     if (items.length === 0) return;
     if (balance < grandTotal) {
-      toast({ title: "Insufficient VA Balance", description: `You need RM ${grandTotal.toFixed(2)} but your VA Balance is RM ${balance.toFixed(2)}`, variant: "destructive" });
+      toast({ title: TERMINOLOGY.insufficientVaBalance, description: `You need RM ${grandTotal.toFixed(2)} but your ${TERMINOLOGY.vaBalance} is RM ${balance.toFixed(2)}`, variant: "destructive" });
       return;
     }
 
@@ -389,7 +390,7 @@ const Checkout = () => {
         <Card className="border-secondary/20 bg-secondary/10">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-white/50">VA Balance</p>
+              <p className="text-xs text-white/50">{TERMINOLOGY.vaBalance}</p>
               <p className="font-display text-lg font-bold text-secondary">RM {balance.toFixed(2)}</p>
             </div>
             {balance < grandTotal && (

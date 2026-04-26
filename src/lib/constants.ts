@@ -19,3 +19,11 @@ export const MALAYSIAN_BANKS = [
 ] as const;
 
 export type MalaysianBank = (typeof MALAYSIAN_BANKS)[number];
+
+export const TERMINOLOGY = {
+  vaBalance: "VA Balance",
+  yourVaBalance: "Your VA Balance",
+  newVaBalance: "New VA Balance",
+  vaBalanceAfterPayment: "VA Balance After Payment",
+  insufficientVaBalance: "Insufficient VA Balance",
+} as const;

@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
 import { Loader2, Wallet, Clock, CheckCircle2, XCircle, ArrowDownToLine, ArrowLeft, Share2, FileText } from "lucide-react";
 import { shareWithdrawalReceipt, downloadWithdrawalReceipt } from "@/lib/generateWithdrawalReceiptPdf";
-import { MALAYSIAN_BANKS } from "@/lib/constants";
+import { MALAYSIAN_BANKS, TERMINOLOGY } from "@/lib/constants";
 
 interface WithdrawalRequest {
   id: string;
@@ -165,7 +165,7 @@ const Withdraw = () => {
         <Card className="border-secondary/20 bg-secondary/10">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-white/40">VA Balance</p>
+              <p className="text-xs text-white/40">{TERMINOLOGY.vaBalance}</p>
               <p className="text-xl font-bold font-display text-white">RM {walletBalance.toFixed(2)}</p>
             </div>
             <Button size="sm" onClick={() => setShowForm(true)} disabled={hasPending} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90 font-semibold">
