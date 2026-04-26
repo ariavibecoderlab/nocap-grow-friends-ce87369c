@@ -108,7 +108,7 @@ const Dashboard = () => {
     if (!user) return;
     fetchDashboardData();
 
-    // Realtime: auto-refresh wallet balance & transactions on changes
+    // Realtime: auto-refresh VA balance & transactions on changes
     const walletChannel = supabase
       .channel("dashboard-wallet")
       .on(
@@ -229,7 +229,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-white/50">
                 <Wallet className="h-4 w-4" />
-                <span>Wallet Balance</span>
+                <span>VA Balance</span>
               </div>
               <button onClick={() => setShowBalance(!showBalance)} className="text-white/50 hover:text-white transition-colors">
                 {showBalance ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}

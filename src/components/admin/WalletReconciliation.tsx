@@ -141,7 +141,7 @@ const WalletReconciliation = () => {
             <Card className="border-white/10 bg-white/5">
               <CardContent className="py-6 text-center">
                 <ShieldCheck className="h-8 w-8 text-secondary mx-auto mb-2" />
-                <p className="text-white/70 text-sm">All member wallet balances match transaction records.</p>
+                <p className="text-white/70 text-sm">All member VA balances match transaction records.</p>
                 <p className="text-white/30 text-xs mt-1">No drift detected</p>
               </CardContent>
             </Card>

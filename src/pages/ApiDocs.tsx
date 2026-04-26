@@ -620,7 +620,7 @@ const ApiDocs = () => {
                     <p className="text-xs text-primary font-semibold mb-1">✅ What's different in Sandbox?</p>
                     <ul className="text-xs text-muted-foreground list-disc pl-5 space-y-1">
                       <li>Charges are marked <strong>completed</strong> immediately (no pending state)</li>
-                      <li>No wallet balance is deducted from users</li>
+                      <li>No VA balance is deducted from users</li>
                       <li>Webhooks still fire with realistic payloads</li>
                       <li>A <strong>Test Access Token</strong> is auto-generated — no need to run the OAuth flow</li>
                       <li>All sandbox charges are flagged with <code className="font-mono text-primary">is_sandbox: true</code></li>
@@ -1210,7 +1210,7 @@ curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-customers?id=<uu
                     <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 text-xs font-bold rounded">GET</span>
                     <CardTitle className="text-lg">/api-balance</CardTitle>
                   </div>
-                  <CardDescription>Retrieve the authenticated user's current wallet balance.</CardDescription>
+                  <CardDescription>Retrieve the authenticated user's current VA balance.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <h4 className="text-sm font-semibold">Request Example:</h4>
@@ -2191,7 +2191,7 @@ curl "https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-customers?id=<uu
                       <tbody className="text-muted-foreground">
                         <tr className="border-b border-border/50">
                           <td className="py-2 pr-4 font-mono text-xs text-destructive">INSUFFICIENT_BALANCE</td>
-                          <td className="py-2">User's wallet balance is too low for this charge.</td>
+                          <td className="py-2">User's VA balance is too low for this charge.</td>
                         </tr>
                         <tr className="border-b border-border/50">
                           <td className="py-2 pr-4 font-mono text-xs text-destructive">PIN_REQUIRED</td>

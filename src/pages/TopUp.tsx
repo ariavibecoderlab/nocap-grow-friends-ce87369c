@@ -46,7 +46,7 @@ const TopUp = () => {
         if (data) setBalance(Number(data.balance));
       });
 
-    // Realtime wallet balance updates (auto-refresh after payment completes)
+    // Realtime VA balance updates (auto-refresh after payment completes)
     const channel = supabase
       .channel("topup-wallet")
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` },
@@ -128,7 +128,7 @@ const TopUp = () => {
             </div>
             <h1 className="font-display text-2xl font-bold text-white">Payment Submitted!</h1>
             <p className="mt-2 text-sm text-white/50 max-w-xs">
-              Your top-up is being processed. Your wallet balance will be updated once the payment is confirmed.
+              Your top-up is being processed. Your VA balance will be updated once the payment is confirmed.
             </p>
             <Button className="mt-8 bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => navigate("/dashboard")}>
               Back to Dashboard

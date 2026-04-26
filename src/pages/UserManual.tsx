@@ -78,7 +78,7 @@ const sections = [
 
 **Dashboard Elements:**
 - **Welcome Header** — Shows your name, avatar, and notification bell
-- **Wallet Balance Card** — Displays your current balance with show/hide toggle
+- **VA Balance Card** — Displays your current balance with show/hide toggle
 - **Quick Actions** — 4 buttons: Pay, Top Up, Transfer, Referral
 - **Referral Stats** — Direct referrals, total network, cashback earned, commission earned
 - **Spending Analytics Link** — Navigate to detailed charts and breakdowns
@@ -106,7 +106,7 @@ Your balance and transactions update in real-time — no need to refresh!`,
 3. Click **Top Up** to proceed
 4. You'll be redirected to the payment gateway (FPX / Online Banking)
 5. Complete the payment with your bank
-6. Upon success, your wallet balance updates instantly
+6. Upon success, your VA balance updates instantly
 
 **Important Notes:**
 - Minimum and maximum top-up amounts may apply
@@ -127,7 +127,7 @@ Your balance and transactions update in real-time — no need to refresh!`,
 6. Tap **Confirm Payment**
 
 **After Payment:**
-- Your wallet balance is deducted immediately
+- Your VA balance is deducted immediately
 - You earn cashback (credited automatically)
 - The merchant's branch wallet is credited
 - Commission is distributed through your referral chain (up to 5 tiers)
@@ -229,7 +229,7 @@ When you authorize a third-party app via OAuth, it gains access to specific scop
       {
         id: "marketplace-overview",
         title: "Marketplace Overview",
-        content: `The NOcap Marketplace lets you browse and buy products from merchant stores, paying directly from your wallet balance.
+        content: `The NOcap Marketplace lets you browse and buy products from merchant stores, paying directly from your VA balance.
 
 **Key Features:**
 - 🛍️ **Product-First Discovery** — Browse all products across all stores in one place
@@ -323,7 +323,7 @@ When you authorize a third-party app via OAuth, it gains access to specific scop
 **Important Notes:**
 - All items in a single cart must be from the same store
 - Discount codes are store-specific
-- Insufficient wallet balance will prevent checkout`
+- Insufficient VA balance will prevent checkout`
       },
       {
         id: "marketplace-orders",
@@ -649,7 +649,7 @@ From the Merchant Dashboard, go to the **Shop** tab to manage your marketplace p
 | Feature | Description |
 |---------|-------------|
 | **Branch Selector** | Switch between branches if you own multiple |
-| **Wallet Balance** | View the branch's current balance |
+| **VA Balance** | View the branch's current balance |
 | **Sales Summary** | Daily, weekly, and monthly sales totals |
 | **Transaction Search** | Search and filter branch transactions |
 | **QR Code Management** | View static QR, create/manage dynamic QRs |
@@ -712,7 +712,7 @@ From the Merchant Dashboard, go to the **Shop** tab to manage your marketplace p
         id: "api-overview",
         title: "API Overview",
         content: `**NOcap REST API** allows third-party applications to:
-- Check user wallet balances
+- Check user VA balances
 - Create charges from user wallets
 - Process refunds
 - Query charge history
@@ -776,7 +776,7 @@ Response includes access_token valid for 90 days.
 **Available Scopes:**
 | Scope | Allows |
 |-------|--------|
-| balance | Read user's wallet balance |
+| balance | Read user's VA balance |
 | charge | Create charges, refunds, view charge history |`
       },
       {
@@ -786,7 +786,7 @@ Response includes access_token valid for 90 days.
 
 | Method | Endpoint | Scope | Description |
 |--------|----------|-------|-------------|
-| GET | /api-balance | balance | Check user's wallet balance |
+| GET | /api-balance | balance | Check user's VA balance |
 | POST | /api-charge | charge | Create a charge from user's wallet |
 | GET | /api-charge-status | — | Check charge status by charge_id |
 | GET | /api-charges-list | charge | List charges with pagination & filters |
@@ -818,7 +818,7 @@ Response includes access_token valid for 90 days.
 **Failure Reason Codes:**
 | Code | Description |
 |------|-------------|
-| INSUFFICIENT_BALANCE | User's wallet balance is too low |
+| INSUFFICIENT_BALANCE | User's VA balance is too low |
 | PIN_REQUIRED | Transaction requires PIN but none provided |
 | PIN_NOT_SET | User hasn't configured a PIN yet |
 | INVALID_PIN | The PIN provided was incorrect |
@@ -907,7 +907,7 @@ When the nightly reset runs, it traces every transaction's \`reference_id\` chai
 
 **Daily Email Report:**
 After the reset, a formatted HTML email is sent to the test account containing:
-- **Summary**: Date, total transactions reversed, amounts by type, final wallet balance
+- **Summary**: Date, total transactions reversed, amounts by type, final VA balance
 - **Detail table**: Every reversed transaction with time, type, amount, description, and status
 
 **Safety Measures:**
@@ -977,7 +977,7 @@ A: Yes! NOcap is a responsive web app that works on both mobile and desktop brow
 A: You'll be redirected to the login page. Simply log in again with your email.
 
 **Q: How do I buy from the Marketplace?**
-A: Browse products, add to cart, enter shipping details at checkout, and pay with your wallet balance. You'll receive cashback on marketplace purchases too!
+A: Browse products, add to cart, enter shipping details at checkout, and pay with your VA balance. You'll receive cashback on marketplace purchases too!
 
 **Q: Can I return a marketplace purchase?**
 A: Contact the merchant directly. If they issue a refund, the amount is returned to your wallet.
@@ -996,7 +996,7 @@ const screenshotDescriptions: Record<string, { alt: string; caption: string }> =
   },
   "dashboard": {
     alt: "NOcap Member Dashboard",
-    caption: "Member dashboard showing wallet balance, quick actions, referral stats, and recent activity"
+    caption: "Member dashboard showing VA balance, quick actions, referral stats, and recent activity"
   }
 };
 

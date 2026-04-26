@@ -131,7 +131,7 @@ export function generateApiGuidePdf() {
 
   // --- Overview ---
   heading("1. Overview");
-  paragraph("NoCap provides a REST API that allows third-party applications to check user wallet balances, create charges from user wallets, process refunds, query charge history, initiate wallet top-ups via FPX, trigger cashback & commission distributions, and access referral/affiliate features. All access is secured via OAuth 2.0 Authorization Code flow.");
+  paragraph("NoCap provides a REST API that allows third-party applications to check user VA balances, create charges from user wallets, process refunds, query charge history, initiate wallet top-ups via FPX, trigger cashback & commission distributions, and access referral/affiliate features. All access is secured via OAuth 2.0 Authorization Code flow.");
 
   subheading("Credentials");
   tableRow(["Credential", "Purpose"], true);
@@ -271,7 +271,7 @@ export function generateApiGuidePdf() {
   // --- Payment Flow Comparison ---
   heading("3e. Payment Flow Comparison");
   paragraph("Path A (Wallet Payment): Customer pays from their NoCap wallet via POST /api-charge. Requires OAuth connection with charge scope. Commission distribution is automatic — built into the charge flow.");
-  paragraph("Path D (Cash/Card + Distribution): Customer pays via cash, card, or other method outside NoCap. The 3rd party records the sale and calls POST /api-distribute to trigger cashback and commissions. No OAuth connection or wallet balance needed from the customer — only their referral code or user_id.");
+  paragraph("Path D (Cash/Card + Distribution): Customer pays via cash, card, or other method outside NoCap. The 3rd party records the sale and calls POST /api-distribute to trigger cashback and commissions. No OAuth connection or VA balance needed from the customer — only their referral code or user_id.");
   paragraph("Key Difference: Path A moves money from the customer's wallet. Path D only distributes commissions from the branch wallet — no customer funds are touched.");
 
   // --- Referral / Affiliate Endpoints ---
@@ -493,7 +493,7 @@ export function generateApiGuidePdf() {
   paragraph("2. Re-authorization — The 3rd party system shows a banner: 'Unlock Referral Rewards!' for members missing the referral scope.");
   paragraph("3. One-Click Upgrade — Member clicks the banner → redirected to NoCap /authorize with scope=balance,charge,referral → approves → redirected back.");
   paragraph("4. Token Swap — NoCap automatically revokes the old token and issues a new one with all 3 scopes. No conflict errors.");
-  paragraph("5. No Disruption — Wallet balance, payment history, and all existing features remain intact throughout.");
+  paragraph("5. No Disruption — VA balance, payment history, and all existing features remain intact throughout.");
 
   // --- Updated Prompts ---
   heading("13. Integration Prompts (1–13)");

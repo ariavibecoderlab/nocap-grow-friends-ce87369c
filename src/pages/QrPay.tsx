@@ -78,7 +78,7 @@ const QrPay = () => {
       if (pinSettingRes.data) setMinPinAmount(Number(pinSettingRes.data.value));
     });
 
-    // Realtime wallet balance updates
+    // Realtime VA balance updates
     const channel = supabase
       .channel("qrpay-wallet")
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` },
@@ -377,7 +377,7 @@ const QrPay = () => {
               <CardContent className="flex items-center gap-3 p-4">
                 <Wallet className="h-5 w-5 text-white/50" />
                 <div>
-                  <p className="text-xs text-white/50">Wallet Balance</p>
+                  <p className="text-xs text-white/50">VA Balance</p>
                   <p className="font-display text-lg font-bold text-secondary">RM {balance.toFixed(2)}</p>
                 </div>
               </CardContent>

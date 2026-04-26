@@ -61,7 +61,7 @@ const MerchantWithdrawals = ({ userId, branchId, branchBalance, branchName }: Pr
   const fetchData = async () => {
     setLoading(true);
     // Per-branch scope: history list and committed totals are filtered by branch_id.
-    // Available Balance = live branch wallet balance (already nets out paid-out funds).
+    // Available Balance = live branch VA balance (already nets out paid-out funds).
     // Total Sales (lifetime credited to this branch) = current balance + approved + settled withdrawals.
     const [{ data: wr }, { data: committed }, { data: app }, { data: globalSettings }] = await Promise.all([
       supabase
