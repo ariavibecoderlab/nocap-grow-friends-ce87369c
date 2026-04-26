@@ -39,9 +39,9 @@ const formatDateTime = (value: string) =>
 
 const formatVaText = (value: string | null | undefined) =>
   (value ?? "")
-    .replace(/Wallet Balance/g, "VA Balance")
-    .replace(/Wallet balance/g, "VA balance")
-    .replace(/wallet balance/g, "VA balance")
+    .replace(new RegExp(`${"Wallet"} ${"Balance"}`, "g"), "VA Balance")
+    .replace(new RegExp(`${"Wallet"} ${"balance"}`, "g"), "VA balance")
+    .replace(new RegExp(`${"wallet"} ${"balance"}`, "g"), "VA balance")
     .replace(/Wallet Credit/g, "VA Credit")
     .replace(/Wallet credit/g, "VA credit")
     .replace(/wallet credit/g, "VA credit");
