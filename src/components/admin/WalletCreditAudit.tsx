@@ -11,7 +11,18 @@ import { Download, RefreshCw, Search, WalletCards, X } from "lucide-react";
 import { formatRM } from "@/lib/currency";
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
-type WalletAudit = Database["public"]["Tables"]["wallet_balance_audit"]["Row"];
+type WalletAudit = {
+  id: string;
+  wallet_id: string;
+  user_id: string;
+  wallet_type: string;
+  branch_id: string | null;
+  old_balance: number;
+  new_balance: number;
+  delta: number;
+  changed_at: string;
+  changed_by: string | null;
+};
 
 type CreditAuditRow = {
   transaction: Transaction;
@@ -67,8 +78,7 @@ const WalletCreditAudit = () => {
           .eq("status", "completed")
           .order("created_at", { ascending: false })
           .limit(300),
-        supabase
-          .from("wallet_balance_audit")
+        (supabase.from as any)("va_balance_audit")
           .select("*")
           .eq("wallet_type", "member")
           .gt("delta", 0)
@@ -80,7 +90,7 @@ const WalletCreditAudit = () => {
       if (auditRes.error) throw auditRes.error;
 
       const usedAuditIds = new Set<string>();
-      const audits = (auditRes.data ?? []).sort(
+      const audits = ((auditRes.data ?? []) as WalletAudit[]).sort(
         (a, b) => new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
       );
 
