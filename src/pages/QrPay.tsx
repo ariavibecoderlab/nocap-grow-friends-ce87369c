@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateOnDownlineImpact } from "@/lib/referralCache";
+import { TERMINOLOGY } from "@/lib/constants";
 import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { Html5Qrcode } from "html5-qrcode";
@@ -41,12 +42,12 @@ interface DynamicQr {
 
 const formatVaMessage = (message: string) =>
   message
-    .replace(new RegExp(`${"Wallet"} ${"Balance"}`, "g"), "VA Balance")
+    .replace(new RegExp(`${"Wallet"} ${"Balance"}`, "g"), TERMINOLOGY.vaBalance)
     .replace(new RegExp(`${"Wallet"} ${"balance"}`, "g"), "VA balance")
     .replace(new RegExp(`${"wallet"} ${"balance"}`, "g"), "VA balance")
-    .replace(/Your balance/g, "Your VA Balance")
+    .replace(/Your balance/g, TERMINOLOGY.yourVaBalance)
     .replace(/your balance/g, "your VA Balance")
-    .replace(/New Balance/g, "New VA Balance")
+    .replace(/New Balance/g, TERMINOLOGY.newVaBalance)
     .replace(/new balance/g, "new VA Balance");
 
 const QrPay = () => {
