@@ -145,7 +145,7 @@ const BranchDashboard = () => {
     fetchData();
   }, [user]);
 
-  // Fetch branch-specific transactions for sales stats + branch wallet balance
+  // Fetch branch-specific transactions for sales stats + branch VA balance
   useEffect(() => {
     if (!selectedBranch || !user) return;
     const fetchSales = async () => {

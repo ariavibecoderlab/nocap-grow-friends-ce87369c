@@ -165,7 +165,7 @@ const Withdraw = () => {
         <Card className="border-secondary/20 bg-secondary/10">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-white/40">Wallet Balance</p>
+              <p className="text-xs text-white/40">VA Balance</p>
               <p className="text-xl font-bold font-display text-white">RM {walletBalance.toFixed(2)}</p>
             </div>
             <Button size="sm" onClick={() => setShowForm(true)} disabled={hasPending} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90 font-semibold">

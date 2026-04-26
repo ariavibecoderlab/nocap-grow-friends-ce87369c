@@ -62,7 +62,7 @@ const Transfer = () => {
       if (pinSettingRes.data) setMinPinAmount(Number(pinSettingRes.data.value));
     });
 
-    // Realtime wallet balance updates
+    // Realtime VA balance updates
     const channel = supabase
       .channel("transfer-wallet")
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` },

@@ -194,7 +194,7 @@ export const journeys: Journey[] = [
         icon: Wallet,
         nextGuide: "customer-chat-reviews",
         steps: [
-          { title: "Check your merchant wallet", description: "Your wallet balance shows the total available for withdrawal. This includes completed order revenue minus platform fees." },
+          { title: "Check your merchant wallet", description: "Your VA balance shows the total available for withdrawal. This includes completed order revenue minus platform fees." },
           { title: "Request a withdrawal", description: "Go to the Withdrawals tab and click 'New Withdrawal'. Enter the amount you want to cash out.", tip: "There's a minimum withdrawal amount. Check your settings for the current threshold." },
           { title: "Confirm bank details", description: "Verify your bank account information is correct. Withdrawals go to the bank account registered during merchant setup." },
           { title: "Submit for approval", description: "Your withdrawal request is submitted to an administrator for approval. You'll be notified once it's processed." },

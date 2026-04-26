@@ -40,7 +40,7 @@ const testModules: TestModule[] = [
     id: "auth", title: "Authentication & Onboarding", icon: LogIn,
     cases: [
       { id: "TC-AUTH-001", title: "New User Sign Up", precondition: "User has no existing account", steps: ["Navigate to /auth", "Click Continue with email", "Enter referral code when prompted", "Click Create Account & Send OTP", "Enter OTP from email", "Click Verify & Continue"], expected: "Account created. OTP verified. User redirected to dashboard.", status: "untested", notes: "" },
-      { id: "TC-AUTH-002", title: "Login with OTP", precondition: "User has a verified account", steps: ["Navigate to /auth", "Enter registered email", "Click Continue", "Enter 6-digit OTP from email", "Click Verify & Continue"], expected: "User redirected to /dashboard. Wallet balance displayed.", status: "untested", notes: "" },
+      { id: "TC-AUTH-002", title: "Login with OTP", precondition: "User has a verified account", steps: ["Navigate to /auth", "Enter registered email", "Click Continue", "Enter 6-digit OTP from email", "Click Verify & Continue"], expected: "User redirected to /dashboard. VA balance displayed.", status: "untested", notes: "" },
       { id: "TC-AUTH-003", title: "Login with Password", precondition: "User has set a password", steps: ["Navigate to /auth", "Enter email, click Continue", "Click 'Sign in with password instead'", "Enter password", "Click Sign In"], expected: "User redirected to /dashboard.", status: "untested", notes: "" },
       { id: "TC-AUTH-004", title: "Invalid OTP", precondition: "OTP sent to user", steps: ["Enter incorrect OTP code", "Click Verify"], expected: "Error toast: 'Invalid OTP'. User remains on OTP screen.", status: "untested", notes: "" },
       { id: "TC-AUTH-005", title: "Logout", precondition: "User is logged in", steps: ["Navigate to Profile", "Click Sign Out"], expected: "User redirected to landing page. Session cleared.", status: "untested", notes: "" },
@@ -50,7 +50,7 @@ const testModules: TestModule[] = [
   {
     id: "dashboard", title: "Member Dashboard", icon: LayoutDashboard,
     cases: [
-      { id: "TC-DASH-001", title: "View Dashboard", precondition: "User is logged in as member", steps: ["Navigate to /dashboard"], expected: "Dashboard displays: wallet balance, recent transactions, quick action buttons.", status: "untested", notes: "" },
+      { id: "TC-DASH-001", title: "View Dashboard", precondition: "User is logged in as member", steps: ["Navigate to /dashboard"], expected: "Dashboard displays: VA balance, recent transactions, quick action buttons.", status: "untested", notes: "" },
       { id: "TC-DASH-002", title: "Quick Actions Navigation", precondition: "User is on dashboard", steps: ["Click Pay → verify /qr-pay", "Click Top Up → verify /top-up", "Click Transfer → verify /transfer", "Click Referral → verify /referral"], expected: "Each button navigates to the correct page.", status: "untested", notes: "" },
       { id: "TC-DASH-003", title: "Balance Show/Hide Toggle", precondition: "User on dashboard", steps: ["Click the eye icon next to balance"], expected: "Balance toggles between visible (RM X.XX) and hidden (RM ••••••).", status: "untested", notes: "" },
     ]
@@ -58,7 +58,7 @@ const testModules: TestModule[] = [
   {
     id: "topup", title: "Wallet Top-Up", icon: Wallet,
     cases: [
-      { id: "TC-TOPUP-001", title: "Initiate Top-Up", precondition: "User is logged in", steps: ["Navigate to /top-up", "Enter amount (e.g., RM 50.00)", "Click Top Up", "Complete payment via gateway"], expected: "Bill created. Wallet balance increases. Transaction in history.", status: "untested", notes: "" },
+      { id: "TC-TOPUP-001", title: "Initiate Top-Up", precondition: "User is logged in", steps: ["Navigate to /top-up", "Enter amount (e.g., RM 50.00)", "Click Top Up", "Complete payment via gateway"], expected: "Bill created. VA balance increases. Transaction in history.", status: "untested", notes: "" },
       { id: "TC-TOPUP-002", title: "Invalid Amount", precondition: "User is logged in", steps: ["Navigate to /top-up", "Enter 0 or negative amount", "Try to submit"], expected: "Validation error. Form does not submit.", status: "untested", notes: "" },
     ]
   },
@@ -152,9 +152,9 @@ const testModules: TestModule[] = [
     id: "nightly-reset", title: "Nightly Test Reset", icon: Database,
     cases: [
       { id: "TC-RESET-001", title: "Reverse All Test Transactions", precondition: "Test account (azarul@brainybunch.com) has completed transactions today", steps: ["Trigger nightly-test-reset with ?mode=reverse", "Verify all payment transactions are reversed", "Verify branch wallets debited back", "Verify cashback and commissions reversed", "Verify admin platform fees reversed"], expected: "All financial impacts from today's test transactions are fully reversed. Audit trail created.", status: "untested", notes: "" },
-      { id: "TC-RESET-002", title: "Top Up After Reset", precondition: "Reversal mode completed", steps: ["Trigger nightly-test-reset with ?mode=topup", "Check test account wallet balance"], expected: "Test account wallet balance is exactly RM 1,000.00. Top-up transaction recorded.", status: "untested", notes: "" },
+      { id: "TC-RESET-002", title: "Top Up After Reset", precondition: "Reversal mode completed", steps: ["Trigger nightly-test-reset with ?mode=topup", "Check test account VA balance"], expected: "Test account VA balance is exactly RM 1,000.00. Top-up transaction recorded.", status: "untested", notes: "" },
       { id: "TC-RESET-003", title: "Daily Email Report", precondition: "Reversal and top-up completed", steps: ["Trigger nightly-test-reset with ?mode=report", "Check email at azarul@brainybunch.com"], expected: "HTML email received with summary (counts, amounts) and detail table of all reversed transactions.", status: "untested", notes: "" },
-      { id: "TC-RESET-004", title: "Referral Commission Reversal", precondition: "Test account made a payment that generated tier 1-5 commissions", steps: ["Run a payment as test user at a merchant", "Verify commissions distributed to referral ancestors", "Trigger ?mode=reverse", "Check each ancestor's wallet balance"], expected: "All tier 1-5 commission amounts debited back from each ancestor's wallet.", status: "untested", notes: "" },
+      { id: "TC-RESET-004", title: "Referral Commission Reversal", precondition: "Test account made a payment that generated tier 1-5 commissions", steps: ["Run a payment as test user at a merchant", "Verify commissions distributed to referral ancestors", "Trigger ?mode=reverse", "Check each ancestor's VA balance"], expected: "All tier 1-5 commission amounts debited back from each ancestor's wallet.", status: "untested", notes: "" },
       { id: "TC-RESET-005", title: "Skip Already Reversed Transactions", precondition: "Reversal already run once today", steps: ["Trigger ?mode=reverse again"], expected: "No duplicate reversals. Function skips already-reversed transactions. Idempotent.", status: "untested", notes: "" },
       { id: "TC-RESET-006", title: "Skip Own Reset Top-ups", precondition: "Previous nightly top-up exists", steps: ["Trigger ?mode=reverse", "Check that nightly reset top-ups are not reversed"], expected: "Transactions with description 'Nightly test reset top-up' are skipped.", status: "untested", notes: "" },
     ]

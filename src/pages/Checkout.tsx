@@ -385,11 +385,11 @@ const Checkout = () => {
           </Card>
         )}
 
-        {/* Wallet Balance */}
+        {/* VA Balance */}
         <Card className="border-secondary/20 bg-secondary/10">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-white/50">Wallet Balance</p>
+              <p className="text-xs text-white/50">VA Balance</p>
               <p className="font-display text-lg font-bold text-secondary">RM {balance.toFixed(2)}</p>
             </div>
             {balance < grandTotal && (
