@@ -59,7 +59,6 @@ export async function verifyOtp(email: string, token: string) {
 export async function signOut() {
   // Clear durable referral cache so the next signed-in user on this device
   // doesn't see the previous account's network snapshot.
-  clearStoredAuthState();
   const { error } = await supabase.auth.signOut({ scope: "global" });
   clearStoredAuthState();
   return { error };
