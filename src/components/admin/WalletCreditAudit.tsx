@@ -227,7 +227,7 @@ const WalletCreditAudit = () => {
                   <TableCell className="text-right tabular-nums">{audit ? formatRM(audit.new_balance) : "—"}</TableCell>
                   <TableCell className="max-w-[220px] space-y-1 text-xs">
                     <p className="font-mono text-muted-foreground truncate">User: {transaction.user_id}</p>
-                    <p className="font-mono text-muted-foreground truncate">Wallet: {audit?.wallet_id ?? "unmatched"}</p>
+                    <p className="font-mono text-muted-foreground truncate">VA Wallet: {audit?.wallet_id ?? "unmatched"}</p>
                   </TableCell>
                 </TableRow>
               ))}
