@@ -11,6 +11,7 @@ import { LogOut, HelpCircle, FileText, Lock, Info, ChevronRight, KeyRound, Setti
 import { toast } from "@/hooks/use-toast";
 import ConnectedApps from "@/components/member/ConnectedApps";
 import NocapLogo from "@/components/NocapLogo";
+import { TERMINOLOGY } from "@/lib/constants";
 
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
@@ -101,6 +102,25 @@ const Profile = () => {
               </Card>
             ))}
           </div>
+        </div>
+
+        {/* Terminology Glossary */}
+        <div className="mt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Info className="h-4 w-4 text-white/40" />
+            <h2 className="font-display text-sm font-semibold text-white/60">Terminology</h2>
+          </div>
+          <Card className="border-white/10 bg-white/5">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-white">{TERMINOLOGY.vaBalance}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-white/50">Canonical label for your available app balance used in payments, checkout, withdrawals, and receipts.</p>
+                </div>
+                <span className="rounded-md border border-secondary/30 bg-secondary/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-secondary">Official</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Connected Apps */}
