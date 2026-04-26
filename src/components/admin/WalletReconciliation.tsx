@@ -13,6 +13,26 @@ import { RefreshCw, ShieldCheck, AlertTriangle, Search, X, CalendarIcon } from "
 import { format, startOfDay, endOfDay, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
 
+type VaAuditLog = {
+  id: string;
+  user_id: string;
+  wallet_type: string;
+  branch_id: string | null;
+  old_balance: number;
+  new_balance: number;
+  delta: number;
+  changed_at: string;
+};
+
+type VaDriftRow = {
+  user_id: string;
+  wallet_type: string;
+  branch_id: string | null;
+  va_balance: number;
+  computed_balance: number;
+  drift: number;
+};
+
 const WalletReconciliation = () => {
   const [auditSearch, setAuditSearch] = useState("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
@@ -29,7 +49,7 @@ const WalletReconciliation = () => {
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("reconcile_va_balances");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as VaDriftRow[];
     },
   });
 
@@ -54,7 +74,7 @@ const WalletReconciliation = () => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as VaAuditLog[];
     },
   });
 
