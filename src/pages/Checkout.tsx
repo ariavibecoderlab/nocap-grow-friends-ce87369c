@@ -171,7 +171,7 @@ const Checkout = () => {
     }
     if (items.length === 0) return;
     if (balance < grandTotal) {
-      toast({ title: "Insufficient balance", description: `You need RM ${grandTotal.toFixed(2)} but have RM ${balance.toFixed(2)}`, variant: "destructive" });
+      toast({ title: "Insufficient VA Balance", description: `You need RM ${grandTotal.toFixed(2)} but your VA Balance is RM ${balance.toFixed(2)}`, variant: "destructive" });
       return;
     }
 

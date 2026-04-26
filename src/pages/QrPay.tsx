@@ -39,6 +39,16 @@ interface DynamicQr {
   description: string | null;
 }
 
+const formatVaMessage = (message: string) =>
+  message
+    .replace(/Wallet Balance/g, "VA Balance")
+    .replace(/Wallet balance/g, "VA balance")
+    .replace(/wallet balance/g, "VA balance")
+    .replace(/Your balance/g, "Your VA Balance")
+    .replace(/your balance/g, "your VA Balance")
+    .replace(/New Balance/g, "New VA Balance")
+    .replace(/new balance/g, "new VA Balance");
+
 const QrPay = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -202,7 +212,7 @@ const QrPay = () => {
       return;
     }
     if (amt > balance) {
-      toast({ title: "Insufficient balance", description: `Your balance is RM ${balance.toFixed(2)}.`, variant: "destructive" });
+      toast({ title: "Insufficient VA Balance", description: `Your VA Balance is RM ${balance.toFixed(2)}.`, variant: "destructive" });
       return;
     }
     if (amt >= minPinAmount) {
@@ -242,7 +252,7 @@ const QrPay = () => {
     setLoading(false);
 
     if (error || data?.error) {
-      let errorMessage = data?.error || "Something went wrong.";
+      let errorMessage = formatVaMessage(data?.error || "Something went wrong.");
       let errorCode = data?.code || null;
 
       // Extract actual error from FunctionsHttpError (non-2xx responses)
@@ -250,14 +260,14 @@ const QrPay = () => {
       if (error && error instanceof FunctionsHttpError) {
         try {
           const errorBody = await error.context.json();
-          errorMessage = errorBody?.error || error.message;
+          errorMessage = formatVaMessage(errorBody?.error || error.message);
           errorCode = errorBody?.code || null;
           if (typeof errorBody?.attempts_remaining === 'number') attemptsLeft = errorBody.attempts_remaining;
         } catch {
-          errorMessage = error.message;
+          errorMessage = formatVaMessage(error.message);
         }
       } else if (error && !data?.error) {
-        errorMessage = error.message || "Something went wrong.";
+        errorMessage = formatVaMessage(error.message || "Something went wrong.");
       } else if (data?.attempts_remaining !== undefined) {
         attemptsLeft = data.attempts_remaining;
       }
@@ -422,13 +432,13 @@ const QrPay = () => {
                 </div>
 
                 <div className="flex items-center justify-between text-sm text-white/50">
-                  <span>Your Balance</span>
+                  <span>Your VA Balance</span>
                   <span className="font-semibold text-white">RM {balance.toFixed(2)}</span>
                 </div>
 
                 {Number(amount) > 0 && (
                   <div className="flex items-center justify-between text-sm text-white/50">
-                    <span>After Payment</span>
+                    <span>VA Balance After Payment</span>
                     <span className={`font-semibold ${balance - Number(amount) < 0 ? 'text-red-400' : 'text-white'}`}>
                       RM {(balance - Number(amount)).toFixed(2)}
                     </span>
@@ -558,7 +568,7 @@ const QrPay = () => {
                     <Gift className="h-5 w-5 text-secondary shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-secondary">Cashback earned!</p>
-                      <p className="text-xs text-white/50">RM {result.cashback.toFixed(2)} added to your wallet</p>
+                      <p className="text-xs text-white/50">RM {result.cashback.toFixed(2)} added to your VA Balance</p>
                     </div>
                   </div>
                 )}
@@ -575,7 +585,7 @@ const QrPay = () => {
                     </div>
                   )}
                   <div className="border-t border-white/10 pt-2 flex justify-between">
-                    <span className="text-white/50">New Balance</span>
+                    <span className="text-white/50">New VA Balance</span>
                     <span className="font-bold text-white">RM {result.new_balance.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
