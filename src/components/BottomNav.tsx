@@ -19,6 +19,7 @@ const BottomNav = () => {
   const [isBranchOwner, setIsBranchOwner] = useState(false);
 
   useEffect(() => {
+    setIsBranchOwner(false);
     if (!user) return;
     supabase
       .from("user_roles")
@@ -26,7 +27,7 @@ const BottomNav = () => {
       .eq("user_id", user.id)
       .eq("role", "branch")
       .then(({ data }) => setIsBranchOwner((data?.length ?? 0) > 0));
-  }, [user]);
+  }, [user?.id]);
 
   let navItems = [...baseNavItems];
   if (isBranchOwner) navItems = [...navItems, { label: "Branch", icon: Store, path: "/branch" }];
