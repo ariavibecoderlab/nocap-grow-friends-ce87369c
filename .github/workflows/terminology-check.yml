@@ -8,8 +8,8 @@ on:
       - master
 
 jobs:
-  wallet-balance-terminology:
-    name: Reject Wallet Balance wording
+  va-balance-terminology:
+    name: Reject legacy balance wording
     runs-on: ubuntu-latest
 
     steps:

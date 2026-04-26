@@ -1,7 +1,14 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
-const forbidden = [/Wallet Balance/g, /Wallet balance/g, /wallet balance/g];
+const legacyTerm = `${"Wallet"} ${"Balance"}`;
+const legacySentenceCaseTerm = `${"Wallet"} ${"balance"}`;
+const legacyLowerCaseTerm = `${"wallet"} ${"balance"}`;
+const forbidden = [
+  new RegExp(legacyTerm, "g"),
+  new RegExp(legacySentenceCaseTerm, "g"),
+  new RegExp(legacyLowerCaseTerm, "g"),
+];
 const roots = ["src", "supabase", "public", ".lovable", "README.md"];
 const ignoredDirs = new Set(["node_modules", ".git", "dist", "build", ".workspace"]);
 const textExtensions = new Set([
@@ -46,9 +53,9 @@ for (const root of roots) {
 }
 
 if (matches.length > 0) {
-  console.error("Forbidden terminology found. Use 'VA Balance' instead of 'Wallet Balance':");
+  console.error(`Forbidden terminology found. Use 'VA Balance' instead of '${legacyTerm}':`);
   console.error(matches.join("\n"));
   process.exit(1);
 }
 
-console.log("Terminology check passed: no Wallet Balance references found.");
+console.log(`Terminology check passed: no ${legacyTerm} references found.`);
