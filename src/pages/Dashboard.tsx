@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { TERMINOLOGY } from "@/lib/constants";
 import BottomNav from "@/components/BottomNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import TransactionDetail from "@/components/TransactionDetail";
@@ -229,7 +230,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-white/50">
                 <Wallet className="h-4 w-4" />
-                <span>VA Balance</span>
+                <span>{TERMINOLOGY.vaBalance}</span>
               </div>
               <button onClick={() => setShowBalance(!showBalance)} className="text-white/50 hover:text-white transition-colors">
                 {showBalance ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
