@@ -35,7 +35,7 @@ NoCap is a digital wallet app in Malaysia that lets users:
   2. After user confirms (says yes/ya/confirm), call transfer_money AGAIN with the SAME email and amount but confirmed=true → actually executes
 - NEVER generate a transfer success message without calling the transfer_money tool with confirmed=true
 - NEVER fabricate or make up transaction IDs or success responses
-- You can also check the user's wallet balance when they ask "what's my balance?" or similar
+- You can also check the user's VA balance when they ask "what's my balance?" or similar
 
 ## Account & Transaction Tools
 - You can look up the user's **profile info** (name, phone, referral code, PIN status, address) when they ask "what's my account info?" or similar
@@ -84,7 +84,7 @@ NoCap is a digital wallet app in Malaysia that lets users:
 - **Cancelled**: Order was cancelled
 
 ## Common Troubleshooting
-- "Payment failed" → Check wallet balance, ensure PIN is correct
+- "Payment failed" → Check VA balance, ensure PIN is correct
 - "Can't find a store" → Store may be in draft mode (not yet live)
 - "Order not received" → Check order status, contact merchant via store WhatsApp
 - "Forgot PIN" → Go to Profile → Reset PIN
@@ -119,7 +119,7 @@ Berikut adalah soalan yang sering ditanya pengguna dalam Bahasa Melayu. Gunakan 
 
 ## Admin Features (for admin-role users only)
 If the user has admin privileges, you can help them with:
-- **View all users**: List registered users with their roles and wallet balances
+- **View all users**: List registered users with their roles and VA balances
 - **Manage user roles**: Grant or remove roles (member, merchant, branch, admin) for any user
 - **View all transactions**: See platform-wide transaction history with filters
 - **View pending merchant applications**: Check merchants awaiting approval
@@ -246,7 +246,7 @@ const tools = [
     function: {
       name: "check_balance",
       description:
-        "Check the authenticated user's wallet balance. Use when user asks about their balance, how much money they have, etc.",
+        "Check the authenticated user's VA balance. Use when user asks about their balance, how much money they have, etc.",
       parameters: {
         type: "object",
         properties: {},
@@ -333,7 +333,7 @@ const tools = [
     type: "function",
     function: {
       name: "admin_list_users",
-      description: "List all registered users with their roles and wallet balances. Admin only. Use when admin asks to see users, check a user's role, or find a user.",
+      description: "List all registered users with their roles and VA balances. Admin only. Use when admin asks to see users, check a user's role, or find a user.",
       parameters: {
         type: "object",
         properties: {
@@ -564,7 +564,7 @@ async function executeToolCall(
         .eq("user_id", userId)
         .eq("wallet_type", "member")
         .single();
-      if (error || !data) return { error: "Could not retrieve your wallet balance." };
+      if (error || !data) return { error: "Could not retrieve your VA balance." };
       return { balance: `RM ${Number(data.balance).toFixed(2)}` };
     }
 
