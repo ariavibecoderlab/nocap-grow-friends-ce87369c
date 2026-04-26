@@ -15,8 +15,7 @@ async function hashPin(pin: string, salt?: string): Promise<{ hash: string; salt
   const pinSalt = salt || crypto.randomUUID();
   const data = new TextEncoder().encode(pin + pinSalt);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = new Uint8Array(hashBuffer);
-  const hash = encodeBase64(hashArray);
+  const hash = encodeBase64(hashBuffer);
   return { hash, salt: pinSalt };
 }
 

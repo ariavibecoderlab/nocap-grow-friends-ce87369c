@@ -13,7 +13,7 @@ function timeBucket(windowSec = 10): string { return Math.floor(Date.now() / (wi
 async function hashPin(pin: string, salt: string): Promise<string> {
   const data = new TextEncoder().encode(pin + salt);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return encodeBase64(new Uint8Array(hashBuffer));
+  return encodeBase64(hashBuffer);
 }
 
 async function verifyPin(pin: string, storedHash: string): Promise<boolean> {
