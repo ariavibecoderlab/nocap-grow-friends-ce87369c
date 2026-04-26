@@ -36,7 +36,7 @@ const Profile = () => {
 
   const handleLogout = async () => {
     await signOut();
-    navigate("/auth");
+    navigate("/auth", { replace: true });
   };
 
   if (authLoading) return null;
