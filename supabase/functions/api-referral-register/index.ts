@@ -112,7 +112,7 @@ serve(async (req) => {
       // Check if user already exists
       if (authError.message?.includes('already') || authError.message?.includes('duplicate')) {
         // Look up the existing user's profile for helpful details
-        const { data: existingUsers } = await supabase.auth.admin.listUsers({ filter: email.trim().toLowerCase() });
+        const { data: existingUsers } = await supabase.auth.admin.listUsers();
         const existingUser = existingUsers?.users?.find(u => u.email === email.trim().toLowerCase());
         
         let existingProfile = null;
@@ -133,7 +133,7 @@ serve(async (req) => {
             .eq('user_id', existingUser.id)
             .eq('is_active', true)
             .limit(1);
-          hasAccessToken = (tokenData && tokenData.length > 0);
+          hasAccessToken = Boolean(tokenData && tokenData.length > 0);
         }
 
         const resBody = {
