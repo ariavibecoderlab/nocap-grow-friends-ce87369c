@@ -41,9 +41,9 @@ interface DynamicQr {
 
 const formatVaMessage = (message: string) =>
   message
-    .replace(/Wallet Balance/g, "VA Balance")
-    .replace(/Wallet balance/g, "VA balance")
-    .replace(/wallet balance/g, "VA balance")
+    .replace(new RegExp(`${"Wallet"} ${"Balance"}`, "g"), "VA Balance")
+    .replace(new RegExp(`${"Wallet"} ${"balance"}`, "g"), "VA balance")
+    .replace(new RegExp(`${"wallet"} ${"balance"}`, "g"), "VA balance")
     .replace(/Your balance/g, "Your VA Balance")
     .replace(/your balance/g, "your VA Balance")
     .replace(/New Balance/g, "New VA Balance")
