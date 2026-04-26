@@ -18,7 +18,7 @@ const WalletReconciliation = () => {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
 
-  // Drift detection via reconcile_wallet_balances RPC
+  // Drift detection via reconcile_va_balances RPC
   const {
     data: driftData,
     isLoading: driftLoading,
@@ -27,7 +27,7 @@ const WalletReconciliation = () => {
   } = useQuery({
     queryKey: ["admin_reconciliation"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("reconcile_wallet_balances");
+      const { data, error } = await (supabase.rpc as any)("reconcile_va_balances");
       if (error) throw error;
       return data ?? [];
     },
@@ -38,7 +38,7 @@ const WalletReconciliation = () => {
     queryKey: ["admin_audit_log", dateFrom?.toISOString(), dateTo?.toISOString()],
     queryFn: async () => {
       let query = supabase
-        .from("wallet_balance_audit")
+        .from("va_balance_audit" as any)
         .select("*")
         .order("changed_at", { ascending: false });
 
@@ -165,7 +165,7 @@ const WalletReconciliation = () => {
                       </TableCell>
                       <TableCell className="text-white/50 text-xs">{d.wallet_type}</TableCell>
                       <TableCell className="text-white text-xs text-right tabular-nums">
-                        RM {Number(d.wallet_balance).toFixed(2)}
+                        RM {Number(d.va_balance).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-white/70 text-xs text-right tabular-nums">
                         RM {Number(d.computed_balance).toFixed(2)}
