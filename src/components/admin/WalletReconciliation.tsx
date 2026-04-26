@@ -74,7 +74,7 @@ const WalletReconciliation = () => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []) as VaAuditLog[];
+      return (data ?? []) as unknown as VaAuditLog[];
     },
   });
 
