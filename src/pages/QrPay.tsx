@@ -213,7 +213,7 @@ const QrPay = () => {
       return;
     }
     if (amt > balance) {
-      toast({ title: "Insufficient VA Balance", description: `Your VA Balance is RM ${balance.toFixed(2)}.`, variant: "destructive" });
+      toast({ title: TERMINOLOGY.insufficientVaBalance, description: `Your ${TERMINOLOGY.vaBalance} is RM ${balance.toFixed(2)}.`, variant: "destructive" });
       return;
     }
     if (amt >= minPinAmount) {
@@ -388,7 +388,7 @@ const QrPay = () => {
               <CardContent className="flex items-center gap-3 p-4">
                 <Wallet className="h-5 w-5 text-white/50" />
                 <div>
-                  <p className="text-xs text-white/50">VA Balance</p>
+                  <p className="text-xs text-white/50">{TERMINOLOGY.vaBalance}</p>
                   <p className="font-display text-lg font-bold text-secondary">RM {balance.toFixed(2)}</p>
                 </div>
               </CardContent>
@@ -433,13 +433,13 @@ const QrPay = () => {
                 </div>
 
                 <div className="flex items-center justify-between text-sm text-white/50">
-                  <span>Your VA Balance</span>
+                  <span>{TERMINOLOGY.yourVaBalance}</span>
                   <span className="font-semibold text-white">RM {balance.toFixed(2)}</span>
                 </div>
 
                 {Number(amount) > 0 && (
                   <div className="flex items-center justify-between text-sm text-white/50">
-                    <span>VA Balance After Payment</span>
+                    <span>{TERMINOLOGY.vaBalanceAfterPayment}</span>
                     <span className={`font-semibold ${balance - Number(amount) < 0 ? 'text-red-400' : 'text-white'}`}>
                       RM {(balance - Number(amount)).toFixed(2)}
                     </span>
@@ -569,7 +569,7 @@ const QrPay = () => {
                     <Gift className="h-5 w-5 text-secondary shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-secondary">Cashback earned!</p>
-                      <p className="text-xs text-white/50">RM {result.cashback.toFixed(2)} added to your VA Balance</p>
+                      <p className="text-xs text-white/50">RM {result.cashback.toFixed(2)} added to your {TERMINOLOGY.vaBalance}</p>
                     </div>
                   </div>
                 )}
@@ -586,7 +586,7 @@ const QrPay = () => {
                     </div>
                   )}
                   <div className="border-t border-white/10 pt-2 flex justify-between">
-                    <span className="text-white/50">New VA Balance</span>
+                    <span className="text-white/50">{TERMINOLOGY.newVaBalance}</span>
                     <span className="font-bold text-white">RM {result.new_balance.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
