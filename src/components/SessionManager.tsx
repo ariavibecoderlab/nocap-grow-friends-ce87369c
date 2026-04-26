@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Timer, LogOut } from "lucide-react";
+import { signOut } from "@/lib/auth";
 
 const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes
 const WARNING_BEFORE = 2 * 60 * 1000; // Show warning 2 min before logout
@@ -34,7 +35,7 @@ const SessionManager = () => {
   const handleLogout = useCallback(async () => {
     clearAllTimers();
     setShowWarning(false);
-    await supabase.auth.signOut();
+    await signOut();
     window.location.href = "/auth";
   }, [clearAllTimers]);
 
