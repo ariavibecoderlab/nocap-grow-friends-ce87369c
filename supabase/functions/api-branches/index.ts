@@ -22,7 +22,7 @@ const credentialSource = (req: Request, bodyData: Record<string, string>, url: U
 });
 
 const logBranchRequest = async (
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   appId: string,
   req: Request,
   startTime: number,
