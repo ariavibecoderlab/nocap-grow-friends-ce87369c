@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nocap.life/api-branches-response.schema.json",
+  "title": "NoCap /api-branches Response",
+  "type": "object",
+  "required": ["branches", "data", "count"],
+  "additionalProperties": true,
+  "properties": {
+    "branches": {
+      "type": "array",
+      "description": "Canonical list of active branches available to the API app.",
+      "items": { "$ref": "#/$defs/branch" }
+    },
+    "data": {
+      "type": "array",
+      "description": "Alias of branches for parser compatibility.",
+      "items": { "$ref": "#/$defs/branch" }
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of branch objects returned. Should match branches.length and data.length."
+    }
+  },
+  "$defs": {
+    "branch": {
+      "type": "object",
+      "required": ["id", "branch_name", "qr_code_id", "is_active"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "NoCap branch UUID. Use this as branch_id in charge requests."
+        },
+        "branch_name": {
+          "type": "string",
+          "description": "Human-readable branch/outlet name."
+        },
+        "qr_code_id": {
+          "type": ["string", "null"],
+          "description": "Branch QR identifier, if available."
+        },
+        "is_active": {
+          "type": "boolean",
+          "description": "Only active branches are returned by /api-branches."
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "branches": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "branch_name": "KL Sentral Outlet",
+          "qr_code_id": "abc123",
+          "is_active": true
+        }
+      ],
+      "data": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "branch_name": "KL Sentral Outlet",
+          "qr_code_id": "abc123",
+          "is_active": true
+        }
+      ],
+      "count": 1
+    }
+  ]
+}
