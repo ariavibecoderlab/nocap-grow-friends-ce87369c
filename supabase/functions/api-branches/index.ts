@@ -55,6 +55,7 @@ serve(async (req) => {
 
     const startTime = Date.now();
     const url = new URL(req.url);
+    const isTestEndpoint = url.pathname.endsWith('/api-branches/test');
     let bodyData: Record<string, string> = {};
     try {
       const text = await req.clone().text();
@@ -142,6 +143,70 @@ serve(async (req) => {
       }, responseBody, 429);
       return new Response(JSON.stringify(responseBody), {
         status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
+      });
+    }
+
+    if (isTestEndpoint) {
+      const { data: rawBranches, error: rawBranchErr } = await supabase
+        .from('merchant_branches')
+        .select('id, branch_name, qr_code_id, is_active, merchant_user_id, owner_user_id, commission_percent, created_at')
+        .eq('merchant_user_id', app.merchant_user_id)
+        .order('branch_name', { ascending: true });
+
+      if (rawBranchErr) {
+        const responseBody = { error: 'Failed to fetch raw branch debug list', details: rawBranchErr.message };
+        await logBranchRequest(supabase, app.id, req, startTime, {
+          parsed_auth_mode: parsedAuthMode,
+          credential_sources,
+          merchant_user_id: app.merchant_user_id,
+          configured_branch_id: app.branch_id,
+          test_endpoint: true,
+        }, responseBody, 500);
+        return new Response(JSON.stringify(responseBody), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const branches = rawBranches || [];
+      const activeBranches = branches.filter((branch) => branch.is_active);
+      const configuredBranch = app.branch_id ? branches.find((branch) => branch.id === app.branch_id) || null : null;
+      const responseBody = {
+        success: true,
+        endpoint: '/api-branches/test',
+        debug: {
+          parsed_auth_mode: parsedAuthMode,
+          credential_sources,
+          merchant_id: app.merchant_user_id,
+          app_id: app.id,
+          configured_branch_id: app.branch_id,
+          configured_branch_found: app.branch_id ? Boolean(configuredBranch) : null,
+          active_branch_count: activeBranches.length,
+          inactive_branch_count: branches.length - activeBranches.length,
+          total_branch_count: branches.length,
+          branch_ids: branches.map((branch) => branch.id),
+          active_branch_ids: activeBranches.map((branch) => branch.id),
+          branch_status: branches.map((branch) => ({ id: branch.id, branch_name: branch.branch_name, is_active: branch.is_active })),
+        },
+        count: branches.length,
+        branches,
+      };
+
+      await logBranchRequest(supabase, app.id, req, startTime, {
+        parsed_auth_mode: parsedAuthMode,
+        credential_sources,
+        merchant_user_id: app.merchant_user_id,
+        configured_branch_id: app.branch_id,
+        test_endpoint: true,
+      }, {
+        branch_count: branches.length,
+        active_branch_count: activeBranches.length,
+        inactive_branch_count: branches.length - activeBranches.length,
+        branch_ids: branches.map((branch) => branch.id),
+        branch_status: responseBody.debug.branch_status,
+      }, 200);
+
+      return new Response(JSON.stringify(responseBody), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
