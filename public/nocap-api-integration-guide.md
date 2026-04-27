@@ -448,9 +448,22 @@ curl https://tukuyszayzkyckrfxqvt.supabase.co/functions/v1/api-branches \
       "qr_code_id": "abc123",
       "is_active": true
     }
-  ]
+  ],
+  "data": [
+    {
+      "id": "uuid",
+      "branch_name": "KL Sentral Outlet",
+      "qr_code_id": "abc123",
+      "is_active": true
+    }
+  ],
+  "count": 1
 }
 ```
+
+**JSON Schema:** `https://nocap.life/api-branches-response.schema.json`
+
+Parser note: `branches` is the canonical list, `data` is an alias for compatibility, and `count` should equal `branches.length`.
 
 > **Merchant-Level Apps:** When registering an API app without selecting a specific branch, you create a "merchant-level" app. These apps must include `branch_id` in every `POST /api-charge` request. Use this endpoint to discover available branches.
 
