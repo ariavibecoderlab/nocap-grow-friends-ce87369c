@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:api-branches": "deno test --allow-read --allow-env --allow-net supabase/functions/api-branches/index_test.ts",
     "test:watch": "vitest"
   },
   "dependencies": {
