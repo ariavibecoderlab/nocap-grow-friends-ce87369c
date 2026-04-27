@@ -117,7 +117,8 @@ serve(async (req) => {
       });
     }
 
-    const resBody = { branches: branches || [] };
+    const branchList = branches || [];
+    const resBody = { branches: branchList, data: branchList, count: branchList.length };
     try {
       await supabase.from('api_request_logs').insert({
         app_id: app.id,
@@ -125,7 +126,7 @@ serve(async (req) => {
         method: req.method,
         status_code: 200,
         request_body: { auth_mode: bearerToken ? 'api_key_secret_bearer' : 'api_key_secret' },
-        response_body: { branch_count: resBody.branches.length },
+        response_body: { branch_count: branchList.length },
         duration_ms: Date.now() - startTime,
       });
     } catch (_) { /* ignore */ }
