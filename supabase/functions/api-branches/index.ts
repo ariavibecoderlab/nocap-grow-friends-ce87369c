@@ -46,7 +46,7 @@ serve(async (req) => {
     // Validate API app
     const { data: app } = await supabase
       .from('api_applications')
-      .select('id, merchant_user_id, is_active, api_secret_hash')
+      .select('id, merchant_user_id, branch_id, is_active, api_secret_hash')
       .eq('api_key', apiKey)
       .single();
 
