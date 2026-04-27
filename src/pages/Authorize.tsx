@@ -17,6 +17,9 @@ const SCOPE_LABELS: Record<string, { label: string; icon: React.ReactNode; descr
   charge: { label: "Create Charges", icon: <CreditCard className="h-4 w-4" />, description: "Charge payments from your wallet" },
   referral: { label: "View Referral Network", icon: <Zap className="h-4 w-4" />, description: "Access your referral stats, network & cashback history" },
   topup: { label: "Wallet Top-Up", icon: <ArrowUpCircle className="h-4 w-4" />, description: "Initiate wallet top-ups via FPX bank transfer" },
+  "merchant.branches.read": { label: "View Merchant Branches", icon: <Shield className="h-4 w-4" />, description: "Read active merchant branch IDs for payment routing" },
+  "branches:read": { label: "View Merchant Branches", icon: <Shield className="h-4 w-4" />, description: "Read active merchant branch IDs for payment routing" },
+  branches: { label: "View Merchant Branches", icon: <Shield className="h-4 w-4" />, description: "Read active merchant branch IDs for payment routing" },
 };
 
 type Step = "login" | "register" | "consent";
