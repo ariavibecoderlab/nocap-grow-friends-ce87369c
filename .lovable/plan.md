@@ -1,55 +1,62 @@
-I’ll create a DOCX document for the third-party system that is structured in two stages: first questions to understand their current integration state, then a conditional action plan based on their answers.
+# Router-Level Member Guard
 
-The document will include:
+## Goal
+Prevent unauthenticated users (and staff-only accounts that aren't members) from reaching member pages by typing the URL. Today, every route in `src/App.tsx` renders unconditionally — pages each do their own ad-hoc `if (!user) navigate("/auth")` check (see `SupportTickets.tsx`), and many pages don't check at all.
 
-1. Purpose and context
-   - Explain that the goal is to identify why branches are missing from `/api-branches`.
-   - Clarify that they should answer the questions first before applying fixes.
+## Approach
 
-2. Current-state questionnaire
-   - Credential/authentication questions:
-     - Are they using `x-api-key` and `x-api-secret`?
-     - Are credentials sent in headers, body, or query string?
-     - Are they also sending `Authorization: Bearer ...`?
-     - If yes, what scopes does the token have?
-   - Endpoint questions:
-     - Which URL are they calling?
-     - Are they calling `/api-branches` or `/api-branches/test`?
-     - What HTTP status code do they receive?
-   - Parser questions:
-     - Which response field does their parser read: `branches`, `data`, `response.data.branches`, or something else?
-     - Does their parser support empty arrays?
-   - Branch mapping questions:
-     - Do they expect merchant-level access or one specific branch only?
-     - What branch IDs are they expecting?
-     - Are they filtering inactive branches on their side?
-   - Evidence request:
-     - Ask them to provide sanitized request/response logs with secrets redacted.
+Introduce two reusable guard components and wrap route groups in `App.tsx`. No page-level rewrites required for the guard itself (existing in-page redirects can stay or be removed later).
 
-3. Commands they should execute
-   - cURL command for `/api-branches`.
-   - cURL command for `/api-branches/test`.
-   - Optional cURL command with Bearer token.
-   - A small JavaScript parser example showing how to read `branches`, fallback to `data`, and verify `count`.
+### 1. New file: `src/components/auth/RequireAuth.tsx`
+- Reads `useAuth()`.
+- While `loading` → render a centered spinner (reuse the `Loader2` pattern already used in `AdminPortal`).
+- If no `user` → `<Navigate to="/auth" replace state={{ from: location }} />`.
+- Else → `<Outlet />`.
 
-4. Response interpretation guide
-   - If `401`: check API key/secret placement and values.
-   - If `403`: check Bearer token branch scopes.
-   - If `429`: wait and retry due to rate limit.
-   - If `count = 0`: inspect `/api-branches/test` debug fields.
-   - If `/test` shows inactive branches: request branch activation.
-   - If `/test` shows `configured_branch_id`: verify the app is intentionally branch-restricted.
-   - If parser sees no data but response has `branches`: update parser path.
+### 2. New file: `src/components/auth/RequireMember.tsx`
+- Wraps `RequireAuth` behavior, plus a role check.
+- New hook `src/hooks/useUserRoles.ts` that fetches all rows from `user_roles` for the current user once and caches in React Query (key `["user-roles", user.id]`).
+- "Member" = authenticated user who does **not** have only `admin` or `support` roles. (Merchants, branch owners, and plain users are all members.) Concretely: allow if user has any role in `{member, merchant, branch}` OR has no role rows at all (default new signup). Block if user's only roles are `{admin}` or `{support}`.
+- On block → redirect admins to `/admin-portal`, support to `/support-portal`.
 
-5. Visible resolution workflow
-   - Step 1: Answer questionnaire.
-   - Step 2: Execute test commands.
-   - Step 3: Paste sanitized outputs.
-   - Step 4: Match result to action table.
-   - Step 5: Apply parser/auth/branch configuration fix.
-   - Step 6: Re-test and confirm expected count.
+### 3. Update `src/App.tsx`
+Group routes under three buckets using nested `<Route>` with `element={<Guard />}`:
 
-6. Deliverable
-   - Generate a polished `.docx` file in `/mnt/documents/`.
-   - Validate the DOCX.
-   - Convert it to PDF/images for QA and inspect all pages for layout issues before delivering the file.
+```text
+Public (no guard):
+  / /auth /set-password /reset-password /about /terms /privacy
+  /user-manual /seller-manual /api-docs /authorize
+  /admin-login /support-login
+  /pay/:linkId         (hosted pay link — intentionally public)
+  /store/:slug, /store/:slug/page/:pageSlug, /store/:slug/product/:productId
+  /marketplace         (browse-without-login)
+
+RequireAuth only (any logged-in user):
+  /set-pin /reset-pin /my-profile
+
+RequireMember (logged-in + not staff-only):
+  /dashboard /profile /top-up /transfer /referral /qr-pay
+  /transactions /analytics /help-support
+  /support-tickets /support-tickets/:ticketId
+  /checkout /order/:orderId /my-orders /withdraw
+  /merchant /merchant/register /merchant/storefront/*
+  /merchant/storefront/builder/* /seller-portal /branch
+
+Staff (existing in-page checks remain, no new guard needed yet):
+  /admin-portal/* /support-portal/* /uat-scripts
+```
+
+### 4. Optional cleanup (same PR)
+Remove now-redundant `if (!user) navigate("/auth")` blocks from member pages so the guard is the single source of truth. Low risk — list will be generated by `rg "navigate\\(\"/auth\"\\)"` during implementation.
+
+## Why this is reliable
+- Guard runs **before** the page component mounts, so no flash of protected UI and no protected data fetches firing for anonymous users.
+- Single chokepoint in `App.tsx` — adding a future member route is one line inside the right `<Route element={<RequireMember />}>` block; impossible to "forget" the auth check.
+- `loading` state from `useAuth` is honored, so refreshes don't bounce real users to `/auth`.
+- Role check uses the existing `user_roles` table (the project's source of truth — see `useAdminCheck` and `BottomNav`), not client storage.
+- `state={{ from: location }}` passed to `/auth` lets us add post-login redirect-back later without another refactor.
+
+## Out of scope (call out, don't do now)
+- Capacitor build flag to drop staff routes from the mobile bundle — covered in the earlier mobile plan, Phase 1.
+- Route-level code-splitting (`React.lazy`) — separate perf task.
+- Hardening `/admin-portal` and `/support-portal` with the same guard pattern — they already self-check; can migrate later for consistency.

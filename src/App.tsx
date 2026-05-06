@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import RequireAuth from "@/components/auth/RequireAuth";
+import RequireMember from "@/components/auth/RequireMember";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CurrencyProvider } from "@/components/marketplace/CurrencySelector";
@@ -71,55 +73,67 @@ const App = () => (
           <BrowserRouter>
             <SessionManager />
             <Routes>
+              {/* Public routes */}
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/top-up" element={<TopUp />} />
-              <Route path="/transfer" element={<Transfer />} />
-              <Route path="/referral" element={<Referral />} />
-              <Route path="/qr-pay" element={<QrPay />} />
-              <Route path="/merchant" element={<MerchantDashboard />} />
-              <Route path="/merchant/register" element={<MerchantRegister />} />
-              <Route path="/branch" element={<BranchDashboard />} />
-              <Route path="/admin-login" element={<AdminLogin />} />
-              <Route path="/admin-portal" element={<AdminPortal />} />
-              <Route path="/admin-portal/*" element={<AdminPortal />} />
-              <Route path="/transactions" element={<Transactions />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/api-docs" element={<ApiDocs />} />
-              <Route path="/authorize" element={<Authorize />} />
-              <Route path="/help-support" element={<HelpSupport />} />
+              <Route path="/set-password" element={<SetPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/about" element={<About />} />
               <Route path="/terms" element={<TermsConditions />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/set-password" element={<SetPassword />} />
-              <Route path="/my-profile" element={<MyProfile />} />
-              <Route path="/set-pin" element={<SetPin />} />
-              <Route path="/reset-pin" element={<ResetPin />} />
               <Route path="/user-manual" element={<UserManual />} />
               <Route path="/seller-manual" element={<SellerManual />} />
-              <Route path="/uat-scripts" element={<UatScripts />} />
+              <Route path="/api-docs" element={<ApiDocs />} />
+              <Route path="/authorize" element={<Authorize />} />
+              <Route path="/admin-login" element={<AdminLogin />} />
+              <Route path="/support-login" element={<SupportLogin />} />
+              <Route path="/pay/:linkId" element={<HostedPay />} />
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/store/:slug" element={<StorePage />} />
               <Route path="/store/:slug/page/:pageSlug" element={<StoreCustomPage />} />
               <Route path="/store/:slug/product/:productId" element={<ProductDetail />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/order/:orderId" element={<OrderConfirmation />} />
-              <Route path="/my-orders" element={<MyOrders />} />
-              <Route path="/withdraw" element={<Withdraw />} />
-              <Route path="/support-tickets" element={<SupportTickets />} />
-              <Route path="/support-tickets/:ticketId" element={<SupportTicketDetail />} />
-              <Route path="/support-login" element={<SupportLogin />} />
+
+              {/* Authenticated (any role) */}
+              <Route element={<RequireAuth />}>
+                <Route path="/set-pin" element={<SetPin />} />
+                <Route path="/reset-pin" element={<ResetPin />} />
+                <Route path="/my-profile" element={<MyProfile />} />
+              </Route>
+
+              {/* Member-only (blocks staff-only accounts) */}
+              <Route element={<RequireMember />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/top-up" element={<TopUp />} />
+                <Route path="/transfer" element={<Transfer />} />
+                <Route path="/referral" element={<Referral />} />
+                <Route path="/qr-pay" element={<QrPay />} />
+                <Route path="/transactions" element={<Transactions />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/help-support" element={<HelpSupport />} />
+                <Route path="/support-tickets" element={<SupportTickets />} />
+                <Route path="/support-tickets/:ticketId" element={<SupportTicketDetail />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/order/:orderId" element={<OrderConfirmation />} />
+                <Route path="/my-orders" element={<MyOrders />} />
+                <Route path="/withdraw" element={<Withdraw />} />
+                <Route path="/merchant" element={<MerchantDashboard />} />
+                <Route path="/merchant/register" element={<MerchantRegister />} />
+                <Route path="/branch" element={<BranchDashboard />} />
+                <Route path="/seller-portal" element={<SellerPortal />} />
+                <Route path="/merchant/storefront" element={<MerchantStorefrontHub />} />
+                <Route path="/merchant/storefront/:storeId" element={<MerchantStorefrontHub />} />
+                <Route path="/merchant/storefront/builder" element={<MerchantStorefrontBuilder />} />
+                <Route path="/merchant/storefront/builder/:storeId" element={<MerchantStorefrontBuilder />} />
+              </Route>
+
+              {/* Staff (self-guarded internally) */}
+              <Route path="/admin-portal" element={<AdminPortal />} />
+              <Route path="/admin-portal/*" element={<AdminPortal />} />
               <Route path="/support-portal" element={<SupportPortal />} />
               <Route path="/support-portal/*" element={<SupportPortal />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/seller-portal" element={<SellerPortal />} />
-              <Route path="/merchant/storefront" element={<MerchantStorefrontHub />} />
-              <Route path="/merchant/storefront/:storeId" element={<MerchantStorefrontHub />} />
-              <Route path="/merchant/storefront/builder" element={<MerchantStorefrontBuilder />} />
-              <Route path="/merchant/storefront/builder/:storeId" element={<MerchantStorefrontBuilder />} />
-              <Route path="/pay/:linkId" element={<HostedPay />} />
+              <Route path="/uat-scripts" element={<UatScripts />} />
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
