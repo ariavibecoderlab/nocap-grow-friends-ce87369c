@@ -3244,6 +3244,15 @@ export type Database = {
           total_count: number
         }[]
       }
+      lookup_branch_for_qr: {
+        Args: { p_lookup: string }
+        Returns: {
+          branch_name: string
+          id: string
+          is_active: boolean
+          merchant_user_id: string
+        }[]
+      }
       reconcile_va_balances: {
         Args: never
         Returns: {
