@@ -149,25 +149,11 @@ const QrPay = () => {
         branchId = data;
       }
 
-      let branchData;
-      const { data: byId } = await supabase
-        .from("merchant_branches")
-        .select("id, branch_name, merchant_user_id, commission_percent")
-        .eq("id", branchId)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      if (byId) {
-        branchData = byId;
-      } else {
-        const { data: byQr } = await supabase
-          .from("merchant_branches")
-          .select("id, branch_name, merchant_user_id, commission_percent")
-          .eq("qr_code_id", branchId)
-          .eq("is_active", true)
-          .maybeSingle();
-        branchData = byQr;
-      }
+      // Use SECURITY DEFINER RPC that returns only safe public fields
+      // (hides balance, commission_percent, addresses, owner_user_id)
+      const { data: lookupRows } = await supabase
+        .rpc("lookup_branch_for_qr", { p_lookup: branchId });
+      const branchData = Array.isArray(lookupRows) ? lookupRows[0] : null;
 
       if (!branchData) {
         toast({ title: "Invalid QR", description: "This merchant QR code is not recognized.", variant: "destructive" });
