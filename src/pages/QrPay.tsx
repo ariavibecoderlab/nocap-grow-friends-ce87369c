@@ -30,7 +30,7 @@ interface BranchInfo {
   id: string;
   branch_name: string;
   merchant_user_id: string;
-  commission_percent: number;
+  commission_percent?: number;
   merchant_name?: string;
 }
 
