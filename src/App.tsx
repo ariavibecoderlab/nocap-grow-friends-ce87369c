@@ -6,6 +6,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import RequireAuth from "@/components/auth/RequireAuth";
 import RequireMember from "@/components/auth/RequireMember";
+import MobileBlocked from "@/components/mobile/MobileBlocked";
+import DeepLinkHandler from "@/components/mobile/DeepLinkHandler";
+import PushRegistration from "@/components/mobile/PushRegistration";
+import NativeBootstrap from "@/components/mobile/NativeBootstrap";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CurrencyProvider } from "@/components/marketplace/CurrencySelector";
@@ -72,6 +76,9 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <SessionManager />
+            <NativeBootstrap />
+            <DeepLinkHandler />
+            <PushRegistration />
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Index />} />
