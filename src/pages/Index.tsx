@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { isNativeApp } from "@/lib/platform";
 import { useEffect } from "react";
 import {
   ArrowRight,
@@ -47,7 +48,9 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) navigate("/dashboard");
+    if (loading) return;
+    if (user) navigate("/dashboard");
+    else if (isNativeApp()) navigate("/auth");
   }, [user, loading, navigate]);
 
   return (
