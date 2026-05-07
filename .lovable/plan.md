@@ -34,7 +34,7 @@ Create `src/lib/platform.ts` with `isNativeApp()` and gate routes in `App.tsx`:
 2. **Status bar**: dark background, light content (matches NOcap dark theme).
 3. **Splash screen**: NOcap logo on `#000000`, auto-hide after app ready.
 4. **Keyboard**: scroll inputs into view on Top-Up / Transfer / PIN / Auth screens.
-5. **App resume listener**: refetch wallet balance + notifications when app returns from background.
+5. **App resume listener**: refetch VA Balance + notifications when app returns from background.
 
 ## Phase 4 — Native QR scanner (replaces web `getUserMedia` in `/qr-pay`)
 
