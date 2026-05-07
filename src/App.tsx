@@ -90,15 +90,15 @@ const App = () => (
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/user-manual" element={<UserManual />} />
               <Route path="/seller-manual" element={<SellerManual />} />
-              <Route path="/api-docs" element={<ApiDocs />} />
-              <Route path="/authorize" element={<Authorize />} />
-              <Route path="/admin-login" element={<AdminLogin />} />
-              <Route path="/support-login" element={<SupportLogin />} />
+              <Route path="/api-docs" element={<MobileBlocked><ApiDocs /></MobileBlocked>} />
+              <Route path="/authorize" element={<MobileBlocked><Authorize /></MobileBlocked>} />
+              <Route path="/admin-login" element={<MobileBlocked><AdminLogin /></MobileBlocked>} />
+              <Route path="/support-login" element={<MobileBlocked><SupportLogin /></MobileBlocked>} />
               <Route path="/pay/:linkId" element={<HostedPay />} />
-              <Route path="/marketplace" element={<Marketplace />} />
-              <Route path="/store/:slug" element={<StorePage />} />
-              <Route path="/store/:slug/page/:pageSlug" element={<StoreCustomPage />} />
-              <Route path="/store/:slug/product/:productId" element={<ProductDetail />} />
+              <Route path="/marketplace" element={<MobileBlocked><Marketplace /></MobileBlocked>} />
+              <Route path="/store/:slug" element={<MobileBlocked><StorePage /></MobileBlocked>} />
+              <Route path="/store/:slug/page/:pageSlug" element={<MobileBlocked><StoreCustomPage /></MobileBlocked>} />
+              <Route path="/store/:slug/product/:productId" element={<MobileBlocked><ProductDetail /></MobileBlocked>} />
 
               {/* Authenticated (any role) */}
               <Route element={<RequireAuth />}>
@@ -120,26 +120,26 @@ const App = () => (
                 <Route path="/help-support" element={<HelpSupport />} />
                 <Route path="/support-tickets" element={<SupportTickets />} />
                 <Route path="/support-tickets/:ticketId" element={<SupportTicketDetail />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/order/:orderId" element={<OrderConfirmation />} />
-                <Route path="/my-orders" element={<MyOrders />} />
+                <Route path="/checkout" element={<MobileBlocked><Checkout /></MobileBlocked>} />
+                <Route path="/order/:orderId" element={<MobileBlocked><OrderConfirmation /></MobileBlocked>} />
+                <Route path="/my-orders" element={<MobileBlocked><MyOrders /></MobileBlocked>} />
                 <Route path="/withdraw" element={<Withdraw />} />
-                <Route path="/merchant" element={<MerchantDashboard />} />
-                <Route path="/merchant/register" element={<MerchantRegister />} />
-                <Route path="/branch" element={<BranchDashboard />} />
-                <Route path="/seller-portal" element={<SellerPortal />} />
-                <Route path="/merchant/storefront" element={<MerchantStorefrontHub />} />
-                <Route path="/merchant/storefront/:storeId" element={<MerchantStorefrontHub />} />
-                <Route path="/merchant/storefront/builder" element={<MerchantStorefrontBuilder />} />
-                <Route path="/merchant/storefront/builder/:storeId" element={<MerchantStorefrontBuilder />} />
+                <Route path="/merchant" element={<MobileBlocked><MerchantDashboard /></MobileBlocked>} />
+                <Route path="/merchant/register" element={<MobileBlocked><MerchantRegister /></MobileBlocked>} />
+                <Route path="/branch" element={<MobileBlocked><BranchDashboard /></MobileBlocked>} />
+                <Route path="/seller-portal" element={<MobileBlocked><SellerPortal /></MobileBlocked>} />
+                <Route path="/merchant/storefront" element={<MobileBlocked><MerchantStorefrontHub /></MobileBlocked>} />
+                <Route path="/merchant/storefront/:storeId" element={<MobileBlocked><MerchantStorefrontHub /></MobileBlocked>} />
+                <Route path="/merchant/storefront/builder" element={<MobileBlocked><MerchantStorefrontBuilder /></MobileBlocked>} />
+                <Route path="/merchant/storefront/builder/:storeId" element={<MobileBlocked><MerchantStorefrontBuilder /></MobileBlocked>} />
               </Route>
 
               {/* Staff (self-guarded internally) */}
-              <Route path="/admin-portal" element={<AdminPortal />} />
-              <Route path="/admin-portal/*" element={<AdminPortal />} />
-              <Route path="/support-portal" element={<SupportPortal />} />
-              <Route path="/support-portal/*" element={<SupportPortal />} />
-              <Route path="/uat-scripts" element={<UatScripts />} />
+              <Route path="/admin-portal" element={<MobileBlocked><AdminPortal /></MobileBlocked>} />
+              <Route path="/admin-portal/*" element={<MobileBlocked><AdminPortal /></MobileBlocked>} />
+              <Route path="/support-portal" element={<MobileBlocked><SupportPortal /></MobileBlocked>} />
+              <Route path="/support-portal/*" element={<MobileBlocked><SupportPortal /></MobileBlocked>} />
+              <Route path="/uat-scripts" element={<MobileBlocked><UatScripts /></MobileBlocked>} />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
