@@ -12,6 +12,8 @@ import { TERMINOLOGY } from "@/lib/constants";
 import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { Html5Qrcode } from "html5-qrcode";
+import { isNativeApp } from "@/lib/platform";
+import { scanQrNative } from "@/hooks/useNativeQrScanner";
 import {
   ArrowLeft,
   Camera,
@@ -103,6 +105,22 @@ const QrPay = () => {
   }, [user]);
 
   const startScanner = async () => {
+    // Native shell: use ML Kit barcode scanner instead of html5-qrcode webcam.
+    if (isNativeApp()) {
+      setScanning(true);
+      try {
+        const value = await scanQrNative();
+        if (value) {
+          handleQrScanned(value);
+        } else {
+          toast({ title: "Scan Cancelled", description: "No QR code captured.", variant: "destructive" });
+        }
+      } finally {
+        setScanning(false);
+      }
+      return;
+    }
+
     setScanning(true);
     try {
       const scanner = new Html5Qrcode(scannerContainerId);
