@@ -45,6 +45,7 @@ interface CommissionTx {
   description: string | null;
   created_at: string;
   type: string;
+  metadata: { tier?: number } | null;
 }
 
 const tierLabels: Record<number, string> = {
@@ -169,7 +170,7 @@ const Referral = () => {
       const to = from + pageSize - 1;
       const { data, error } = await supabase
         .from("transactions")
-        .select("id, amount, description, created_at, type")
+        .select("id, amount, description, created_at, type, metadata")
         .eq("user_id", userId)
         .in("type", ["cashback", "commission"])
         .eq("status", "completed")
@@ -555,11 +556,32 @@ const Referral = () => {
 
   const totalNetworkCount = (Object.values(tierCountsFromRpc).reduce((s, c) => s + c, 0) || referrals.length) + beyondTier5Count;
 
-  // Per-tier earnings breakdown
+  // Per-type earnings breakdown
   const earningsByType = useMemo(() => {
     const cashback = commissions.filter((c) => c.type === "cashback").reduce((s, c) => s + Number(c.amount), 0);
     const commission = commissions.filter((c) => c.type === "commission").reduce((s, c) => s + Number(c.amount), 0);
     return { cashback, commission };
+  }, [commissions]);
+
+  // Per-tier commission earnings (from metadata.tier on commission transactions)
+  const earningsByTier = useMemo(() => {
+    const map: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    commissions
+      .filter((c) => c.type === "commission" && c.metadata?.tier)
+      .forEach((c) => {
+        const t = c.metadata!.tier!;
+        if (t >= 1 && t <= 5) map[t] = (map[t] || 0) + Number(c.amount);
+      });
+    return map;
+  }, [commissions]);
+
+  // This-month commission total
+  const thisMonthCommission = useMemo(() => {
+    const start = new Date();
+    start.setDate(1); start.setHours(0, 0, 0, 0);
+    return commissions
+      .filter((c) => c.type === "commission" && new Date(c.created_at) >= start)
+      .reduce((s, c) => s + Number(c.amount), 0);
   }, [commissions]);
 
   if (authLoading || loadingData) {
@@ -794,6 +816,28 @@ const Referral = () => {
 
           {/* Referral Tree Tab */}
           <TabsContent value="tree" className="mt-4 space-y-0">
+            {/* Earnings Banner */}
+            {(earningsByType.commission > 0 || thisMonthCommission > 0) && (
+              <Card className="border-secondary/30 bg-secondary/10 mb-4">
+                <CardContent className="p-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-center">
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider">All-time earned</p>
+                      <p className="font-display text-xl font-bold text-secondary">
+                        RM {earningsByType.commission.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="text-center border-l border-white/10">
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider">{new Date().toLocaleString("en-MY", { month: "long" })}</p>
+                      <p className="font-display text-xl font-bold text-white">
+                        RM {thisMonthCommission.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Network Recount Panel */}
             <Card className="border-secondary/20 bg-secondary/5 mb-4">
               <CardContent className="p-4">
@@ -1005,16 +1049,23 @@ const Referral = () => {
                           onClick={() => toggleTier(tier)}
                           className="flex w-full items-center justify-between rounded-lg p-2.5 text-left hover:bg-white/5 transition-colors"
                         >
-                          <div className="flex items-center gap-2">
-                            <div className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${colors.bg} ${colors.text}`}>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${colors.bg} ${colors.text}`}>
                               T{tier}
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <span className="text-sm font-medium text-white">{tierLabels[tier]}</span>
-                              <span className="ml-2 text-[10px] text-white/30">{tierCommissionLabels[tier]} per txn</span>
+                              {earningsByTier[tier] > 0 && (
+                                <span className={`ml-2 text-[10px] font-semibold ${colors.text}`}>
+                                  RM {earningsByTier[tier].toFixed(2)}
+                                </span>
+                              )}
+                              {earningsByTier[tier] === 0 && (
+                                <span className="ml-2 text-[10px] text-white/30">{tierCommissionLabels[tier]} per txn</span>
+                              )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 shrink-0">
                             <span className={`text-xs font-semibold ${colors.text}`}>{members.length}</span>
                             {isExpanded ? (
                               <ChevronDown className="h-4 w-4 text-white/40" />
