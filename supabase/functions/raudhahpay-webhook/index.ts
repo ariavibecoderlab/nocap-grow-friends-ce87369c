@@ -60,20 +60,25 @@ serve(async (req) => {
 
     console.log('RaudhahPay webhook received:', JSON.stringify(payload));
 
-    // HMAC signature verification status
-    let signatureStatus: 'verified' | 'invalid' | 'missing_signature' | 'missing_secret' = 'missing_secret';
-    if (RAUDHAHPAY_SECRET_KEY && payload.signature) {
-      const isValid = await verifySignature(payload, payload.signature, RAUDHAHPAY_SECRET_KEY);
-      signatureStatus = isValid ? 'verified' : 'invalid';
-      console.log(`[webhook-verify] raudhahpay signature_status=${signatureStatus} ref1=${payload.ref1 ?? 'none'}`);
-      if (!isValid) {
-        return new Response(JSON.stringify({ error: 'Invalid signature', signature_status: signatureStatus }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    } else {
-      signatureStatus = !RAUDHAHPAY_SECRET_KEY ? 'missing_secret' : 'missing_signature';
-      console.warn(`[webhook-verify] raudhahpay signature_status=${signatureStatus} — accepting unverified payload`);
+    // HMAC signature verification — fail closed if secret missing or signature invalid.
+    if (!RAUDHAHPAY_SECRET_KEY) {
+      console.error('[webhook-verify] raudhahpay RAUDHAHPAY_SECRET_KEY not configured — rejecting payload');
+      return new Response(JSON.stringify({ error: 'Webhook secret not configured' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (!payload.signature) {
+      console.warn('[webhook-verify] raudhahpay missing signature on payload — rejecting');
+      return new Response(JSON.stringify({ error: 'Missing signature' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const isValid = await verifySignature(payload, payload.signature, RAUDHAHPAY_SECRET_KEY);
+    console.log(`[webhook-verify] raudhahpay signature_status=${isValid ? 'verified' : 'invalid'} ref1=${payload.ref1 ?? 'none'}`);
+    if (!isValid) {
+      return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const transactionId = payload.ref1;

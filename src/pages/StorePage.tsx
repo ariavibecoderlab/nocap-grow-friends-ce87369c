@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import DOMPurify from "dompurify";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
@@ -675,7 +676,12 @@ const StorePage = () => {
                 )}
                 {section.type === "custom_html" && (
                   <div className="p-5 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}
-                    dangerouslySetInnerHTML={{ __html: section.content || "" }} />
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(section.content || "", {
+                        FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form"],
+                        FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur", "onchange", "onsubmit"],
+                      }),
+                    }} />
                 )}
               </div>
             ))}

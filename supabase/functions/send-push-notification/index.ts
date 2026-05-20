@@ -89,6 +89,17 @@ serve(async (req) => {
   }
 
   try {
+    // Require the service-role key as bearer — this function may only be
+    // invoked by other edge functions (server-to-server), never by the public.
+    const SUPABASE_SERVICE_ROLE_KEY_GUARD = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const authHeader = req.headers.get('Authorization') || '';
+    const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    if (!bearer || bearer !== SUPABASE_SERVICE_ROLE_KEY_GUARD) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { user_id, title, message, url } = await req.json();
 
     if (!user_id || !title) {

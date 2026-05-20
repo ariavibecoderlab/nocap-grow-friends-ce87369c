@@ -3192,6 +3192,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_connected_app_names: {
+        Args: { p_app_ids: string[] }
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
       get_deep_network_count: {
         Args: { p_user_id: string }
         Returns: {
