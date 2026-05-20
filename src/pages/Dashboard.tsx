@@ -12,6 +12,7 @@ import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, A
 import NocapLogo from "@/components/NocapLogo";
 import NotificationBell from "@/components/NotificationBell";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
+import CashbackRewardsCard from "@/components/CashbackRewardsCard";
 import { useToast } from "@/hooks/use-toast";
 import { formatRM } from "@/lib/currency";
 import { sanitizeNumericObject, sanitizeNumericFields } from "@/lib/sanitizeApiResponse";
@@ -320,6 +321,9 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Cashback & Rewards */}
+        <CashbackRewardsCard userId={user.id} />
 
         {/* Analytics Link */}
         <Card className="mt-4 border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate("/analytics")}>
