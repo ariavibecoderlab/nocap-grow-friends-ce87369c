@@ -90,7 +90,7 @@ const Auth = () => {
       setLoading(true);
 
       // Validate referral code via SECURITY DEFINER RPC (no public profile read).
-      const { data: referrerId } = await supabase.rpc("get_referrer_id_by_code", {
+      const { data: referrerId } = await (supabase.rpc as any)("get_referrer_id_by_code", {
         p_code: referralCode.toUpperCase(),
       });
 

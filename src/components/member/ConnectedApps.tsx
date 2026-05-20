@@ -47,7 +47,7 @@ const ConnectedApps = () => {
 
     // Fetch app names via SECURITY DEFINER RPC (only returns apps this user has connected).
     const appIds = [...new Set(tokens.map((t: any) => t.app_id))];
-    const { data: appData } = await supabase.rpc("get_connected_app_names", {
+    const { data: appData } = await (supabase.rpc as any)("get_connected_app_names", {
       p_app_ids: appIds,
     });
 

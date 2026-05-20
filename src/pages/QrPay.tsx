@@ -192,8 +192,8 @@ const QrPay = () => {
 
       if (qrId) {
         // Use SECURITY DEFINER RPC instead of a public table read.
-        const { data: qrRows } = await supabase.rpc("lookup_qr_code", { p_qr_id: qrId });
-        const qrData = Array.isArray(qrRows) ? qrRows[0] : null;
+        const { data: qrRows } = await (supabase.rpc as any)("lookup_qr_code", { p_qr_id: qrId });
+        const qrData: any = Array.isArray(qrRows) ? qrRows[0] : null;
         if (qrData && !qrData.is_used) {
           setDynamicQr({ id: qrData.id, amount: Number(qrData.amount), description: qrData.description });
           setAmount(String(qrData.amount));
