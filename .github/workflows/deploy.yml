@@ -33,17 +33,9 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
 
-      - name: Get Cloudflare access token
-        id: cf_token
-        run: |
-          ACCESS_TOKEN=$(curl -s -X POST https://dash.cloudflare.com/oauth2/token \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "grant_type=refresh_token&refresh_token=${{ secrets.CLOUDFLARE_REFRESH_TOKEN }}&client_id=54d11594-84e4-41aa-b438-e81b8fa78ee7" \
-            | node -e "let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>process.stdout.write(JSON.parse(d).access_token))")
-          echo "token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
-
       - name: Deploy to Cloudflare Pages
-        run: npx wrangler@3 pages deploy dist --project-name=nocap-app --branch=${{ github.ref_name }} --commit-dirty=true
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ steps.cf_token.outputs.token }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=nocap-app --branch=${{ github.ref_name }} --commit-dirty=true
