@@ -12,6 +12,7 @@ import { getCached, setCached, invalidate as invalidateReferralCache } from "@/l
 import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
+import EarningsShareCard from "@/components/EarningsShareCard";
 import {
   Users,
   Copy,
@@ -83,6 +84,7 @@ const Referral = () => {
   const [expandedTiers, setExpandedTiers] = useState<Record<number, boolean>>({ 1: true });
   const [loadingData, setLoadingData] = useState(true);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showEarningsCard, setShowEarningsCard] = useState(false);
   const [tierCountsFromRpc, setTierCountsFromRpc] = useState<Record<number, number>>({});
   const [beyondTier5Count, setBeyondTier5Count] = useState(0);
   const [recountLoading, setRecountLoading] = useState(false);
@@ -791,13 +793,18 @@ const Referral = () => {
                 {profile?.referral_code || "—"}
               </p>
               <p className="mt-1 text-xs text-white/50">Share your code to grow your network</p>
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex gap-2 flex-wrap justify-center">
                 <Button variant="outline" size="sm" onClick={copyReferralCode} className="gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-primary">
                   <Copy className="h-3.5 w-3.5" /> Copy Code
                 </Button>
                 <Button size="sm" onClick={handleShare} className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90">
                   <Share2 className="h-3.5 w-3.5" /> Share
                 </Button>
+                {(earningsByType.commission > 0 || thisMonthCommission > 0) && (
+                  <Button size="sm" variant="outline" onClick={() => setShowEarningsCard(true)} className="gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-primary">
+                    <Gift className="h-3.5 w-3.5" /> Share Earnings
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>
@@ -1314,6 +1321,17 @@ const Referral = () => {
           </button>
         </DialogContent>
       </Dialog>
+
+      <EarningsShareCard
+        open={showEarningsCard}
+        onClose={() => setShowEarningsCard(false)}
+        profile={profile}
+        thisMonthCommission={thisMonthCommission}
+        allTimeCommission={earningsByType.commission}
+        tierCounts={tierCountsFromRpc}
+        totalNetwork={totalNetworkCount}
+        shareUrl={getShareUrl()}
+      />
 
       <BottomNav />
     </div>
