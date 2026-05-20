@@ -201,7 +201,7 @@ const StorePage = () => {
       } else {
         const { data: storeData } = await supabase
           .from("marketplace_stores")
-          .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo, announcement, settings")
+          .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo, announcement, settings, brand_tier")
           .eq("slug", slug)
           .eq("status", "live")
           .maybeSingle();
@@ -456,7 +456,15 @@ const StorePage = () => {
             )}
           </div>
           <div className="pb-1 flex-1 min-w-0">
-            <h1 className="text-xl font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{store.store_name}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{store.store_name}</h1>
+              {(store as any).brand_tier === "verified" && (
+                <span className="text-[10px] font-bold text-blue-400 bg-blue-400/20 border border-blue-400/30 rounded-full px-2 py-0.5">✓ Verified</span>
+              )}
+              {(store as any).brand_tier === "featured" && (
+                <span className="text-[10px] font-bold text-amber-400 bg-amber-400/20 border border-amber-400/30 rounded-full px-2 py-0.5">★ Featured</span>
+              )}
+            </div>
             {store.tagline && <p className="text-xs" style={{ color: "var(--store-text-muted)" }}>{store.tagline}</p>}
             <div className="mt-1.5 flex items-center gap-3">
               <StoreFollowButton storeId={store.id} />

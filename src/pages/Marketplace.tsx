@@ -41,6 +41,7 @@ interface StoreInfo {
   slug: string;
   store_name: string;
   logo_url: string | null;
+  brand_tier: "standard" | "featured" | "verified" | null;
 }
 
 interface CategoryInfo {
@@ -133,7 +134,7 @@ const Marketplace = () => {
         const [storesRes, productsRes, categoriesRes] = await Promise.all([
           supabase
             .from("marketplace_stores")
-            .select("id, slug, store_name, logo_url")
+            .select("id, slug, store_name, logo_url, brand_tier")
             .eq("status", "live")
             .order("store_name"),
           supabase
@@ -404,7 +405,13 @@ const Marketplace = () => {
                 <SelectContent>
                   <SelectItem value="all">All Stores</SelectItem>
                   {stores.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.store_name}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>
+                      <span className="flex items-center gap-1.5">
+                        {s.store_name}
+                        {s.brand_tier === "verified" && <span className="text-[9px] font-bold text-blue-400 bg-blue-400/15 rounded px-1 py-0.5">✓ VERIFIED</span>}
+                        {s.brand_tier === "featured" && <span className="text-[9px] font-bold text-amber-400 bg-amber-400/15 rounded px-1 py-0.5">★ FEATURED</span>}
+                      </span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -588,6 +595,7 @@ const Marketplace = () => {
                   stockQuantity={p.stock_quantity}
                   storeSlug={storeMap[p.store_id]?.slug || ""}
                   storeName={storeMap[p.store_id]?.store_name}
+                  brandTier={storeMap[p.store_id]?.brand_tier}
                   rating={ratings[p.id]}
                   soldCount={p.sold_count}
                   compact

@@ -62,6 +62,7 @@ import SellerPortal from "./pages/SellerPortal";
 import MerchantStorefrontBuilder from "./pages/MerchantStorefrontBuilder";
 import MerchantStorefrontHub from "./pages/MerchantStorefrontHub";
 import HostedPay from "./pages/HostedPay";
+import BecomeMerchant from "./pages/BecomeMerchant";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +96,7 @@ const App = () => (
               <Route path="/admin-login" element={<MobileBlocked><AdminLogin /></MobileBlocked>} />
               <Route path="/support-login" element={<MobileBlocked><SupportLogin /></MobileBlocked>} />
               <Route path="/pay/:linkId" element={<HostedPay />} />
+              <Route path="/become-a-merchant" element={<BecomeMerchant />} />
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/store/:slug" element={<StorePage />} />
               <Route path="/store/:slug/page/:pageSlug" element={<StoreCustomPage />} />

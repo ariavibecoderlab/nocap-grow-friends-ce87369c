@@ -16,6 +16,7 @@ interface ProductCardProps {
   stockQuantity: number;
   storeSlug: string;
   storeName?: string;
+  brandTier?: "standard" | "featured" | "verified" | null;
   rating?: number;
   compact?: boolean;
   soldCount?: number;
@@ -23,7 +24,7 @@ interface ProductCardProps {
   onQuickView?: (id: string) => void;
 }
 
-export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, rating, compact, soldCount, flashPrice, onQuickView }: ProductCardProps) {
+export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, brandTier, rating, compact, soldCount, flashPrice, onQuickView }: ProductCardProps) {
   const { addItem } = useCart();
   const { toggle, isWishlisted } = useWishlist();
   const { toast } = useToast();
@@ -121,9 +122,16 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
         {storeName && (
           <button
             onClick={(e) => { e.stopPropagation(); navigate(`/store/${storeSlug}`); }}
-            className="text-[10px] text-white/40 truncate mt-0.5 flex items-center gap-0.5 hover:text-secondary transition-colors"
+            className="text-[10px] text-white/40 truncate mt-0.5 flex items-center gap-1 hover:text-secondary transition-colors"
           >
-            <Store className="h-2.5 w-2.5 shrink-0" /> {storeName}
+            <Store className="h-2.5 w-2.5 shrink-0" />
+            <span className="truncate">{storeName}</span>
+            {brandTier === "verified" && (
+              <span className="shrink-0 text-[8px] font-bold text-blue-400 bg-blue-400/15 rounded px-0.5 leading-tight">✓</span>
+            )}
+            {brandTier === "featured" && (
+              <span className="shrink-0 text-[8px] font-bold text-amber-400 bg-amber-400/15 rounded px-0.5 leading-tight">★</span>
+            )}
           </button>
         )}
         <div className={`flex items-center justify-between ${compact ? "mt-1" : "mt-1.5"}`}>

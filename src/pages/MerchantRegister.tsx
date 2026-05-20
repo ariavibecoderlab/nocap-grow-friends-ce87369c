@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
+import { Slider } from "@/components/ui/slider";
 import {
   ArrowLeft,
   ArrowRight,
@@ -22,6 +23,7 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
+  Percent,
 } from "lucide-react";
 
 type Step = "business" | "documents" | "bank" | "review";
@@ -31,6 +33,7 @@ interface FormData {
   business_type: string;
   business_registration_no: string;
   business_address: string;
+  primary_category: string;
   bank_name: string;
   bank_account_no: string;
   bank_account_holder: string;
@@ -41,6 +44,21 @@ interface UploadedDoc {
   path: string;
   url: string;
 }
+
+const PRIMARY_CATEGORIES = [
+  { value: "food", label: "Food & Beverage" },
+  { value: "fashion", label: "Fashion & Apparel" },
+  { value: "electronics", label: "Electronics & Gadgets" },
+  { value: "beauty", label: "Beauty & Personal Care" },
+  { value: "health", label: "Health & Wellness" },
+  { value: "home", label: "Home & Living" },
+  { value: "education", label: "Education & Training" },
+  { value: "sports", label: "Sports & Outdoors" },
+  { value: "kids", label: "Kids & Parenting" },
+  { value: "services", label: "Services" },
+  { value: "lifestyle", label: "Lifestyle & Hobbies" },
+  { value: "other", label: "Other" },
+];
 
 const BUSINESS_TYPES = [
   "Sole Proprietorship",
@@ -86,12 +104,14 @@ const MerchantRegister = () => {
   const [submitting, setSubmitting] = useState(false);
   const [existingApp, setExistingApp] = useState<{ status: string; rejection_reason?: string | null } | null>(null);
   const [loadingApp, setLoadingApp] = useState(true);
+  const [commissionRate, setCommissionRate] = useState(10);
 
   const [form, setForm] = useState<FormData>({
     business_name: "",
     business_type: "",
     business_registration_no: "",
     business_address: "",
+    primary_category: "",
     bank_name: "",
     bank_account_no: "",
     bank_account_holder: "",
@@ -127,10 +147,14 @@ const MerchantRegister = () => {
             business_type: data.business_type || "",
             business_registration_no: data.business_registration_no || "",
             business_address: data.business_address || "",
+            primary_category: (data as any).primary_category || "",
             bank_name: data.bank_name || "",
             bank_account_no: data.bank_account_no || "",
             bank_account_holder: data.bank_account_holder || "",
           });
+          if ((data as any).affiliate_commission_rate) {
+            setCommissionRate(Number((data as any).affiliate_commission_rate));
+          }
         }
       }
       setLoadingApp(false);
@@ -227,11 +251,13 @@ const MerchantRegister = () => {
         business_type: form.business_type,
         business_registration_no: form.business_registration_no.trim(),
         business_address: form.business_address.trim(),
+        primary_category: form.primary_category || null,
         bank_name: form.bank_name,
         bank_account_no: cleanAccountNo,
         bank_account_holder: form.bank_account_holder.trim(),
         document_urls: docs.map((d) => ({ name: d.name, path: d.path })),
-      });
+        affiliate_commission_rate: commissionRate,
+      } as any);
 
     if (error) {
       toast({ title: "Submission failed", description: error.message, variant: "destructive" });
@@ -407,6 +433,47 @@ const MerchantRegister = () => {
                 />
                 {errors.business_address && <p className="text-xs text-destructive">{errors.business_address}</p>}
               </div>
+
+              <div className="space-y-1">
+                <Label>Primary Category</Label>
+                <Select value={form.primary_category} onValueChange={(v) => updateField("primary_category", v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select store category (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRIMARY_CATEGORIES.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Affiliate commission rate */}
+              <div className="space-y-3 rounded-xl bg-secondary/5 border border-secondary/15 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Percent className="h-4 w-4 text-secondary" />
+                    <span className="text-sm font-semibold">Affiliate Commission Rate</span>
+                  </div>
+                  <span className="font-display text-xl font-bold text-secondary">{commissionRate}%</span>
+                </div>
+                <Slider
+                  min={5}
+                  max={30}
+                  step={1}
+                  value={[commissionRate]}
+                  onValueChange={([v]) => setCommissionRate(v)}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>Min 5%</span>
+                  <span>Max 30%</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  This is your total commission pool per sale. It is split equally: 1/6 buyer cashback + 1/6 each across 5 affiliate tiers.
+                  Higher rates attract more affiliates to promote your store.
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -520,6 +587,10 @@ const MerchantRegister = () => {
                   <Row label="Type" value={form.business_type} />
                   <Row label="SSM No." value={form.business_registration_no} />
                   <Row label="Address" value={form.business_address} />
+                  {form.primary_category && (
+                    <Row label="Category" value={PRIMARY_CATEGORIES.find((c) => c.value === form.primary_category)?.label || form.primary_category} />
+                  )}
+                  <Row label="Commission Rate" value={`${commissionRate}% per sale`} />
                 </div>
 
                 <div className="space-y-2 pt-3 pb-3">
