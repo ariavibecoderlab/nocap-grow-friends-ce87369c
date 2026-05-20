@@ -67,6 +67,8 @@ const Marketplace = () => {
   // Filters
   const [search, setSearch] = useState("");
   const [searchFocused] = useState(false); // kept for compat, replaced by SearchAutocomplete
+  const [ftsProductIds, setFtsProductIds] = useState<Set<string> | null>(null);
+  const ftsDebounceRef = useRef<ReturnType<typeof setTimeout>>();
   const [selectedStore, setSelectedStore] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("featured");
@@ -94,6 +96,27 @@ const Marketplace = () => {
       document.title = "NOcap - Malaysia 1st Affiliate Marketplace";
     };
   }, []);
+
+  // Server-side FTS: drive grid results when search is active
+  useEffect(() => {
+    if (ftsDebounceRef.current) clearTimeout(ftsDebounceRef.current);
+    if (search.length < 2) {
+      setFtsProductIds(null);
+      return;
+    }
+    ftsDebounceRef.current = setTimeout(async () => {
+      try {
+        const { data } = await supabase.rpc("search_marketplace_products", {
+          search_query: search,
+          result_limit: 200,
+        });
+        setFtsProductIds(new Set((data ?? []).map((r: { id: string }) => r.id)));
+      } catch {
+        setFtsProductIds(null);
+      }
+    }, 300);
+    return () => { if (ftsDebounceRef.current) clearTimeout(ftsDebounceRef.current); };
+  }, [search]);
 
   // Back to top scroll listener
   useEffect(() => {
@@ -214,7 +237,7 @@ const Marketplace = () => {
     let result = products.filter(p => {
       const matchStore = selectedStore === "all" || p.store_id === selectedStore;
       const matchCat = selectedCategory === "all" || p.category_id === selectedCategory;
-      const matchSearch = search === "" || p.name.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = search.length < 2 || (ftsProductIds ? ftsProductIds.has(p.id) : p.name.toLowerCase().includes(search.toLowerCase()));
       const matchPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
       const matchStock = !inStockOnly || p.stock_quantity > 0;
       const matchWishlist = activeTab === "all" || wishlist.has(p.id);
@@ -245,7 +268,7 @@ const Marketplace = () => {
     }
 
     return result;
-  }, [products, selectedStore, selectedCategory, search, sortBy, ratings, inStockOnly, priceRange, activeTab, wishlist]);
+  }, [products, selectedStore, selectedCategory, search, sortBy, ratings, inStockOnly, priceRange, activeTab, wishlist, ftsProductIds]);
 
   // Reset visible count when filters change
   useEffect(() => {
