@@ -89,14 +89,12 @@ const Auth = () => {
 
       setLoading(true);
 
-      // Validate referral code
-      const { data: referrer } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("referral_code", referralCode.toUpperCase())
-        .maybeSingle();
+      // Validate referral code via SECURITY DEFINER RPC (no public profile read).
+      const { data: referrerId } = await supabase.rpc("get_referrer_id_by_code", {
+        p_code: referralCode.toUpperCase(),
+      });
 
-      if (!referrer) {
+      if (!referrerId) {
         toast({ title: "Invalid referral code", description: "This referral code does not exist.", variant: "destructive" });
         setLoading(false);
         return;

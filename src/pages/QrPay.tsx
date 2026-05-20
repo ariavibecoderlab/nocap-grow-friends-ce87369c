@@ -191,12 +191,9 @@ const QrPay = () => {
       });
 
       if (qrId) {
-        const { data: qrData } = await supabase
-          .from("merchant_qr_codes")
-          .select("id, amount, description, is_used")
-          .eq("id", qrId)
-          .maybeSingle();
-
+        // Use SECURITY DEFINER RPC instead of a public table read.
+        const { data: qrRows } = await supabase.rpc("lookup_qr_code", { p_qr_id: qrId });
+        const qrData = Array.isArray(qrRows) ? qrRows[0] : null;
         if (qrData && !qrData.is_used) {
           setDynamicQr({ id: qrData.id, amount: Number(qrData.amount), description: qrData.description });
           setAmount(String(qrData.amount));

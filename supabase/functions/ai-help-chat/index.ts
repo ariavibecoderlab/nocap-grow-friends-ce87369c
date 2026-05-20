@@ -1104,20 +1104,25 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Extract user ID from auth header by decoding JWT payload
+    // Verify caller's JWT against Supabase signing keys before trusting `sub`.
+    // Previously decoded base64 only, which allowed sub forgery.
     let userId: string | null = null;
     const authHeader = req.headers.get("Authorization");
     if (authHeader?.startsWith("Bearer ")) {
       try {
         const token = authHeader.replace("Bearer ", "");
-        // Decode JWT payload without server roundtrip (avoids session_not_found errors)
-        const payloadBase64 = token.split(".")[1];
-        if (payloadBase64) {
-          const payload = JSON.parse(atob(payloadBase64));
-          userId = payload.sub || null;
-        }
+        const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+        const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+        const { createClient: createAuthClient } = await import(
+          "https://esm.sh/@supabase/supabase-js@2"
+        );
+        const authClient = createAuthClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          global: { headers: { Authorization: `Bearer ${token}` } },
+        });
+        const { data: { user }, error: userErr } = await authClient.auth.getUser();
+        if (!userErr && user) userId = user.id;
       } catch {
-        // Not authenticated — that's fine, tools will return appropriate messages
+        // Invalid/expired token — leave userId null, tools return appropriate messages
       }
     }
 

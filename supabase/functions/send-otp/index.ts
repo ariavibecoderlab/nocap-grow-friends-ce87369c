@@ -50,6 +50,23 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
+    // Rate limit — max 5 OTP requests per 10 min per email+purpose+IP
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('cf-connecting-ip')
+      || 'unknown';
+    const rlIdentifier = `${email.toLowerCase()}:${clientIp}`;
+    const { data: allowed } = await supabase.rpc('check_rate_limit', {
+      p_identifier: rlIdentifier,
+      p_endpoint: `send-otp:${otpPurpose}`,
+      p_max_requests: 5,
+      p_window_seconds: 600,
+    });
+    if (allowed === false) {
+      return new Response(JSON.stringify({ error: 'Too many requests. Please wait a few minutes and try again.' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Check if user exists — paginate through all users
     let authUser: any = null;
     let page = 1;
@@ -62,8 +79,10 @@ serve(async (req) => {
     }
 
     if (!authUser) {
-      return new Response(JSON.stringify({ error: 'User not found' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      // Do NOT reveal whether the email exists — return success shape to prevent enumeration.
+      console.log(`[send-otp] No account for ${email.toLowerCase()} — returning generic success`);
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 

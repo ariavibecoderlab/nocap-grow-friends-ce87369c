@@ -16,6 +16,21 @@ serve(async (req) => {
   }
 
   try {
+    // Require a shared cron secret. This endpoint performs financial reversals
+    // and must never be callable by anonymous internet traffic.
+    const CRON_SECRET = Deno.env.get('CRON_SECRET');
+    if (!CRON_SECRET) {
+      return new Response(JSON.stringify({ error: 'CRON_SECRET not configured on server' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const providedSecret = req.headers.get('x-cron-secret') || '';
+    if (providedSecret !== CRON_SECRET) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
