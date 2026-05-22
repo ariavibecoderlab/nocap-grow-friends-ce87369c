@@ -1994,9 +1994,11 @@ export type Database = {
       }
       marketplace_stores: {
         Row: {
+          affiliate_commission_rate: number | null
           announcement: Json
           banner_url: string | null
           branch_id: string
+          brand_tier: string | null
           checkout_settings: Json
           created_at: string
           description: string | null
@@ -2009,6 +2011,7 @@ export type Database = {
           logo_url: string | null
           merchant_user_id: string
           page_layout: Json
+          primary_category: string | null
           primary_color: string
           published_at: string | null
           seo: Json
@@ -2024,9 +2027,11 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          affiliate_commission_rate?: number | null
           announcement?: Json
           banner_url?: string | null
           branch_id: string
+          brand_tier?: string | null
           checkout_settings?: Json
           created_at?: string
           description?: string | null
@@ -2039,6 +2044,7 @@ export type Database = {
           logo_url?: string | null
           merchant_user_id: string
           page_layout?: Json
+          primary_category?: string | null
           primary_color?: string
           published_at?: string | null
           seo?: Json
@@ -2054,9 +2060,11 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          affiliate_commission_rate?: number | null
           announcement?: Json
           banner_url?: string | null
           branch_id?: string
+          brand_tier?: string | null
           checkout_settings?: Json
           created_at?: string
           description?: string | null
@@ -2069,6 +2077,7 @@ export type Database = {
           logo_url?: string | null
           merchant_user_id?: string
           page_layout?: Json
+          primary_category?: string | null
           primary_color?: string
           published_at?: string | null
           seo?: Json
@@ -2124,6 +2133,7 @@ export type Database = {
       }
       merchant_applications: {
         Row: {
+          affiliate_commission_rate: number | null
           bank_account_holder: string | null
           bank_account_no: string | null
           bank_name: string | null
@@ -2144,6 +2154,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          affiliate_commission_rate?: number | null
           bank_account_holder?: string | null
           bank_account_no?: string | null
           bank_name?: string | null
@@ -2164,6 +2175,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          affiliate_commission_rate?: number | null
           bank_account_holder?: string | null
           bank_account_no?: string | null
           bank_name?: string | null
@@ -2187,6 +2199,7 @@ export type Database = {
       }
       merchant_branches: {
         Row: {
+          affiliate_commission_rate: number | null
           balance: number
           branch_address: string | null
           branch_name: string
@@ -2201,6 +2214,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          affiliate_commission_rate?: number | null
           balance?: number
           branch_address?: string | null
           branch_name: string
@@ -2215,6 +2229,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          affiliate_commission_rate?: number | null
           balance?: number
           branch_address?: string | null
           branch_name?: string
