@@ -85,7 +85,7 @@ const MerchantApprovals = () => {
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
       const { data, error } = await q;
       if (error) throw error;
-      return data as MerchantApp[];
+      return data as unknown as MerchantApp[];
     },
   });
 
