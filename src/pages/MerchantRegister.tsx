@@ -243,27 +243,21 @@ const MerchantRegister = () => {
 
     const cleanAccountNo = form.bank_account_no.replace(/[\s-]/g, "");
 
-    // Try with Phase 2 columns first; fall back to base columns if migration not yet applied
-    const basePayload = {
-      user_id: user.id,
-      business_name: form.business_name.trim(),
-      business_type: form.business_type,
-      business_registration_no: form.business_registration_no.trim(),
-      business_address: form.business_address.trim(),
-      bank_name: form.bank_name,
-      bank_account_no: cleanAccountNo,
-      bank_account_holder: form.bank_account_holder.trim(),
-      document_urls: docs.map((d) => ({ name: d.name, path: d.path })),
-    };
-
-    let { error } = await supabase
+    const { error } = await supabase
       .from("merchant_applications")
-      .insert({ ...basePayload, primary_category: form.primary_category || null, affiliate_commission_rate: commissionRate } as any);
-
-    // If new columns don't exist yet (migration pending), retry without them
-    if (error && error.message?.includes("column")) {
-      ({ error } = await supabase.from("merchant_applications").insert(basePayload));
-    }
+      .insert({
+        user_id: user.id,
+        business_name: form.business_name.trim(),
+        business_type: form.business_type,
+        business_registration_no: form.business_registration_no.trim(),
+        business_address: form.business_address.trim(),
+        primary_category: form.primary_category || null,
+        bank_name: form.bank_name,
+        bank_account_no: cleanAccountNo,
+        bank_account_holder: form.bank_account_holder.trim(),
+        document_urls: docs.map((d) => ({ name: d.name, path: d.path })),
+        affiliate_commission_rate: commissionRate,
+      });
 
     if (error) {
       toast({ title: "Submission failed", description: error.message, variant: "destructive" });
