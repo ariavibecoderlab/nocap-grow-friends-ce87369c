@@ -1,6 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
+import { encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,6 +57,17 @@ serve(async (req) => {
     const senderId = user.id;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // CRIT-5: Rate limit — 10 transfer requests per 60 seconds per user
+    const { data: allowed } = await supabase.rpc('check_rate_limit', {
+      p_identifier: senderId, p_endpoint: 'process-transfer', p_max_requests: 10, p_window_seconds: 60,
+    });
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Too many transfer requests. Please wait a moment.' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
+      });
+    }
+
     const { recipient_user_id, amount, pin } = await req.json();
 
     // Validate inputs

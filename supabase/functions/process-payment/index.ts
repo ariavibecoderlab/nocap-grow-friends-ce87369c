@@ -1,6 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
+import { encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
@@ -55,6 +55,17 @@ serve(async (req) => {
     const payerId = user.id;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // CRIT-5: Rate limit — 10 payment requests per 60 seconds per user
+    const { data: allowed } = await supabase.rpc('check_rate_limit', {
+      p_identifier: payerId, p_endpoint: 'process-payment', p_max_requests: 10, p_window_seconds: 60,
+    });
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Too many payment requests. Please wait a moment.' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
+      });
+    }
+
     const { branch_id, qr_code_id, amount, pin } = await req.json();
 
     if (!branch_id || typeof branch_id !== 'string') {
@@ -90,30 +101,47 @@ serve(async (req) => {
       });
     }
 
-    // If dynamic QR, validate and mark as used
+    // CRIT-1: Atomic QR code validation — single UPDATE prevents double-spend race condition
+    // SELECT-then-UPDATE (TOCTOU) would allow two concurrent requests to both see is_used=false
     if (qr_code_id) {
-      const { data: qrCode } = await supabase
+      // First check expiry without locking (read-only)
+      const { data: qrCheck } = await supabase
         .from('merchant_qr_codes')
-        .select('id, amount, is_used, expires_at')
+        .select('expires_at, is_used')
         .eq('id', qr_code_id)
         .single();
 
-      if (!qrCode) {
+      if (!qrCheck) {
         return new Response(JSON.stringify({ error: 'QR code not found' }), {
           status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      if (qrCode.is_used) {
+      if (qrCheck.is_used) {
         return new Response(JSON.stringify({ error: 'This QR code has already been used' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      if (qrCode.expires_at && new Date(qrCode.expires_at) < new Date()) {
+      if (qrCheck.expires_at && new Date(qrCheck.expires_at) < new Date()) {
         return new Response(JSON.stringify({ error: 'This QR code has expired' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      await supabase.from('merchant_qr_codes').update({ is_used: true }).eq('id', qr_code_id);
+
+      // ATOMIC: mark used only if still unused — concurrent requests will get 0 rows back
+      const { data: claimed } = await supabase
+        .from('merchant_qr_codes')
+        .update({ is_used: true })
+        .eq('id', qr_code_id)
+        .eq('is_used', false)          // ← guard: only succeeds if not yet used
+        .select('id')
+        .maybeSingle();
+
+      if (!claimed) {
+        // Another request won the race
+        return new Response(JSON.stringify({ error: 'This QR code has already been used' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // PIN verification
@@ -209,11 +237,8 @@ serve(async (req) => {
       });
     }
 
-    // Update merchant_branches.balance
-    const { data: branchRow } = await supabase.from('merchant_branches').select('balance').eq('id', branch_id).single();
-    if (branchRow) {
-      await supabase.from('merchant_branches').update({ balance: Number(branchRow.balance) + branchCredit }).eq('id', branch_id);
-    }
+    // CRIT-2: Atomic branch balance increment — avoids non-atomic read-modify-write corruption
+    await supabase.rpc('increment_branch_balance', { p_branch_id: branch_id, p_amount: branchCredit });
 
     // Get payer name
     const { data: payerProfile } = await supabase.from('profiles').select('full_name').eq('user_id', payerId).single();

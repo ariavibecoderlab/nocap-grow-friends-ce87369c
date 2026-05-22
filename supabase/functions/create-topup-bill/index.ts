@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,8 +42,18 @@ serve(async (req) => {
       });
     }
 
+    // CRIT-5: Rate limit — 5 top-up bills per 60 seconds per user
+    const { data: allowed } = await supabase.rpc('check_rate_limit', {
+      p_identifier: user.id, p_endpoint: 'create-topup-bill', p_max_requests: 5, p_window_seconds: 60,
+    });
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Too many requests. Please wait a moment.' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
+      });
+    }
+
     const { amount } = await req.json();
-    
+
     // Validate amount
     if (!amount || typeof amount !== 'number' || amount < 10 || amount > 500) {
       return new Response(JSON.stringify({ error: 'Amount must be between RM10 and RM500' }), {

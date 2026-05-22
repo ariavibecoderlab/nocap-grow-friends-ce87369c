@@ -115,17 +115,20 @@ const Withdraw = () => {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from("withdrawal_requests").insert({
-      user_id: user.id,
-      amount: amt,
-      bank_name: bankName.trim(),
-      bank_account_no: bankAccountNo.trim(),
-      bank_account_holder: bankAccountHolder.trim(),
-      wallet_type: "member",
+    // CRIT-3: Atomic RPC — locks balance at submission; prevents double-spend
+    const { data: result, error } = await supabase.rpc('request_withdrawal', {
+      p_user_id: user.id,
+      p_amount: amt,
+      p_bank_name: bankName.trim(),
+      p_account_no: bankAccountNo.trim(),
+      p_account_holder: bankAccountHolder.trim(),
     });
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error || !(result as any)?.success) {
+      const msg = (result as any)?.error || error?.message || "Request failed. Please try again.";
+      toast({ title: "Error", description: msg, variant: "destructive" });
     } else {
+      // Update local balance immediately from RPC — no extra fetch needed
+      if ((result as any)?.new_balance != null) setWalletBalance(Number((result as any).new_balance));
       toast({ title: "Withdrawal requested", description: "Admin will review your request." });
       setAmount("");
       setShowForm(false);

@@ -26,13 +26,30 @@ const TopUp = () => {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    // RaudhahPay redirect includes: status (4=Success), paid (true/false), ref1, ref2, etc.
+    if (!user) return;
+    // CRIT-4: RaudhahPay redirect — verify via DB, don't trust URL params alone
+    // Params: status (4=Success), paid (true/false), ref1=transaction_id, ref2=user_id
     const status = searchParams.get("status");
     const paid = searchParams.get("paid");
-    if (status === "success" || status === "4" || paid === "true") {
-      setShowSuccess(true);
-    }
-  }, [searchParams]);
+    const ref1 = searchParams.get("ref1"); // our transaction ID from create-topup-bill
+
+    if (!(status === "success" || status === "4" || paid === "true")) return;
+
+    if (!ref1) return; // No transaction ID — spoofed URL, ignore
+
+    // Verify ref1 belongs to this user's top_up transaction
+    supabase
+      .from("transactions")
+      .select("status")
+      .eq("id", ref1)
+      .eq("user_id", user.id)
+      .eq("type", "top_up")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setShowSuccess(true); // transaction exists → payment was initiated
+        // else: ref1 doesn't match this user — silently ignore (spoof attempt)
+      });
+  }, [searchParams, user]);
 
   useEffect(() => {
     if (!user) return;
