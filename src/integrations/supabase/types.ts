@@ -3262,6 +3262,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_branch_balance: {
+        Args: { p_amount: number; p_branch_id: string }
+        Returns: undefined
+      }
       is_chat_participant: {
         Args: { _product_id: string; _store_id: string; _user_id: string }
         Returns: boolean
@@ -3315,6 +3319,16 @@ export type Database = {
           va_balance: number
           wallet_type: string
         }[]
+      }
+      request_withdrawal: {
+        Args: {
+          p_account_holder: string
+          p_account_no: string
+          p_amount: number
+          p_bank_name: string
+          p_user_id: string
+        }
+        Returns: Json
       }
       search_marketplace_products: {
         Args: {
