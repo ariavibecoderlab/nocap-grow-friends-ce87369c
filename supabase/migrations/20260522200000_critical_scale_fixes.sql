@@ -25,9 +25,9 @@ CREATE INDEX IF NOT EXISTS idx_marketplace_products_store_status
   ON public.marketplace_products(store_id, status)
   WHERE status = 'active';
 
--- Marketplace orders by user
+-- Marketplace orders by user (column is buyer_user_id, not user_id)
 CREATE INDEX IF NOT EXISTS idx_marketplace_orders_user_created
-  ON public.marketplace_orders(user_id, created_at DESC);
+  ON public.marketplace_orders(buyer_user_id, created_at DESC);
 
 -- ── Atomic withdrawal submission ────────────────────────────────────────────
 -- Replaces client-side insert in Withdraw.tsx
