@@ -91,9 +91,21 @@ const OrderConfirmation = () => {
   const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
   const [shipment, setShipment] = useState<ShipmentData | null>(null);
   const [reviewedProductIds, setReviewedProductIds] = useState<Set<string>>(
-    new Set(),
+    new Set()
   );
   const [loading, setLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+
+  const fetchShipment = async (oid: string) => {
+    const { data } = await supabase
+      .from("order_shipments")
+      .select(
+        "id, carrier, tracking_number, status, shipped_at, notes, tracking_events"
+      )
+      .eq("order_id", oid)
+      .maybeSingle();
+    setShipment(data as ShipmentData | null);
+  };
 
   useEffect(() => {
     if (!orderId || !user) return;
@@ -114,7 +126,7 @@ const OrderConfirmation = () => {
         supabase
           .from("marketplace_order_items")
           .select(
-            "id, product_id, product_name, product_image, quantity, unit_price, subtotal",
+            "id, product_id, product_name, product_image, quantity, unit_price, subtotal"
           )
           .eq("order_id", orderId),
         supabase
@@ -130,7 +142,7 @@ const OrderConfirmation = () => {
         supabase
           .from("order_shipments")
           .select(
-            "id, carrier, tracking_number, status, shipped_at, notes, tracking_events",
+            "id, carrier, tracking_number, status, shipped_at, notes, tracking_events"
           )
           .eq("order_id", orderId)
           .maybeSingle(),
@@ -140,13 +152,66 @@ const OrderConfirmation = () => {
       setShipment(shipmentRes.data as ShipmentData | null);
       if (reviewsRes.data) {
         setReviewedProductIds(
-          new Set(reviewsRes.data.map((r: any) => r.product_id)),
+          new Set(
+            reviewsRes.data.map((r: { product_id: string }) => r.product_id)
+          )
         );
       }
       setLoading(false);
     };
     fetch();
   }, [orderId, user]);
+
+  useEffect(() => {
+    if (!orderId) return;
+
+    const orderChannel = supabase
+      .channel(`order:${orderId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "marketplace_orders",
+          filter: `id=eq.${orderId}`,
+        },
+        (payload) => {
+          setOrder((prev) => {
+            if (!prev) return prev;
+            const updated = { ...prev, ...payload.new } as OrderData;
+            // When transitioning to shipped with no shipment yet, re-fetch shipment
+            if (updated.status === "shipped" && !shipment) {
+              fetchShipment(orderId);
+            }
+            return updated;
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "order_shipments",
+          filter: `order_id=eq.${orderId}`,
+        },
+        (payload) => {
+          if (
+            payload.eventType === "INSERT" ||
+            payload.eventType === "UPDATE"
+          ) {
+            setShipment(payload.new as ShipmentData);
+          }
+        }
+      )
+      .subscribe((status) => {
+        setIsConnected(status === "SUBSCRIBED");
+      });
+
+    return () => {
+      supabase.removeChannel(orderChannel);
+    };
+  }, [orderId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -188,6 +253,14 @@ const OrderConfirmation = () => {
           <h1 className="font-display text-xl font-bold text-white">
             Order Details
           </h1>
+          {isConnected && (
+            <div className="ml-auto flex items-center gap-1.5 rounded-full bg-green-500/15 px-2.5 py-1">
+              <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-[10px] font-semibold text-green-400 uppercase tracking-wide">
+                Live
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -260,7 +333,7 @@ const OrderConfirmation = () => {
                           month: "short",
                           hour: "2-digit",
                           minute: "2-digit",
-                        },
+                        }
                       )}
                     </p>
                   </div>
@@ -297,7 +370,9 @@ const OrderConfirmation = () => {
                       <div key={idx} className="flex gap-2.5">
                         <div className="flex flex-col items-center">
                           <div
-                            className={`h-2 w-2 rounded-full mt-1 shrink-0 ${idx === 0 ? "bg-cyan-400" : "bg-white/20"}`}
+                            className={`h-2 w-2 rounded-full mt-1 shrink-0 ${
+                              idx === 0 ? "bg-cyan-400" : "bg-white/20"
+                            }`}
                           />
                           {idx < shipment.tracking_events!.length - 1 && (
                             <div className="w-px flex-1 bg-white/10 my-0.5" />
@@ -316,7 +391,7 @@ const OrderConfirmation = () => {
                                   month: "short",
                                   hour: "2-digit",
                                   minute: "2-digit",
-                                },
+                                }
                               )}
                             </p>
                             {event.location && (
@@ -438,11 +513,11 @@ const OrderConfirmation = () => {
                     productName={item.product_name}
                     onReviewSubmitted={() =>
                       setReviewedProductIds(
-                        (prev) => new Set([...prev, item.product_id]),
+                        (prev) => new Set([...prev, item.product_id])
                       )
                     }
                   />
-                ),
+                )
               )}
             </CardContent>
           </Card>

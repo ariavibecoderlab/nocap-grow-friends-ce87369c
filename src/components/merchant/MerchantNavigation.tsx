@@ -13,6 +13,7 @@ import {
   QrCode,
   Store,
   MessageCircle,
+  MessageSquare,
   ArrowLeftRight,
   Wallet,
   TrendingUp,
@@ -68,6 +69,7 @@ export function getMerchantSections(chatUnread: number): NavSection[] {
           badge: chatUnread,
         },
         { value: "kanban", icon: ClipboardList, label: "Order Fulfillment" },
+        { value: "messages", icon: MessageSquare, label: "Messages" },
       ],
     },
     {

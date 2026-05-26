@@ -57,6 +57,7 @@ import MerchantStoreCRM from "@/components/merchant/MerchantStoreCRM";
 import MerchantSalesReports from "@/components/merchant/MerchantSalesReports";
 import MerchantInventoryAlerts from "@/components/merchant/MerchantInventoryAlerts";
 import MerchantOrderKanban from "@/components/merchant/MerchantOrderKanban";
+import SellerChatInbox from "@/components/seller-portal/SellerChatInbox";
 import MerchantStaffPermissions from "@/components/merchant/MerchantStaffPermissions";
 import MerchantProductSeo from "@/components/merchant/MerchantProductSeo";
 import MerchantCollections from "@/components/merchant/MerchantCollections";
@@ -280,6 +281,12 @@ const MerchantNavigationWrapper = ({
         return (
           <MerchantStoreTabWrapper branchId={selectedBranch.id}>
             {(storeId) => <MerchantOrderKanban storeId={storeId} />}
+          </MerchantStoreTabWrapper>
+        );
+      case "messages":
+        return (
+          <MerchantStoreTabWrapper branchId={selectedBranch.id}>
+            {(storeId) => <SellerChatInbox storeId={storeId} />}
           </MerchantStoreTabWrapper>
         );
       case "discounts":

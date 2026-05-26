@@ -79,6 +79,36 @@ const MyOrders = () => {
     fetch();
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel("my-orders-updates")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "marketplace_orders",
+          filter: `buyer_user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          setOrders((prev) =>
+            prev.map((o) =>
+              o.id === payload.new.id
+                ? { ...o, status: payload.new.status as string }
+                : o
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const filteredOrders =
     activeFilter === "all"
       ? orders
@@ -169,7 +199,7 @@ const MyOrders = () => {
                         #{order.order_number} ·{" "}
                         {new Date(order.created_at).toLocaleDateString(
                           "en-MY",
-                          { day: "numeric", month: "short" },
+                          { day: "numeric", month: "short" }
                         )}
                       </p>
                     </div>

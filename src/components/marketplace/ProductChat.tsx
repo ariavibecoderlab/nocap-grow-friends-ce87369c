@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { MessageCircle, X, Send, Store } from "lucide-react";
@@ -11,6 +11,9 @@ interface ChatMessage {
   sender_type: string;
   message: string;
   created_at: string;
+  is_read: boolean;
+  product_id?: string;
+  buyer_user_id?: string;
 }
 
 interface ProductChatProps {
@@ -20,13 +23,39 @@ interface ProductChatProps {
   storeName?: string;
 }
 
-const ProductChat = ({ storeId, productId, productName, storeName }: ProductChatProps) => {
+const ProductChat = ({
+  storeId,
+  productId,
+  productName,
+  storeName,
+}: ProductChatProps) => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const markReceivedAsRead = useCallback(
+    async (msgs: ChatMessage[]) => {
+      if (!user) return;
+      const unreadIds = msgs
+        .filter((m) => m.sender_type !== "buyer" && !m.is_read)
+        .map((m) => m.id);
+      if (unreadIds.length === 0) return;
+      await supabase
+        .from("marketplace_chat_messages")
+        .update({ is_read: true })
+        .in("id", unreadIds);
+      setMessages((prev) =>
+        prev.map((m) =>
+          unreadIds.includes(m.id) ? { ...m, is_read: true } : m
+        )
+      );
+    },
+    [user]
+  );
 
   // Load existing messages when chat opens
   useEffect(() => {
@@ -35,39 +64,56 @@ const ProductChat = ({ storeId, productId, productName, storeName }: ProductChat
     const loadMessages = async () => {
       const { data } = await supabase
         .from("marketplace_chat_messages")
-        .select("id, sender_id, sender_type, message, created_at")
+        .select("id, sender_id, sender_type, message, created_at, is_read")
         .eq("store_id", storeId)
         .eq("product_id", productId)
-        .or(`sender_id.eq.${user.id}`)
+        .or(`buyer_user_id.eq.${user.id},sender_id.eq.${user.id}`)
         .order("created_at", { ascending: true })
-        .limit(50);
-      if (data) setMessages(data as ChatMessage[]);
+        .limit(100);
+      if (data) {
+        const msgs = data as ChatMessage[];
+        setMessages(msgs);
+        markReceivedAsRead(msgs);
+      }
     };
     loadMessages();
-  }, [open, user, storeId, productId]);
+  }, [open, user, storeId, productId, markReceivedAsRead]);
 
-  // Realtime subscription
+  // Realtime subscription using store_id filter
   useEffect(() => {
     if (!open || !user) return;
 
+    const conversationKey = `${storeId}:${productId}:${user.id}`;
     const channel = supabase
-      .channel(`chat-${productId}-${user.id}`)
+      .channel(`chat:${conversationKey}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "marketplace_chat_messages",
-          filter: `product_id=eq.${productId}`,
+          filter: `store_id=eq.${storeId}`,
         },
         (payload) => {
-          const newMsg = payload.new as ChatMessage;
-          // Only add if it's part of our conversation
-          if (newMsg.sender_id === user.id || newMsg.sender_type === "merchant") {
+          const msg = payload.new as ChatMessage;
+          if (
+            msg.product_id === productId &&
+            (msg.sender_id === user.id ||
+              msg.buyer_user_id === user.id ||
+              msg.sender_type === "merchant")
+          ) {
             setMessages((prev) => {
-              if (prev.find((m) => m.id === newMsg.id)) return prev;
-              return [...prev, newMsg];
+              if (prev.find((m) => m.id === msg.id)) return prev;
+              return [...prev, msg];
             });
+            // Auto-mark incoming merchant messages as read
+            if (msg.sender_type !== "buyer") {
+              supabase
+                .from("marketplace_chat_messages")
+                .update({ is_read: true })
+                .eq("id", msg.id)
+                .then(() => {});
+            }
           }
         }
       )
@@ -76,11 +122,11 @@ const ProductChat = ({ storeId, productId, productName, storeName }: ProductChat
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [open, user, productId]);
+  }, [open, user, storeId, productId]);
 
-  // Auto-scroll
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSend = async () => {
@@ -89,17 +135,41 @@ const ProductChat = ({ storeId, productId, productName, storeName }: ProductChat
     const msg = text.trim();
     setText("");
 
-    const { error } = await supabase.from("marketplace_chat_messages").insert({
-      store_id: storeId,
-      product_id: productId,
+    // Optimistic add
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimistic: ChatMessage = {
+      id: optimisticId,
       sender_id: user.id,
       sender_type: "buyer",
       message: msg,
-    });
+      created_at: new Date().toISOString(),
+      is_read: false,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+
+    const { data: inserted, error } = await supabase
+      .from("marketplace_chat_messages")
+      .insert({
+        store_id: storeId,
+        product_id: productId,
+        buyer_user_id: user.id,
+        sender_id: user.id,
+        sender_type: "buyer",
+        message: msg,
+      })
+      .select("id, sender_id, sender_type, message, created_at, is_read")
+      .single();
 
     if (error) {
+      // Rollback optimistic message and restore input
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
       setText(msg);
       console.error("Chat send error:", error);
+    } else if (inserted) {
+      // Replace optimistic with real message
+      setMessages((prev) =>
+        prev.map((m) => (m.id === optimisticId ? (inserted as ChatMessage) : m))
+      );
     }
     setSending(false);
   };
@@ -122,7 +192,10 @@ const ProductChat = ({ storeId, productId, productName, storeName }: ProductChat
       {/* Chat drawer */}
       {open && (
         <div className="fixed bottom-16 right-0 left-0 z-40 mx-auto max-w-md animate-in slide-in-from-bottom-4 duration-200">
-          <div className="mx-3 rounded-t-2xl border border-white/10 bg-primary shadow-2xl flex flex-col" style={{ height: "55vh" }}>
+          <div
+            className="mx-3 rounded-t-2xl border border-white/10 bg-primary shadow-2xl flex flex-col"
+            style={{ height: "55vh" }}
+          >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <div className="flex items-center gap-2">
@@ -130,28 +203,45 @@ const ProductChat = ({ storeId, productId, productName, storeName }: ProductChat
                   <Store className="h-4 w-4 text-secondary" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">{storeName || "Seller"}</p>
-                  <p className="text-[10px] text-white/40 truncate max-w-[180px]">Re: {productName}</p>
+                  <p className="text-sm font-semibold text-white">
+                    {storeName || "Seller"}
+                  </p>
+                  <p className="text-[10px] text-white/40 truncate max-w-[180px]">
+                    Re: {productName}
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setOpen(false)} className="rounded-full p-1.5 hover:bg-white/10 text-white/60 hover:text-white">
+              <button
+                onClick={() => setOpen(false)}
+                className="rounded-full p-1.5 hover:bg-white/10 text-white/60 hover:text-white"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Messages */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+            <div
+              ref={scrollRef}
+              className="flex-1 overflow-y-auto px-3 py-3 space-y-2"
+            >
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-white/30 text-center">
                   <MessageCircle className="h-8 w-8 mb-2 opacity-40" />
-                  <p className="text-xs">Start a conversation with the seller</p>
+                  <p className="text-xs">
+                    Start a conversation with the seller
+                  </p>
                   <p className="text-[10px] mt-1">Ask about {productName}</p>
                 </div>
               )}
               {messages.map((msg) => {
                 const isMine = msg.sender_id === user.id;
                 return (
-                  <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                  <div
+                    key={msg.id}
+                    className={`flex ${
+                      isMine ? "justify-end" : "justify-start"
+                    }`}
+                  >
                     <div
                       className={`max-w-[75%] rounded-2xl px-3 py-2 text-xs leading-relaxed ${
                         isMine
@@ -160,16 +250,26 @@ const ProductChat = ({ storeId, productId, productName, storeName }: ProductChat
                       }`}
                     >
                       {!isMine && (
-                        <p className="text-[10px] font-medium text-secondary mb-0.5">Seller</p>
+                        <p className="text-[10px] font-medium text-secondary mb-0.5">
+                          Seller
+                        </p>
                       )}
                       <p>{msg.message}</p>
-                      <p className={`text-[9px] mt-1 ${isMine ? "text-primary/50" : "text-white/30"}`}>
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      <p
+                        className={`text-[9px] mt-1 ${
+                          isMine ? "text-primary/50" : "text-white/30"
+                        }`}
+                      >
+                        {new Date(msg.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </p>
                     </div>
                   </div>
                 );
               })}
+              <div ref={bottomRef} />
             </div>
 
             {/* Input */}
