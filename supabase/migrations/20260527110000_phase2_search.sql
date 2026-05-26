@@ -1,0 +1,11 @@
+-- Phase 2: Full-text product search
+-- Applied via Supabase MCP on 2026-05-27
+--
+-- Tables created: recently_viewed, search_history
+-- Extensions: pg_trgm
+-- Indexes: idx_products_search_vector (GIN), idx_products_name_trgm (GIN trgm), idx_products_status_store_price
+-- RPCs: search_products(query, filters, sort, pagination) → ranked product rows
+--       autocomplete_products(query) → 8 name suggestions
+--
+-- Note: search_vector column on marketplace_products was already present
+-- (GENERATED ALWAYS AS tsvector from name + description)

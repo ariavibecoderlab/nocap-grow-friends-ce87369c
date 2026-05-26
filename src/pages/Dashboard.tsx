@@ -8,14 +8,40 @@ import { TERMINOLOGY } from "@/lib/constants";
 import BottomNav from "@/components/BottomNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import TransactionDetail from "@/components/TransactionDetail";
-import { Wallet, QrCode, ArrowUpDown, Users, Plus, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, Gift, TrendingUp, Copy, ChevronRight, Store, AlertCircle, Banknote, Send, UserPlus, Share2, ShoppingBag, ArrowDownToLine } from "lucide-react";
+import {
+  Wallet,
+  QrCode,
+  ArrowUpDown,
+  Users,
+  Plus,
+  Eye,
+  EyeOff,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Gift,
+  TrendingUp,
+  Copy,
+  ChevronRight,
+  Store,
+  AlertCircle,
+  Banknote,
+  Send,
+  UserPlus,
+  Share2,
+  ShoppingBag,
+  ArrowDownToLine,
+  Package,
+} from "lucide-react";
 import NocapLogo from "@/components/NocapLogo";
 import NotificationBell from "@/components/NotificationBell";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
 import CashbackRewardsCard from "@/components/CashbackRewardsCard";
 import { useToast } from "@/hooks/use-toast";
 import { formatRM } from "@/lib/currency";
-import { sanitizeNumericObject, sanitizeNumericFields } from "@/lib/sanitizeApiResponse";
+import {
+  sanitizeNumericObject,
+  sanitizeNumericFields,
+} from "@/lib/sanitizeApiResponse";
 import { RMAmount } from "@/components/RMAmount";
 
 interface Transaction {
@@ -29,14 +55,19 @@ interface Transaction {
 
 const transactionIcon = (type: string) => {
   switch (type) {
-    case "top_up": return <ArrowDownLeft className="h-4 w-4 text-secondary" />;
+    case "top_up":
+      return <ArrowDownLeft className="h-4 w-4 text-secondary" />;
     case "cashback":
-    case "commission": return <Gift className="h-4 w-4 text-secondary" />;
-    case "transfer_in": return <ArrowDownLeft className="h-4 w-4 text-secondary" />;
+    case "commission":
+      return <Gift className="h-4 w-4 text-secondary" />;
+    case "transfer_in":
+      return <ArrowDownLeft className="h-4 w-4 text-secondary" />;
     case "transfer_out":
     case "payment":
-    case "withdrawal": return <ArrowUpRight className="h-4 w-4 text-red-400" />;
-    default: return <ArrowUpDown className="h-4 w-4 text-white/50" />;
+    case "withdrawal":
+      return <ArrowUpRight className="h-4 w-4 text-red-400" />;
+    default:
+      return <ArrowUpDown className="h-4 w-4 text-white/50" />;
   }
 };
 
@@ -49,7 +80,7 @@ const transactionLabel = (type: string) => {
     cashback: "Cashback",
     commission: "Commission",
     withdrawal: "Withdrawal",
-    refund: "Refund"
+    refund: "Refund",
   };
   return labels[type] || type;
 };
@@ -63,7 +94,14 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [balance, setBalance] = useState<number>(0);
   const [showBalance, setShowBalance] = useState(true);
-  const [profile, setProfile] = useState<{ full_name: string; phone: string | null; referral_code: string; avatar_url: string | null; address: string | null; has_pin: boolean } | null>(null);
+  const [profile, setProfile] = useState<{
+    full_name: string;
+    phone: string | null;
+    referral_code: string;
+    avatar_url: string | null;
+    address: string | null;
+    has_pin: boolean;
+  } | null>(null);
   const [referralCount, setReferralCount] = useState(0);
   const [networkCount, setNetworkCount] = useState(0);
   const [cashbackEarnings, setCashbackEarnings] = useState(0);
@@ -95,27 +133,84 @@ const Dashboard = () => {
     if (!user) return;
     const currentUserId = user.id;
     setLoadingData(true);
-    const [walletRes, profileRes, directReferrals, allReferrals, earningsRes, txRes, merchantRoleRes] = await Promise.all([
-      supabase.from("wallets").select("balance").eq("user_id", currentUserId).eq("wallet_type", "member").maybeSingle(),
-      supabase.from("profiles").select("full_name, phone, referral_code, avatar_url, address, has_pin").eq("user_id", currentUserId).maybeSingle(),
-      supabase.from("referral_tree").select("id", { count: "exact", head: true }).eq("ancestor_id", currentUserId).eq("tier", 1),
-      supabase.from("referral_tree").select("id", { count: "exact", head: true }).eq("ancestor_id", currentUserId),
-      supabase.from("transactions").select("amount, type").eq("user_id", currentUserId).in("type", ["cashback", "commission"]).eq("status", "completed"),
-      supabase.from("transactions").select("id, type, amount, status, description, created_at").eq("user_id", currentUserId).order("created_at", { ascending: false }).limit(5),
-      supabase.from("user_roles").select("id").eq("user_id", currentUserId).eq("role", "merchant").maybeSingle()
+    const [
+      walletRes,
+      profileRes,
+      directReferrals,
+      allReferrals,
+      earningsRes,
+      txRes,
+      merchantRoleRes,
+    ] = await Promise.all([
+      supabase
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", currentUserId)
+        .eq("wallet_type", "member")
+        .maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("full_name, phone, referral_code, avatar_url, address, has_pin")
+        .eq("user_id", currentUserId)
+        .maybeSingle(),
+      supabase
+        .from("referral_tree")
+        .select("id", { count: "exact", head: true })
+        .eq("ancestor_id", currentUserId)
+        .eq("tier", 1),
+      supabase
+        .from("referral_tree")
+        .select("id", { count: "exact", head: true })
+        .eq("ancestor_id", currentUserId),
+      supabase
+        .from("transactions")
+        .select("amount, type")
+        .eq("user_id", currentUserId)
+        .in("type", ["cashback", "commission"])
+        .eq("status", "completed"),
+      supabase
+        .from("transactions")
+        .select("id, type, amount, status, description, created_at")
+        .eq("user_id", currentUserId)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", currentUserId)
+        .eq("role", "merchant")
+        .maybeSingle(),
     ]);
 
     if (currentUserId !== user.id) return;
 
-    const safeWallet = sanitizeNumericObject(walletRes.data, ["balance"], { context: "wallets" });
+    const safeWallet = sanitizeNumericObject(walletRes.data, ["balance"], {
+      context: "wallets",
+    });
     if (safeWallet) setBalance(safeWallet.balance);
     if (profileRes.data) setProfile(profileRes.data);
     setReferralCount(directReferrals.count ?? 0);
     setNetworkCount(allReferrals.count ?? 0);
-    const safeEarnings = sanitizeNumericFields(earningsRes.data as Array<{ amount: number; type: string }> | null, ["amount"], { context: "transactions.earnings" });
-    setCashbackEarnings(safeEarnings.filter(t => t.type === 'cashback').reduce((sum, t) => sum + t.amount, 0));
-    setCommissionEarnings(safeEarnings.filter(t => t.type === 'commission').reduce((sum, t) => sum + t.amount, 0));
-    const safeTx = sanitizeNumericFields(txRes.data as Transaction[] | null, ["amount"], { context: "transactions.recent" });
+    const safeEarnings = sanitizeNumericFields(
+      earningsRes.data as Array<{ amount: number; type: string }> | null,
+      ["amount"],
+      { context: "transactions.earnings" },
+    );
+    setCashbackEarnings(
+      safeEarnings
+        .filter((t) => t.type === "cashback")
+        .reduce((sum, t) => sum + t.amount, 0),
+    );
+    setCommissionEarnings(
+      safeEarnings
+        .filter((t) => t.type === "commission")
+        .reduce((sum, t) => sum + t.amount, 0),
+    );
+    const safeTx = sanitizeNumericFields(
+      txRes.data as Transaction[] | null,
+      ["amount"],
+      { context: "transactions.recent" },
+    );
     setTransactions(safeTx);
     setIsMerchant(!!merchantRoleRes.data);
     setLoadingData(false);
@@ -130,17 +225,30 @@ const Dashboard = () => {
       .channel("dashboard-wallet")
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` },
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "wallets",
+          filter: `user_id=eq.${user.id}`,
+        },
         (payload) => {
-          const updated = payload.new as { balance: number; wallet_type: string };
+          const updated = payload.new as {
+            balance: number;
+            wallet_type: string;
+          };
           if (updated.wallet_type === "member") {
             setBalance(Number(updated.balance));
           }
-        }
+        },
       )
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "transactions", filter: `user_id=eq.${user.id}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "transactions",
+          filter: `user_id=eq.${user.id}`,
+        },
         () => {
           // Refresh transactions list AND earnings totals
           supabase
@@ -161,11 +269,19 @@ const Dashboard = () => {
             .eq("status", "completed")
             .then(({ data }) => {
               if (data) {
-                setCashbackEarnings(data.filter(t => t.type === 'cashback').reduce((sum, t) => sum + Number(t.amount), 0));
-                setCommissionEarnings(data.filter(t => t.type === 'commission').reduce((sum, t) => sum + Number(t.amount), 0));
+                setCashbackEarnings(
+                  data
+                    .filter((t) => t.type === "cashback")
+                    .reduce((sum, t) => sum + Number(t.amount), 0),
+                );
+                setCommissionEarnings(
+                  data
+                    .filter((t) => t.type === "commission")
+                    .reduce((sum, t) => sum + Number(t.amount), 0),
+                );
               }
             });
-        }
+        },
       )
       .subscribe();
 
@@ -186,13 +302,20 @@ const Dashboard = () => {
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Join NOcap", text: shareText, url: referralUrl });
+        await navigator.share({
+          title: "Join NOcap",
+          text: shareText,
+          url: referralUrl,
+        });
       } catch {
         // User cancelled
       }
     } else {
       navigator.clipboard.writeText(shareText);
-      toast({ title: "Copied!", description: "Referral link copied to clipboard." });
+      toast({
+        title: "Copied!",
+        description: "Referral link copied to clipboard.",
+      });
     }
   };
 
@@ -209,6 +332,7 @@ const Dashboard = () => {
     { label: "Top Up", icon: Banknote, path: "/top-up" },
     { label: "Transfer", icon: Send, path: "/transfer" },
     { label: "Shop", icon: ShoppingBag, path: "/marketplace" },
+    { label: "Orders", icon: Package, path: "/my-orders" },
   ];
 
   return (
@@ -218,17 +342,32 @@ const Dashboard = () => {
         <div className="mx-auto max-w-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => navigate("/my-profile")} className="shrink-0">
+              <button
+                onClick={() => navigate("/my-profile")}
+                className="shrink-0"
+              >
                 <Avatar className="h-10 w-10 border border-secondary/30">
-                  <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || "Avatar"} />
+                  <AvatarImage
+                    src={profile?.avatar_url || undefined}
+                    alt={profile?.full_name || "Avatar"}
+                  />
                   <AvatarFallback className="bg-white/10 text-white text-sm font-bold">
-                    {profile?.full_name ? profile.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) : "?"}
+                    {profile?.full_name
+                      ? profile.full_name
+                          .split(" ")
+                          .map((n: string) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2)
+                      : "?"}
                   </AvatarFallback>
                 </Avatar>
               </button>
               <div>
                 <p className="text-sm text-white/50">Welcome back,</p>
-                <h1 className="font-display text-xl font-bold text-white">{profile?.full_name || "Member"}</h1>
+                <h1 className="font-display text-xl font-bold text-white">
+                  {profile?.full_name || "Member"}
+                </h1>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -248,18 +387,34 @@ const Dashboard = () => {
                 <Wallet className="h-4 w-4" />
                 <span>{TERMINOLOGY.vaBalance}</span>
               </div>
-              <button onClick={() => setShowBalance(!showBalance)} className="text-white/50 hover:text-white transition-colors">
-                {showBalance ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              <button
+                onClick={() => setShowBalance(!showBalance)}
+                className="text-white/50 hover:text-white transition-colors"
+              >
+                {showBalance ? (
+                  <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )}
               </button>
             </div>
             <p className="mt-2 font-display text-3xl font-bold tracking-tight text-secondary">
               {showBalance ? <RMAmount value={balance} /> : "RM ••••••"}
             </p>
             <div className="mt-3 flex gap-2">
-              <Button size="sm" className="bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={() => navigate("/top-up")}>
+              <Button
+                size="sm"
+                className="bg-secondary text-primary hover:bg-secondary/90 font-semibold"
+                onClick={() => navigate("/top-up")}
+              >
                 <Plus className="mr-1 h-4 w-4" /> Top Up
               </Button>
-              <Button size="sm" variant="outline" className="border-secondary/30 text-secondary hover:bg-secondary hover:text-primary font-semibold" onClick={() => navigate("/withdraw")}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-secondary/30 text-secondary hover:bg-secondary hover:text-primary font-semibold"
+                onClick={() => navigate("/withdraw")}
+              >
                 <ArrowDownToLine className="mr-1 h-4 w-4" /> Withdraw
               </Button>
             </div>
@@ -276,18 +431,21 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="mt-6 grid grid-cols-4 gap-3">
-          {quickActions.map((action) =>
+        <div className="mt-6 grid grid-cols-5 gap-2">
+          {quickActions.map((action) => (
             <button
               key={action.path}
               onClick={() => navigate(action.path)}
-              className="flex flex-col items-center gap-2.5 rounded-2xl border border-white/10 bg-white/5 p-4 transition-all hover:bg-white/10 active:scale-95">
+              className="flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-3 transition-all hover:bg-white/10 active:scale-95"
+            >
               <div className="rounded-full bg-secondary/20 p-3">
                 <action.icon className="h-5 w-5 text-secondary" />
               </div>
-              <span className="text-xs font-medium text-white">{action.label}</span>
+              <span className="text-xs font-medium text-white">
+                {action.label}
+              </span>
             </button>
-          )}
+          ))}
         </div>
 
         {/* Referral Stats */}
@@ -295,28 +453,36 @@ const Dashboard = () => {
           <Card className="border-white/10 bg-white/5">
             <CardContent className="p-3 text-center">
               <Users className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-1 font-display text-lg font-bold text-white">{referralCount}</p>
+              <p className="mt-1 font-display text-lg font-bold text-white">
+                {referralCount}
+              </p>
               <p className="text-[10px] text-white/40">Direct</p>
             </CardContent>
           </Card>
           <Card className="border-white/10 bg-white/5">
             <CardContent className="p-3 text-center">
               <TrendingUp className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-1 font-display text-lg font-bold text-white">{networkCount}</p>
+              <p className="mt-1 font-display text-lg font-bold text-white">
+                {networkCount}
+              </p>
               <p className="text-[10px] text-white/40">Network</p>
             </CardContent>
           </Card>
           <Card className="border-white/10 bg-white/5">
             <CardContent className="p-3 text-center">
               <Gift className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-1 font-display text-lg font-bold text-white"><RMAmount value={cashbackEarnings} /></p>
+              <p className="mt-1 font-display text-lg font-bold text-white">
+                <RMAmount value={cashbackEarnings} />
+              </p>
               <p className="text-[10px] text-white/40">Cashback</p>
             </CardContent>
           </Card>
           <Card className="border-white/10 bg-white/5">
             <CardContent className="p-3 text-center">
               <Banknote className="mx-auto h-4 w-4 text-secondary" />
-              <p className="mt-1 font-display text-lg font-bold text-white"><RMAmount value={commissionEarnings} /></p>
+              <p className="mt-1 font-display text-lg font-bold text-white">
+                <RMAmount value={commissionEarnings} />
+              </p>
               <p className="text-[10px] text-white/40">Commission</p>
             </CardContent>
           </Card>
@@ -326,15 +492,22 @@ const Dashboard = () => {
         <CashbackRewardsCard userId={user.id} />
 
         {/* Analytics Link */}
-        <Card className="mt-4 border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate("/analytics")}>
+        <Card
+          className="mt-4 border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"
+          onClick={() => navigate("/analytics")}
+        >
           <CardContent className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/20">
                 <TrendingUp className="h-5 w-5 text-secondary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Spending Analytics</p>
-                <p className="text-[10px] text-white/40">View charts & spending breakdown</p>
+                <p className="text-sm font-semibold text-white">
+                  Spending Analytics
+                </p>
+                <p className="text-[10px] text-white/40">
+                  View charts & spending breakdown
+                </p>
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-white/30" />
@@ -345,24 +518,42 @@ const Dashboard = () => {
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-xs text-white/50">Your Referral Code</p>
-              <p className="font-display text-lg font-bold tracking-wider text-secondary">{profile?.referral_code || "—"}</p>
+              <p className="font-display text-lg font-bold tracking-wider text-secondary">
+                {profile?.referral_code || "—"}
+              </p>
             </div>
-            <Button variant="outline" size="sm" onClick={shareReferralCode} className="gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-primary">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={shareReferralCode}
+              className="gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-primary"
+            >
               <Share2 className="h-3.5 w-3.5" /> Share
             </Button>
           </CardContent>
         </Card>
 
         {/* Merchant CTA */}
-        <Card className="mt-4 border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate(isMerchant ? "/merchant" : "/merchant/register")}>
+        <Card
+          className="mt-4 border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"
+          onClick={() =>
+            navigate(isMerchant ? "/merchant" : "/merchant/register")
+          }
+        >
           <CardContent className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/20">
                 <Store className="h-5 w-5 text-secondary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">{isMerchant ? "Merchant Dashboard" : "Become a Merchant"}</p>
-                <p className="text-[10px] text-white/40">{isMerchant ? "Manage your business and orders" : "Start accepting payments for your business"}</p>
+                <p className="text-sm font-semibold text-white">
+                  {isMerchant ? "Merchant Dashboard" : "Become a Merchant"}
+                </p>
+                <p className="text-[10px] text-white/40">
+                  {isMerchant
+                    ? "Manage your business and orders"
+                    : "Start accepting payments for your business"}
+                </p>
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-white/30" />
@@ -372,52 +563,83 @@ const Dashboard = () => {
         {/* Recent Transactions */}
         <div className="mt-6">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold text-white">Recent Activity</h2>
-            {transactions.length > 0 &&
-              <button onClick={() => navigate("/transactions")} className="flex items-center gap-0.5 text-xs text-secondary font-medium">
+            <h2 className="font-display text-lg font-semibold text-white">
+              Recent Activity
+            </h2>
+            {transactions.length > 0 && (
+              <button
+                onClick={() => navigate("/transactions")}
+                className="flex items-center gap-0.5 text-xs text-secondary font-medium"
+              >
                 View All <ChevronRight className="h-3.5 w-3.5" />
               </button>
-            }
+            )}
           </div>
 
-          {transactions.length === 0 ?
+          {transactions.length === 0 ? (
             <Card className="mt-3 border-white/10 bg-white/5">
               <CardContent className="flex flex-col items-center justify-center py-10 text-white/40">
                 <Wallet className="h-8 w-8 mb-2 opacity-40" />
                 <p className="text-sm font-medium">No transactions yet</p>
                 <p className="mt-1 text-xs">Your activity will appear here</p>
               </CardContent>
-            </Card> :
+            </Card>
+          ) : (
             <div className="mt-3 space-y-2">
-              {transactions.map((tx) =>
-                <Card key={tx.id} className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => setSelectedTx(tx)}>
+              {transactions.map((tx) => (
+                <Card
+                  key={tx.id}
+                  className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"
+                  onClick={() => setSelectedTx(tx)}
+                >
                   <CardContent className="flex items-center gap-3 p-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10">
                       {transactionIcon(tx.type)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{tx.description || transactionLabel(tx.type)}</p>
+                      <p className="text-sm font-medium text-white truncate">
+                        {tx.description || transactionLabel(tx.type)}
+                      </p>
                       <p className="text-[10px] text-white/40">
-                        {new Date(tx.created_at).toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" })}
+                        {new Date(tx.created_at).toLocaleDateString("en-MY", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
                         {" · "}
-                        {new Date(tx.created_at).toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit", hour12: true })}
+                        {new Date(tx.created_at).toLocaleTimeString("en-MY", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}
                       </p>
                     </div>
-                    <p className={`text-sm font-semibold tabular-nums ${isCredit(tx.type) ? "text-secondary" : "text-white"}`}>
-                      <RMAmount value={isCredit(tx.type) ? Math.abs(tx.amount) : -Math.abs(tx.amount)} sign="delta" />
+                    <p
+                      className={`text-sm font-semibold tabular-nums ${isCredit(tx.type) ? "text-secondary" : "text-white"}`}
+                    >
+                      <RMAmount
+                        value={
+                          isCredit(tx.type)
+                            ? Math.abs(tx.amount)
+                            : -Math.abs(tx.amount)
+                        }
+                        sign="delta"
+                      />
                     </p>
                   </CardContent>
                 </Card>
-              )}
+              ))}
             </div>
-          }
+          )}
         </div>
       </div>
 
       <TransactionDetail
         transaction={selectedTx}
         open={!!selectedTx}
-        onOpenChange={(open) => { if (!open) setSelectedTx(null); }}
+        onOpenChange={(open) => {
+          if (!open) setSelectedTx(null);
+        }}
       />
 
       <BottomNav />

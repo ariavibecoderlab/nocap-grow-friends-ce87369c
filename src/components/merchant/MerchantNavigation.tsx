@@ -10,11 +10,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  QrCode, Store, MessageCircle, ArrowLeftRight, Wallet, TrendingUp,
-  FileText, BarChart3, DollarSign, AlertTriangle, ClipboardList,
-  Shield, Search, ShoppingBag, Package, Percent, Users, Layers,
-  Gift, Upload, BookOpen, Globe, CreditCard, Megaphone, Code,
-  ScrollText, Settings2,
+  QrCode,
+  Store,
+  MessageCircle,
+  ArrowLeftRight,
+  Wallet,
+  TrendingUp,
+  FileText,
+  BarChart3,
+  DollarSign,
+  AlertTriangle,
+  ClipboardList,
+  Shield,
+  Search,
+  ShoppingBag,
+  Package,
+  Percent,
+  Users,
+  Layers,
+  Gift,
+  Upload,
+  BookOpen,
+  Globe,
+  CreditCard,
+  Megaphone,
+  Code,
+  ScrollText,
+  Settings2,
 } from "lucide-react";
 
 export interface NavItem {
@@ -38,7 +60,13 @@ export function getMerchantSections(chatUnread: number): NavSection[] {
       items: [
         { value: "qr", icon: QrCode, label: "QR Codes" },
         { value: "shop", icon: Store, label: "Shop & Products" },
-        { value: "chat", icon: MessageCircle, label: "Customer Chat", badge: chatUnread },
+        { value: "products", icon: Package, label: "My Products" },
+        {
+          value: "chat",
+          icon: MessageCircle,
+          label: "Customer Chat",
+          badge: chatUnread,
+        },
         { value: "kanban", icon: ClipboardList, label: "Order Fulfillment" },
       ],
     },
@@ -101,16 +129,22 @@ interface MerchantNavigationProps {
   chatUnread: number;
 }
 
-export default function MerchantNavigation({ activeTab, onTabChange, chatUnread }: MerchantNavigationProps) {
+export default function MerchantNavigation({
+  activeTab,
+  onTabChange,
+  chatUnread,
+}: MerchantNavigationProps) {
   const sections = getMerchantSections(chatUnread);
 
   // Find which section the active tab belongs to
-  const activeSection = sections.find(s => s.items.some(i => i.value === activeTab));
+  const activeSection = sections.find((s) =>
+    s.items.some((i) => i.value === activeTab)
+  );
   const activeSectionId = activeSection?.id || "operations";
-  const activeItem = activeSection?.items.find(i => i.value === activeTab);
+  const activeItem = activeSection?.items.find((i) => i.value === activeTab);
 
   // Items to show as sub-tabs for the active section
-  const currentSection = sections.find(s => s.id === activeSectionId);
+  const currentSection = sections.find((s) => s.id === activeSectionId);
   const currentItems = currentSection?.items || [];
 
   return (
@@ -119,7 +153,7 @@ export default function MerchantNavigation({ activeTab, onTabChange, chatUnread 
       <Select
         value={activeSectionId}
         onValueChange={(sectionId) => {
-          const section = sections.find(s => s.id === sectionId);
+          const section = sections.find((s) => s.id === sectionId);
           if (section && section.items.length > 0) {
             onTabChange(section.items[0].value);
           }

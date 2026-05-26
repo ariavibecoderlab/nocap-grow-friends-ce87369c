@@ -1,17 +1,29 @@
-import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import BottomNav from "@/components/BottomNav";
 import CartDrawer from "@/components/marketplace/CartDrawer";
 import ProductCard from "@/components/marketplace/ProductCard";
 import NocapLogo from "@/components/NocapLogo";
-import { ArrowLeft, ArrowUp, Clock, Heart, Search, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowUp,
+  Clock,
+  Heart,
+  ShoppingBag,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -20,7 +32,7 @@ import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import CategoryChips from "@/components/marketplace/CategoryChips";
 import FlashSaleSection from "@/components/marketplace/FlashSaleSection";
 import BannerCarousel from "@/components/marketplace/BannerCarousel";
-import SearchAutocomplete from "@/components/marketplace/SearchAutocomplete";
+import SearchBar from "@/components/marketplace/SearchBar";
 import { CompareBar } from "@/components/marketplace/ProductComparison";
 import { CurrencySelectorWidget } from "@/components/marketplace/CurrencySelector";
 
@@ -50,7 +62,13 @@ interface CategoryInfo {
   store_id: string;
 }
 
-type SortOption = "featured" | "price_low" | "price_high" | "rating" | "newest" | "best_selling";
+type SortOption =
+  | "featured"
+  | "price_low"
+  | "price_high"
+  | "rating"
+  | "newest"
+  | "best_selling";
 
 const PAGE_SIZE = 12;
 
@@ -91,8 +109,10 @@ const Marketplace = () => {
     const twTitle = document.querySelector('meta[name="twitter:title"]');
     if (ogImage) ogImage.setAttribute("content", "/og-marketplace.png");
     if (twImage) twImage.setAttribute("content", "/og-marketplace.png");
-    if (ogTitle) ogTitle.setAttribute("content", "NOcap Marketplace - Shop. Earn. Grow.");
-    if (twTitle) twTitle.setAttribute("content", "NOcap Marketplace - Shop. Earn. Grow.");
+    if (ogTitle)
+      ogTitle.setAttribute("content", "NOcap Marketplace - Shop. Earn. Grow.");
+    if (twTitle)
+      twTitle.setAttribute("content", "NOcap Marketplace - Shop. Earn. Grow.");
     return () => {
       document.title = "NOcap - Malaysia 1st Affiliate Marketplace";
     };
@@ -111,12 +131,16 @@ const Marketplace = () => {
           search_query: search,
           result_limit: 200,
         });
-        setFtsProductIds(new Set((data ?? []).map((r: { id: string }) => r.id)));
+        setFtsProductIds(
+          new Set((data ?? []).map((r: { id: string }) => r.id))
+        );
       } catch {
         setFtsProductIds(null);
       }
     }, 300);
-    return () => { if (ftsDebounceRef.current) clearTimeout(ftsDebounceRef.current); };
+    return () => {
+      if (ftsDebounceRef.current) clearTimeout(ftsDebounceRef.current);
+    };
   }, [search]);
 
   // Back to top scroll listener
@@ -139,7 +163,9 @@ const Marketplace = () => {
             .order("store_name"),
           supabase
             .from("marketplace_products")
-            .select("id, store_id, name, price, images, stock_quantity, is_featured, category_id, sold_count")
+            .select(
+              "id, store_id, name, price, images, stock_quantity, is_featured, category_id, sold_count"
+            )
             .eq("status", "active")
             .order("is_featured", { ascending: false }),
           supabase
@@ -164,9 +190,11 @@ const Marketplace = () => {
             .from("marketplace_reviews")
             .select("product_id, rating");
           if (!cancelled && reviewData && reviewData.length > 0) {
-            const ratingMap: Record<string, { sum: number; count: number }> = {};
+            const ratingMap: Record<string, { sum: number; count: number }> =
+              {};
             reviewData.forEach((r: any) => {
-              if (!ratingMap[r.product_id]) ratingMap[r.product_id] = { sum: 0, count: 0 };
+              if (!ratingMap[r.product_id])
+                ratingMap[r.product_id] = { sum: 0, count: 0 };
               ratingMap[r.product_id].sum += r.rating;
               ratingMap[r.product_id].count += 1;
             });
@@ -184,13 +212,15 @@ const Marketplace = () => {
       }
     };
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Compute global price bounds
   const priceBounds = useMemo<[number, number]>(() => {
     if (products.length === 0) return [0, 100];
-    const prices = products.map(p => p.price);
+    const prices = products.map((p) => p.price);
     return [Math.floor(Math.min(...prices)), Math.ceil(Math.max(...prices))];
   }, [products]);
 
@@ -205,24 +235,31 @@ const Marketplace = () => {
   // Build a store lookup map
   const storeMap = useMemo(() => {
     const map: Record<string, StoreInfo> = {};
-    stores.forEach(s => { map[s.id] = s; });
+    stores.forEach((s) => {
+      map[s.id] = s;
+    });
     return map;
   }, [stores]);
 
   // Categories filtered by selected store
   const visibleCategories = useMemo(() => {
     if (selectedStore === "all") return categories;
-    return categories.filter(c => c.store_id === selectedStore);
+    return categories.filter((c) => c.store_id === selectedStore);
   }, [categories, selectedStore]);
 
   // Reset category when store changes and category no longer valid
   useEffect(() => {
-    if (selectedCategory !== "all" && !visibleCategories.find(c => c.id === selectedCategory)) {
+    if (
+      selectedCategory !== "all" &&
+      !visibleCategories.find((c) => c.id === selectedCategory)
+    ) {
       setSelectedCategory("all");
     }
   }, [visibleCategories, selectedCategory]);
 
-  const priceFilterActive = priceInited && (priceRange[0] > priceBounds[0] || priceRange[1] < priceBounds[1]);
+  const priceFilterActive =
+    priceInited &&
+    (priceRange[0] > priceBounds[0] || priceRange[1] < priceBounds[1]);
 
   // Active filter count
   const activeFilterCount = [
@@ -235,14 +272,27 @@ const Marketplace = () => {
 
   // Filtered & sorted products
   const filtered = useMemo(() => {
-    let result = products.filter(p => {
-      const matchStore = selectedStore === "all" || p.store_id === selectedStore;
-      const matchCat = selectedCategory === "all" || p.category_id === selectedCategory;
-      const matchSearch = search.length < 2 || (ftsProductIds ? ftsProductIds.has(p.id) : p.name.toLowerCase().includes(search.toLowerCase()));
+    let result = products.filter((p) => {
+      const matchStore =
+        selectedStore === "all" || p.store_id === selectedStore;
+      const matchCat =
+        selectedCategory === "all" || p.category_id === selectedCategory;
+      const matchSearch =
+        search.length < 2 ||
+        (ftsProductIds
+          ? ftsProductIds.has(p.id)
+          : p.name.toLowerCase().includes(search.toLowerCase()));
       const matchPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
       const matchStock = !inStockOnly || p.stock_quantity > 0;
       const matchWishlist = activeTab === "all" || wishlist.has(p.id);
-      return matchStore && matchCat && matchSearch && matchPrice && matchStock && matchWishlist;
+      return (
+        matchStore &&
+        matchCat &&
+        matchSearch &&
+        matchPrice &&
+        matchStock &&
+        matchWishlist
+      );
     });
 
     // Sort
@@ -254,13 +304,17 @@ const Marketplace = () => {
         result = [...result].sort((a, b) => b.price - a.price);
         break;
       case "rating":
-        result = [...result].sort((a, b) => (ratings[b.id] || 0) - (ratings[a.id] || 0));
+        result = [...result].sort(
+          (a, b) => (ratings[b.id] || 0) - (ratings[a.id] || 0)
+        );
         break;
       case "newest":
         result = [...result].reverse();
         break;
       case "best_selling":
-        result = [...result].sort((a, b) => (b.sold_count || 0) - (a.sold_count || 0));
+        result = [...result].sort(
+          (a, b) => (b.sold_count || 0) - (a.sold_count || 0)
+        );
         break;
       case "featured":
       default:
@@ -269,15 +323,38 @@ const Marketplace = () => {
     }
 
     return result;
-  }, [products, selectedStore, selectedCategory, search, sortBy, ratings, inStockOnly, priceRange, activeTab, wishlist, ftsProductIds]);
+  }, [
+    products,
+    selectedStore,
+    selectedCategory,
+    search,
+    sortBy,
+    ratings,
+    inStockOnly,
+    priceRange,
+    activeTab,
+    wishlist,
+    ftsProductIds,
+  ]);
 
   // Reset visible count when filters change
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [selectedStore, selectedCategory, search, sortBy, inStockOnly, priceRange, activeTab]);
+  }, [
+    selectedStore,
+    selectedCategory,
+    search,
+    sortBy,
+    inStockOnly,
+    priceRange,
+    activeTab,
+  ]);
 
   const hasMore = visibleCount < filtered.length;
-  const visibleProducts = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const visibleProducts = useMemo(
+    () => filtered.slice(0, visibleCount),
+    [filtered, visibleCount]
+  );
 
   // Auto-advance pagination while sentinel is in view (handles the case
   // where the sentinel is already visible on initial render — IntersectionObserver
@@ -315,9 +392,7 @@ const Marketplace = () => {
   const suggestions = useMemo(() => {
     if (search.length < 2) return [];
     const q = search.toLowerCase();
-    return products
-      .filter(p => p.name.toLowerCase().includes(q))
-      .slice(0, 5);
+    return products.filter((p) => p.name.toLowerCase().includes(q)).slice(0, 5);
   }, [search, products]);
 
   const showSuggestions = false; // replaced by SearchAutocomplete component
@@ -337,11 +412,16 @@ const Marketplace = () => {
       <div className="px-4 pt-6 pb-3">
         <div className="mx-auto max-w-md">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/dashboard")} className="rounded-full p-1 hover:bg-white/10 transition-colors text-white">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="rounded-full p-1 hover:bg-white/10 transition-colors text-white"
+            >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <NocapLogo size="sm" />
-            <h1 className="font-display text-xl font-bold flex-1 text-white">Shop</h1>
+            <h1 className="font-display text-xl font-bold flex-1 text-white">
+              Shop
+            </h1>
             <CurrencySelectorWidget />
             <CartDrawer />
           </div>
@@ -353,21 +433,36 @@ const Marketplace = () => {
         <div className="flex gap-1 mb-3 bg-white/5 rounded-lg p-0.5">
           <button
             onClick={() => setActiveTab("all")}
-            className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors ${activeTab === "all" ? "bg-secondary text-primary" : "text-white/50 hover:text-white/70"}`}
+            className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors ${
+              activeTab === "all"
+                ? "bg-secondary text-primary"
+                : "text-white/50 hover:text-white/70"
+            }`}
           >
             All Products
           </button>
           <button
             onClick={() => setActiveTab("wishlist")}
-            className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors flex items-center justify-center gap-1 ${activeTab === "wishlist" ? "bg-secondary text-primary" : "text-white/50 hover:text-white/70"}`}
+            className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors flex items-center justify-center gap-1 ${
+              activeTab === "wishlist"
+                ? "bg-secondary text-primary"
+                : "text-white/50 hover:text-white/70"
+            }`}
           >
-            <Heart className="h-3 w-3" /> Wishlist {wishlist.size > 0 && `(${wishlist.size})`}
+            <Heart className="h-3 w-3" /> Wishlist{" "}
+            {wishlist.size > 0 && `(${wishlist.size})`}
           </button>
         </div>
 
         {/* Search + Filter Toggle */}
         <div className="flex gap-2 mb-3">
-          <SearchAutocomplete search={search} onSearchChange={setSearch} />
+          <SearchBar
+            defaultValue={search}
+            onSearch={(q) => {
+              setSearch(q);
+              navigate(`/marketplace/search?q=${encodeURIComponent(q)}`);
+            }}
+          />
           <Button
             variant="outline"
             size="sm"
@@ -387,9 +482,14 @@ const Marketplace = () => {
         {showFilters && (
           <div className="mb-4 space-y-3 rounded-xl border border-white/10 bg-white/5 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">Filters</p>
+              <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+                Filters
+              </p>
               {activeFilterCount > 0 && (
-                <button onClick={clearFilters} className="text-[10px] text-secondary hover:underline">
+                <button
+                  onClick={clearFilters}
+                  className="text-[10px] text-secondary hover:underline"
+                >
                   Clear all
                 </button>
               )}
@@ -397,19 +497,29 @@ const Marketplace = () => {
 
             {/* Store filter */}
             <div>
-              <label className="text-[10px] text-white/40 mb-1 block">Store</label>
+              <label className="text-[10px] text-white/40 mb-1 block">
+                Store
+              </label>
               <Select value={selectedStore} onValueChange={setSelectedStore}>
                 <SelectTrigger className="h-8 bg-white/5 border-white/10 text-white text-xs">
                   <SelectValue placeholder="All Stores" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Stores</SelectItem>
-                  {stores.map(s => (
+                  {stores.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       <span className="flex items-center gap-1.5">
                         {s.store_name}
-                        {s.brand_tier === "verified" && <span className="text-[9px] font-bold text-blue-400 bg-blue-400/15 rounded px-1 py-0.5">✓ VERIFIED</span>}
-                        {s.brand_tier === "featured" && <span className="text-[9px] font-bold text-amber-400 bg-amber-400/15 rounded px-1 py-0.5">★ FEATURED</span>}
+                        {s.brand_tier === "verified" && (
+                          <span className="text-[9px] font-bold text-blue-400 bg-blue-400/15 rounded px-1 py-0.5">
+                            ✓ VERIFIED
+                          </span>
+                        )}
+                        {s.brand_tier === "featured" && (
+                          <span className="text-[9px] font-bold text-amber-400 bg-amber-400/15 rounded px-1 py-0.5">
+                            ★ FEATURED
+                          </span>
+                        )}
                       </span>
                     </SelectItem>
                   ))}
@@ -420,15 +530,22 @@ const Marketplace = () => {
             {/* Category filter */}
             {visibleCategories.length > 0 && (
               <div>
-                <label className="text-[10px] text-white/40 mb-1 block">Category</label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <label className="text-[10px] text-white/40 mb-1 block">
+                  Category
+                </label>
+                <Select
+                  value={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                >
                   <SelectTrigger className="h-8 bg-white/5 border-white/10 text-white text-xs">
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    {visibleCategories.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    {visibleCategories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -437,8 +554,13 @@ const Marketplace = () => {
 
             {/* Sort */}
             <div>
-              <label className="text-[10px] text-white/40 mb-1 block">Sort by</label>
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+              <label className="text-[10px] text-white/40 mb-1 block">
+                Sort by
+              </label>
+              <Select
+                value={sortBy}
+                onValueChange={(v) => setSortBy(v as SortOption)}
+              >
                 <SelectTrigger className="h-8 bg-white/5 border-white/10 text-white text-xs">
                   <SelectValue />
                 </SelectTrigger>
@@ -486,27 +608,58 @@ const Marketplace = () => {
         {activeFilterCount > 0 && !showFilters && (
           <div className="flex gap-1.5 flex-wrap mb-3">
             {selectedStore !== "all" && (
-              <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer" onClick={() => setSelectedStore("all")}>
-                {storeMap[selectedStore]?.store_name} <X className="h-2.5 w-2.5" />
+              <Badge
+                variant="outline"
+                className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer"
+                onClick={() => setSelectedStore("all")}
+              >
+                {storeMap[selectedStore]?.store_name}{" "}
+                <X className="h-2.5 w-2.5" />
               </Badge>
             )}
             {selectedCategory !== "all" && (
-              <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer" onClick={() => setSelectedCategory("all")}>
-                {visibleCategories.find(c => c.id === selectedCategory)?.name} <X className="h-2.5 w-2.5" />
+              <Badge
+                variant="outline"
+                className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer"
+                onClick={() => setSelectedCategory("all")}
+              >
+                {visibleCategories.find((c) => c.id === selectedCategory)?.name}{" "}
+                <X className="h-2.5 w-2.5" />
               </Badge>
             )}
             {sortBy !== "featured" && (
-              <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer" onClick={() => setSortBy("featured")}>
-                {sortBy === "price_low" ? "Price ↑" : sortBy === "price_high" ? "Price ↓" : sortBy === "rating" ? "Top Rated" : sortBy === "best_selling" ? "Best Selling" : "Newest"} <X className="h-2.5 w-2.5" />
+              <Badge
+                variant="outline"
+                className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer"
+                onClick={() => setSortBy("featured")}
+              >
+                {sortBy === "price_low"
+                  ? "Price ↑"
+                  : sortBy === "price_high"
+                  ? "Price ↓"
+                  : sortBy === "rating"
+                  ? "Top Rated"
+                  : sortBy === "best_selling"
+                  ? "Best Selling"
+                  : "Newest"}{" "}
+                <X className="h-2.5 w-2.5" />
               </Badge>
             )}
             {priceFilterActive && (
-              <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer" onClick={() => setPriceRange(priceBounds)}>
+              <Badge
+                variant="outline"
+                className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer"
+                onClick={() => setPriceRange(priceBounds)}
+              >
                 RM {priceRange[0]}–{priceRange[1]} <X className="h-2.5 w-2.5" />
               </Badge>
             )}
             {inStockOnly && (
-              <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer" onClick={() => setInStockOnly(false)}>
+              <Badge
+                variant="outline"
+                className="text-[10px] border-secondary/30 text-secondary bg-secondary/10 gap-1 cursor-pointer"
+                onClick={() => setInStockOnly(false)}
+              >
                 In Stock <X className="h-2.5 w-2.5" />
               </Badge>
             )}
@@ -529,42 +682,49 @@ const Marketplace = () => {
         {/* Results count */}
         <p className="text-[10px] text-white/30 mb-3">
           {filtered.length} product{filtered.length !== 1 ? "s" : ""}
-          {selectedStore !== "all" ? ` from ${storeMap[selectedStore]?.store_name}` : " from all stores"}
+          {selectedStore !== "all"
+            ? ` from ${storeMap[selectedStore]?.store_name}`
+            : " from all stores"}
         </p>
 
         {/* Recently Viewed */}
-        {activeTab === "all" && !loading && recentlyViewedIds.length > 0 && (() => {
-          const recentProducts = recentlyViewedIds
-            .map(id => products.find(p => p.id === id))
-            .filter(Boolean) as ProductRow[];
-          if (recentProducts.length === 0) return null;
-          return (
-            <div className="mb-4">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Clock className="h-3 w-3 text-white/40" />
-                <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">Recently Viewed</p>
+        {activeTab === "all" &&
+          !loading &&
+          recentlyViewedIds.length > 0 &&
+          (() => {
+            const recentProducts = recentlyViewedIds
+              .map((id) => products.find((p) => p.id === id))
+              .filter(Boolean) as ProductRow[];
+            if (recentProducts.length === 0) return null;
+            return (
+              <div className="mb-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Clock className="h-3 w-3 text-white/40" />
+                  <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">
+                    Recently Viewed
+                  </p>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                  {recentProducts.slice(0, 6).map((p) => (
+                    <div key={p.id} className="shrink-0 w-28">
+                      <ProductCard
+                        id={p.id}
+                        storeId={p.store_id}
+                        name={p.name}
+                        price={p.price}
+                        images={(p.images as string[]) || []}
+                        stockQuantity={p.stock_quantity}
+                        storeSlug={storeMap[p.store_id]?.slug || ""}
+                        rating={ratings[p.id]}
+                        soldCount={p.sold_count}
+                        compact
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
-                {recentProducts.slice(0, 6).map(p => (
-                  <div key={p.id} className="shrink-0 w-28">
-                    <ProductCard
-                      id={p.id}
-                      storeId={p.store_id}
-                      name={p.name}
-                      price={p.price}
-                      images={(p.images as string[]) || []}
-                      stockQuantity={p.stock_quantity}
-                      storeSlug={storeMap[p.store_id]?.slug || ""}
-                      rating={ratings[p.id]}
-                      soldCount={p.sold_count}
-                      compact
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -576,7 +736,12 @@ const Marketplace = () => {
             <p className="font-medium">No products found</p>
             <p className="text-xs mt-1">Try adjusting your filters</p>
             {activeFilterCount > 0 && (
-              <Button variant="ghost" size="sm" className="mt-3 text-secondary text-xs" onClick={clearFilters}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-3 text-secondary text-xs"
+                onClick={clearFilters}
+              >
                 Clear filters
               </Button>
             )}
@@ -584,7 +749,7 @@ const Marketplace = () => {
         ) : (
           <>
             <div className="grid grid-cols-2 gap-2">
-              {visibleProducts.map(p => (
+              {visibleProducts.map((p) => (
                 <ProductCard
                   key={p.id}
                   id={p.id}
@@ -608,7 +773,9 @@ const Marketplace = () => {
               </div>
             )}
             {!hasMore && filtered.length > PAGE_SIZE && (
-              <p className="text-center text-[10px] text-white/20 py-4">All {filtered.length} products shown</p>
+              <p className="text-center text-[10px] text-white/20 py-4">
+                All {filtered.length} products shown
+              </p>
             )}
           </>
         )}

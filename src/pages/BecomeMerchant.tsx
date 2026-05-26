@@ -17,7 +17,9 @@ const BecomeMerchant = () => {
   const navigate = useNavigate();
 
   const scrollToHowItWorks = () => {
-    document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
+    document
+      .getElementById("how-it-works")
+      ?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
@@ -42,14 +44,14 @@ const BecomeMerchant = () => {
         </span>
 
         <h1 className="font-display mb-4 text-3xl font-extrabold leading-tight tracking-tight text-white">
-          Sell More.{" "}
-          <span className="text-secondary">Pay Less.</span>
+          Sell More. <span className="text-secondary">Pay Less.</span>
           <br />
           Grow Together.
         </h1>
 
         <p className="mx-auto mb-8 max-w-sm text-sm leading-relaxed text-white/70">
-          Join 1000+ brands on nocap — your products, promoted by our affiliate army. You only pay when a sale is confirmed.
+          Join 1000+ brands on NOcap — your products, promoted by our affiliate
+          army. You only pay when a sale is confirmed.
         </p>
 
         {/* CTAs */}
@@ -93,7 +95,9 @@ const BecomeMerchant = () => {
           <h2 className="font-display mb-2 text-center text-2xl font-bold text-white">
             How It <span className="text-secondary">Works</span>
           </h2>
-          <p className="mb-8 text-center text-sm text-white/50">Up and running in minutes.</p>
+          <p className="mb-8 text-center text-sm text-white/50">
+            Up and running in minutes.
+          </p>
 
           <div className="space-y-4">
             {[
@@ -113,7 +117,7 @@ const BecomeMerchant = () => {
                 step: "3",
                 icon: TrendingUp,
                 title: "Watch sales roll in",
-                desc: "nocap's affiliate network automatically promotes your products across 5 tiers of real promoters.",
+                desc: "NOcap's affiliate network automatically promotes your products across 5 tiers of real promoters.",
               },
             ].map(({ step, icon: Icon, title, desc }) => (
               <Card key={step} className="border-white/10 bg-white/5">
@@ -125,8 +129,12 @@ const BecomeMerchant = () => {
                     <p className="mb-0.5 text-xs font-semibold uppercase tracking-widest text-secondary/70">
                       Step {step}
                     </p>
-                    <h3 className="mb-1 text-sm font-bold text-white">{title}</h3>
-                    <p className="text-xs leading-relaxed text-white/60">{desc}</p>
+                    <h3 className="mb-1 text-sm font-bold text-white">
+                      {title}
+                    </h3>
+                    <p className="text-xs leading-relaxed text-white/60">
+                      {desc}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -139,9 +147,11 @@ const BecomeMerchant = () => {
       <section className="bg-black/20 px-4 py-14">
         <div className="mx-auto max-w-md">
           <h2 className="font-display mb-2 text-center text-2xl font-bold text-white">
-            Why <span className="text-secondary">nocap?</span>
+            Why <span className="text-secondary">NOcap?</span>
           </h2>
-          <p className="mb-8 text-center text-sm text-white/50">Everything you need to grow.</p>
+          <p className="mb-8 text-center text-sm text-white/50">
+            Everything you need to grow.
+          </p>
 
           <div className="grid grid-cols-2 gap-3">
             {[
@@ -170,7 +180,9 @@ const BecomeMerchant = () => {
                 <CardContent className="p-4">
                   <Icon className="mb-3 h-6 w-6 text-secondary" />
                   <h3 className="mb-1 text-sm font-bold text-white">{title}</h3>
-                  <p className="text-xs leading-relaxed text-white/55">{desc}</p>
+                  <p className="text-xs leading-relaxed text-white/55">
+                    {desc}
+                  </p>
                 </CardContent>
               </Card>
             ))}
@@ -192,7 +204,9 @@ const BecomeMerchant = () => {
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-3">
                 <span className="text-xs text-white/60">You set</span>
-                <span className="text-sm font-bold text-secondary">10% commission per sale</span>
+                <span className="text-sm font-bold text-secondary">
+                  10% commission per sale
+                </span>
               </div>
 
               <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3">
@@ -202,13 +216,19 @@ const BecomeMerchant = () => {
                 <ArrowRight className="h-4 w-4 shrink-0 text-white/30" />
                 <div className="flex-1 text-right">
                   <p className="text-xs text-white/60">RM 10 commission</p>
-                  <p className="text-xs text-white/40">split: nocap + affiliates</p>
+                  <p className="text-xs text-white/40">
+                    split: nocap + affiliates
+                  </p>
                 </div>
               </div>
 
               <div className="flex items-center justify-between rounded-lg border border-secondary/30 bg-secondary/10 px-4 py-3">
-                <span className="text-xs font-semibold text-white">You keep</span>
-                <span className="text-lg font-extrabold text-secondary">RM 90</span>
+                <span className="text-xs font-semibold text-white">
+                  You keep
+                </span>
+                <span className="text-lg font-extrabold text-secondary">
+                  RM 90
+                </span>
               </div>
 
               <p className="text-center text-xs text-white/40">
@@ -236,7 +256,9 @@ const BecomeMerchant = () => {
           >
             Apply Now <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-          <p className="mt-3 text-xs text-white/30">No credit card required. No monthly fees. Ever.</p>
+          <p className="mt-3 text-xs text-white/30">
+            No credit card required. No monthly fees. Ever.
+          </p>
         </div>
       </section>
     </div>

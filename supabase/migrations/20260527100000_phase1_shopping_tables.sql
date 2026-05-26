@@ -1,0 +1,3 @@
+-- Phase 1 shopping tables applied via Supabase MCP on 2026-05-27
+-- Tables created: user_addresses, order_shipments, product_images, review_media, store_policies
+-- See apply_migration call in session for full SQL

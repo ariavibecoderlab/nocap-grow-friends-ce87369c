@@ -3,8 +3,20 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { signUp, signInWithPassword } from "@/lib/auth";
@@ -48,20 +60,29 @@ const Auth = () => {
   }, [user, authLoading, navigate]);
 
   const checkHasPassword = async (targetEmail: string) => {
-    const { data, error } = await supabase.functions.invoke('check-has-password', {
-      body: { email: targetEmail },
-    });
+    const { data, error } = await supabase.functions.invoke(
+      "check-has-password",
+      {
+        body: { email: targetEmail },
+      },
+    );
     if (error) return null;
     return data as { exists: boolean; has_password: boolean };
   };
 
   const setInitialPassword = async (targetEmail: string, pwd: string) => {
-    const { data, error } = await supabase.functions.invoke('set-initial-password', {
-      body: { email: targetEmail, password: pwd },
-    });
+    const { data, error } = await supabase.functions.invoke(
+      "set-initial-password",
+      {
+        body: { email: targetEmail, password: pwd },
+      },
+    );
     if (error) {
       // Extract error from function response
-      return { success: false, error: error.message || 'Failed to set password' };
+      return {
+        success: false,
+        error: error.message || "Failed to set password",
+      };
     }
     if (data?.error) {
       return { success: false, error: data.error };
@@ -75,49 +96,82 @@ const Auth = () => {
     // Registration path
     if (isNewEmail) {
       if (!referralCode) {
-        toast({ title: "Referral code required", description: "Please enter a valid referral code to register.", variant: "destructive" });
+        toast({
+          title: "Referral code required",
+          description: "Please enter a valid referral code to register.",
+          variant: "destructive",
+        });
         return;
       }
       if (password.length < 6) {
-        toast({ title: "Password required", description: "Password must be at least 6 characters.", variant: "destructive" });
+        toast({
+          title: "Password required",
+          description: "Password must be at least 6 characters.",
+          variant: "destructive",
+        });
         return;
       }
       if (password !== confirmPassword) {
-        toast({ title: "Error", description: "Passwords do not match.", variant: "destructive" });
+        toast({
+          title: "Passwords don't match",
+          description: "Passwords do not match.",
+          variant: "destructive",
+        });
         return;
       }
 
       setLoading(true);
 
       // Validate referral code via SECURITY DEFINER RPC (no public profile read).
-      const { data: referrerId } = await (supabase.rpc as any)("get_referrer_id_by_code", {
-        p_code: referralCode.toUpperCase(),
-      });
+      const { data: referrerId } = await (supabase.rpc as any)(
+        "get_referrer_id_by_code",
+        {
+          p_code: referralCode.toUpperCase(),
+        },
+      );
 
       if (!referrerId) {
-        toast({ title: "Invalid referral code", description: "This referral code does not exist.", variant: "destructive" });
+        toast({
+          title: "Invalid referral code",
+          description: "This referral code does not exist.",
+          variant: "destructive",
+        });
         setLoading(false);
         return;
       }
 
       // Sign up with user-provided password
       sessionStorage.setItem(REGISTERING_FLAG, "1");
-      const { error: signUpError } = await signUp(email, password, "", "", referralCode.toUpperCase());
+      const { error: signUpError } = await signUp(
+        email,
+        password,
+        "",
+        "",
+        referralCode.toUpperCase(),
+      );
 
       if (signUpError) {
         sessionStorage.removeItem(REGISTERING_FLAG);
         if (signUpError.message?.toLowerCase().includes("already registered")) {
-          toast({ title: "Email already registered", description: "Please sign in instead.", variant: "destructive" });
+          toast({
+            title: "Email already registered",
+            description: "Please sign in instead.",
+            variant: "destructive",
+          });
           setIsNewEmail(false);
         } else {
-          toast({ title: "Registration failed", description: signUpError.message, variant: "destructive" });
+          toast({
+            title: "Registration failed",
+            description: signUpError.message,
+            variant: "destructive",
+          });
         }
         setLoading(false);
         return;
       }
 
       // Mark has_password via edge function
-      await supabase.functions.invoke('set-initial-password', {
+      await supabase.functions.invoke("set-initial-password", {
         body: { email, password },
       });
 
@@ -125,7 +179,10 @@ const Auth = () => {
       await supabase.auth.signOut();
       sessionStorage.removeItem(REGISTERING_FLAG);
 
-      toast({ title: "Account created!", description: "Please login with your email and password." });
+      toast({
+        title: "Account created!",
+        description: "Log in to get started.",
+      });
       setPassword("");
       setConfirmPassword("");
       setReferralCode("");
@@ -140,7 +197,11 @@ const Auth = () => {
       const result = await checkHasPassword(email);
 
       if (!result) {
-        toast({ title: "Error", description: "Could not check account. Please try again.", variant: "destructive" });
+        toast({
+          title: "Connection error",
+          description: "Could not check account. Please try again.",
+          variant: "destructive",
+        });
         setLoading(false);
         return;
       }
@@ -163,7 +224,11 @@ const Auth = () => {
         setShowSetPasswordDialog(true);
       }
     } catch {
-      toast({ title: "Error", description: "Something went wrong. Please try again.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
     }
     setLoading(false);
   };
@@ -172,7 +237,11 @@ const Auth = () => {
     setLoading(true);
     const { error } = await signInWithPassword(email, password);
     if (error) {
-      toast({ title: "Login failed", description: error.message, variant: "destructive" });
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
     } else {
       setShowPasswordDialog(false);
       navigate("/dashboard");
@@ -182,11 +251,19 @@ const Auth = () => {
 
   const handleSetPassword = async () => {
     if (password.length < 6) {
-      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
       return;
     }
     if (password !== confirmPassword) {
-      toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
+      toast({
+        title: "Passwords don't match",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -194,13 +271,20 @@ const Auth = () => {
     const result = await setInitialPassword(email, password);
 
     if (!result.success) {
-      toast({ title: "Error", description: result.error || "Failed to set password", variant: "destructive" });
+      toast({
+        title: "Couldn't set password",
+        description: result.error || "Failed to set password",
+        variant: "destructive",
+      });
       setLoading(false);
       return;
     }
 
     setShowSetPasswordDialog(false);
-    toast({ title: "Password set!", description: "Please login with your new password." });
+    toast({
+      title: "Password set!",
+      description: "Please login with your new password.",
+    });
 
     // Reset form for login
     setPassword("");
@@ -216,9 +300,16 @@ const Auth = () => {
     });
 
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     } else {
-      toast({ title: "Email sent", description: "Check your email for the password reset link." });
+      toast({
+        title: "Email sent",
+        description: "Check your email for the password reset link.",
+      });
       setShowPasswordDialog(false);
     }
     setLoading(false);
@@ -231,19 +322,34 @@ const Auth = () => {
         <div className="absolute left-[10%] top-[15%] animate-pulse opacity-10">
           <Coins className="h-16 w-16 text-secondary" />
         </div>
-        <div className="absolute right-[12%] top-[20%] animate-pulse opacity-10" style={{ animationDelay: '1s' }}>
+        <div
+          className="absolute right-[12%] top-[20%] animate-pulse opacity-10"
+          style={{ animationDelay: "1s" }}
+        >
           <Users className="h-12 w-12 text-secondary" />
         </div>
-        <div className="absolute left-[8%] bottom-[25%] animate-pulse opacity-10" style={{ animationDelay: '0.5s' }}>
+        <div
+          className="absolute left-[8%] bottom-[25%] animate-pulse opacity-10"
+          style={{ animationDelay: "0.5s" }}
+        >
           <TrendingUp className="h-14 w-14 text-secondary" />
         </div>
-        <div className="absolute right-[15%] bottom-[18%] animate-pulse opacity-10" style={{ animationDelay: '1.5s' }}>
+        <div
+          className="absolute right-[15%] bottom-[18%] animate-pulse opacity-10"
+          style={{ animationDelay: "1.5s" }}
+        >
           <Gift className="h-10 w-10 text-secondary" />
         </div>
-        <div className="absolute left-[25%] top-[8%] animate-pulse opacity-[0.07]" style={{ animationDelay: '2s' }}>
+        <div
+          className="absolute left-[25%] top-[8%] animate-pulse opacity-[0.07]"
+          style={{ animationDelay: "2s" }}
+        >
           <Percent className="h-20 w-20 text-secondary" />
         </div>
-        <div className="absolute right-[8%] top-[50%] animate-pulse opacity-[0.07]" style={{ animationDelay: '0.8s' }}>
+        <div
+          className="absolute right-[8%] top-[50%] animate-pulse opacity-[0.07]"
+          style={{ animationDelay: "0.8s" }}
+        >
           <Zap className="h-24 w-24 text-secondary" />
         </div>
 
@@ -254,7 +360,9 @@ const Auth = () => {
       <div className="relative z-10 w-full max-w-md">
         <div className="mb-8 flex flex-col items-center">
           <NocapLogo size="lg" variant="stacked" />
-          <p className="mt-2 text-sm text-white/60">Affiliate Cashback Platform</p>
+          <p className="mt-2 text-sm text-white/60">
+            Affiliate Cashback Platform
+          </p>
         </div>
 
         {/* Feature pills */}
@@ -266,24 +374,33 @@ const Auth = () => {
             <Users className="h-3 w-3 text-secondary" /> Refer & Earn
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60 backdrop-blur">
-            <TrendingUp className="h-3 w-3 text-secondary" /> 6-Tier Rewards
+            <TrendingUp className="h-3 w-3 text-secondary" /> 5-Tier Rewards
           </span>
         </div>
 
         <Card className="border-white/10 bg-white/5 shadow-2xl backdrop-blur">
           <CardHeader className="text-center">
-            <CardTitle className="font-display text-xl text-white">Welcome</CardTitle>
-            <CardDescription className="text-white/50">Enter your email to continue</CardDescription>
+            <CardTitle className="font-display text-xl text-white">
+              Welcome
+            </CardTitle>
+            <CardDescription className="text-white/50">
+              Enter your email to continue
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-white/70">Email</Label>
+              <Label htmlFor="email" className="text-white/70">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="azarul@example.com"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setIsNewEmail(false); }}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setIsNewEmail(false);
+                }}
                 onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
                 className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
               />
@@ -291,7 +408,9 @@ const Auth = () => {
             {isNewEmail && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="referralEmail" className="text-white/70">Referral Code *</Label>
+                  <Label htmlFor="referralEmail" className="text-white/70">
+                    Referral Code *
+                  </Label>
                   <Input
                     id="referralEmail"
                     placeholder="Enter referral code"
@@ -301,7 +420,9 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="regPassword" className="text-white/70">Password *</Label>
+                  <Label htmlFor="regPassword" className="text-white/70">
+                    Password *
+                  </Label>
                   <Input
                     id="regPassword"
                     type="password"
@@ -313,7 +434,9 @@ const Auth = () => {
                   <PasswordStrengthIndicator password={password} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="regConfirmPassword" className="text-white/70">Confirm Password *</Label>
+                  <Label htmlFor="regConfirmPassword" className="text-white/70">
+                    Confirm Password *
+                  </Label>
                   <Input
                     id="regConfirmPassword"
                     type="password"
@@ -324,17 +447,29 @@ const Auth = () => {
                     className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
                   />
                 </div>
-                <p className="text-xs text-white/40">This email is not registered. Fill in the details above to create an account.</p>
+                <p className="text-xs text-white/40">
+                  This email is not registered. Fill in the details above to
+                  create an account.
+                </p>
               </>
             )}
-            <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleEmailSubmit} disabled={loading}>
-              {loading ? "Please wait..." : isNewEmail ? "Create Account" : "Continue"}
+            <Button
+              className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold"
+              onClick={handleEmailSubmit}
+              disabled={loading}
+            >
+              {loading
+                ? "Please wait..."
+                : isNewEmail
+                  ? "Create Account"
+                  : "Continue"}
             </Button>
           </CardContent>
         </Card>
 
         <p className="mt-6 text-center text-xs text-white/30">
-          Earn cashback on every transaction · Build your affiliate network · Grow together ⚡
+          Earn cashback on every transaction · Build your affiliate network ·
+          Grow together ⚡
         </p>
       </div>
 
@@ -342,12 +477,16 @@ const Auth = () => {
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
         <DialogContent className="border-white/10 bg-primary text-white sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-white">Enter Password</DialogTitle>
-            <DialogDescription className="text-white/50">Sign in to your account</DialogDescription>
+            <DialogTitle className="text-white">Log In</DialogTitle>
+            <DialogDescription className="text-white/50">
+              Log in to your account
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="loginPwd" className="text-white/70">Password</Label>
+              <Label htmlFor="loginPwd" className="text-white/70">
+                Password
+              </Label>
               <Input
                 id="loginPwd"
                 type="password"
@@ -359,10 +498,19 @@ const Auth = () => {
                 autoFocus
               />
             </div>
-            <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handlePasswordLogin} disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
+            <Button
+              className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold"
+              onClick={handlePasswordLogin}
+              disabled={loading}
+            >
+              {loading ? "Logging in..." : "Log In"}
             </Button>
-            <Button variant="ghost" className="w-full text-sm text-white/40 hover:text-white hover:bg-white/10" onClick={handleForgotPassword} disabled={loading}>
+            <Button
+              variant="ghost"
+              className="w-full text-sm text-white/40 hover:text-white hover:bg-white/10"
+              onClick={handleForgotPassword}
+              disabled={loading}
+            >
               Forgot Password?
             </Button>
           </div>
@@ -370,15 +518,22 @@ const Auth = () => {
       </Dialog>
 
       {/* Set Password Dialog */}
-      <Dialog open={showSetPasswordDialog} onOpenChange={setShowSetPasswordDialog}>
+      <Dialog
+        open={showSetPasswordDialog}
+        onOpenChange={setShowSetPasswordDialog}
+      >
         <DialogContent className="border-white/10 bg-primary text-white sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-white">Set Your Password</DialogTitle>
-            <DialogDescription className="text-white/50">Create a password for your account</DialogDescription>
+            <DialogDescription className="text-white/50">
+              Create a password for your account
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="newPwd" className="text-white/70">New Password</Label>
+              <Label htmlFor="newPwd" className="text-white/70">
+                New Password
+              </Label>
               <Input
                 id="newPwd"
                 type="password"
@@ -391,7 +546,9 @@ const Auth = () => {
               <PasswordStrengthIndicator password={password} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPwd" className="text-white/70">Confirm Password</Label>
+              <Label htmlFor="confirmPwd" className="text-white/70">
+                Confirm Password
+              </Label>
               <Input
                 id="confirmPwd"
                 type="password"
@@ -402,7 +559,11 @@ const Auth = () => {
                 className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
               />
             </div>
-            <Button className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold" onClick={handleSetPassword} disabled={loading}>
+            <Button
+              className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold"
+              onClick={handleSetPassword}
+              disabled={loading}
+            >
               {loading ? "Setting password..." : "Set Password"}
             </Button>
           </div>
