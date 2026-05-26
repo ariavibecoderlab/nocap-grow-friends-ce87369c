@@ -69,6 +69,8 @@ import BecomeMerchant from "./pages/BecomeMerchant";
 import SellerAnalytics from "./pages/SellerAnalytics";
 import SellerProducts from "./pages/SellerProducts";
 import SellerPromotions from "./pages/SellerPromotions";
+import SellerLive from "./pages/SellerLive";
+import LiveViewer from "./pages/LiveViewer";
 
 const queryClient = new QueryClient();
 
@@ -222,6 +224,8 @@ const App = () => (
                       path="/seller/promotions"
                       element={<SellerPromotions />}
                     />
+                    <Route path="/seller/live" element={<SellerLive />} />
+                    <Route path="/live/:streamId" element={<LiveViewer />} />
                   </Route>
 
                   {/* Staff (self-guarded internally) */}

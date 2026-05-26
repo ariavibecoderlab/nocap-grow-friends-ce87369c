@@ -1,11 +1,28 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Store, Banknote, Settings2, Users, ArrowLeftRight,
-  Code, ShieldCheck, GitBranch, LogOut, Activity, WalletCards,
+  LayoutDashboard,
+  Store,
+  Banknote,
+  Settings2,
+  Users,
+  ArrowLeftRight,
+  Code,
+  ShieldCheck,
+  GitBranch,
+  LogOut,
+  Activity,
+  WalletCards,
+  Ticket,
 } from "lucide-react";
 import {
-  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
-  SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { NavLink } from "@/components/NavLink";
@@ -19,12 +36,29 @@ const navItems = [
   { title: "Withdrawals", url: "/admin-portal/withdrawals", icon: Banknote },
   { title: "Fee Settings", url: "/admin-portal/fees", icon: Settings2 },
   { title: "Users", url: "/admin-portal/users", icon: Users },
-  { title: "Transactions", url: "/admin-portal/transactions", icon: ArrowLeftRight },
+  {
+    title: "Transactions",
+    url: "/admin-portal/transactions",
+    icon: ArrowLeftRight,
+  },
   { title: "API Apps", url: "/admin-portal/api-apps", icon: Code },
   { title: "Audit", url: "/admin-portal/audit", icon: ShieldCheck },
-  { title: "VA Credits", url: "/admin-portal/wallet-credit-audit", icon: WalletCards },
-  { title: "Distribution Audit", url: "/admin-portal/distribution-audit", icon: Activity },
-  { title: "Referral Tree", url: "/admin-portal/referral-tree", icon: GitBranch },
+  {
+    title: "VA Credits",
+    url: "/admin-portal/wallet-credit-audit",
+    icon: WalletCards,
+  },
+  {
+    title: "Distribution Audit",
+    url: "/admin-portal/distribution-audit",
+    icon: Activity,
+  },
+  {
+    title: "Referral Tree",
+    url: "/admin-portal/referral-tree",
+    icon: GitBranch,
+  },
+  { title: "Vouchers", url: "/admin-portal/vouchers", icon: Ticket },
 ];
 
 const AdminSidebar = () => {
@@ -46,14 +80,18 @@ const AdminSidebar = () => {
           <SidebarGroupLabel className="px-4 py-6">
             <div className="flex items-center gap-2">
               <NocapLogo size="sm" />
-              {!collapsed && <span className="text-secondary font-bold text-sm">Admin</span>}
+              {!collapsed && (
+                <span className="text-secondary font-bold text-sm">Admin</span>
+              )}
             </div>
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
-                const isActive = location.pathname === item.url ||
-                  (item.url !== "/admin-portal" && location.pathname.startsWith(item.url));
+                const isActive =
+                  location.pathname === item.url ||
+                  (item.url !== "/admin-portal" &&
+                    location.pathname.startsWith(item.url));
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
@@ -77,7 +115,10 @@ const AdminSidebar = () => {
         <div className="mt-auto p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={handleLogout} className="text-destructive hover:bg-destructive/10">
+              <SidebarMenuButton
+                onClick={handleLogout}
+                className="text-destructive hover:bg-destructive/10"
+              >
                 <LogOut className="h-4 w-4 mr-2 shrink-0" />
                 {!collapsed && <span>Sign Out</span>}
               </SidebarMenuButton>

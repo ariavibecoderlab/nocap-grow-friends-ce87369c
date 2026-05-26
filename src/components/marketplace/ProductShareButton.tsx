@@ -1,17 +1,29 @@
 import { Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ProductShareButtonProps {
   productName: string;
-  productUrl?: string;
+  storeSlug: string;
+  productId: string;
 }
 
-export default function ProductShareButton({ productName, productUrl }: ProductShareButtonProps) {
+export default function ProductShareButton({
+  productName,
+  storeSlug,
+  productId,
+}: ProductShareButtonProps) {
   const { toast } = useToast();
-  const url = productUrl || window.location.href;
+  const { user } = useAuth();
+
+  const buildUrl = () => {
+    const base = `${window.location.origin}/store/${storeSlug}/product/${productId}`;
+    return user ? `${base}?ref=${user.id}` : base;
+  };
 
   const handleShare = async () => {
+    const url = buildUrl();
     const shareData = {
       title: productName,
       text: `Check out ${productName} on NoCap!`,
@@ -23,18 +35,28 @@ export default function ProductShareButton({ productName, productUrl }: ProductS
         await navigator.share(shareData);
       } catch (e: any) {
         if (e.name !== "AbortError") {
-          fallbackCopy();
+          fallbackCopy(url);
         }
       }
     } else {
-      fallbackCopy();
+      fallbackCopy(url);
     }
   };
 
-  const fallbackCopy = async () => {
+  const fallbackCopy = async (url: string) => {
     try {
       await navigator.clipboard.writeText(url);
-      toast({ title: "Link copied!", description: "Product link copied to clipboard" });
+      if (user) {
+        toast({
+          title: "Link copied!",
+          description: "Earn commission when friends buy via your link 🎯",
+        });
+      } else {
+        toast({
+          title: "Link copied!",
+          description: "Sign in to earn referral commission",
+        });
+      }
     } catch {
       toast({ title: "Unable to share", variant: "destructive" });
     }

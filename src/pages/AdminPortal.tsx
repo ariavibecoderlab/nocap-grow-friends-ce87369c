@@ -15,6 +15,7 @@ import WalletReconciliation from "@/components/admin/WalletReconciliation";
 import WalletCreditAudit from "@/components/admin/WalletCreditAudit";
 import AdminReferralTreeContent from "@/components/admin/AdminReferralTreeContent";
 import DistributionAudit from "@/components/admin/DistributionAudit";
+import AdminVouchers from "@/components/admin/AdminVouchers";
 import { Loader2 } from "lucide-react";
 
 const sectionMap: Record<string, React.FC> = {
@@ -29,6 +30,7 @@ const sectionMap: Record<string, React.FC> = {
   "wallet-credit-audit": WalletCreditAudit,
   "referral-tree": AdminReferralTreeContent,
   "distribution-audit": DistributionAudit,
+  vouchers: AdminVouchers,
 };
 
 const AdminPortal = () => {
@@ -39,7 +41,8 @@ const AdminPortal = () => {
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/admin-login");
-    if (!authLoading && !adminLoading && user && !isAdmin) navigate("/admin-login");
+    if (!authLoading && !adminLoading && user && !isAdmin)
+      navigate("/admin-login");
   }, [authLoading, adminLoading, user, isAdmin, navigate]);
 
   if (authLoading || adminLoading) {
@@ -53,7 +56,9 @@ const AdminPortal = () => {
   if (!user || !isAdmin) return null;
 
   // Determine which section to render
-  const path = location.pathname.replace("/admin-portal", "").replace(/^\//, "");
+  const path = location.pathname
+    .replace("/admin-portal", "")
+    .replace(/^\//, "");
   const SectionComponent = sectionMap[path] || AdminDashboard;
 
   return (

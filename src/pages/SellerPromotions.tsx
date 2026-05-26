@@ -1,6 +1,16 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Loader2, Trash2, Tag, Zap } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Loader2,
+  Trash2,
+  Tag,
+  Zap,
+  TrendingUp,
+  Pause,
+  Play,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -57,13 +67,38 @@ interface FlashSale {
   created_at: string;
 }
 
+interface MarketplaceProduct {
+  id: string;
+  name: string;
+  images: string[];
+}
+
+interface PromotedListing {
+  id: string;
+  store_id: string;
+  product_id: string;
+  status: "active" | "paused" | "ended";
+  daily_budget: number;
+  bid_per_click: number;
+  impressions: number;
+  clicks: number;
+  spend_today: number;
+  start_date: string;
+  end_date: string | null;
+  created_at: string;
+  marketplace_products: {
+    name: string;
+    images: string[];
+  } | null;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function randomCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   return Array.from(
     { length: 6 },
-    () => chars[Math.floor(Math.random() * chars.length)]
+    () => chars[Math.floor(Math.random() * chars.length)],
   ).join("");
 }
 
@@ -266,6 +301,24 @@ export default function SellerPromotions() {
   const [deletingCode, setDeletingCode] = useState<string | null>(null);
   const [deletingSale, setDeletingSale] = useState<string | null>(null);
 
+  // Promoted listings
+  const [promotedListings, setPromotedListings] = useState<PromotedListing[]>(
+    [],
+  );
+  const [loadingPromoted, setLoadingPromoted] = useState(false);
+  const [storeProducts, setStoreProducts] = useState<MarketplaceProduct[]>([]);
+  const [showBoostSheet, setShowBoostSheet] = useState(false);
+  const [boostForm, setBoostForm] = useState({
+    product_id: "",
+    daily_budget: "5.00",
+    bid_per_click: "0.10",
+    start_date: "",
+    end_date: "",
+  });
+  const [savingBoost, setSavingBoost] = useState(false);
+  const [togglingPromo, setTogglingPromo] = useState<string | null>(null);
+  const [deletingPromo, setDeletingPromo] = useState<string | null>(null);
+
   // ─── Load stores ───────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -316,11 +369,47 @@ export default function SellerPromotions() {
     setLoadingSales(false);
   }, []);
 
+  // ─── Load promoted listings ────────────────────────────────────────────────
+
+  const loadPromotedListings = useCallback(async (storeId: string) => {
+    setLoadingPromoted(true);
+    const { data } = await supabase
+      .from("promoted_listings")
+      .select("*, marketplace_products(name, images)")
+      .eq("store_id", storeId)
+      .order("created_at", { ascending: false });
+    setPromotedListings((data ?? []) as unknown as PromotedListing[]);
+    setLoadingPromoted(false);
+  }, []);
+
+  const loadStoreProducts = useCallback(async (storeId: string) => {
+    const { data } = await supabase
+      .from("marketplace_products")
+      .select("id, name, images")
+      .eq("store_id", storeId)
+      .eq("status", "active")
+      .order("name", { ascending: true });
+    setStoreProducts(
+      (data ?? []).map((p) => ({
+        ...p,
+        images: Array.isArray(p.images) ? (p.images as string[]) : [],
+      })),
+    );
+  }, []);
+
   useEffect(() => {
     if (!selectedStoreId) return;
     loadDiscountCodes(selectedStoreId);
     loadFlashSales(selectedStoreId);
-  }, [selectedStoreId, loadDiscountCodes, loadFlashSales]);
+    loadPromotedListings(selectedStoreId);
+    loadStoreProducts(selectedStoreId);
+  }, [
+    selectedStoreId,
+    loadDiscountCodes,
+    loadFlashSales,
+    loadPromotedListings,
+    loadStoreProducts,
+  ]);
 
   // ─── Handlers: discount codes ──────────────────────────────────────────────
 
@@ -390,7 +479,7 @@ export default function SellerPromotions() {
       return;
     }
     setDiscountCodes((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, is_active: val } : c))
+      prev.map((c) => (c.id === id ? { ...c, is_active: val } : c)),
     );
   };
 
@@ -502,6 +591,121 @@ export default function SellerPromotions() {
     setDeletingSale(null);
   };
 
+  // ─── Handlers: promoted listings ──────────────────────────────────────────
+
+  const openBoostSheet = () => {
+    setBoostForm({
+      product_id: "",
+      daily_budget: "5.00",
+      bid_per_click: "0.10",
+      start_date: new Date().toISOString().slice(0, 16),
+      end_date: "",
+    });
+    setShowBoostSheet(true);
+  };
+
+  const saveBoost = async () => {
+    if (
+      !selectedStoreId ||
+      !boostForm.product_id ||
+      !boostForm.daily_budget ||
+      !boostForm.bid_per_click
+    )
+      return;
+
+    const dailyBudget = Number(boostForm.daily_budget);
+    const bidPerClick = Number(boostForm.bid_per_click);
+
+    if (dailyBudget < 5) {
+      toast({
+        title: "Minimum daily budget is RM 5.00",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (bidPerClick < 0.1) {
+      toast({
+        title: "Minimum bid per click is RM 0.10",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingBoost(true);
+
+    const payload = {
+      store_id: selectedStoreId,
+      product_id: boostForm.product_id,
+      daily_budget: dailyBudget,
+      bid_per_click: bidPerClick,
+      start_date: boostForm.start_date
+        ? new Date(boostForm.start_date).toISOString()
+        : new Date().toISOString(),
+      end_date: boostForm.end_date
+        ? new Date(boostForm.end_date).toISOString()
+        : null,
+      status: "active",
+    };
+
+    const { error } = await supabase.from("promoted_listings").insert(payload);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      await loadPromotedListings(selectedStoreId);
+      setShowBoostSheet(false);
+      toast({ title: "Product boosted!" });
+    }
+    setSavingBoost(false);
+  };
+
+  const togglePromoStatus = async (
+    id: string,
+    currentStatus: PromotedListing["status"],
+  ) => {
+    const nextStatus = currentStatus === "active" ? "paused" : "active";
+    setTogglingPromo(id);
+    const { error } = await supabase
+      .from("promoted_listings")
+      .update({ status: nextStatus })
+      .eq("id", id);
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setPromotedListings((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, status: nextStatus } : p)),
+      );
+    }
+    setTogglingPromo(null);
+  };
+
+  const deletePromo = async (id: string) => {
+    setDeletingPromo(id);
+    const { error } = await supabase
+      .from("promoted_listings")
+      .delete()
+      .eq("id", id);
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setPromotedListings((prev) => prev.filter((p) => p.id !== id));
+      toast({ title: "Promotion deleted" });
+    }
+    setDeletingPromo(null);
+  };
+
   // ─── Loading state ─────────────────────────────────────────────────────────
 
   if (authLoading || loadingStores) {
@@ -594,6 +798,13 @@ export default function SellerPromotions() {
                 <Zap className="h-3.5 w-3.5 mr-1.5" />
                 Flash Sales
               </TabsTrigger>
+              <TabsTrigger
+                value="promoted"
+                className="flex-1 data-[state=active]:bg-secondary data-[state=active]:text-primary text-white/60"
+              >
+                <TrendingUp className="h-3.5 w-3.5 mr-1.5" />
+                Promoted
+              </TabsTrigger>
             </TabsList>
 
             {/* ── Tab 1: Discount Codes ───────────────────────────────────── */}
@@ -684,6 +895,162 @@ export default function SellerPromotions() {
                     <FlashSaleCard sale={sale} onDelete={deleteFlashSale} />
                   </div>
                 ))
+              )}
+            </TabsContent>
+
+            {/* ── Tab 3: Promoted Listings ───────────────────────────────── */}
+            <TabsContent value="promoted" className="space-y-3 mt-0">
+              {/* Explanation card */}
+              <Card className="border-secondary/20 bg-secondary/5">
+                <CardContent className="p-4 space-y-2">
+                  <p className="text-sm text-white font-medium">
+                    Boost your products to the top of search results. Pay per
+                    click from your NOcap wallet.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    {[
+                      { tier: "Bronze", pct: "5%" },
+                      { tier: "Silver", pct: "4.5%" },
+                      { tier: "Gold", pct: "4%" },
+                      { tier: "Platinum", pct: "3.5%" },
+                    ].map(({ tier, pct }) => (
+                      <div
+                        key={tier}
+                        className="flex items-center justify-between bg-white/5 rounded px-3 py-1.5"
+                      >
+                        <span className="text-xs text-white/60">{tier}</span>
+                        <span className="text-xs font-semibold text-secondary">
+                          {pct} commission
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-white/40">
+                  {promotedListings.length} active boost
+                  {promotedListings.length !== 1 ? "s" : ""}
+                </p>
+                <Button
+                  size="sm"
+                  className="gap-1.5 bg-secondary text-primary hover:bg-secondary/90 font-semibold"
+                  onClick={openBoostSheet}
+                >
+                  <Plus className="h-3.5 w-3.5" /> Boost a Product
+                </Button>
+              </div>
+
+              {loadingPromoted ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+                </div>
+              ) : promotedListings.length === 0 ? (
+                <Card className="border-white/10 bg-white/5">
+                  <CardContent className="flex flex-col items-center py-10 text-center">
+                    <TrendingUp className="h-8 w-8 text-white/20 mb-2" />
+                    <p className="text-sm text-white/40">
+                      No active promotions
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                promotedListings.map((promo) => {
+                  const imgSrc =
+                    promo.marketplace_products?.images?.[0] ?? null;
+                  const productName =
+                    promo.marketplace_products?.name ?? "Product";
+                  return (
+                    <Card
+                      key={promo.id}
+                      className={`border-white/10 bg-white/5 ${
+                        deletingPromo === promo.id || togglingPromo === promo.id
+                          ? "opacity-50 pointer-events-none"
+                          : ""
+                      }`}
+                    >
+                      <CardContent className="p-4 flex items-start gap-3">
+                        {imgSrc ? (
+                          <img
+                            src={imgSrc}
+                            alt={productName}
+                            className="h-12 w-12 rounded object-cover shrink-0"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded bg-white/10 shrink-0 flex items-center justify-center">
+                            <TrendingUp className="h-5 w-5 text-white/20" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium text-white truncate">
+                              {productName}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className={
+                                promo.status === "active"
+                                  ? "border-emerald-500 text-emerald-400 text-[10px] px-1.5 py-0"
+                                  : promo.status === "paused"
+                                    ? "border-amber-500 text-amber-400 text-[10px] px-1.5 py-0"
+                                    : "border-white/20 text-white/40 text-[10px] px-1.5 py-0"
+                              }
+                            >
+                              {promo.status.charAt(0).toUpperCase() +
+                                promo.status.slice(1)}
+                            </Badge>
+                          </div>
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-white/40">
+                            <span>
+                              Budget: RM {Number(promo.daily_budget).toFixed(2)}
+                              /day
+                            </span>
+                            <span>
+                              Bid: RM {Number(promo.bid_per_click).toFixed(2)}
+                              /click
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-white/40">
+                            <span>{promo.impressions} impressions</span>
+                            <span>{promo.clicks} clicks</span>
+                            <span>
+                              Spent today: RM{" "}
+                              {Number(promo.spend_today).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-white/50 hover:text-white hover:bg-white/10"
+                            onClick={() =>
+                              togglePromoStatus(promo.id, promo.status)
+                            }
+                            title={
+                              promo.status === "active" ? "Pause" : "Resume"
+                            }
+                          >
+                            {promo.status === "active" ? (
+                              <Pause className="h-4 w-4" />
+                            ) : (
+                              <Play className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => deletePromo(promo.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
               )}
             </TabsContent>
           </Tabs>
@@ -933,6 +1300,126 @@ export default function SellerPromotions() {
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : null}
               Save Sale
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* ── Sheet: Boost a Product ───────────────────────────────────────────── */}
+      <Sheet open={showBoostSheet} onOpenChange={setShowBoostSheet}>
+        <SheetContent
+          side="right"
+          className="w-full max-w-sm bg-background border-l border-white/10 text-white overflow-y-auto"
+        >
+          <SheetHeader className="mb-6">
+            <SheetTitle className="font-display text-white">
+              Boost a Product
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-white/70 text-sm">Product *</Label>
+              <Select
+                value={boostForm.product_id}
+                onValueChange={(v) =>
+                  setBoostForm((f) => ({ ...f, product_id: v }))
+                }
+              >
+                <SelectTrigger className="border-white/10 bg-white/5 text-white">
+                  <SelectValue placeholder="Select a product" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border-white/10 text-white max-h-60">
+                  {storeProducts.map((p) => (
+                    <SelectItem
+                      key={p.id}
+                      value={p.id}
+                      className="focus:bg-white/10 focus:text-white"
+                    >
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-white/70 text-sm">
+                Daily Budget (RM) * — min RM 5.00
+              </Label>
+              <Input
+                type="number"
+                min={5}
+                step={0.5}
+                value={boostForm.daily_budget}
+                onChange={(e) =>
+                  setBoostForm((f) => ({ ...f, daily_budget: e.target.value }))
+                }
+                className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                placeholder="5.00"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-white/70 text-sm">
+                Bid per Click (RM) * — min RM 0.10
+              </Label>
+              <Input
+                type="number"
+                min={0.1}
+                step={0.05}
+                value={boostForm.bid_per_click}
+                onChange={(e) =>
+                  setBoostForm((f) => ({
+                    ...f,
+                    bid_per_click: e.target.value,
+                  }))
+                }
+                className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                placeholder="0.10"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-white/70 text-sm">Start Date *</Label>
+              <Input
+                type="datetime-local"
+                value={boostForm.start_date}
+                onChange={(e) =>
+                  setBoostForm((f) => ({ ...f, start_date: e.target.value }))
+                }
+                className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-white/70 text-sm">
+                End Date — optional
+              </Label>
+              <Input
+                type="datetime-local"
+                value={boostForm.end_date}
+                onChange={(e) =>
+                  setBoostForm((f) => ({ ...f, end_date: e.target.value }))
+                }
+                className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+              />
+            </div>
+
+            <Button
+              className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold mt-2"
+              onClick={saveBoost}
+              disabled={
+                savingBoost ||
+                !boostForm.product_id ||
+                !boostForm.daily_budget ||
+                !boostForm.bid_per_click
+              }
+            >
+              {savingBoost ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Start Boost
             </Button>
           </div>
         </SheetContent>

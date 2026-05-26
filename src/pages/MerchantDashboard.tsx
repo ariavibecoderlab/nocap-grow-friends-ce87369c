@@ -196,6 +196,10 @@ const MerchantNavigationWrapper = ({
       navigate("/seller/products");
       return;
     }
+    if (value === "live") {
+      navigate("/seller/live");
+      return;
+    }
     if (HUB_TABS.has(value)) {
       const sectionMap: Record<string, string> = {
         storefront_hub: "overview",

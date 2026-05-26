@@ -36,6 +36,7 @@ import {
   CreditCard,
   Megaphone,
   Code,
+  Radio,
   ScrollText,
   Settings2,
 } from "lucide-react";
@@ -70,6 +71,7 @@ export function getMerchantSections(chatUnread: number): NavSection[] {
         },
         { value: "kanban", icon: ClipboardList, label: "Order Fulfillment" },
         { value: "messages", icon: MessageSquare, label: "Messages" },
+        { value: "live", icon: Radio, label: "Go Live" },
       ],
     },
     {

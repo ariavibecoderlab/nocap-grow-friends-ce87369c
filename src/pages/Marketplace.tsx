@@ -17,10 +17,15 @@ import NocapLogo from "@/components/NocapLogo";
 import {
   ArrowLeft,
   ArrowUp,
+  Bell,
+  BellOff,
   Clock,
   Heart,
+  Loader2,
+  Radio,
   ShoppingBag,
   SlidersHorizontal,
+  Users,
   X,
 } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
@@ -72,11 +77,29 @@ type SortOption =
 
 const PAGE_SIZE = 12;
 
+interface LiveStreamRow {
+  id: string;
+  title: string;
+  store_id: string;
+  status: "scheduled" | "live" | "ended";
+  viewer_count: number;
+  thumbnail_url: string | null;
+  scheduled_at: string | null;
+  store_name?: string;
+}
+
 const Marketplace = () => {
   const navigate = useNavigate();
   const { wishlist } = useWishlist();
   const recentlyViewedIds = useRecentlyViewed();
-  const [activeTab, setActiveTab] = useState<"all" | "wishlist">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "wishlist" | "live">(
+    "all"
+  );
+
+  // Live streams
+  const [liveStreams, setLiveStreams] = useState<LiveStreamRow[]>([]);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [reminders, setReminders] = useState<Set<string>>(new Set());
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [stores, setStores] = useState<StoreInfo[]>([]);
   const [categories, setCategories] = useState<CategoryInfo[]>([]);
@@ -117,6 +140,44 @@ const Marketplace = () => {
       document.title = "NOcap - Malaysia 1st Affiliate Marketplace";
     };
   }, []);
+
+  // Fetch live + scheduled streams when Live tab is active
+  useEffect(() => {
+    if (activeTab !== "live") return;
+    setLiveLoading(true);
+    supabase
+      .from("live_streams")
+      .select(
+        "id, title, store_id, status, viewer_count, thumbnail_url, scheduled_at"
+      )
+      .in("status", ["live", "scheduled"])
+      .order("status", { ascending: false }) // "live" before "scheduled" lexically? Use explicit ordering
+      .order("viewer_count", { ascending: false })
+      .limit(30)
+      .then(async ({ data }) => {
+        if (!data) {
+          setLiveLoading(false);
+          return;
+        }
+        // Enrich with store names
+        const storeIds = [...new Set(data.map((s) => s.store_id))];
+        const { data: storeData } = await supabase
+          .from("marketplace_stores")
+          .select("id, store_name")
+          .in("id", storeIds);
+        const storeNameMap: Record<string, string> = {};
+        storeData?.forEach((s) => {
+          storeNameMap[s.id] = s.store_name;
+        });
+        setLiveStreams(
+          data.map((s) => ({
+            ...s,
+            store_name: storeNameMap[s.store_id] ?? "",
+          })) as LiveStreamRow[]
+        );
+        setLiveLoading(false);
+      });
+  }, [activeTab]);
 
   // Server-side FTS: drive grid results when search is active
   useEffect(() => {
@@ -452,10 +513,26 @@ const Marketplace = () => {
             <Heart className="h-3 w-3" /> Wishlist{" "}
             {wishlist.size > 0 && `(${wishlist.size})`}
           </button>
+          <button
+            onClick={() => setActiveTab("live")}
+            className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors flex items-center justify-center gap-1 ${
+              activeTab === "live"
+                ? "bg-red-600 text-white"
+                : "text-white/50 hover:text-white/70"
+            }`}
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+            </span>
+            Live
+          </button>
         </div>
 
-        {/* Search + Filter Toggle */}
-        <div className="flex gap-2 mb-3">
+        {/* Search + Filter Toggle — hidden on Live tab */}
+        <div
+          className={`flex gap-2 mb-3 ${activeTab === "live" ? "hidden" : ""}`}
+        >
           <SearchBar
             defaultValue={search}
             onSearch={(q) => {
@@ -479,7 +556,7 @@ const Marketplace = () => {
         </div>
 
         {/* Filters Panel */}
-        {showFilters && (
+        {activeTab !== "live" && showFilters && (
           <div className="mb-4 space-y-3 rounded-xl border border-white/10 bg-white/5 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">
@@ -666,26 +743,251 @@ const Marketplace = () => {
           </div>
         )}
 
-        {/* Category Chips */}
-        <CategoryChips
-          categories={visibleCategories}
-          selected={selectedCategory}
-          onSelect={setSelectedCategory}
-        />
+        {/* Category Chips — hidden on Live tab */}
+        {activeTab !== "live" && (
+          <CategoryChips
+            categories={visibleCategories}
+            selected={selectedCategory}
+            onSelect={setSelectedCategory}
+          />
+        )}
+
+        {/* ── Live Streams Tab ── */}
+        {activeTab === "live" && (
+          <div className="pb-8">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Radio className="h-4 w-4 text-red-500" />
+                <span className="text-sm font-semibold text-white">
+                  Live Now
+                </span>
+              </div>
+              <button
+                className="text-xs text-secondary hover:underline"
+                onClick={() => {
+                  setLiveLoading(true);
+                  supabase
+                    .from("live_streams")
+                    .select(
+                      "id, title, store_id, status, viewer_count, thumbnail_url, scheduled_at"
+                    )
+                    .in("status", ["live", "scheduled"])
+                    .order("viewer_count", { ascending: false })
+                    .limit(30)
+                    .then(async ({ data }) => {
+                      if (!data) {
+                        setLiveLoading(false);
+                        return;
+                      }
+                      const storeIds = [
+                        ...new Set(data.map((s) => s.store_id)),
+                      ];
+                      const { data: sd } = await supabase
+                        .from("marketplace_stores")
+                        .select("id, store_name")
+                        .in("id", storeIds);
+                      const m: Record<string, string> = {};
+                      sd?.forEach((s) => {
+                        m[s.id] = s.store_name;
+                      });
+                      setLiveStreams(
+                        data.map((s) => ({
+                          ...s,
+                          store_name: m[s.store_id] ?? "",
+                        })) as LiveStreamRow[]
+                      );
+                      setLiveLoading(false);
+                    });
+                }}
+              >
+                Refresh
+              </button>
+            </div>
+
+            {liveLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+              </div>
+            ) : liveStreams.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-white/30">
+                <Radio className="h-12 w-12 mb-3 opacity-30" />
+                <p className="font-medium text-white/50">
+                  No live streams right now
+                </p>
+                <p className="text-xs mt-1">
+                  Check back later or schedule a stream as a seller
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Live streams first */}
+                {liveStreams.filter((s) => s.status === "live").length > 0 && (
+                  <>
+                    <p className="text-[10px] font-semibold text-red-400 uppercase tracking-wider flex items-center gap-1">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+                      </span>
+                      Happening now
+                    </p>
+                    {liveStreams
+                      .filter((s) => s.status === "live")
+                      .map((stream) => (
+                        <button
+                          key={stream.id}
+                          onClick={() => navigate(`/live/${stream.id}`)}
+                          className="w-full flex gap-3 rounded-2xl border border-white/10 bg-white/5 overflow-hidden active:scale-[0.98] transition-transform"
+                        >
+                          {/* Thumbnail */}
+                          <div className="relative shrink-0 w-28 h-20 bg-black">
+                            {stream.thumbnail_url ? (
+                              <img
+                                src={stream.thumbnail_url}
+                                alt={stream.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-red-950">
+                                <Radio className="h-8 w-8 text-red-500/50" />
+                              </div>
+                            )}
+                            <div className="absolute top-1.5 left-1.5 flex items-center gap-1 rounded-full bg-red-600 px-1.5 py-0.5">
+                              <span className="text-[9px] font-bold text-white">
+                                LIVE
+                              </span>
+                            </div>
+                            <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-black/60 px-1.5 py-0.5">
+                              <Users className="h-2.5 w-2.5 text-white/70" />
+                              <span className="text-[9px] text-white">
+                                {stream.viewer_count}
+                              </span>
+                            </div>
+                          </div>
+                          {/* Info */}
+                          <div className="flex-1 min-w-0 py-3 pr-3 text-left">
+                            <p className="text-sm font-semibold text-white leading-snug line-clamp-2">
+                              {stream.title}
+                            </p>
+                            <p className="text-xs text-white/50 mt-1">
+                              {stream.store_name}
+                            </p>
+                            <span className="mt-2 inline-flex items-center gap-1 text-[10px] text-white bg-red-600 rounded-full px-2 py-0.5 font-medium">
+                              Watch now →
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                  </>
+                )}
+
+                {/* Scheduled streams */}
+                {liveStreams.filter((s) => s.status === "scheduled").length >
+                  0 && (
+                  <>
+                    <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mt-4">
+                      Upcoming
+                    </p>
+                    {liveStreams
+                      .filter((s) => s.status === "scheduled")
+                      .map((stream) => (
+                        <div
+                          key={stream.id}
+                          className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 overflow-hidden"
+                        >
+                          {/* Thumbnail */}
+                          <div className="relative shrink-0 w-28 h-20 bg-black">
+                            {stream.thumbnail_url ? (
+                              <img
+                                src={stream.thumbnail_url}
+                                alt={stream.title}
+                                className="w-full h-full object-cover opacity-70"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-white/5">
+                                <Radio className="h-8 w-8 text-white/20" />
+                              </div>
+                            )}
+                            <div className="absolute top-1.5 left-1.5 rounded-full bg-white/20 px-1.5 py-0.5">
+                              <span className="text-[9px] font-bold text-white">
+                                SOON
+                              </span>
+                            </div>
+                          </div>
+                          {/* Info */}
+                          <div className="flex-1 min-w-0 py-3 pr-3">
+                            <p className="text-sm font-semibold text-white leading-snug line-clamp-2">
+                              {stream.title}
+                            </p>
+                            <p className="text-xs text-white/50 mt-0.5">
+                              {stream.store_name}
+                            </p>
+                            {stream.scheduled_at && (
+                              <p className="text-[10px] text-white/40 mt-0.5">
+                                {new Date(stream.scheduled_at).toLocaleString(
+                                  "en-MY",
+                                  {
+                                    dateStyle: "short",
+                                    timeStyle: "short",
+                                  }
+                                )}
+                              </p>
+                            )}
+                            <button
+                              onClick={() => {
+                                if (!stream) return;
+                                const already = reminders.has(stream.id);
+                                if (already) {
+                                  setReminders((prev) => {
+                                    const n = new Set(prev);
+                                    n.delete(stream.id);
+                                    return n;
+                                  });
+                                } else {
+                                  setReminders(
+                                    (prev) => new Set([...prev, stream.id])
+                                  );
+                                }
+                              }}
+                              className={`mt-1.5 inline-flex items-center gap-1 text-[10px] rounded-full px-2 py-0.5 font-medium transition-colors ${
+                                reminders.has(stream.id)
+                                  ? "bg-secondary/20 text-secondary"
+                                  : "bg-white/10 text-white/60 hover:bg-white/20"
+                              }`}
+                            >
+                              {reminders.has(stream.id) ? (
+                                <BellOff className="h-2.5 w-2.5" />
+                              ) : (
+                                <Bell className="h-2.5 w-2.5" />
+                              )}
+                              {reminders.has(stream.id)
+                                ? "Reminder set"
+                                : "Remind me"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Banner Carousel */}
-        <BannerCarousel />
+        {activeTab !== "live" && <BannerCarousel />}
 
         {/* Flash Sales */}
-        <FlashSaleSection />
+        {activeTab !== "live" && <FlashSaleSection />}
 
-        {/* Results count */}
-        <p className="text-[10px] text-white/30 mb-3">
-          {filtered.length} product{filtered.length !== 1 ? "s" : ""}
-          {selectedStore !== "all"
-            ? ` from ${storeMap[selectedStore]?.store_name}`
-            : " from all stores"}
-        </p>
+        {/* Results count — hidden on Live tab */}
+        {activeTab !== "live" && (
+          <p className="text-[10px] text-white/30 mb-3">
+            {filtered.length} product{filtered.length !== 1 ? "s" : ""}
+            {selectedStore !== "all"
+              ? ` from ${storeMap[selectedStore]?.store_name}`
+              : " from all stores"}
+          </p>
+        )}
 
         {/* Recently Viewed */}
         {activeTab === "all" &&
@@ -726,59 +1028,60 @@ const Marketplace = () => {
             );
           })()}
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-secondary border-t-transparent" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-white/40">
-            <ShoppingBag className="h-12 w-12 mb-3 opacity-40" />
-            <p className="font-medium">No products found</p>
-            <p className="text-xs mt-1">Try adjusting your filters</p>
-            {activeFilterCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-3 text-secondary text-xs"
-                onClick={clearFilters}
-              >
-                Clear filters
-              </Button>
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-2">
-              {visibleProducts.map((p) => (
-                <ProductCard
-                  key={p.id}
-                  id={p.id}
-                  storeId={p.store_id}
-                  name={p.name}
-                  price={p.price}
-                  images={(p.images as string[]) || []}
-                  stockQuantity={p.stock_quantity}
-                  storeSlug={storeMap[p.store_id]?.slug || ""}
-                  storeName={storeMap[p.store_id]?.store_name}
-                  brandTier={storeMap[p.store_id]?.brand_tier}
-                  rating={ratings[p.id]}
-                  soldCount={p.sold_count}
-                  compact
-                />
-              ))}
+        {activeTab !== "live" &&
+          (loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-secondary border-t-transparent" />
             </div>
-            {hasMore && (
-              <div ref={sentinelRef} className="flex justify-center py-6">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-white/40">
+              <ShoppingBag className="h-12 w-12 mb-3 opacity-40" />
+              <p className="font-medium">No products found</p>
+              <p className="text-xs mt-1">Try adjusting your filters</p>
+              {activeFilterCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-3 text-secondary text-xs"
+                  onClick={clearFilters}
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                {visibleProducts.map((p) => (
+                  <ProductCard
+                    key={p.id}
+                    id={p.id}
+                    storeId={p.store_id}
+                    name={p.name}
+                    price={p.price}
+                    images={(p.images as string[]) || []}
+                    stockQuantity={p.stock_quantity}
+                    storeSlug={storeMap[p.store_id]?.slug || ""}
+                    storeName={storeMap[p.store_id]?.store_name}
+                    brandTier={storeMap[p.store_id]?.brand_tier}
+                    rating={ratings[p.id]}
+                    soldCount={p.sold_count}
+                    compact
+                  />
+                ))}
               </div>
-            )}
-            {!hasMore && filtered.length > PAGE_SIZE && (
-              <p className="text-center text-[10px] text-white/20 py-4">
-                All {filtered.length} products shown
-              </p>
-            )}
-          </>
-        )}
+              {hasMore && (
+                <div ref={sentinelRef} className="flex justify-center py-6">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
+                </div>
+              )}
+              {!hasMore && filtered.length > PAGE_SIZE && (
+                <p className="text-center text-[10px] text-white/20 py-4">
+                  All {filtered.length} products shown
+                </p>
+              )}
+            </>
+          ))}
       </div>
       {showBackToTop && (
         <button

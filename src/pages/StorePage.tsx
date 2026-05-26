@@ -19,6 +19,8 @@ import StoreCategoryGrid from "@/components/marketplace/StoreCategoryGrid";
 import StoreReviewsCarousel from "@/components/marketplace/StoreReviewsCarousel";
 import StoreFooter from "@/components/marketplace/StoreFooter";
 import ProductQuickView from "@/components/marketplace/ProductQuickView";
+import SellerTierBadge from "@/components/marketplace/SellerTierBadge";
+import BuyerProtectionBadge from "@/components/marketplace/BuyerProtectionBadge";
 
 interface StoreData {
   id: string;
@@ -86,7 +88,10 @@ const StorePage = () => {
   const previewStoreId = searchParams.get("store");
   const [store, setStore] = useState<StoreData | null>(null);
   const [previewBlocks, setPreviewBlocks] = useState<any[] | null>(null);
-  const [previewTheme, setPreviewTheme] = useState<{ themeId: string; overrides: any } | null>(null);
+  const [previewTheme, setPreviewTheme] = useState<{
+    themeId: string;
+    overrides: any;
+  } | null>(null);
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [ratings, setRatings] = useState<Record<string, number>>({});
@@ -99,6 +104,12 @@ const StorePage = () => {
   const [followerCount, setFollowerCount] = useState(0);
   const [flashPrices, setFlashPrices] = useState<Record<string, number>>({});
   const [quickViewId, setQuickViewId] = useState<string | null>(null);
+  const [sellerPerf, setSellerPerf] = useState<{
+    tier: "bronze" | "silver" | "gold" | "platinum";
+    dispute_rate: number;
+    avg_rating: number;
+    monthly_gmv: number;
+  } | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -138,7 +149,10 @@ const StorePage = () => {
           if (!error && draft && (!Array.isArray(draft) || draft.length > 0)) {
             previewDraft = Array.isArray(draft) ? draft[0] : draft;
           } else {
-            console.warn("Preview RPC failed, falling back to authenticated draft fetch", error);
+            console.warn(
+              "Preview RPC failed, falling back to authenticated draft fetch",
+              error,
+            );
           }
         }
 
@@ -154,7 +168,9 @@ const StorePage = () => {
 
           let fallbackQuery = supabase
             .from("marketplace_stores")
-            .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, draft_layout, draft_theme, announcement, settings, merchant_user_id")
+            .select(
+              "id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, draft_layout, draft_theme, announcement, settings, merchant_user_id",
+            )
             .eq("merchant_user_id", user.id)
             .limit(1);
 
@@ -162,10 +178,14 @@ const StorePage = () => {
             ? fallbackQuery.eq("id", previewStoreId)
             : fallbackQuery.eq("slug", slug);
 
-          const { data: previewStore, error: previewStoreError } = await fallbackQuery.maybeSingle();
+          const { data: previewStore, error: previewStoreError } =
+            await fallbackQuery.maybeSingle();
 
           if (previewStoreError || !previewStore) {
-            console.warn("Authenticated preview fallback failed", previewStoreError);
+            console.warn(
+              "Authenticated preview fallback failed",
+              previewStoreError,
+            );
             setStore(null);
             setLoading(false);
             return;
@@ -181,19 +201,32 @@ const StorePage = () => {
             theme_id: previewStore.theme,
             draft_layout: previewStore.draft_layout || [],
             draft_theme: previewStore.draft_theme || null,
-            theme_overrides: (previewStore.settings as any)?.theme_overrides || {},
+            theme_overrides:
+              (previewStore.settings as any)?.theme_overrides || {},
           };
         }
 
         const d = previewDraft;
         activeStoreId = d.store_id;
         setStore({
-          id: d.store_id, slug: d.slug, store_name: d.store_name,
-          tagline: null, description: d.description, logo_url: d.logo_url,
-          banner_url: d.banner_url, primary_color: "#FFC800",
-          theme: d.theme_id || "classic", shipping_flat_rate: 0, free_shipping_min: null,
-          page_layout: d.draft_layout || [], seo: {}, announcement: null,
-          settings: { theme_overrides: d.draft_theme?.overrides || d.theme_overrides || {} },
+          id: d.store_id,
+          slug: d.slug,
+          store_name: d.store_name,
+          tagline: null,
+          description: d.description,
+          logo_url: d.logo_url,
+          banner_url: d.banner_url,
+          primary_color: "#FFC800",
+          theme: d.theme_id || "classic",
+          shipping_flat_rate: 0,
+          free_shipping_min: null,
+          page_layout: d.draft_layout || [],
+          seo: {},
+          announcement: null,
+          settings: {
+            theme_overrides:
+              d.draft_theme?.overrides || d.theme_overrides || {},
+          },
         } as any);
         setPreviewBlocks(Array.isArray(d.draft_layout) ? d.draft_layout : []);
         if (d.draft_theme) setPreviewTheme(d.draft_theme as any);
@@ -201,7 +234,9 @@ const StorePage = () => {
       } else {
         const { data: storeData } = await supabase
           .from("marketplace_stores")
-          .select("id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo, announcement, settings, brand_tier")
+          .select(
+            "id, slug, store_name, tagline, description, logo_url, banner_url, primary_color, theme, shipping_flat_rate, free_shipping_min, page_layout, seo, announcement, settings, brand_tier",
+          )
           .eq("slug", slug)
           .eq("status", "live")
           .maybeSingle();
@@ -226,20 +261,26 @@ const StorePage = () => {
       }
 
       const [prodRes, catRes, menuRes, followRes] = await Promise.all([
-        supabase.from("marketplace_products")
-          .select("id, store_id, name, price, images, stock_quantity, is_featured, category_id, sold_count, created_at")
+        supabase
+          .from("marketplace_products")
+          .select(
+            "id, store_id, name, price, images, stock_quantity, is_featured, category_id, sold_count, created_at",
+          )
           .eq("store_id", activeStoreId)
           .eq("status", "active")
           .order("is_featured", { ascending: false }),
-        supabase.from("marketplace_categories")
+        supabase
+          .from("marketplace_categories")
           .select("id, name, sort_order, image_url")
           .eq("store_id", activeStoreId)
           .order("sort_order"),
-        supabase.from("marketplace_store_menus")
+        supabase
+          .from("marketplace_store_menus")
           .select("id, label, url, position")
           .eq("store_id", activeStoreId)
           .order("sort_order"),
-        supabase.from("marketplace_store_follows")
+        supabase
+          .from("marketplace_store_follows")
           .select("id", { count: "exact", head: true })
           .eq("store_id", activeStoreId),
       ]);
@@ -251,12 +292,14 @@ const StorePage = () => {
       setFollowerCount(followRes.count || 0);
 
       if (prods.length > 0) {
-        const productIds = prods.map(p => p.id);
+        const productIds = prods.map((p) => p.id);
         const [reviewRes, flashRes] = await Promise.all([
-          supabase.from("marketplace_reviews")
+          supabase
+            .from("marketplace_reviews")
             .select("product_id, rating")
             .in("product_id", productIds),
-          supabase.from("marketplace_flash_sales")
+          supabase
+            .from("marketplace_flash_sales")
             .select("product_id, flash_price")
             .eq("store_id", activeStoreId)
             .eq("is_active", true)
@@ -267,7 +310,8 @@ const StorePage = () => {
         if (reviewRes.data && reviewRes.data.length > 0) {
           const ratingMap: Record<string, { sum: number; count: number }> = {};
           reviewRes.data.forEach((r: any) => {
-            if (!ratingMap[r.product_id]) ratingMap[r.product_id] = { sum: 0, count: 0 };
+            if (!ratingMap[r.product_id])
+              ratingMap[r.product_id] = { sum: 0, count: 0 };
             ratingMap[r.product_id].sum += r.rating;
             ratingMap[r.product_id].count += 1;
           });
@@ -280,9 +324,27 @@ const StorePage = () => {
 
         if (flashRes.data && flashRes.data.length > 0) {
           const fp: Record<string, number> = {};
-          flashRes.data.forEach((f: any) => { fp[f.product_id] = f.flash_price; });
+          flashRes.data.forEach((f: any) => {
+            fp[f.product_id] = f.flash_price;
+          });
           setFlashPrices(fp);
         }
+      }
+
+      const { data: perfData } = await supabase
+        .from("seller_performance")
+        .select("tier, dispute_rate, avg_rating, monthly_gmv")
+        .eq("store_id", activeStoreId)
+        .maybeSingle();
+      if (perfData) {
+        setSellerPerf(
+          perfData as {
+            tier: "bronze" | "silver" | "gold" | "platinum";
+            dispute_rate: number;
+            avg_rating: number;
+            monthly_gmv: number;
+          },
+        );
       }
 
       setLoading(false);
@@ -301,65 +363,94 @@ const StorePage = () => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          setVisibleCount(v => v + PRODUCTS_PER_PAGE);
+          setVisibleCount((v) => v + PRODUCTS_PER_PAGE);
         }
       },
-      { rootMargin: "200px" }
+      { rootMargin: "200px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, [loading]);
 
-  const filtered = products.filter(p => {
+  const filtered = products.filter((p) => {
     const matchCat = selectedCat === "all" || p.category_id === selectedCat;
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
   });
 
-  const headerMenus = menus.filter(m => m.position === "header");
-  const footerMenus = menus.filter(m => m.position === "footer");
-  const layoutSource = isPreview && previewBlocks
-    ? previewBlocks
-    : (store?.page_layout && Array.isArray(store.page_layout) ? store.page_layout : []);
+  const headerMenus = menus.filter((m) => m.position === "header");
+  const footerMenus = menus.filter((m) => m.position === "footer");
+  const layoutSource =
+    isPreview && previewBlocks
+      ? previewBlocks
+      : store?.page_layout && Array.isArray(store.page_layout)
+        ? store.page_layout
+        : [];
   const sections = layoutSource as unknown as PageSection[];
 
-  const featuredProducts = products.filter(p => p.is_featured);
-  const featuredProductSections = sections.filter(s => s.type === "featured_products" && !s.hidden);
-  const fallbackFeaturedProducts = featuredProducts.length > 0 ? featuredProducts : products;
-  const newArrivals = [...products].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 8);
+  const featuredProducts = products.filter((p) => p.is_featured);
+  const featuredProductSections = sections.filter(
+    (s) => s.type === "featured_products" && !s.hidden,
+  );
+  const fallbackFeaturedProducts =
+    featuredProducts.length > 0 ? featuredProducts : products;
+  const newArrivals = [...products]
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    )
+    .slice(0, 8);
 
   // Compute average store rating
   const allRatings = Object.values(ratings);
-  const avgStoreRating = allRatings.length > 0 ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length : 0;
+  const avgStoreRating =
+    allRatings.length > 0
+      ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length
+      : 0;
 
   // Resolve hero slides from page_layout
-  const heroSection = sections.find(s => s.type === "hero_slideshow" || s.type === "hero_banner");
-  const heroSlides = heroSection?.type === "hero_slideshow" && heroSection.settings
-    ? JSON.parse(heroSection.content || "[]").map((s: any) => ({
-        imageUrl: s.imageUrl || "",
-        title: s.title || "",
-        subtitle: s.subtitle || "",
-        ctaText: s.ctaText || "",
-        ctaUrl: s.ctaUrl || "",
-      }))
-    : heroSection?.type === "hero_banner"
-      ? [{
-          imageUrl: heroSection.imageUrl || "",
-          title: heroSection.title || "",
-          subtitle: heroSection.content || "",
-          ctaText: heroSection.settings?.cta_text || "",
-          ctaUrl: heroSection.settings?.cta_url || "",
-        }]
-      : [];
+  const heroSection = sections.find(
+    (s) => s.type === "hero_slideshow" || s.type === "hero_banner",
+  );
+  const heroSlides =
+    heroSection?.type === "hero_slideshow" && heroSection.settings
+      ? JSON.parse(heroSection.content || "[]").map((s: any) => ({
+          imageUrl: s.imageUrl || "",
+          title: s.title || "",
+          subtitle: s.subtitle || "",
+          ctaText: s.ctaText || "",
+          ctaUrl: s.ctaUrl || "",
+        }))
+      : heroSection?.type === "hero_banner"
+        ? [
+            {
+              imageUrl: heroSection.imageUrl || "",
+              title: heroSection.title || "",
+              subtitle: heroSection.content || "",
+              ctaText: heroSection.settings?.cta_text || "",
+              ctaUrl: heroSection.settings?.cta_url || "",
+            },
+          ]
+        : [];
 
   // Resolve theme (preview overrides win in builder)
-  const storeSettings = store?.settings && typeof store.settings === "object" && !Array.isArray(store.settings)
-    ? (store.settings as Record<string, unknown>)
-    : {};
+  const storeSettings =
+    store?.settings &&
+    typeof store.settings === "object" &&
+    !Array.isArray(store.settings)
+      ? (store.settings as Record<string, unknown>)
+      : {};
   const baseOverrides = (storeSettings.theme_overrides || {}) as ThemeOverrides;
-  const overrides = (isPreview && previewTheme?.overrides ? previewTheme.overrides : baseOverrides) as ThemeOverrides;
-  const themeId = (isPreview && previewTheme?.themeId) ? previewTheme.themeId : store?.theme;
-  const resolvedTheme = store ? resolveTheme(themeId || "classic", overrides) : null;
+  const overrides = (
+    isPreview && previewTheme?.overrides
+      ? previewTheme.overrides
+      : baseOverrides
+  ) as ThemeOverrides;
+  const themeId =
+    isPreview && previewTheme?.themeId ? previewTheme.themeId : store?.theme;
+  const resolvedTheme = store
+    ? resolveTheme(themeId || "classic", overrides)
+    : null;
   const themeCSSVars = resolvedTheme ? themeToCSS(resolvedTheme) : {};
 
   // Load Google Fonts dynamically when a non-default font pair is in use
@@ -375,7 +466,7 @@ const StorePage = () => {
     if (families.size === 0) return;
     const id = "store-google-fonts";
     let link = document.getElementById(id) as HTMLLinkElement | null;
-    const href = `https://fonts.googleapis.com/css2?${[...families].map(f => `family=${f}:wght@400;500;600;700`).join("&")}&display=swap`;
+    const href = `https://fonts.googleapis.com/css2?${[...families].map((f) => `family=${f}:wght@400;500;600;700`).join("&")}&display=swap`;
     if (!link) {
       link = document.createElement("link");
       link.id = id;
@@ -398,7 +489,10 @@ const StorePage = () => {
       <div className="min-h-screen bg-primary pb-20">
         <div className="px-4 pt-8">
           <div className="mx-auto max-w-4xl">
-            <button onClick={() => navigate("/marketplace")} className="rounded-full p-1 hover:bg-white/10 text-white">
+            <button
+              onClick={() => navigate("/marketplace")}
+              className="rounded-full p-1 hover:bg-white/10 text-white"
+            >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex flex-col items-center py-20 text-white/40">
@@ -412,16 +506,32 @@ const StorePage = () => {
     );
   }
 
-  const ctaSections = sections.filter(s => s.type === "cta_banner");
-  const otherSections = sections.filter(s => s.type !== "hero_banner" && s.type !== "hero_slideshow" && s.type !== "featured_products" && s.type !== "cta_banner");
+  const ctaSections = sections.filter((s) => s.type === "cta_banner");
+  const otherSections = sections.filter(
+    (s) =>
+      s.type !== "hero_banner" &&
+      s.type !== "hero_slideshow" &&
+      s.type !== "featured_products" &&
+      s.type !== "cta_banner",
+  );
 
   return (
-    <div className="min-h-screen pb-20" style={{ ...themeCSSVars, backgroundColor: "var(--store-bg, hsl(var(--primary)))", color: "var(--store-text, white)", fontFamily: "var(--store-font-body, inherit)" } as React.CSSProperties}>
+    <div
+      className="min-h-screen pb-20"
+      style={
+        {
+          ...themeCSSVars,
+          backgroundColor: "var(--store-bg, hsl(var(--primary)))",
+          color: "var(--store-text, white)",
+          fontFamily: "var(--store-font-body, inherit)",
+        } as React.CSSProperties
+      }
+    >
       {/* Sticky header */}
       <StoreStickyHeader
         storeName={store.store_name}
         logoUrl={store.logo_url}
-        onSearchToggle={() => setShowSearch(p => !p)}
+        onSearchToggle={() => setShowSearch((p) => !p)}
       />
 
       {/* Announcement Bar */}
@@ -436,7 +546,10 @@ const StorePage = () => {
         />
         {/* Navigation overlay on hero */}
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-          <button onClick={() => navigate("/marketplace")} className="rounded-full bg-black/40 p-2 text-white hover:bg-black/60 backdrop-blur-sm">
+          <button
+            onClick={() => navigate("/marketplace")}
+            className="rounded-full bg-black/40 p-2 text-white hover:bg-black/60 backdrop-blur-sm"
+          >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <CartDrawer />
@@ -446,26 +559,70 @@ const StorePage = () => {
       {/* Store Info Bar */}
       <div className="mx-auto max-w-4xl px-4">
         <div className="flex items-end gap-3 -mt-8 relative z-10">
-          <div className="h-16 w-16 overflow-hidden shadow-lg shrink-0 border-2" style={{ borderRadius: "var(--store-radius)", borderColor: "var(--store-bg)", backgroundColor: "var(--store-surface)" }}>
+          <div
+            className="h-16 w-16 overflow-hidden shadow-lg shrink-0 border-2"
+            style={{
+              borderRadius: "var(--store-radius)",
+              borderColor: "var(--store-bg)",
+              backgroundColor: "var(--store-surface)",
+            }}
+          >
             {store.logo_url ? (
-              <img src={getOptimizedImageUrl(store.logo_url, 128, 128)} alt={store.store_name} className="w-full h-full object-cover" />
+              <img
+                src={getOptimizedImageUrl(store.logo_url, 128, 128)}
+                alt={store.store_name}
+                className="w-full h-full object-cover"
+              />
             ) : (
-              <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: resolvedTheme?.colors.accent + "33" }}>
-                <Store className="h-6 w-6" style={{ color: "var(--store-accent)" }} />
+              <div
+                className="w-full h-full flex items-center justify-center"
+                style={{ backgroundColor: resolvedTheme?.colors.accent + "33" }}
+              >
+                <Store
+                  className="h-6 w-6"
+                  style={{ color: "var(--store-accent)" }}
+                />
               </div>
             )}
           </div>
           <div className="pb-1 flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{store.store_name}</h1>
+              <h1
+                className="text-xl font-bold"
+                style={{
+                  fontFamily: "var(--store-font-heading)",
+                  color: "var(--store-text)",
+                }}
+              >
+                {store.store_name}
+              </h1>
               {(store as any).brand_tier === "verified" && (
-                <span className="text-[10px] font-bold text-blue-400 bg-blue-400/20 border border-blue-400/30 rounded-full px-2 py-0.5">✓ Verified</span>
+                <span className="text-[10px] font-bold text-blue-400 bg-blue-400/20 border border-blue-400/30 rounded-full px-2 py-0.5">
+                  ✓ Verified
+                </span>
               )}
               {(store as any).brand_tier === "featured" && (
-                <span className="text-[10px] font-bold text-amber-400 bg-amber-400/20 border border-amber-400/30 rounded-full px-2 py-0.5">★ Featured</span>
+                <span className="text-[10px] font-bold text-amber-400 bg-amber-400/20 border border-amber-400/30 rounded-full px-2 py-0.5">
+                  ★ Featured
+                </span>
+              )}
+              {sellerPerf && (
+                <SellerTierBadge tier={sellerPerf.tier} size="sm" />
               )}
             </div>
-            {store.tagline && <p className="text-xs" style={{ color: "var(--store-text-muted)" }}>{store.tagline}</p>}
+            {store.tagline && (
+              <p
+                className="text-xs"
+                style={{ color: "var(--store-text-muted)" }}
+              >
+                {store.tagline}
+              </p>
+            )}
+            {sellerPerf && (
+              <div className="mt-1">
+                <BuyerProtectionBadge disputeRate={sellerPerf.dispute_rate} />
+              </div>
+            )}
             <div className="mt-1.5 flex items-center gap-3">
               <StoreFollowButton storeId={store.id} />
               <StoreScoreBadge storeId={store.id} />
@@ -476,10 +633,13 @@ const StorePage = () => {
         {/* Header Navigation */}
         {headerMenus.length > 0 && (
           <div className="flex gap-4 mt-3 overflow-x-auto pb-1 scrollbar-none">
-            {headerMenus.map(m => (
-              <button key={m.id} onClick={() => navigate(m.url)}
+            {headerMenus.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => navigate(m.url)}
                 className="shrink-0 text-xs font-medium transition-colors hover:opacity-80"
-                style={{ color: "var(--store-accent)" }}>
+                style={{ color: "var(--store-accent)" }}
+              >
                 {m.label}
               </button>
             ))}
@@ -499,54 +659,85 @@ const StorePage = () => {
 
       <div className="mx-auto max-w-4xl px-4">
         {/* Featured Products */}
-        {featuredProductSections.length === 0 && featuredProducts.length > 0 && (
-          <div className="mt-8 space-y-3 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
-                ⭐ Best Sellers
-              </h2>
-              <span className="text-[11px] font-medium" style={{ color: "var(--store-accent)" }}>
-                {featuredProducts.length} items
-              </span>
+        {featuredProductSections.length === 0 &&
+          featuredProducts.length > 0 && (
+            <div className="mt-8 space-y-3 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <h2
+                  className="text-base font-bold"
+                  style={{
+                    fontFamily: "var(--store-font-heading)",
+                    color: "var(--store-text)",
+                  }}
+                >
+                  ⭐ Best Sellers
+                </h2>
+                <span
+                  className="text-[11px] font-medium"
+                  style={{ color: "var(--store-accent)" }}
+                >
+                  {featuredProducts.length} items
+                </span>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
+                {featuredProducts.slice(0, 8).map((p) => (
+                  <div key={p.id} className="flex-shrink-0 w-44 md:w-52">
+                    <ProductCard
+                      id={p.id}
+                      storeId={p.store_id}
+                      name={p.name}
+                      price={p.price}
+                      images={(p.images as string[]) || []}
+                      stockQuantity={p.stock_quantity}
+                      storeSlug={store.slug}
+                      rating={ratings[p.id]}
+                      soldCount={p.sold_count}
+                      flashPrice={flashPrices[p.id]}
+                      onQuickView={setQuickViewId}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
-              {featuredProducts.slice(0, 8).map(p => (
-                <div key={p.id} className="flex-shrink-0 w-44 md:w-52">
-                  <ProductCard
-                    id={p.id} storeId={p.store_id} name={p.name} price={p.price}
-                    images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
-                    storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
-                    flashPrice={flashPrices[p.id]}
-                    onQuickView={setQuickViewId}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+          )}
 
-        {featuredProductSections.map(section => {
+        {featuredProductSections.map((section) => {
           const limit = Number(section.settings?.limit || 8);
           const sectionProducts = fallbackFeaturedProducts.slice(0, limit);
 
           return (
             <div key={section.id} className="mt-8 space-y-3 animate-fade-in">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+                <h2
+                  className="text-base font-bold"
+                  style={{
+                    fontFamily: "var(--store-font-heading)",
+                    color: "var(--store-text)",
+                  }}
+                >
                   {section.title || "Featured Products"}
                 </h2>
-                <span className="text-[11px] font-medium" style={{ color: "var(--store-accent)" }}>
+                <span
+                  className="text-[11px] font-medium"
+                  style={{ color: "var(--store-accent)" }}
+                >
                   {sectionProducts.length} items
                 </span>
               </div>
               {sectionProducts.length > 0 ? (
                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
-                  {sectionProducts.map(p => (
+                  {sectionProducts.map((p) => (
                     <div key={p.id} className="flex-shrink-0 w-44 md:w-52">
                       <ProductCard
-                        id={p.id} storeId={p.store_id} name={p.name} price={p.price}
-                        images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
-                        storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
+                        id={p.id}
+                        storeId={p.store_id}
+                        name={p.name}
+                        price={p.price}
+                        images={(p.images as string[]) || []}
+                        stockQuantity={p.stock_quantity}
+                        storeSlug={store.slug}
+                        rating={ratings[p.id]}
+                        soldCount={p.sold_count}
                         flashPrice={flashPrices[p.id]}
                         onQuickView={setQuickViewId}
                       />
@@ -554,7 +745,14 @@ const StorePage = () => {
                   ))}
                 </div>
               ) : (
-                <div className="rounded-lg border p-4 text-sm" style={{ backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)", color: "var(--store-text-muted)" }}>
+                <div
+                  className="rounded-lg border p-4 text-sm"
+                  style={{
+                    backgroundColor: "var(--store-surface)",
+                    borderColor: "var(--store-surface-border)",
+                    color: "var(--store-text-muted)",
+                  }}
+                >
                   Add active products to populate this section.
                 </div>
               )}
@@ -575,7 +773,7 @@ const StorePage = () => {
         )}
 
         {/* CTA Banner sections */}
-        {ctaSections.map(section => (
+        {ctaSections.map((section) => (
           <div
             key={section.id}
             className="mt-8 p-6 md:p-10 text-center animate-fade-in relative overflow-hidden"
@@ -586,12 +784,31 @@ const StorePage = () => {
             }}
           >
             {/* Decorative circles */}
-            <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-10" style={{ backgroundColor: "var(--store-accent)" }} />
-            <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full opacity-10" style={{ backgroundColor: "var(--store-accent)" }} />
-            <h3 className="text-lg md:text-2xl font-bold mb-2 relative" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+            <div
+              className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-10"
+              style={{ backgroundColor: "var(--store-accent)" }}
+            />
+            <div
+              className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full opacity-10"
+              style={{ backgroundColor: "var(--store-accent)" }}
+            />
+            <h3
+              className="text-lg md:text-2xl font-bold mb-2 relative"
+              style={{
+                fontFamily: "var(--store-font-heading)",
+                color: "var(--store-text)",
+              }}
+            >
               {section.title}
             </h3>
-            {section.content && <p className="text-xs md:text-sm mb-5 relative" style={{ color: "var(--store-text-muted)" }}>{section.content}</p>}
+            {section.content && (
+              <p
+                className="text-xs md:text-sm mb-5 relative"
+                style={{ color: "var(--store-text-muted)" }}
+              >
+                {section.content}
+              </p>
+            )}
             {section.settings?.cta_text && (
               <a
                 href={section.settings.cta_url || "#"}
@@ -611,88 +828,274 @@ const StorePage = () => {
         {/* Page Layout Sections (extended block types) */}
         {otherSections.length > 0 && (
           <div className="mt-8 space-y-4">
-            {otherSections.filter(s => !s.hidden).map(section => (
-              <div key={section.id} className="animate-fade-in">
-                {section.type === "image_banner" && section.imageUrl && (
-                  <img src={section.imageUrl} alt={section.title} className="w-full object-cover shadow-sm" style={{ borderRadius: "var(--store-radius)" }} />
-                )}
-                {(section.type === "text_block" || section.type === "about") && (
-                  <div className="p-5 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
-                    <h3 className="text-sm font-bold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
-                    <p className="text-xs whitespace-pre-wrap leading-relaxed" style={{ color: "var(--store-text-muted)" }}>{section.content}</p>
-                  </div>
-                )}
-                {section.type === "testimonials" && (
-                  <div className="p-5 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
-                    <h3 className="text-sm font-bold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
-                    <p className="text-xs italic leading-relaxed" style={{ color: "var(--store-text-muted)" }}>"{section.content}"</p>
-                    {section.settings?.author && (
-                      <p className="mt-2 text-[11px] font-medium" style={{ color: "var(--store-accent)" }}>— {section.settings.author}</p>
-                    )}
-                  </div>
-                )}
-                {section.type === "image_text" && (
-                  <div className={`grid md:grid-cols-2 gap-5 items-center p-5 border ${section.settings?.layout === "image-right" ? "md:[&>*:first-child]:order-2" : ""}`}
-                    style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
-                    {section.imageUrl ? (
-                      <img src={section.imageUrl} alt={section.title} className="w-full h-48 md:h-full object-cover" style={{ borderRadius: "var(--store-radius)" }} />
-                    ) : (
-                      <div className="w-full h-48 md:h-full flex items-center justify-center" style={{ backgroundColor: "var(--store-bg)", borderRadius: "var(--store-radius)" }}>
-                        <Store className="h-8 w-8 opacity-30" />
-                      </div>
-                    )}
-                    <div>
-                      <h3 className="text-base font-bold mb-2" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
-                      <p className="text-xs whitespace-pre-wrap leading-relaxed" style={{ color: "var(--store-text-muted)" }}>{section.content}</p>
+            {otherSections
+              .filter((s) => !s.hidden)
+              .map((section) => (
+                <div key={section.id} className="animate-fade-in">
+                  {section.type === "image_banner" && section.imageUrl && (
+                    <img
+                      src={section.imageUrl}
+                      alt={section.title}
+                      className="w-full object-cover shadow-sm"
+                      style={{ borderRadius: "var(--store-radius)" }}
+                    />
+                  )}
+                  {(section.type === "text_block" ||
+                    section.type === "about") && (
+                    <div
+                      className="p-5 border"
+                      style={{
+                        borderRadius: "var(--store-radius)",
+                        backgroundColor: "var(--store-surface)",
+                        borderColor: "var(--store-surface-border)",
+                      }}
+                    >
+                      <h3
+                        className="text-sm font-bold mb-2"
+                        style={{
+                          fontFamily: "var(--store-font-heading)",
+                          color: "var(--store-text)",
+                        }}
+                      >
+                        {section.title}
+                      </h3>
+                      <p
+                        className="text-xs whitespace-pre-wrap leading-relaxed"
+                        style={{ color: "var(--store-text-muted)" }}
+                      >
+                        {section.content}
+                      </p>
                     </div>
-                  </div>
-                )}
-                {section.type === "faq" && (() => {
-                  let items: { q: string; a: string }[] = [];
-                  try { items = JSON.parse(section.content || "[]"); } catch { /* noop */ }
-                  return (
-                    <div className="p-5 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
-                      <h3 className="text-sm font-bold mb-3" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
-                      <div className="space-y-2">
-                        {items.map((it, i) => (
-                          <details key={i} className="group border-b last:border-0 pb-2" style={{ borderColor: "var(--store-surface-border)" }}>
-                            <summary className="cursor-pointer text-xs font-medium py-1.5 flex justify-between items-center" style={{ color: "var(--store-text)" }}>
-                              <span>{it.q}</span>
-                              <span className="ml-2 transition-transform group-open:rotate-45 text-base" style={{ color: "var(--store-accent)" }}>+</span>
-                            </summary>
-                            <p className="text-xs mt-1 pb-1 leading-relaxed" style={{ color: "var(--store-text-muted)" }}>{it.a}</p>
-                          </details>
-                        ))}
+                  )}
+                  {section.type === "testimonials" && (
+                    <div
+                      className="p-5 border"
+                      style={{
+                        borderRadius: "var(--store-radius)",
+                        backgroundColor: "var(--store-surface)",
+                        borderColor: "var(--store-surface-border)",
+                      }}
+                    >
+                      <h3
+                        className="text-sm font-bold mb-2"
+                        style={{
+                          fontFamily: "var(--store-font-heading)",
+                          color: "var(--store-text)",
+                        }}
+                      >
+                        {section.title}
+                      </h3>
+                      <p
+                        className="text-xs italic leading-relaxed"
+                        style={{ color: "var(--store-text-muted)" }}
+                      >
+                        "{section.content}"
+                      </p>
+                      {section.settings?.author && (
+                        <p
+                          className="mt-2 text-[11px] font-medium"
+                          style={{ color: "var(--store-accent)" }}
+                        >
+                          — {section.settings.author}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {section.type === "image_text" && (
+                    <div
+                      className={`grid md:grid-cols-2 gap-5 items-center p-5 border ${section.settings?.layout === "image-right" ? "md:[&>*:first-child]:order-2" : ""}`}
+                      style={{
+                        borderRadius: "var(--store-radius)",
+                        backgroundColor: "var(--store-surface)",
+                        borderColor: "var(--store-surface-border)",
+                      }}
+                    >
+                      {section.imageUrl ? (
+                        <img
+                          src={section.imageUrl}
+                          alt={section.title}
+                          className="w-full h-48 md:h-full object-cover"
+                          style={{ borderRadius: "var(--store-radius)" }}
+                        />
+                      ) : (
+                        <div
+                          className="w-full h-48 md:h-full flex items-center justify-center"
+                          style={{
+                            backgroundColor: "var(--store-bg)",
+                            borderRadius: "var(--store-radius)",
+                          }}
+                        >
+                          <Store className="h-8 w-8 opacity-30" />
+                        </div>
+                      )}
+                      <div>
+                        <h3
+                          className="text-base font-bold mb-2"
+                          style={{
+                            fontFamily: "var(--store-font-heading)",
+                            color: "var(--store-text)",
+                          }}
+                        >
+                          {section.title}
+                        </h3>
+                        <p
+                          className="text-xs whitespace-pre-wrap leading-relaxed"
+                          style={{ color: "var(--store-text-muted)" }}
+                        >
+                          {section.content}
+                        </p>
                       </div>
                     </div>
-                  );
-                })()}
-                {section.type === "newsletter" && (
-                  <div className="p-6 text-center border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}>
-                    <h3 className="text-base font-bold mb-1" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>{section.title}</h3>
-                    <p className="text-xs mb-4" style={{ color: "var(--store-text-muted)" }}>{section.content}</p>
-                    <form onSubmit={(e) => { e.preventDefault(); }} className="flex gap-2 max-w-sm mx-auto">
-                      <input type="email" required placeholder="your@email.com"
-                        className="flex-1 h-9 px-3 text-xs border outline-none focus:ring-2"
-                        style={{ backgroundColor: "var(--store-bg)", borderColor: "var(--store-surface-border)", color: "var(--store-text)", borderRadius: "var(--store-btn-radius)" }} />
-                      <button type="submit" className="h-9 px-4 text-xs font-semibold"
-                        style={{ backgroundColor: "var(--store-primary)", color: "var(--store-primary-fg)", borderRadius: "var(--store-btn-radius)" }}>
-                        Subscribe
-                      </button>
-                    </form>
-                  </div>
-                )}
-                {section.type === "custom_html" && (
-                  <div className="p-5 border" style={{ borderRadius: "var(--store-radius)", backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)" }}
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(section.content || "", {
-                        FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form"],
-                        FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur", "onchange", "onsubmit"],
-                      }),
-                    }} />
-                )}
-              </div>
-            ))}
+                  )}
+                  {section.type === "faq" &&
+                    (() => {
+                      let items: { q: string; a: string }[] = [];
+                      try {
+                        items = JSON.parse(section.content || "[]");
+                      } catch {
+                        /* noop */
+                      }
+                      return (
+                        <div
+                          className="p-5 border"
+                          style={{
+                            borderRadius: "var(--store-radius)",
+                            backgroundColor: "var(--store-surface)",
+                            borderColor: "var(--store-surface-border)",
+                          }}
+                        >
+                          <h3
+                            className="text-sm font-bold mb-3"
+                            style={{
+                              fontFamily: "var(--store-font-heading)",
+                              color: "var(--store-text)",
+                            }}
+                          >
+                            {section.title}
+                          </h3>
+                          <div className="space-y-2">
+                            {items.map((it, i) => (
+                              <details
+                                key={i}
+                                className="group border-b last:border-0 pb-2"
+                                style={{
+                                  borderColor: "var(--store-surface-border)",
+                                }}
+                              >
+                                <summary
+                                  className="cursor-pointer text-xs font-medium py-1.5 flex justify-between items-center"
+                                  style={{ color: "var(--store-text)" }}
+                                >
+                                  <span>{it.q}</span>
+                                  <span
+                                    className="ml-2 transition-transform group-open:rotate-45 text-base"
+                                    style={{ color: "var(--store-accent)" }}
+                                  >
+                                    +
+                                  </span>
+                                </summary>
+                                <p
+                                  className="text-xs mt-1 pb-1 leading-relaxed"
+                                  style={{ color: "var(--store-text-muted)" }}
+                                >
+                                  {it.a}
+                                </p>
+                              </details>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  {section.type === "newsletter" && (
+                    <div
+                      className="p-6 text-center border"
+                      style={{
+                        borderRadius: "var(--store-radius)",
+                        backgroundColor: "var(--store-surface)",
+                        borderColor: "var(--store-surface-border)",
+                      }}
+                    >
+                      <h3
+                        className="text-base font-bold mb-1"
+                        style={{
+                          fontFamily: "var(--store-font-heading)",
+                          color: "var(--store-text)",
+                        }}
+                      >
+                        {section.title}
+                      </h3>
+                      <p
+                        className="text-xs mb-4"
+                        style={{ color: "var(--store-text-muted)" }}
+                      >
+                        {section.content}
+                      </p>
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                        }}
+                        className="flex gap-2 max-w-sm mx-auto"
+                      >
+                        <input
+                          type="email"
+                          required
+                          placeholder="your@email.com"
+                          className="flex-1 h-9 px-3 text-xs border outline-none focus:ring-2"
+                          style={{
+                            backgroundColor: "var(--store-bg)",
+                            borderColor: "var(--store-surface-border)",
+                            color: "var(--store-text)",
+                            borderRadius: "var(--store-btn-radius)",
+                          }}
+                        />
+                        <button
+                          type="submit"
+                          className="h-9 px-4 text-xs font-semibold"
+                          style={{
+                            backgroundColor: "var(--store-primary)",
+                            color: "var(--store-primary-fg)",
+                            borderRadius: "var(--store-btn-radius)",
+                          }}
+                        >
+                          Subscribe
+                        </button>
+                      </form>
+                    </div>
+                  )}
+                  {section.type === "custom_html" && (
+                    <div
+                      className="p-5 border"
+                      style={{
+                        borderRadius: "var(--store-radius)",
+                        backgroundColor: "var(--store-surface)",
+                        borderColor: "var(--store-surface-border)",
+                      }}
+                      dangerouslySetInnerHTML={{
+                        __html: DOMPurify.sanitize(section.content || "", {
+                          FORBID_TAGS: [
+                            "script",
+                            "style",
+                            "iframe",
+                            "object",
+                            "embed",
+                            "form",
+                          ],
+                          FORBID_ATTR: [
+                            "onerror",
+                            "onload",
+                            "onclick",
+                            "onmouseover",
+                            "onfocus",
+                            "onblur",
+                            "onchange",
+                            "onsubmit",
+                          ],
+                        }),
+                      }}
+                    />
+                  )}
+                </div>
+              ))}
           </div>
         )}
 
@@ -700,21 +1103,37 @@ const StorePage = () => {
         {newArrivals.length > 0 && (
           <div className="mt-8 space-y-3 animate-fade-in">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+              <h2
+                className="text-base font-bold"
+                style={{
+                  fontFamily: "var(--store-font-heading)",
+                  color: "var(--store-text)",
+                }}
+              >
                 🆕 New Arrivals
               </h2>
-              <span className="text-[11px] font-medium" style={{ color: "var(--store-accent)" }}>
+              <span
+                className="text-[11px] font-medium"
+                style={{ color: "var(--store-accent)" }}
+              >
                 Just added
               </span>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
-              {newArrivals.map(p => (
+              {newArrivals.map((p) => (
                 <div key={p.id} className="flex-shrink-0 w-40 md:w-48">
                   <ProductCard
-                    id={p.id} storeId={p.store_id} name={p.name} price={p.price}
-                    images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
-                    storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
-                    flashPrice={flashPrices[p.id]} compact
+                    id={p.id}
+                    storeId={p.store_id}
+                    name={p.name}
+                    price={p.price}
+                    images={(p.images as string[]) || []}
+                    stockQuantity={p.stock_quantity}
+                    storeSlug={store.slug}
+                    rating={ratings[p.id]}
+                    soldCount={p.sold_count}
+                    flashPrice={flashPrices[p.id]}
+                    compact
                     onQuickView={setQuickViewId}
                   />
                 </div>
@@ -731,25 +1150,46 @@ const StorePage = () => {
         {/* Search + All Products */}
         <div className="mt-10" id="store-all-products">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold" style={{ fontFamily: "var(--store-font-heading)", color: "var(--store-text)" }}>
+            <h2
+              className="text-base font-bold"
+              style={{
+                fontFamily: "var(--store-font-heading)",
+                color: "var(--store-text)",
+              }}
+            >
               All Products
             </h2>
-            <button onClick={() => setShowSearch(p => !p)} className="flex items-center gap-1.5 text-xs font-medium hover:opacity-80 transition-opacity"
-              style={{ color: "var(--store-accent)" }}>
-              <Search className="h-3.5 w-3.5" /> {showSearch ? "Hide" : "Search"}
+            <button
+              onClick={() => setShowSearch((p) => !p)}
+              className="flex items-center gap-1.5 text-xs font-medium hover:opacity-80 transition-opacity"
+              style={{ color: "var(--store-accent)" }}
+            >
+              <Search className="h-3.5 w-3.5" />{" "}
+              {showSearch ? "Hide" : "Search"}
             </button>
           </div>
 
           {showSearch && (
             <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--store-text-muted)" }} />
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4"
+                style={{ color: "var(--store-text-muted)" }}
+              />
               <input
                 ref={searchRef}
                 placeholder="Search products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-10 h-9 text-sm border outline-none focus:ring-2"
-                style={{ backgroundColor: "var(--store-surface)", borderColor: "var(--store-surface-border)", color: "var(--store-text)", borderRadius: "var(--store-radius)", "--tw-ring-color": "var(--store-accent)" } as React.CSSProperties}
+                style={
+                  {
+                    backgroundColor: "var(--store-surface)",
+                    borderColor: "var(--store-surface-border)",
+                    color: "var(--store-text)",
+                    borderRadius: "var(--store-radius)",
+                    "--tw-ring-color": "var(--store-accent)",
+                  } as React.CSSProperties
+                }
               />
             </div>
           )}
@@ -762,21 +1202,33 @@ const StorePage = () => {
                 className="shrink-0 px-3 py-1 text-xs font-medium transition-colors"
                 style={{
                   borderRadius: "var(--store-btn-radius)",
-                  backgroundColor: selectedCat === "all" ? "var(--store-primary)" : "var(--store-surface)",
-                  color: selectedCat === "all" ? "var(--store-primary-fg)" : "var(--store-text-muted)",
+                  backgroundColor:
+                    selectedCat === "all"
+                      ? "var(--store-primary)"
+                      : "var(--store-surface)",
+                  color:
+                    selectedCat === "all"
+                      ? "var(--store-primary-fg)"
+                      : "var(--store-text-muted)",
                 }}
               >
                 All
               </button>
-              {categories.map(cat => (
+              {categories.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCat(cat.id)}
                   className="shrink-0 px-3 py-1 text-xs font-medium transition-colors"
                   style={{
                     borderRadius: "var(--store-btn-radius)",
-                    backgroundColor: selectedCat === cat.id ? "var(--store-primary)" : "var(--store-surface)",
-                    color: selectedCat === cat.id ? "var(--store-primary-fg)" : "var(--store-text-muted)",
+                    backgroundColor:
+                      selectedCat === cat.id
+                        ? "var(--store-primary)"
+                        : "var(--store-surface)",
+                    color:
+                      selectedCat === cat.id
+                        ? "var(--store-primary-fg)"
+                        : "var(--store-text-muted)",
                   }}
                 >
                   {cat.name}
@@ -787,11 +1239,18 @@ const StorePage = () => {
 
           {/* Products Grid — 2 cols mobile, 3 cols desktop */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {filtered.slice(0, visibleCount).map(p => (
+            {filtered.slice(0, visibleCount).map((p) => (
               <ProductCard
-                key={p.id} id={p.id} storeId={p.store_id} name={p.name} price={p.price}
-                images={(p.images as string[]) || []} stockQuantity={p.stock_quantity}
-                storeSlug={store.slug} rating={ratings[p.id]} soldCount={p.sold_count}
+                key={p.id}
+                id={p.id}
+                storeId={p.store_id}
+                name={p.name}
+                price={p.price}
+                images={(p.images as string[]) || []}
+                stockQuantity={p.stock_quantity}
+                storeSlug={store.slug}
+                rating={ratings[p.id]}
+                soldCount={p.sold_count}
                 flashPrice={flashPrices[p.id]}
                 onQuickView={setQuickViewId}
               />
@@ -799,7 +1258,10 @@ const StorePage = () => {
           </div>
 
           {filtered.length === 0 && (
-            <div className="flex flex-col items-center py-16" style={{ color: "var(--store-text-muted)" }}>
+            <div
+              className="flex flex-col items-center py-16"
+              style={{ color: "var(--store-text-muted)" }}
+            >
               <Store className="h-8 w-8 mb-2 opacity-40" />
               <p className="text-sm">No products found</p>
             </div>
@@ -808,7 +1270,13 @@ const StorePage = () => {
           {/* Infinite scroll sentinel */}
           {visibleCount < filtered.length && (
             <div ref={loadMoreRef} className="mt-6 flex justify-center py-4">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: "var(--store-accent)", borderTopColor: "transparent" }} />
+              <div
+                className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent"
+                style={{
+                  borderColor: "var(--store-accent)",
+                  borderTopColor: "transparent",
+                }}
+              />
             </div>
           )}
         </div>
