@@ -151,7 +151,6 @@ const Marketplace = () => {
         "id, title, store_id, status, viewer_count, thumbnail_url, scheduled_at"
       )
       .in("status", ["live", "scheduled"])
-      .order("status", { ascending: false }) // "live" before "scheduled" lexically? Use explicit ordering
       .order("viewer_count", { ascending: false })
       .limit(30)
       .then(async ({ data }) => {
@@ -169,8 +168,14 @@ const Marketplace = () => {
         storeData?.forEach((s) => {
           storeNameMap[s.id] = s.store_name;
         });
+        // Sort: live streams first (explicit, not lexical)
+        const sorted = [...data].sort((a, b) => {
+          if (a.status === "live" && b.status !== "live") return -1;
+          if (a.status !== "live" && b.status === "live") return 1;
+          return b.viewer_count - a.viewer_count;
+        });
         setLiveStreams(
-          data.map((s) => ({
+          sorted.map((s) => ({
             ...s,
             store_name: storeNameMap[s.store_id] ?? "",
           })) as LiveStreamRow[]
@@ -790,8 +795,15 @@ const Marketplace = () => {
                       sd?.forEach((s) => {
                         m[s.id] = s.store_name;
                       });
+                      const sorted = [...data].sort((a, b) => {
+                        if (a.status === "live" && b.status !== "live")
+                          return -1;
+                        if (a.status !== "live" && b.status === "live")
+                          return 1;
+                        return b.viewer_count - a.viewer_count;
+                      });
                       setLiveStreams(
-                        data.map((s) => ({
+                        sorted.map((s) => ({
                           ...s,
                           store_name: m[s.store_id] ?? "",
                         })) as LiveStreamRow[]

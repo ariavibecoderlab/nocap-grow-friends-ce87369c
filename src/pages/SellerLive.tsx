@@ -88,7 +88,7 @@ function BroadcastControls({
   const { toast } = useToast();
 
   const cameraTrack = localParticipant.videoTrackPublications.get(
-    Track.Source.Camera
+    Track.Source.Camera,
   );
 
   // Realtime: viewer count
@@ -108,7 +108,7 @@ function BroadcastControls({
           if (typeof updated.viewer_count === "number") {
             setViewerCount(updated.viewer_count);
           }
-        }
+        },
       )
       .subscribe();
     return () => {
@@ -122,7 +122,7 @@ function BroadcastControls({
       .from("live_stream_products")
       .select(
         `product_id, live_price, is_pinned, position,
-         product:marketplace_products(id, name, price, images, stock_quantity)`
+         product:marketplace_products(id, name, price, images, stock_quantity)`,
       )
       .eq("stream_id", stream.id)
       .order("position")
@@ -149,7 +149,7 @@ function BroadcastControls({
             (data as any[]).map((p) => ({
               ...p,
               images: Array.isArray(p.images) ? p.images : [],
-            }))
+            })),
           );
         }
       });
@@ -188,8 +188,8 @@ function BroadcastControls({
         prev.map((p) =>
           p.product_id === product.id
             ? { ...p, is_pinned: true, live_price: livePrice }
-            : p
-        )
+            : p,
+        ),
       );
     } else {
       await supabase.from("live_stream_products").insert({
@@ -226,8 +226,8 @@ function BroadcastControls({
       .eq("product_id", productId);
     setPinnedProducts((prev) =>
       prev.map((p) =>
-        p.product_id === productId ? { ...p, is_pinned: false } : p
-      )
+        p.product_id === productId ? { ...p, is_pinned: false } : p,
+      ),
     );
   };
 
@@ -311,7 +311,7 @@ function BroadcastControls({
               "h-11 w-11 rounded-full flex items-center justify-center transition-colors",
               camOn
                 ? "bg-white/10 text-white hover:bg-white/20"
-                : "bg-red-600/20 text-red-400"
+                : "bg-red-600/20 text-red-400",
             )}
           >
             {camOn ? (
@@ -326,7 +326,7 @@ function BroadcastControls({
               "h-11 w-11 rounded-full flex items-center justify-center transition-colors",
               micOn
                 ? "bg-white/10 text-white hover:bg-white/20"
-                : "bg-red-600/20 text-red-400"
+                : "bg-red-600/20 text-red-400",
             )}
           >
             {micOn ? (
@@ -464,7 +464,7 @@ const SellerLive = () => {
 
     // Also grab display name
     supabase
-      .from("members")
+      .from("profiles")
       .select("full_name")
       .eq("user_id", user.id)
       .maybeSingle()

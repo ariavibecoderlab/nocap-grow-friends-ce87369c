@@ -220,7 +220,7 @@ function WatchScreen({
               <span
                 className={cn(
                   "text-xs font-semibold shrink-0",
-                  m.is_pinned ? "text-secondary" : "text-white/70"
+                  m.is_pinned ? "text-secondary" : "text-white/70",
                 )}
               >
                 {m.display_name}
@@ -298,7 +298,7 @@ const LiveViewer = () => {
   useEffect(() => {
     if (!user) return;
     supabase
-      .from("members")
+      .from("profiles")
       .select("full_name")
       .eq("user_id", user.id)
       .maybeSingle()
@@ -327,7 +327,7 @@ const LiveViewer = () => {
         .from("live_stream_products")
         .select(
           `product_id, live_price, is_pinned,
-           product:marketplace_products(id, name, price, images, stock_quantity)`
+           product:marketplace_products(id, name, price, images, stock_quantity)`,
         )
         .eq("stream_id", streamId)
         .order("position")
@@ -350,7 +350,7 @@ const LiveViewer = () => {
           table: "live_stream_products",
           filter: `stream_id=eq.${streamId}`,
         },
-        () => fetchPinned()
+        () => fetchPinned(),
       )
       .subscribe();
     return () => {
@@ -383,7 +383,7 @@ const LiveViewer = () => {
         },
         (payload) => {
           setMessages((prev) => [...prev, payload.new as ChatMessage]);
-        }
+        },
       )
       .subscribe();
     return () => {
@@ -413,7 +413,7 @@ const LiveViewer = () => {
               description: "The host has ended this stream.",
             });
           }
-        }
+        },
       )
       .subscribe();
     return () => {
@@ -579,7 +579,7 @@ const LiveViewer = () => {
                 "w-full h-12 border-white/20 font-semibold gap-2",
                 hasReminder
                   ? "bg-secondary/10 text-secondary border-secondary/30"
-                  : "bg-white/5 text-white"
+                  : "bg-white/5 text-white",
               )}
               onClick={toggleReminder}
             >
