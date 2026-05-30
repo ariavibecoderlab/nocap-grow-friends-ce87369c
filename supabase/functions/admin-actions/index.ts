@@ -9,7 +9,7 @@ const corsHeaders = {
 async function sendMerchantEmail(
   to: string,
   subject: string,
-  htmlBody: string
+  htmlBody: string,
 ) {
   const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
   const SENDGRID_FROM_EMAIL = Deno.env.get("SENDGRID_FROM_EMAIL");
@@ -63,11 +63,15 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    const { data: claimsData, error: claimsError } =
+      await userClient.auth.getClaims(token);
     const userId = claimsData?.claims?.sub;
 
     if (claimsError || !userId) {
-      console.error("Auth failed:", claimsError?.message || "Missing JWT subject claim");
+      console.error(
+        "Auth failed:",
+        claimsError?.message || "Missing JWT subject claim",
+      );
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -112,7 +116,7 @@ Deno.serve(async (req) => {
           .from("user_roles")
           .upsert(
             { user_id: applicationUserId, role: "merchant" },
-            { onConflict: "user_id,role" }
+            { onConflict: "user_id,role" },
           );
 
         // Create merchant wallet if not exists
@@ -126,11 +130,16 @@ Deno.serve(async (req) => {
         if (!existingWallet) {
           await adminClient
             .from("wallets")
-            .insert({ user_id: applicationUserId, wallet_type: "merchant", balance: 0 });
+            .insert({
+              user_id: applicationUserId,
+              wallet_type: "merchant",
+              balance: 0,
+            });
         }
 
         // Send approval email
-        const { data: appUser } = await adminClient.auth.admin.getUserById(applicationUserId);
+        const { data: appUser } =
+          await adminClient.auth.admin.getUserById(applicationUserId);
         if (appUser?.user?.email) {
           await sendMerchantEmail(
             appUser.user.email,
@@ -140,14 +149,15 @@ Deno.serve(async (req) => {
               <p style="color: #333;">Great news! Your merchant application has been <strong style="color: #2dac76;">approved</strong>.</p>
               <p style="color: #333;">You can now access your Merchant Dashboard to set up branches, generate QR codes, and start accepting payments.</p>
               <p style="color: #888; font-size: 13px;">Thank you for joining NOcap as a merchant!</p>
-            </div>`
+            </div>`,
           );
         }
 
         await adminClient.from("notifications").insert({
           user_id: applicationUserId,
           title: "Application Approved! 🎉",
-          message: "Your merchant application has been approved. You can now set up branches and start accepting payments.",
+          message:
+            "Your merchant application has been approved. You can now set up branches and start accepting payments.",
           type: "success",
           link: "/merchant",
         });
@@ -176,7 +186,9 @@ Deno.serve(async (req) => {
           .single();
 
         if (rejApp) {
-          const { data: rejUser } = await adminClient.auth.admin.getUserById(rejApp.user_id);
+          const { data: rejUser } = await adminClient.auth.admin.getUserById(
+            rejApp.user_id,
+          );
           if (rejUser?.user?.email) {
             await sendMerchantEmail(
               rejUser.user.email,
@@ -184,19 +196,25 @@ Deno.serve(async (req) => {
               `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
                 <h2 style="color: #2dac76; margin-bottom: 8px;">NOcap</h2>
                 <p style="color: #333;">We've reviewed your merchant application and unfortunately it was <strong style="color: #e53e3e;">not approved</strong> at this time.</p>
-                ${reason ? `<div style="background: #fff5f5; border-left: 3px solid #e53e3e; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+                ${
+                  reason
+                    ? `<div style="background: #fff5f5; border-left: 3px solid #e53e3e; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
                   <p style="color: #333; margin: 0; font-size: 14px;"><strong>Reason:</strong> ${reason}</p>
-                </div>` : ""}
+                </div>`
+                    : ""
+                }
                 <p style="color: #333;">You can update your application and re-submit it for review.</p>
                 <p style="color: #888; font-size: 13px;">If you have questions, please contact our support team.</p>
-              </div>`
+              </div>`,
             );
           }
 
           await adminClient.from("notifications").insert({
             user_id: rejApp.user_id,
             title: "Application Not Approved",
-            message: reason ? `Reason: ${reason}. You can update and re-submit your application.` : "Your merchant application was not approved. You can update and re-submit.",
+            message: reason
+              ? `Reason: ${reason}. You can update and re-submit your application.`
+              : "Your merchant application was not approved. You can update and re-submit.",
             type: "error",
             link: "/merchant/register",
           });
@@ -220,7 +238,7 @@ Deno.serve(async (req) => {
             .from("user_roles")
             .upsert(
               { user_id: targetUserId, role },
-              { onConflict: "user_id,role" }
+              { onConflict: "user_id,role" },
             );
           if (error) throw error;
         }
@@ -250,12 +268,17 @@ Deno.serve(async (req) => {
       }
 
       case "approve_withdrawal": {
-        const { withdrawalId, withdrawalUserId, amount: wdAmount, walletType } = body;
-        const wType = walletType || 'member';
+        const {
+          withdrawalId,
+          withdrawalUserId,
+          amount: wdAmount,
+          walletType,
+        } = body;
+        const wType = walletType || "member";
 
         // For branch wallets we need the branch_id
         let branchId: string | null = null;
-        if (wType === 'branch') {
+        if (wType === "branch") {
           const { data: wdReq } = await adminClient
             .from("withdrawal_requests")
             .select("branch_id")
@@ -265,21 +288,23 @@ Deno.serve(async (req) => {
         }
 
         // ATOMIC: Debit wallet
-        const { error: debitErr } = await adminClient.rpc('debit_wallet', {
+        const { error: debitErr } = await adminClient.rpc("debit_wallet", {
           p_user_id: withdrawalUserId,
           p_wallet_type: wType,
           p_amount: Number(wdAmount),
           p_branch_id: branchId,
         });
         if (debitErr) {
-          const msg = debitErr.message || '';
-          if (msg.includes('Insufficient balance')) throw new Error("Insufficient balance");
-          if (msg.includes('Wallet not found')) throw new Error("Wallet not found");
+          const msg = debitErr.message || "";
+          if (msg.includes("Insufficient balance"))
+            throw new Error("Insufficient balance");
+          if (msg.includes("Wallet not found"))
+            throw new Error("Wallet not found");
           throw debitErr;
         }
 
         // Also update merchant_branches.balance for branch withdrawals
-        if (wType === 'branch' && branchId) {
+        if (wType === "branch" && branchId) {
           const { data: branchRow } = await adminClient
             .from("merchant_branches")
             .select("balance")
@@ -296,12 +321,21 @@ Deno.serve(async (req) => {
         // Update request status
         const { error: wdUpdateErr } = await adminClient
           .from("withdrawal_requests")
-          .update({ status: "approved", reviewed_by: userId, reviewed_at: new Date().toISOString() })
+          .update({
+            status: "approved",
+            reviewed_by: userId,
+            reviewed_at: new Date().toISOString(),
+          })
           .eq("id", withdrawalId);
         if (wdUpdateErr) throw wdUpdateErr;
 
         // Create transaction record with idempotency
-        const walletLabel = wType === 'member' ? 'Member' : wType === 'merchant' ? 'Merchant' : 'Branch';
+        const walletLabel =
+          wType === "member"
+            ? "Member"
+            : wType === "merchant"
+              ? "Merchant"
+              : "Branch";
         const wdIkey = `wdappr:${withdrawalId}`;
         await adminClient.from("transactions").insert({
           user_id: withdrawalUserId,
@@ -319,11 +353,12 @@ Deno.serve(async (req) => {
           title: "Withdrawal Approved ✅",
           message: `Your ${walletLabel.toLowerCase()} withdrawal of RM ${Number(wdAmount).toFixed(2)} has been approved and will be transferred to your bank account.`,
           type: "success",
-          branch_id: wType === 'branch' ? branchId : null,
+          branch_id: wType === "branch" ? branchId : null,
         });
 
         // Send email
-        const { data: wdUser } = await adminClient.auth.admin.getUserById(withdrawalUserId);
+        const { data: wdUser } =
+          await adminClient.auth.admin.getUserById(withdrawalUserId);
         if (wdUser?.user?.email) {
           await sendMerchantEmail(
             wdUser.user.email,
@@ -332,11 +367,25 @@ Deno.serve(async (req) => {
               <h2 style="color: #2dac76;">NOcap</h2>
               <p>Your ${walletLabel.toLowerCase()} withdrawal of <strong>RM ${Number(wdAmount).toFixed(2)}</strong> has been approved and will be transferred to your bank account.</p>
               <p style="color: #888; font-size: 13px;">Thank you for using NOcap!</p>
-            </div>`
+            </div>`,
           );
         }
 
         result = { success: true };
+
+        // Fire-and-forget: auto-disburse to bank via RaudhahPay DuitNow/IBG
+        // Non-blocking — approval already recorded; disbursement can retry independently
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        fetch(`${supabaseUrl}/functions/v1/process-withdrawal-disbursement`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-service-key": serviceKey,
+          },
+          body: JSON.stringify({ withdrawal_id: withdrawalId }),
+        }).catch((e) => console.error("disbursement trigger failed:", e));
+
         break;
       }
 
@@ -344,7 +393,12 @@ Deno.serve(async (req) => {
         const { withdrawalId: rejWdId, reason: wdReason } = body;
         const { error: rejWdErr } = await adminClient
           .from("withdrawal_requests")
-          .update({ status: "rejected", rejection_reason: wdReason || null, reviewed_by: userId, reviewed_at: new Date().toISOString() })
+          .update({
+            status: "rejected",
+            rejection_reason: wdReason || null,
+            reviewed_by: userId,
+            reviewed_at: new Date().toISOString(),
+          })
           .eq("id", rejWdId);
         if (rejWdErr) throw rejWdErr;
 
@@ -365,9 +419,12 @@ Deno.serve(async (req) => {
           await adminClient.from("notifications").insert({
             user_id: rejWdReq.user_id,
             title: "Withdrawal Rejected",
-            message: wdReason ? `Reason: ${wdReason}` : "Your withdrawal request was not approved.",
+            message: wdReason
+              ? `Reason: ${wdReason}`
+              : "Your withdrawal request was not approved.",
             type: "error",
-            branch_id: rejWdFull?.wallet_type === 'branch' ? rejWdFull.branch_id : null,
+            branch_id:
+              rejWdFull?.wallet_type === "branch" ? rejWdFull.branch_id : null,
           });
         }
 
@@ -392,53 +449,78 @@ Deno.serve(async (req) => {
 
       // Legacy: approve_branch_withdrawal now handled by approve_withdrawal with wallet_type
       case "approve_branch_withdrawal": {
-        const { withdrawalId: bwId, branchId: bwBranchId, withdrawalUserId: bwUserId, amount: bwAmount } = body;
+        const {
+          withdrawalId: bwId,
+          branchId: bwBranchId,
+          withdrawalUserId: bwUserId,
+          amount: bwAmount,
+        } = body;
 
         // ATOMIC: Debit branch wallet
-        const { error: bwDebitErr } = await adminClient.rpc('debit_wallet', {
-          p_user_id: bwUserId, p_wallet_type: 'branch', p_amount: Number(bwAmount), p_branch_id: bwBranchId,
+        const { error: bwDebitErr } = await adminClient.rpc("debit_wallet", {
+          p_user_id: bwUserId,
+          p_wallet_type: "branch",
+          p_amount: Number(bwAmount),
+          p_branch_id: bwBranchId,
         });
         if (bwDebitErr) {
-          const msg = bwDebitErr.message || '';
-          if (msg.includes('Insufficient balance')) throw new Error("Insufficient branch balance");
-          if (msg.includes('Wallet not found')) throw new Error("Branch wallet not found");
+          const msg = bwDebitErr.message || "";
+          if (msg.includes("Insufficient balance"))
+            throw new Error("Insufficient branch balance");
+          if (msg.includes("Wallet not found"))
+            throw new Error("Branch wallet not found");
           throw bwDebitErr;
         }
 
         // Also update merchant_branches.balance
         const { data: branchData } = await adminClient
-          .from("merchant_branches").select("balance").eq("id", bwBranchId).single();
+          .from("merchant_branches")
+          .select("balance")
+          .eq("id", bwBranchId)
+          .single();
         if (branchData) {
-          await adminClient.from("merchant_branches")
+          await adminClient
+            .from("merchant_branches")
             .update({ balance: Number(branchData.balance) - Number(bwAmount) })
             .eq("id", bwBranchId);
         }
 
         // ATOMIC: Credit branch owner's MEMBER wallet
-        await adminClient.rpc('credit_wallet', {
-          p_user_id: bwUserId, p_wallet_type: 'member', p_amount: Number(bwAmount),
+        await adminClient.rpc("credit_wallet", {
+          p_user_id: bwUserId,
+          p_wallet_type: "member",
+          p_amount: Number(bwAmount),
         });
 
         // Update request status
         await adminClient
           .from("withdrawal_requests")
-          .update({ status: "approved", reviewed_by: userId, reviewed_at: new Date().toISOString() })
+          .update({
+            status: "approved",
+            reviewed_by: userId,
+            reviewed_at: new Date().toISOString(),
+          })
           .eq("id", bwId);
 
         // Create transaction record with idempotency
         const bwIkey = `wdappr:${bwId}`;
         await adminClient.from("transactions").insert({
-          user_id: bwUserId, type: "withdrawal", amount: Number(bwAmount),
-          net_amount: Number(bwAmount), status: "completed",
+          user_id: bwUserId,
+          type: "withdrawal",
+          amount: Number(bwAmount),
+          net_amount: Number(bwAmount),
+          status: "completed",
           description: "Branch withdrawal to member wallet",
           idempotency_key: bwIkey,
         });
 
         // Notify branch owner
         await adminClient.from("notifications").insert({
-          user_id: bwUserId, title: "Branch Withdrawal Approved ✅",
+          user_id: bwUserId,
+          title: "Branch Withdrawal Approved ✅",
           message: `Your branch withdrawal of RM ${Number(bwAmount).toFixed(2)} has been approved and credited to your member wallet.`,
-          type: "success", branch_id: bwBranchId,
+          type: "success",
+          branch_id: bwBranchId,
         });
 
         result = { success: true };
@@ -490,7 +572,7 @@ Deno.serve(async (req) => {
           await adminClient.from("notifications").insert({
             user_id: swReq.user_id,
             title: "Withdrawal Settled ✅",
-            message: `Your withdrawal of RM ${Number(swReq.amount).toFixed(2)} has been transferred to your bank account.${settlementRef ? ` Ref: ${settlementRef}` : ''}`,
+            message: `Your withdrawal of RM ${Number(swReq.amount).toFixed(2)} has been transferred to your bank account.${settlementRef ? ` Ref: ${settlementRef}` : ""}`,
             type: "success",
           });
         }
