@@ -158,7 +158,7 @@ const MerchantOrderKanban = ({ storeId }: Props) => {
       return;
     }
 
-    const { error: shipErr } = await supabase.from("order_shipments").insert({
+    const { error: shipErr } = await (supabase as any).from("order_shipments").insert({
       order_id: orderId,
       tracking_number: trackingNumber.trim() || null,
       carrier,

@@ -177,7 +177,7 @@ const AdminVouchers = () => {
       is_active: true,
     };
 
-    const { error } = await supabase.from("platform_vouchers").insert(payload);
+    const { error } = await (supabase as any).from("platform_vouchers").insert(payload);
 
     if (error) {
       toast({
@@ -195,7 +195,7 @@ const AdminVouchers = () => {
 
   const toggleActive = async (id: string, val: boolean) => {
     setToggling(id);
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("platform_vouchers")
       .update({ is_active: val })
       .eq("id", id);
@@ -215,7 +215,7 @@ const AdminVouchers = () => {
 
   const deleteVoucher = async (id: string) => {
     setDeleting(id);
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("platform_vouchers")
       .delete()
       .eq("id", id);
