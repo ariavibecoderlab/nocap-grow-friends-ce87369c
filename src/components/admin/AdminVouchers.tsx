@@ -101,7 +101,7 @@ const AdminVouchers = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("platform_vouchers")
       .select("*")
       .order("created_at", { ascending: false });
