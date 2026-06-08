@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseClient } from "@/integrations/supabase/client";
+const supabase = _supabaseClient as any;
 import {
   Select,
   SelectContent,

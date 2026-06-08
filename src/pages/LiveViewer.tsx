@@ -19,7 +19,8 @@ import {
   Loader2,
   WifiOff,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseClient } from "@/integrations/supabase/client";
+const supabase = _supabaseClient as any;
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
