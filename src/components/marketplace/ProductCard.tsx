@@ -22,9 +22,11 @@ interface ProductCardProps {
   soldCount?: number;
   flashPrice?: number;
   onQuickView?: (id: string) => void;
+  /** Commission percent from branch (e.g. 10 = 10%). Used to show cashback chip. */
+  commissionPercent?: number;
 }
 
-export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, brandTier, rating, compact, soldCount, flashPrice, onQuickView }: ProductCardProps) {
+export default function ProductCard({ id, storeId, name, price, images, stockQuantity, storeSlug, storeName, brandTier, rating, compact, soldCount, flashPrice, onQuickView, commissionPercent }: ProductCardProps) {
   const { addItem } = useCart();
   const { toggle, isWishlisted } = useWishlist();
   const { toast } = useToast();
@@ -35,6 +37,11 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
   const wishlisted = isWishlisted(id);
   const hasDiscount = flashPrice !== undefined && flashPrice < price;
   const discountPct = hasDiscount ? Math.round((1 - flashPrice / price) * 100) : 0;
+  // Cashback = 1/6 of commission pool (buyer's share of the 6-way split)
+  const effectivePrice = hasDiscount ? flashPrice : price;
+  const cashback = commissionPercent && commissionPercent > 0
+    ? Math.floor((effectivePrice * commissionPercent / 100 / 6) * 100) / 100
+    : 0;
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -155,6 +162,14 @@ export default function ProductCard({ id, storeId, name, price, images, stockQua
             )}
           </div>
         </div>
+        {/* Cashback chip — shown when commission data is available */}
+        {cashback >= 0.01 && (
+          <div className={`inline-flex items-center gap-1 rounded-full bg-secondary/15 px-2 py-0.5 ${compact ? "mt-1" : "mt-1.5"}`}>
+            <span className={`font-semibold text-secondary ${compact ? "text-[9px]" : "text-[10px]"}`}>
+              💰 Earn RM {cashback.toFixed(2)} cashback
+            </span>
+          </div>
+        )}
         {!compact && (
           <button
             onClick={handleAdd}

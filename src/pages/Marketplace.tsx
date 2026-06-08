@@ -60,6 +60,7 @@ interface StoreInfo {
   store_name: string;
   logo_url: string | null;
   brand_tier: "standard" | "featured" | "verified" | null;
+  commission_percent?: number | null;
 }
 
 interface CategoryInfo {
@@ -225,7 +226,7 @@ const Marketplace = () => {
         const [storesRes, productsRes, categoriesRes] = await Promise.all([
           supabase
             .from("marketplace_stores")
-            .select("id, slug, store_name, logo_url, brand_tier")
+            .select("id, slug, store_name, logo_url, brand_tier, merchant_branches(commission_percent)")
             .eq("status", "live")
             .order("store_name"),
           supabase
@@ -243,7 +244,13 @@ const Marketplace = () => {
 
         if (cancelled) return;
 
-        const storeList = (storesRes.data as StoreInfo[]) || [];
+        // Flatten commission_percent out of the nested branch join
+        const storeList: StoreInfo[] = ((storesRes.data as any[]) || []).map((s) => ({
+          ...s,
+          commission_percent: Array.isArray(s.merchant_branches)
+            ? (s.merchant_branches[0]?.commission_percent ?? null)
+            : (s.merchant_branches?.commission_percent ?? null),
+        }));
         const productList = (productsRes.data as ProductRow[]) || [];
         const categoryList = (categoriesRes.data as CategoryInfo[]) || [];
 
@@ -1079,6 +1086,7 @@ const Marketplace = () => {
                     brandTier={storeMap[p.store_id]?.brand_tier}
                     rating={ratings[p.id]}
                     soldCount={p.sold_count}
+                    commissionPercent={storeMap[p.store_id]?.commission_percent ?? undefined}
                     compact
                   />
                 ))}

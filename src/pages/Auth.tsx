@@ -10,13 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { signUp, signInWithPassword } from "@/lib/auth";
@@ -35,9 +28,8 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [isNewEmail, setIsNewEmail] = useState(false);
 
-  // Dialog states
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
-  const [showSetPasswordDialog, setShowSetPasswordDialog] = useState(false);
+  // Inline step states — replace dialogs with in-page steps
+  const [step, setStep] = useState<"email" | "login" | "set-password">("email");
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -95,14 +87,11 @@ const Auth = () => {
 
     // Registration path
     if (isNewEmail) {
+      // Fall back to platform code if none provided
       if (!referralCode) {
-        toast({
-          title: "Referral code required",
-          description: "Please enter a valid referral code to register.",
-          variant: "destructive",
-        });
-        return;
+        setReferralCode("NOCAP");
       }
+      const effectiveReferralCode = referralCode || "NOCAP";
       if (password.length < 6) {
         toast({
           title: "Password required",
@@ -126,14 +115,14 @@ const Auth = () => {
       const { data: referrerId } = await (supabase.rpc as any)(
         "get_referrer_id_by_code",
         {
-          p_code: referralCode.toUpperCase(),
+          p_code: effectiveReferralCode.toUpperCase(),
         },
       );
 
       if (!referrerId) {
         toast({
           title: "Invalid referral code",
-          description: "This referral code does not exist.",
+          description: "This referral code does not exist. Leave blank to use the platform code.",
           variant: "destructive",
         });
         setLoading(false);
@@ -147,7 +136,7 @@ const Auth = () => {
         password,
         "",
         "",
-        referralCode.toUpperCase(),
+        effectiveReferralCode.toUpperCase(),
       );
 
       if (signUpError) {
@@ -214,14 +203,14 @@ const Auth = () => {
       }
 
       if (result.has_password) {
-        // Has password — show password login dialog
+        // Has password — show inline login step
         setPassword("");
-        setShowPasswordDialog(true);
+        setStep("login");
       } else {
-        // No password yet — show set password dialog
+        // No password yet — show inline set-password step
         setPassword("");
         setConfirmPassword("");
-        setShowSetPasswordDialog(true);
+        setStep("set-password");
       }
     } catch {
       toast({
@@ -243,7 +232,7 @@ const Auth = () => {
         variant: "destructive",
       });
     } else {
-      setShowPasswordDialog(false);
+      setStep("email");
       navigate("/dashboard");
     }
     setLoading(false);
@@ -280,7 +269,7 @@ const Auth = () => {
       return;
     }
 
-    setShowSetPasswordDialog(false);
+    setStep("login");
     toast({
       title: "Password set!",
       description: "Please login with your new password.",
@@ -381,89 +370,172 @@ const Auth = () => {
         <Card className="border-white/10 bg-white/5 shadow-2xl backdrop-blur">
           <CardHeader className="text-center">
             <CardTitle className="font-display text-xl text-white">
-              Welcome
+              {step === "login" ? "Welcome back" : step === "set-password" ? "Set your password" : isNewEmail ? "Create your account" : "Welcome"}
             </CardTitle>
             <CardDescription className="text-white/50">
-              Enter your email to continue
+              {step === "login" ? email : step === "set-password" ? "Choose a password for your account" : isNewEmail ? "One last step — create your password" : "Enter your email to continue"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-white/70">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="azarul@example.com"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setIsNewEmail(false);
-                }}
-                onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
-                className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
-              />
-            </div>
-            {isNewEmail && (
+
+            {/* Step: email (and registration) */}
+            {step === "email" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="referralEmail" className="text-white/70">
-                    Referral Code *
-                  </Label>
+                  <Label htmlFor="email" className="text-white/70">Email</Label>
                   <Input
-                    id="referralEmail"
-                    placeholder="Enter referral code"
-                    value={referralCode}
-                    onChange={(e) => setReferralCode(e.target.value)}
-                    className="uppercase border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setIsNewEmail(false); }}
+                    onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
+                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                    autoFocus
                   />
                 </div>
+                {isNewEmail && (
+                  <>
+                    <div className="rounded-lg border border-secondary/20 bg-secondary/5 px-3 py-2">
+                      <p className="text-xs text-secondary font-medium">New account detected 🎉</p>
+                      <p className="text-[11px] text-white/50 mt-0.5">Fill in the details below to join NOcap.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="referralEmail" className="text-white/70">
+                        Referral Code <span className="text-white/30 text-xs">(optional — leave blank to use platform code)</span>
+                      </Label>
+                      <Input
+                        id="referralEmail"
+                        placeholder="e.g. ABC123"
+                        value={referralCode}
+                        onChange={(e) => setReferralCode(e.target.value)}
+                        className="uppercase border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="regPassword" className="text-white/70">Password</Label>
+                      <Input
+                        id="regPassword"
+                        type="password"
+                        placeholder="Min 6 characters"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                      />
+                      <PasswordStrengthIndicator password={password} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="regConfirmPassword" className="text-white/70">Confirm Password</Label>
+                      <Input
+                        id="regConfirmPassword"
+                        type="password"
+                        placeholder="Re-enter password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
+                        className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                      />
+                    </div>
+                  </>
+                )}
+                <Button
+                  className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold"
+                  onClick={handleEmailSubmit}
+                  disabled={loading}
+                >
+                  {loading ? "Please wait..." : isNewEmail ? "Create Account" : "Continue"}
+                </Button>
+              </>
+            )}
+
+            {/* Step: login (existing user with password) */}
+            {step === "login" && (
+              <>
                 <div className="space-y-2">
-                  <Label htmlFor="regPassword" className="text-white/70">
-                    Password *
-                  </Label>
+                  <Label htmlFor="loginPwd" className="text-white/70">Password</Label>
                   <Input
-                    id="regPassword"
+                    id="loginPwd"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
+                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                    autoFocus
+                  />
+                </div>
+                <Button
+                  className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold"
+                  onClick={handlePasswordLogin}
+                  disabled={loading}
+                >
+                  {loading ? "Logging in..." : "Log In"}
+                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    className="flex-1 text-sm text-white/40 hover:text-white hover:bg-white/10"
+                    onClick={handleForgotPassword}
+                    disabled={loading}
+                  >
+                    Forgot Password?
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="flex-1 text-sm text-white/40 hover:text-white hover:bg-white/10"
+                    onClick={() => { setStep("email"); setPassword(""); }}
+                  >
+                    ← Back
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Step: set-password (first-time password setup) */}
+            {step === "set-password" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="newPwd" className="text-white/70">New Password</Label>
+                  <Input
+                    id="newPwd"
                     type="password"
                     placeholder="Min 6 characters"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                    autoFocus
                   />
                   <PasswordStrengthIndicator password={password} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="regConfirmPassword" className="text-white/70">
-                    Confirm Password *
-                  </Label>
+                  <Label htmlFor="confirmPwd" className="text-white/70">Confirm Password</Label>
                   <Input
-                    id="regConfirmPassword"
+                    id="confirmPwd"
                     type="password"
                     placeholder="Re-enter password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
+                    onKeyDown={(e) => e.key === "Enter" && handleSetPassword()}
                     className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
                   />
                 </div>
-                <p className="text-xs text-white/40">
-                  This email is not registered. Fill in the details above to
-                  create an account.
-                </p>
+                <Button
+                  className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold"
+                  onClick={handleSetPassword}
+                  disabled={loading}
+                >
+                  {loading ? "Setting password..." : "Set Password & Continue"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full text-sm text-white/40 hover:text-white hover:bg-white/10"
+                  onClick={() => { setStep("email"); setPassword(""); setConfirmPassword(""); }}
+                >
+                  ← Back
+                </Button>
               </>
             )}
-            <Button
-              className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold"
-              onClick={handleEmailSubmit}
-              disabled={loading}
-            >
-              {loading
-                ? "Please wait..."
-                : isNewEmail
-                  ? "Create Account"
-                  : "Continue"}
-            </Button>
+
           </CardContent>
         </Card>
 
@@ -473,102 +545,7 @@ const Auth = () => {
         </p>
       </div>
 
-      {/* Password Login Dialog */}
-      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent className="border-white/10 bg-primary text-white sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-white">Log In</DialogTitle>
-            <DialogDescription className="text-white/50">
-              Log in to your account
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="loginPwd" className="text-white/70">
-                Password
-              </Label>
-              <Input
-                id="loginPwd"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
-                className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
-                autoFocus
-              />
-            </div>
-            <Button
-              className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold"
-              onClick={handlePasswordLogin}
-              disabled={loading}
-            >
-              {loading ? "Logging in..." : "Log In"}
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full text-sm text-white/40 hover:text-white hover:bg-white/10"
-              onClick={handleForgotPassword}
-              disabled={loading}
-            >
-              Forgot Password?
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Set Password Dialog */}
-      <Dialog
-        open={showSetPasswordDialog}
-        onOpenChange={setShowSetPasswordDialog}
-      >
-        <DialogContent className="border-white/10 bg-primary text-white sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-white">Set Your Password</DialogTitle>
-            <DialogDescription className="text-white/50">
-              Create a password for your account
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="newPwd" className="text-white/70">
-                New Password
-              </Label>
-              <Input
-                id="newPwd"
-                type="password"
-                placeholder="Min 6 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
-                autoFocus
-              />
-              <PasswordStrengthIndicator password={password} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPwd" className="text-white/70">
-                Confirm Password
-              </Label>
-              <Input
-                id="confirmPwd"
-                type="password"
-                placeholder="Re-enter password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSetPassword()}
-                className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
-              />
-            </div>
-            <Button
-              className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold"
-              onClick={handleSetPassword}
-              disabled={loading}
-            >
-              {loading ? "Setting password..." : "Set Password"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Login and set-password are now inline steps — no dialogs needed */}
     </div>
   );
 };

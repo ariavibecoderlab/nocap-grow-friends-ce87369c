@@ -500,6 +500,7 @@ const MerchantDashboard = () => {
   // Sales stats
   const [totalSales, setTotalSales] = useState(0);
   const [todaySales, setTodaySales] = useState(0);
+  const [pendingOrderCount, setPendingOrderCount] = useState(0);
 
   // Deleting state
   const [deletingQr, setDeletingQr] = useState<string | null>(null);
@@ -563,6 +564,24 @@ const MerchantDashboard = () => {
             .filter((t) => t.created_at.startsWith(today))
             .reduce((s, t) => s + Number(t.amount), 0)
         );
+      }
+
+      // Fetch pending orders count for this merchant's stores
+      if (branchData && branchData.length > 0) {
+        const branchIds = branchData.map((b: Branch) => b.id);
+        const { data: storeData } = await supabase
+          .from("marketplace_stores")
+          .select("id")
+          .in("branch_id", branchIds);
+        if (storeData && storeData.length > 0) {
+          const storeIds = storeData.map((s: { id: string }) => s.id);
+          const { count } = await supabase
+            .from("marketplace_orders")
+            .select("id", { count: "exact", head: true })
+            .in("store_id", storeIds)
+            .eq("status", "pending");
+          setPendingOrderCount(count ?? 0);
+        }
       }
 
       setLoadingData(false);
@@ -929,6 +948,44 @@ const MerchantDashboard = () => {
     </div>
   );
 
+  // Daily summary bar — today's revenue, pending orders, unread chat
+  const summaryBar = (
+    <div className="grid grid-cols-3 gap-2">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-center">
+        <p className="text-[10px] text-white/40 mb-1">Today's Revenue</p>
+        <p className="font-display text-lg font-bold text-secondary">{formatRM(todaySales)}</p>
+      </div>
+      <button
+        className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-center relative hover:bg-white/10 transition-colors"
+        onClick={() => {/* navigate to orders kanban */}}
+      >
+        <p className="text-[10px] text-white/40 mb-1">Pending Orders</p>
+        <p className={`font-display text-lg font-bold ${pendingOrderCount > 0 ? "text-amber-400" : "text-white"}`}>
+          {pendingOrderCount}
+        </p>
+        {pendingOrderCount > 0 && (
+          <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-amber-400 text-primary text-[9px] font-bold flex items-center justify-center">
+            {pendingOrderCount > 9 ? "9+" : pendingOrderCount}
+          </span>
+        )}
+      </button>
+      <button
+        className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-center relative hover:bg-white/10 transition-colors"
+        onClick={() => {/* navigate to chat */}}
+      >
+        <p className="text-[10px] text-white/40 mb-1">Unread Chats</p>
+        <p className={`font-display text-lg font-bold ${chatUnread > 0 ? "text-secondary" : "text-white"}`}>
+          {chatUnread}
+        </p>
+        {chatUnread > 0 && (
+          <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-secondary text-primary text-[9px] font-bold flex items-center justify-center">
+            {chatUnread > 9 ? "9+" : chatUnread}
+          </span>
+        )}
+      </button>
+    </div>
+  );
+
   const statsBlock = (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       <Card className="border-white/10 bg-white/5">
@@ -1084,6 +1141,7 @@ const MerchantDashboard = () => {
 
   const topContent = (
     <>
+      {summaryBar}
       {statsBlock}
       {onboardingBlock}
       {apiGuideBlock}

@@ -69,6 +69,8 @@ const Withdraw = () => {
   const [bankAccountNo, setBankAccountNo] = useState("");
   const [bankAccountHolder, setBankAccountHolder] = useState("");
   const [minWithdrawal, setMinWithdrawal] = useState(50);
+  const [historyMode, setHistoryMode] = useState(false);
+  const [justSubmitted, setJustSubmitted] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -190,10 +192,11 @@ const Withdraw = () => {
         setWalletBalance(Number((result as any).new_balance));
       toast({
         title: "Withdrawal requested",
-        description: "Admin will review your request.",
+        description: "Bank transfers typically arrive within 1 business day.",
       });
       setAmount("");
       setShowForm(false);
+      setJustSubmitted(true);
       fetchData();
     }
     setSubmitting(false);
@@ -255,15 +258,38 @@ const Withdraw = () => {
 
         {hasPending && (
           <p className="text-xs text-amber-500 text-center">
-            You have a pending withdrawal request. Please wait for it to be
-            processed.
+            You have a pending withdrawal request. Please wait for it to be processed.
           </p>
         )}
 
-        {/* History */}
-        <h2 className="font-display text-sm font-semibold text-white/60 pt-2">
-          Withdrawal History
-        </h2>
+        {/* Success banner after submission */}
+        {justSubmitted && (
+          <div className="rounded-xl border border-secondary/20 bg-secondary/10 px-4 py-3 flex gap-3 items-start">
+            <CheckCircle2 className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-secondary">Request submitted!</p>
+              <p className="text-xs text-white/50 mt-0.5">Bank transfers typically arrive within 1 business day. You'll receive a notification when it's settled.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Active / History tabs */}
+        {requests.length > 0 && (
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={() => setHistoryMode(false)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${!historyMode ? "bg-secondary text-primary" : "bg-white/10 text-white/60 hover:bg-white/15"}`}
+            >
+              Active
+            </button>
+            <button
+              onClick={() => setHistoryMode(true)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${historyMode ? "bg-secondary text-primary" : "bg-white/10 text-white/60 hover:bg-white/15"}`}
+            >
+              History
+            </button>
+          </div>
+        )}
 
         {requests.length === 0 ? (
           <Card className="border-white/10 bg-white/5">
@@ -274,7 +300,12 @@ const Withdraw = () => {
             </CardContent>
           </Card>
         ) : (
-          requests.map((r) => (
+          requests
+            .filter((r) => {
+              const active = ["pending", "approved", "processing"].includes(r.status);
+              return historyMode ? !active : active;
+            })
+            .map((r) => (
             <Card
               key={r.id}
               className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"
@@ -355,7 +386,7 @@ const Withdraw = () => {
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label className="text-white/70">Amount (RM) *</Label>
+              <Label className="text-white/70">Amount (RM) — Min RM {minWithdrawal.toFixed(2)}</Label>
               <Input
                 type="number"
                 inputMode="decimal"

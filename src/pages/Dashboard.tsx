@@ -93,7 +93,9 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [balance, setBalance] = useState<number>(0);
-  const [showBalance, setShowBalance] = useState(true);
+  const [showBalance, setShowBalance] = useState<boolean>(() => {
+    try { return localStorage.getItem("nocap_show_balance") !== "false"; } catch { return true; }
+  });
   const [profile, setProfile] = useState<{
     full_name: string;
     phone: string | null;
@@ -110,6 +112,7 @@ const Dashboard = () => {
   const [loadingData, setLoadingData] = useState(true);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [isMerchant, setIsMerchant] = useState(false);
+  const [txFilter, setTxFilter] = useState<"all" | "cashback" | "payments" | "transfers">("all");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -388,7 +391,11 @@ const Dashboard = () => {
                 <span>{TERMINOLOGY.vaBalance}</span>
               </div>
               <button
-                onClick={() => setShowBalance(!showBalance)}
+                onClick={() => {
+                  const next = !showBalance;
+                  setShowBalance(next);
+                  try { localStorage.setItem("nocap_show_balance", String(next)); } catch {}
+                }}
                 className="text-white/50 hover:text-white transition-colors"
               >
                 {showBalance ? (
@@ -576,6 +583,25 @@ const Dashboard = () => {
             )}
           </div>
 
+          {/* Filter chips */}
+          {transactions.length > 0 && (
+            <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
+              {(["all", "cashback", "payments", "transfers"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setTxFilter(f)}
+                  className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    txFilter === f
+                      ? "bg-secondary text-primary"
+                      : "bg-white/10 text-white/60 hover:bg-white/15"
+                  }`}
+                >
+                  {f === "all" ? "All" : f === "cashback" ? "Cashback" : f === "payments" ? "Payments" : "Transfers"}
+                </button>
+              ))}
+            </div>
+          )}
+
           {transactions.length === 0 ? (
             <Card className="mt-3 border-white/10 bg-white/5">
               <CardContent className="flex flex-col items-center justify-center py-10 text-white/40">
@@ -586,7 +612,13 @@ const Dashboard = () => {
             </Card>
           ) : (
             <div className="mt-3 space-y-2">
-              {transactions.map((tx) => (
+              {transactions.filter((tx) => {
+                if (txFilter === "all") return true;
+                if (txFilter === "cashback") return ["cashback", "commission"].includes(tx.type);
+                if (txFilter === "payments") return ["payment", "withdrawal"].includes(tx.type);
+                if (txFilter === "transfers") return ["transfer_in", "transfer_out", "top_up"].includes(tx.type);
+                return true;
+              }).map((tx) => (
                 <Card
                   key={tx.id}
                   className="border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"

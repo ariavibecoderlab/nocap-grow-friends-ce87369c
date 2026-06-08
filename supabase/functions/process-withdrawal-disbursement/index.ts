@@ -86,7 +86,7 @@ serve(async (req) => {
   // This endpoint is internal — require the service-role key in a custom header
   // (or call it directly from another edge function using the service role)
   const callerKey = req.headers.get("x-service-key");
-  if (callerKey && callerKey !== SERVICE_KEY) {
+  if (!callerKey || callerKey !== SERVICE_KEY) {
     return json({ error: "Forbidden" }, 403);
   }
 

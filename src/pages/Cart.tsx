@@ -13,10 +13,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
 
+const PLATFORM_FEE_PERCENT = 1.5;
+const DEFAULT_COMMISSION_PERCENT = 5; // fallback if not loaded
+
 const Cart = () => {
   const navigate = useNavigate();
   const { items, itemCount, total, updateQuantity, removeItem } = useCart();
   const [storeNames, setStoreNames] = useState<Record<string, string>>({});
+  const [storeCommission, setStoreCommission] = useState<Record<string, number>>({});
 
   // Group items by store
   const storeGroups = items.reduce((acc, item) => {
@@ -25,21 +29,27 @@ const Cart = () => {
     return acc;
   }, {} as Record<string, typeof items>);
 
-  // Fetch store names for all stores in cart
+  // Fetch store names + commission for all stores in cart
   useEffect(() => {
     const ids = [...new Set(items.map((i) => i.storeId))];
     if (ids.length === 0) return;
     supabase
       .from("marketplace_stores")
-      .select("id, store_name")
+      .select("id, store_name, merchant_branches(commission_percent)")
       .in("id", ids)
       .then(({ data }) => {
         if (data) {
-          const map: Record<string, string> = {};
-          data.forEach((s) => {
-            map[s.id] = s.store_name;
+          const nameMap: Record<string, string> = {};
+          const commMap: Record<string, number> = {};
+          (data as any[]).forEach((s) => {
+            nameMap[s.id] = s.store_name;
+            const branch = Array.isArray(s.merchant_branches)
+              ? s.merchant_branches[0]
+              : s.merchant_branches;
+            commMap[s.id] = Number(branch?.commission_percent ?? DEFAULT_COMMISSION_PERCENT);
           });
-          setStoreNames(map);
+          setStoreNames(nameMap);
+          setStoreCommission(commMap);
         }
       });
   }, [items.length]);
@@ -205,6 +215,22 @@ const Cart = () => {
                 RM {total.toFixed(2)}
               </span>
             </div>
+            {/* Cashback preview — calculated per store using their commission rate */}
+            {(() => {
+              const totalCashback = items.reduce((sum, item) => {
+                const commPct = storeCommission[item.storeId] ?? DEFAULT_COMMISSION_PERCENT;
+                const pool = Math.round(item.price * item.quantity * commPct) / 100;
+                const share = Math.floor((pool / 6) * 100) / 100;
+                return sum + Math.max(0.01, share);
+              }, 0);
+              if (totalCashback < 0.01) return null;
+              return (
+                <div className="flex items-center justify-between rounded-xl bg-secondary/10 border border-secondary/20 px-3 py-2">
+                  <span className="text-xs text-secondary font-medium">💰 You'll earn cashback</span>
+                  <span className="text-sm font-bold text-secondary">RM {totalCashback.toFixed(2)}</span>
+                </div>
+              );
+            })()}
             <Button
               className="w-full bg-secondary text-primary hover:bg-secondary/90 font-semibold h-12 text-base"
               onClick={() => navigate("/checkout")}

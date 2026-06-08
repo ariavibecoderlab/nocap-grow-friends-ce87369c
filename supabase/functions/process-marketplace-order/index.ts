@@ -287,14 +287,18 @@ serve(async (req) => {
     // ── 8. Commission engine (same as process-payment) ──
     const { data: feeSetting } = await supabase
       .from('system_settings').select('value').eq('key', 'platform_fee_percent').single();
-    const platformFeePercent = feeSetting ? Number(feeSetting.value) : 2.0;
+    const platformFeePercent = feeSetting ? Number(feeSetting.value) : 1.5;
     const commissionPercent = Number(branch.commission_percent);
 
     const feeAmount = Math.round(totalAmount * platformFeePercent) / 100;
     const commissionPool = Math.round(totalAmount * commissionPercent) / 100;
     const netAmount = totalAmount - feeAmount;
-    const cashbackShare = Math.floor((commissionPool / 6) * 100) / 100;
+    // Tier shares use floor so we never over-distribute; cashback absorbs the remaining
+    // dust so the pool is always fully consumed (no lost cents).
     const tierShare = Math.floor((commissionPool / 6) * 100) / 100;
+    const cashbackShare = commissionPool > 0
+      ? Math.max(0.01, Math.round((commissionPool - 5 * tierShare) * 100) / 100)
+      : 0;
 
     // ── 9. ATOMIC: Debit buyer wallet ──
     const { data: newBuyerBalance, error: debitErr } = await supabase.rpc('debit_wallet', {
@@ -374,14 +378,29 @@ serve(async (req) => {
       orderItems.map((oi) => ({ ...oi, order_id: order.id }))
     );
 
-    // ── 12. Decrement REAL stock (only after wallet has been debited and order row created) ──
-    // This is the moment we commit inventory. Soft holds (inventory_reservations) are advisory
-    // — real stock_quantity only moves here, on payment success.
+    // ── 12. Decrement REAL stock atomically ──
+    // Uses decrement_stock RPC which only updates if stock_quantity >= qty (WHERE guard).
+    // If another concurrent order already consumed the stock, new_stock will be null
+    // and we must roll back. In practice this race is rare due to the soft-reservation
+    // system, but the atomic RPC closes the gap entirely.
     for (const item of items) {
       const product = productMap.get(item.product_id)!;
-      await supabase.from('marketplace_products')
-        .update({ stock_quantity: product.stock_quantity - item.quantity })
-        .eq('id', item.product_id);
+      const { data: newStock } = await supabase.rpc('decrement_stock', {
+        p_product_id: item.product_id,
+        p_qty: item.quantity,
+      });
+      if (newStock === null) {
+        // Stock ran out between validation and commit — rollback wallet and order
+        await supabase.rpc('credit_wallet', {
+          p_user_id: buyerId, p_wallet_type: 'member', p_amount: totalAmount,
+        });
+        await supabase.from('marketplace_orders').delete().eq('id', order.id);
+        return jsonRes({
+          error: `${product.name} just ran out of stock. Your wallet has been refunded.`,
+          code: 'OUT_OF_STOCK',
+          product_id: item.product_id,
+        }, 409);
+      }
     }
 
     // ── 12a. Consume the buyer's reservations so they stop counting against availability ──

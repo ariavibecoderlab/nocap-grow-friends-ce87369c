@@ -199,15 +199,14 @@ serve(async (req) => {
     // Calculate amounts
     const { data: feeSetting } = await supabase
       .from('system_settings').select('value').eq('key', 'platform_fee_percent').single();
-    const platformFeePercent = feeSetting ? Number(feeSetting.value) : 2.0;
+    const platformFeePercent = feeSetting ? Number(feeSetting.value) : 1.5;
     const commissionPercent = Number(branch.commission_percent);
 
     const feeAmount = Math.round(amount * platformFeePercent) / 100;
     const commissionPool = Math.round(amount * commissionPercent) / 100;
     const netAmount = amount - feeAmount;
-    const baseShare = Math.round((commissionPool / 6) * 100) / 100;
-    const cashbackShare = commissionPool > 0 ? Math.max(0.01, baseShare) : 0;
-    const tierShare = baseShare;
+    const tierShare = Math.floor((commissionPool / 6) * 100) / 100;
+    const cashbackShare = commissionPool > 0 ? Math.max(0.01, Math.round((commissionPool - 5 * tierShare) * 100) / 100) : 0;
 
     // ATOMIC: Debit payer's member wallet
     const { data: newPayerBalance, error: debitErr } = await supabase.rpc('debit_wallet', {
