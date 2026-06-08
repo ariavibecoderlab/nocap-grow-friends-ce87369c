@@ -32,6 +32,7 @@ interface ChatMessage {
   created_at: string;
   is_read: boolean;
   buyer_user_id?: string;
+  product_id?: string;
 }
 
 interface ActiveThread {
