@@ -32,6 +32,7 @@ interface ChatMessage {
   created_at: string;
   is_read: boolean;
   buyer_user_id?: string;
+  product_id?: string;
 }
 
 interface ActiveThread {
@@ -57,7 +58,7 @@ const SellerChatInbox = ({ storeId }: SellerChatInboxProps) => {
     if (!storeId) return;
     setLoadingThreads(true);
 
-    const { data: rawMessages } = await supabase
+    const { data: rawMessages } = await (supabase as any)
       .from("marketplace_chat_messages")
       .select(
         "buyer_user_id, product_id, sender_type, message, created_at, is_read"
@@ -148,10 +149,10 @@ const SellerChatInbox = ({ storeId }: SellerChatInboxProps) => {
     if (!activeThread || !user) return;
 
     const load = async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("marketplace_chat_messages")
         .select(
-          "id, sender_id, sender_type, message, created_at, is_read, buyer_user_id"
+          "id, sender_id, sender_type, message, created_at, is_read, buyer_user_id, product_id"
         )
         .eq("store_id", storeId)
         .eq("product_id", activeThread.productId)

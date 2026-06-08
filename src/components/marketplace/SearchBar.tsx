@@ -46,7 +46,7 @@ export default function SearchBar({
     }
     setLoadingSuggestions(true);
     try {
-      const { data, error } = await supabase.rpc("autocomplete_products", {
+      const { data, error } = await (supabase as any).rpc("autocomplete_products", {
         p_query: term,
         p_limit: 8,
       });

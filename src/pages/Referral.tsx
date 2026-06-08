@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseClient } from "@/integrations/supabase/client";
+const supabase = _supabaseClient as any;
 import {
   getCached,
   setCached,

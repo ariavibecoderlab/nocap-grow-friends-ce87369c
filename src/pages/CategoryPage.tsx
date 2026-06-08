@@ -81,12 +81,12 @@ export default function CategoryPage() {
   // Fetch category name
   useEffect(() => {
     if (!categoryId) return;
-    supabase
+    (supabase as any)
       .from("marketplace_categories")
       .select("id, name, description, icon_url")
       .eq("id", categoryId)
       .single()
-      .then(({ data }) => {
+      .then(({ data }: { data: any }) => {
         if (data) setCategory(data as Category);
       });
   }, [categoryId]);
@@ -105,7 +105,7 @@ export default function CategoryPage() {
       else setLoading(true);
 
       try {
-        const { data, error } = await supabase.rpc("search_products", {
+        const { data, error } = await (supabase as any).rpc("search_products", {
           p_query: null,
           p_category_id: catId,
           p_sort: currentSort,
